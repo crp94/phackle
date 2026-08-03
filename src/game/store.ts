@@ -55,11 +55,14 @@ export interface GameStore {
    * only fire from 'briefing'. */
   openData(): void;
   /** Debounced DEBOUNCE_MS; only the settled spec reaches runSpec + the log
-   * (§2.10: rapid multi-knob changes before results render count once). */
+   * (§2.10: rapid multi-knob changes before results render count once).
+   * Guarded to only fire from 'lab'. */
   changeSpec(next: Spec): void;
-  /** "Collect 50 more" — guarded to while a rendered result is visible. */
+  /** "Collect 50 more" — guarded to only fire from 'lab', and only while a
+   * rendered result is visible there. */
   peekAndExtend(): Promise<void>;
-  /** SUBMIT TO JOURNAL — guarded on a settled, valid, significant result. */
+  /** SUBMIT TO JOURNAL — guarded to only fire from 'lab', on a settled,
+   * valid, significant result. */
   submit(): Promise<void>;
   /** "Report a null result" — from the lab, any time. */
   abandon(): Promise<void>;
@@ -148,6 +151,7 @@ export function createGameStore() {
     },
 
     changeSpec(next) {
+      if (get().screen !== 'lab') throw new Error('can only change the spec from the lab');
       // The visible control state updates immediately; only the debounced
       // runSpec dispatch + VIEW_SPEC log entry wait out DEBOUNCE_MS.
       set({ spec: next });
@@ -161,6 +165,7 @@ export function createGameStore() {
     async peekAndExtend() {
       if (!client) throw new Error('not booted');
       const s = get();
+      if (s.screen !== 'lab') throw new Error('can only collect more data from the lab');
       if (s.pending || !s.result) throw new Error('no result visible to extend');
       if (s.n === MAX_N) throw new Error('max N');
 
@@ -183,6 +188,7 @@ export function createGameStore() {
 
     async submit() {
       const s = get();
+      if (s.screen !== 'lab') throw new Error('can only submit from the lab');
       if (!(s.result && s.result.valid && s.result.p < 0.05 && !s.pending)) {
         throw new Error('cannot submit: no settled, valid, significant result');
       }

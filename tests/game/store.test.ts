@@ -215,6 +215,21 @@ describe('openData (§2.2/§2.3 briefing -> lab)', () => {
 // --- changeSpec / debounce ------------------------------------------------
 
 describe('changeSpec (debounce + §2.10 logging)', () => {
+  it('throws when called after boot() but before openData() (still on briefing)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    // No openData() — screen is still 'briefing', despite boot's prefetch
+    // having already populated a live result (the exact gap fix round 2
+    // closes: lab actions must not work from briefing).
+
+    expect(() => store.getState().changeSpec(specA)).toThrow();
+    // No side effects: no debounce scheduled, no extra dispatch, spec unchanged.
+    expect(client.runSpec).toHaveBeenCalledTimes(1); // only boot's own call
+    expect(store.getState().spec).toEqual(DEFAULT_SPEC);
+    expect(store.getState().screen).toBe('briefing');
+  });
+
   it('updates the visible spec immediately, independent of the debounce', async () => {
     const client = makeFakeClient();
     const store = createGameStore();
@@ -352,6 +367,17 @@ describe('peekAndExtend', () => {
     await expect(store.getState().peekAndExtend()).rejects.toThrow('not booted');
   });
 
+  it('throws when called after boot() but before openData() (still on briefing)', async () => {
+    const client = makeFakeClient(); // default result: p=0.02, valid, not pending — would satisfy every other guard
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    // No openData() — screen is still 'briefing'.
+
+    await expect(store.getState().peekAndExtend()).rejects.toThrow();
+    expect(client.extend).not.toHaveBeenCalled();
+    expect(store.getState().screen).toBe('briefing');
+  });
+
   it('throws while a result is not yet visible (pending)', async () => {
     const client = makeFakeClient();
     // boot's own runSpec resolves normally; the NEXT call (from changeSpec
@@ -413,6 +439,21 @@ describe('peekAndExtend', () => {
 // --- submit ----------------------------------------------------------------
 
 describe('submit (§2.2 lab -> published)', () => {
+  it('throws when called after boot() but before openData() (still on briefing)', async () => {
+    // Uses the fixture's default result (p=0.02, valid=true) — exactly the
+    // "concrete demonstration" from the re-review: without the screen guard,
+    // this would satisfy submit()'s old guard and flip briefing straight to
+    // published, skipping the lab entirely.
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    // No openData() — screen is still 'briefing'.
+
+    await expect(store.getState().submit()).rejects.toThrow();
+    expect(store.getState().screen).toBe('briefing');
+    expect(store.getState().published).toBeNull();
+  });
+
   it('publishes when the result is settled, valid, and significant', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockResolvedValueOnce(makeResult({ spec: specA, p: 0.01, valid: true }));
