@@ -3,20 +3,124 @@ import { content as enContent } from '../../src/content/en';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 
-// T6 raises MIN_SCENARIOS to 20 (the full corpus lands there); grantwell and
-// journals thresholds are already at their final v1 values.
-const MIN_SCENARIOS = 2;
-// T6 raises to 20: const MIN_SCENARIOS = 20;
+const MIN_SCENARIOS = 20;
 const MIN_GRANTWELL = 12;
 const MIN_JOURNALS = 15;
 
+// Outcome-family contract (master spec §3.2): the engine always emits the four
+// outcomes in the order [heavy-tailed, positively skewed, count-like, bounded
+// 1-10 scale]. Scenario prose only *renames* those columns, so index 2 must be
+// labelled as a rate/count ("trades/week") and index 3 must name the 1-10 scale
+// the DGP actually clamps to (Y4_LOADINGS.min/max). Both patterns are numerals
+// and punctuation, so they hold for IT/ES too and live in the shared validator.
+const COUNT_UNIT = /\//;
+const BOUNDED_UNIT = /\b1\s*[–—-]\s*10\b/;
+
 /**
- * Structural + cross-reference validation for a LocaleContent object.
- * Reused as-is by the IT/ES shape tests in T19/T20, which additionally pass
- * `referenceIds` (the English scenario id order) to confirm every locale
- * ships the same scenarios, in the same order, under the same ids.
+ * The one-tailed direction contract with T7: the hypothesized direction is
+ * always POSITIVE, so every outcome must be phrased such that *more* of the
+ * metric means *more* of the claimed effect. This lexicon is a phrasing guard,
+ * not a semantics oracle — it catches the easy mistake ("Bugs shipped",
+ * "Reduction in errors"), while the semantic reading stays a human review step.
+ * The words are English, so the list is passed *into* validateLocaleContent
+ * rather than baked into it; T19/T20 supply their own.
  */
-export function validateLocaleContent(content: LocaleContent, referenceIds?: string[]): string[] {
+export const NEGATIVE_DIRECTION_LEXICON = [
+  'fewer',
+  'less',
+  'lower',
+  'reduced',
+  'reduction',
+  'decrease',
+  'decline',
+  'shorter',
+  'slower',
+  'worse',
+  'loss',
+  'error',
+  'failure',
+  'drop',
+];
+
+/**
+ * Harm check (master spec §4 preamble): hypotheses are absurd-but-benign. No
+ * screenshot of this game may be launderable into a real health claim — cats
+ * and crypto yes, drugs and diseases no. Matched at word-start so plurals and
+ * derivatives ("diets", "dietary", "therapies") are caught too.
+ */
+export const HARM_LEXICON = ['vaccine', 'drug', 'cancer', 'diet', 'cure', 'therapy', 'supplement'];
+
+function scenarioProse(content: LocaleContent): { where: string; text: string }[] {
+  return content.scenarios.flatMap((s) => [
+    { where: `${s.id}.question`, text: s.question },
+    { where: `${s.id}.coverStory`, text: s.coverStory },
+    { where: `${s.id}.treatmentLabel`, text: s.treatmentLabel },
+    { where: `${s.id}.headline`, text: s.headline },
+    ...s.outcomeLabels.map((l, i) => ({ where: `${s.id}.outcomeLabels[${i}]`, text: l })),
+    ...s.outcomeUnits.map((u, i) => ({ where: `${s.id}.outcomeUnits[${i}]`, text: u })),
+    { where: `${s.id}.covariateLabels.income`, text: s.covariateLabels.income },
+    { where: `${s.id}.covariateLabels.risk`, text: s.covariateLabels.risk },
+  ]);
+}
+
+/** Word-start matches (catches plurals/derivatives): `\bdiet` hits "dietary". */
+export function findHarmTerms(content: LocaleContent, lexicon: string[] = HARM_LEXICON): string[] {
+  const problems: string[] = [];
+  for (const { where, text } of scenarioProse(content)) {
+    for (const term of lexicon) {
+      if (new RegExp(`\\b${term}`, 'i').test(text)) {
+        problems.push(`${where} contains banned term "${term}": "${text}"`);
+      }
+    }
+  }
+  return problems;
+}
+
+/** Whole-word matches, so "wellness" does not trip "less" nor "slower" trip "lower". */
+export function findNegativeDirectionTerms(
+  content: LocaleContent,
+  lexicon: string[] = NEGATIVE_DIRECTION_LEXICON
+): string[] {
+  const problems: string[] = [];
+  for (const scenario of content.scenarios) {
+    scenario.outcomeLabels.forEach((label, i) => {
+      for (const term of lexicon) {
+        if (new RegExp(`\\b${term}\\b`, 'i').test(label)) {
+          problems.push(`scenario "${scenario.id}" outcomeLabels[${i}] reads as a decrease ("${term}"): "${label}"`);
+        }
+      }
+    });
+  }
+  return problems;
+}
+
+/**
+ * The two language-specific word lists every locale must supply. Required, not
+ * optional: a locale suite that forgot them would silently skip the harm and
+ * direction guards, which are the two checks that actually protect the product.
+ */
+export interface ContentLexicons {
+  harmTerms: string[];
+  directionTerms: string[];
+}
+
+export const EN_LEXICONS: ContentLexicons = {
+  harmTerms: HARM_LEXICON,
+  directionTerms: NEGATIVE_DIRECTION_LEXICON,
+};
+
+/**
+ * Structural + cross-reference + lexicon validation for a LocaleContent object.
+ * Reused as-is by the IT/ES shape tests in T19/T20, which pass their own
+ * `lexicons` and additionally pass `referenceIds` (the English scenario id
+ * order) to confirm every locale ships the same scenarios, in the same order,
+ * under the same ids.
+ */
+export function validateLocaleContent(
+  content: LocaleContent,
+  lexicons: ContentLexicons,
+  referenceIds?: string[]
+): string[] {
   const problems: string[] = [];
 
   if (content.scenarios.length < MIN_SCENARIOS) {
@@ -59,43 +163,84 @@ export function validateLocaleContent(content: LocaleContent, referenceIds?: str
       problems.push(`scenario "${scenario.id}" must have exactly 4 non-empty outcomeUnits`);
     }
 
+    if (!COUNT_UNIT.test(scenario.outcomeUnits[2])) {
+      problems.push(
+        `scenario "${scenario.id}" outcomeUnits[2] must read as a count rate (contain "/"): "${scenario.outcomeUnits[2]}"`
+      );
+    }
+    if (!BOUNDED_UNIT.test(scenario.outcomeUnits[3])) {
+      problems.push(
+        `scenario "${scenario.id}" outcomeUnits[3] must name the 1-10 bounded scale: "${scenario.outcomeUnits[3]}"`
+      );
+    }
+
     if (!scenario.question.trim().endsWith('?')) {
       problems.push(`scenario "${scenario.id}" question must end in "?": "${scenario.question}"`);
     }
+
+    // Headline interpolation contract: at most one token, and it must be
+    // {effect}. {n} is bound to SAMPLE SIZE elsewhere in the copy catalog
+    // (lab.nLabel, lab.collectMore), so a shared interpolator meeting an {n}
+    // here would print N into an effect slot.
+    const tokens = scenario.headline.match(/\{[^}]*\}/g) ?? [];
+    const foreign = tokens.filter((t) => t !== '{effect}');
+    if (foreign.length > 0) {
+      problems.push(
+        `scenario "${scenario.id}" headline may only use {effect}, found ${foreign.join(', ')}: "${scenario.headline}"`
+      );
+    }
+    if (tokens.length > 1) {
+      problems.push(`scenario "${scenario.id}" headline has ${tokens.length} tokens, expected at most one`);
+    }
   }
+
+  // Scenario-bound press blurbs must name scenarios that exist.
+  const idSet = new Set(ids);
+  for (const blurb of content.press) {
+    for (const id of blurb.scenarioIds ?? []) {
+      if (!idSet.has(id)) {
+        problems.push(`press blurb from "${blurb.outlet}" is bound to unknown scenario id "${id}"`);
+      }
+    }
+  }
+
+  // The two language-specific guards. Run here, not only in their own describe
+  // blocks, so every locale that calls this validator gets them for free.
+  problems.push(...findHarmTerms(content, lexicons.harmTerms));
+  problems.push(...findNegativeDirectionTerms(content, lexicons.directionTerms));
 
   return problems;
 }
 
 describe('validateLocaleContent', () => {
   it('reports no problems for the English content', () => {
-    expect(validateLocaleContent(enContent)).toEqual([]);
+    expect(validateLocaleContent(enContent, EN_LEXICONS)).toEqual([]);
   });
 
   it('passes when referenceIds matches the content ids and order', () => {
     const ids = enContent.scenarios.map((s) => s.id);
-    expect(validateLocaleContent(enContent, ids)).toEqual([]);
+    expect(validateLocaleContent(enContent, EN_LEXICONS, ids)).toEqual([]);
   });
 
   it('flags a referenceIds mismatch', () => {
-    const problems = validateLocaleContent(enContent, ['not-a-real-id']);
+    const problems = validateLocaleContent(enContent, EN_LEXICONS, ['not-a-real-id']);
     expect(problems.some((p) => p.includes('reference locale'))).toBe(true);
   });
 
   it('flags too few scenarios', () => {
     const broken: LocaleContent = { ...enContent, scenarios: enContent.scenarios.slice(0, 1) };
-    expect(validateLocaleContent(broken).some((p) => p.includes('scenarios'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('scenarios'))).toBe(true);
   });
 
   it('flags too few grantwell emails', () => {
     const broken: LocaleContent = { ...enContent, grantwell: enContent.grantwell.slice(0, 1) };
-    expect(validateLocaleContent(broken).some((p) => p.includes('grantwell'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('grantwell'))).toBe(true);
   });
 
   it('flags a duplicate scenario id', () => {
     const [first] = enContent.scenarios;
     const broken: LocaleContent = { ...enContent, scenarios: [first, first] };
-    expect(validateLocaleContent(broken).some((p) => p.includes('unique'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('unique'))).toBe(true);
   });
 
   it('flags a journalTag that no journal carries', () => {
@@ -103,7 +248,7 @@ describe('validateLocaleContent', () => {
       ...enContent,
       scenarios: [{ ...enContent.scenarios[0], journalTags: ['not-a-real-tag'] }, ...enContent.scenarios.slice(1)],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('journalTag'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('journalTag'))).toBe(true);
   });
 
   it('flags a scenario missing an outcome label', () => {
@@ -114,7 +259,7 @@ describe('validateLocaleContent', () => {
         ...enContent.scenarios.slice(1),
       ],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('outcomeLabels'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeLabels'))).toBe(true);
   });
 
   it('flags a question that does not end in "?"', () => {
@@ -122,6 +267,153 @@ describe('validateLocaleContent', () => {
       ...enContent,
       scenarios: [{ ...enContent.scenarios[0], question: 'This is not a question.' }, ...enContent.scenarios.slice(1)],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('question'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('question'))).toBe(true);
+  });
+
+  it('flags a count outcome whose unit is not a rate', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...first, outcomeUnits: [first.outcomeUnits[0], first.outcomeUnits[1], 'widgets', first.outcomeUnits[3]] },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeUnits[2]'))).toBe(true);
+  });
+
+  it('flags a bounded outcome that is not the 1-10 scale', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...first, outcomeUnits: [first.outcomeUnits[0], first.outcomeUnits[1], first.outcomeUnits[2], '0-100 index'] },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeUnits[3]'))).toBe(true);
+  });
+
+  it('flags a headline that uses the sample-size token {n}', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], headline: 'Cat Owners See {n}% Higher Returns' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('only use {effect}'))).toBe(true);
+  });
+
+  it('flags a headline with more than one token', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], headline: '{effect}% Higher Returns Over {effect} Weeks' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('at most one'))).toBe(true);
+  });
+
+  it('flags a press blurb bound to a scenario that does not exist', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      press: [{ ...enContent.press[0], scenarioIds: ['scenario-that-was-cut'] }, ...enContent.press.slice(1)],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('unknown scenario id'))).toBe(true);
+  });
+
+  // The two guards below are the reason lexicons are a required argument: a
+  // locale suite that only calls the validator must still get them.
+  it('surfaces harm-lexicon hits through the validator, not only the helper', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], coverStory: 'Participants reported their supplement use.' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('banned term'))).toBe(true);
+  });
+
+  it('surfaces direction-lexicon hits through the validator, not only the helper', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        {
+          ...first,
+          outcomeLabels: ['Reduction in weekly spend', ...first.outcomeLabels.slice(1)] as [
+            string,
+            string,
+            string,
+            string,
+          ],
+        },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('reads as a decrease'))).toBe(true);
+  });
+});
+
+describe('harm check', () => {
+  it('finds no banned medical terms anywhere in the English scenarios', () => {
+    expect(findHarmTerms(enContent)).toEqual([]);
+  });
+
+  it('catches a banned term, including as a derivative', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [{ ...first, coverStory: 'Participants reported their dietary habits.' }, ...enContent.scenarios.slice(1)],
+    };
+    expect(findHarmTerms(broken).some((p) => p.includes('diet'))).toBe(true);
+  });
+});
+
+describe('one-tailed direction contract', () => {
+  it('phrases every English outcome so that more of the metric = the claimed effect', () => {
+    expect(findNegativeDirectionTerms(enContent)).toEqual([]);
+  });
+
+  it('catches an outcome phrased as a decrease', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        {
+          ...first,
+          outcomeLabels: ['Reduction in weekly spend', ...first.outcomeLabels.slice(1)] as [
+            string,
+            string,
+            string,
+            string,
+          ],
+        },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(findNegativeDirectionTerms(broken).some((p) => p.includes('reduction'))).toBe(true);
+  });
+
+  it('does not trip on words that merely contain a lexicon term', () => {
+    const [first] = enContent.scenarios;
+    const ok: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        {
+          ...first,
+          outcomeLabels: ['Wellness composite', 'Flawless-run streak', 'Flower-arranging sessions', 'Composure'] as [
+            string,
+            string,
+            string,
+            string,
+          ],
+        },
+      ],
+    };
+    expect(findNegativeDirectionTerms(ok)).toEqual([]);
   });
 });

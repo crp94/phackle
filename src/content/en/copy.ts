@@ -34,6 +34,7 @@ export type CopyKey =
   | 'lab.nLabel'
   | 'lab.collectMore'
   | 'lab.peekFootnote'
+  | 'lab.peekFootnoteArmitage'
   | 'lab.insufficient'
   | 'published.faceTruth'
   | 'published.simulatedPress'
@@ -75,9 +76,16 @@ export type CopyKey =
   | 'about.title'
   | 'about.intro'
   | 'about.mechanism'
+  | 'about.frozenFork'
+  | 'about.syntheticDisclaimer'
   | 'about.decimalNote'
   | 'about.dataDisclosure'
   | 'about.priorArt'
+  | 'about.priorArtFiveThirtyEight'
+  | 'about.priorArtSpecCurve'
+  | 'about.priorArtForkingPaths'
+  | 'about.priorArtFalsePositive'
+  | 'about.priorArtOptionalStopping'
   | 'about.glossaryTitle'
   | 'about.contact'
   | 'legend.title'
@@ -116,7 +124,16 @@ export const copy: Record<CopyKey, string> = {
   'lab.reportNull': 'Report null result',
   'lab.nLabel': 'n = {n}',
   'lab.collectMore': 'Collect {n} more',
-  'lab.peekFootnote': 'Peeking costs nothing but honesty — every extra batch is logged.',
+  // Two footnotes, in order. The first press gets the sincere one: collecting
+  // more data is what a diligent lab does, and the logging detail is planted
+  // here to be collected at the reveal. From the 2nd press (§2.4; the UI task
+  // owns the gating) the Armitage line fades in — the master spec's verbatim
+  // text, its §1.4 citation obligation, and the ONLY Act-I moment allowed to
+  // wink. It is meant to be easy to miss. Do not make it louder, and do not
+  // add a second wink anywhere else in Act I.
+  'lab.peekFootnote': 'Collecting more data is what a careful lab does. Every batch is logged for the methods section.',
+  'lab.peekFootnoteArmitage':
+    'Fun fact: peeking five times at α = .05 inflates your false-positive rate to ~14% (Armitage, 1969).',
   'lab.insufficient': 'n < 30 — not enough data to analyze.',
 
   'published.faceTruth': 'Face the truth',
@@ -166,12 +183,26 @@ export const copy: Record<CopyKey, string> = {
   'about.intro':
     'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is the real one — outcome switching, subgroup shopping, optional stopping — the same researcher degrees of freedom used, accidentally or otherwise, in real published research.',
   'about.mechanism':
-    'The data is genuinely simulated from a declared model; the regressions are real; the specification curve is exhaustively computed, not faked. Nothing here is rigged beyond what the data-generating process discloses.',
+    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process — eight correlated latent variables, a treatment confounded with age and income, four outcome families — seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice; it is enumerated, not sampled and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty.",
+  'about.frozenFork':
+    'One analytical choice is frozen rather than offered: outlier z-scores are computed on the transformed outcome, within the filtered subsample. That is itself a fork, and freezing it is itself a decision. It is disclosed here because the forks you cannot see are the ones that do the damage.',
+  'about.syntheticDisclaimer':
+    'Nothing in this game is a finding. The participants do not exist, the data is generated in your browser, and the journals, DOIs, press outlets, headlines and quotes are all invented — which is why the press cards carry a SIMULATED PRESS watermark. The scenarios are deliberately absurd and deliberately harmless: no medical, nutritional or public-health claim appears anywhere in them, because a screenshot travels further than its caption.',
   'about.decimalNote': 'Statistical notation always uses a decimal point (p = 0.049), in every language.',
   'about.dataDisclosure':
-    'Analytics are anonymous, cookieless page counts only. No cookies, no accounts, no personal data. Your scores, streaks, and history stay in your browser.',
+    'Analytics are anonymous, cookieless page counts (Vercel Web Analytics) — no cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser\'s local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.',
   'about.priorArt':
-    'Inspired by FiveThirtyEight’s "Hack Your Way to Scientific Glory," and by the specification-curve and garden-of-forking-paths literature it draws on.',
+    'P-hackle is a small game standing on a large literature. It borrows its central demonstration, and most of its methods, from work worth reading directly:',
+  'about.priorArtFiveThirtyEight':
+    'Aschwanden & King (2015), "Hack Your Way to Scientific Glory," FiveThirtyEight — the interactive that owns this idea. It uses real data and offers no ground truth; P-hackle adds a known data-generating process, a daily seed, and the real-or-noise call.',
+  'about.priorArtSpecCurve':
+    'Simonsohn, Simmons & Nelson — specification curve analysis. The chart in the reveal is, essentially, their figure.',
+  'about.priorArtForkingPaths':
+    'Gelman & Loken — the garden of forking paths: no fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
+  'about.priorArtFalsePositive':
+    'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology" — the inventory of researcher degrees of freedom that this toolbox implements, one button at a time.',
+  'about.priorArtOptionalStopping':
+    'Armitage, McPherson & Rowe (1969) — testing repeatedly as data accumulates inflates the false-positive rate on its own, which is why every extra batch you collect is counted against you at the reveal.',
   'about.glossaryTitle': 'Glossary',
   'about.contact': 'Questions or bug reports welcome.',
 
