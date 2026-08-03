@@ -54,6 +54,14 @@
   gap: var(--space-4);
 }
 
+/* T17: the header's stats/legend/about nav — same flex-row idiom as
+   .ph-locale-toggle, reusing .ph-seg's existing styling (no new CSS needed
+   for the buttons themselves). */
+.ph-header__nav {
+  display: flex;
+  gap: var(--space-4);
+}
+
 /* R6.4: >=44x44 tap target via scale padding, not a bigger font.
    R4.6: the selected option is a 2px --ink underline, never a filled pill. */
 .ph-toggle,

@@ -19,6 +19,7 @@ export type CopyKey =
   | 'nav.puzzleNumber'
   | 'nav.about'
   | 'nav.stats'
+  | 'nav.legend'
   | 'nav.localeToggle'
   | 'nav.themePaper'
   | 'nav.themeDark'
@@ -84,6 +85,10 @@ export type CopyKey =
   | 'summary.breakdownConfirmedNull'
   | 'summary.breakdownUnderpoweredLuck'
   | 'summary.breakdownFalsePositive'
+  // T17 additions: the invoice heading, and the (currently disabled-for-now,
+  // achievement-gated) Prereg Mode upsell body line — see Summary.tsx.
+  | 'summary.invoiceTitle'
+  | 'summary.preregUpsell'
   | 'prereg.title'
   | 'prereg.commit'
   | 'prereg.locked'
@@ -94,6 +99,18 @@ export type CopyKey =
   | 'stats.callAccuracy'
   | 'stats.avgScore'
   | 'stats.close'
+  // T17 additions: rolling call accuracy, the always-both-panels prereg-vs-
+  // hacking success-rate comparison (§2.8's α lesson), the fork histogram,
+  // and the achievement wall's locked-entry aria text. See Stats.tsx.
+  | 'stats.callAccuracyLast20'
+  | 'stats.successRateTitle'
+  | 'stats.hackModeLabel'
+  | 'stats.preregModeLabel'
+  | 'stats.noData'
+  | 'stats.forkHistogramTitle'
+  | 'stats.forkHistogramBar'
+  | 'stats.achievementsTitle'
+  | 'stats.locked'
   | 'about.title'
   | 'about.intro'
   | 'about.mechanism'
@@ -109,12 +126,31 @@ export type CopyKey =
   | 'about.priorArtOptionalStopping'
   | 'about.glossaryTitle'
   | 'about.contact'
+  // T17 additions: the deploy-injected version string and the source-code link.
+  | 'about.version'
+  | 'about.sourceLink'
   | 'legend.title'
   | 'legend.explored'
   | 'legend.unexplored'
   | 'legend.significant'
   | 'legend.published'
   | 'legend.trueEffect'
+  // T17 additions: the §2.9 share-grid emoji table (Legend screen). Distinct
+  // from the 5 SpecCurve chart-legend keys just above (explored/unexplored/
+  // significant/published/trueEffect, T16's figure legend) — this is the
+  // OTHER legend, for the emoji share string (share.ts's FORK_EMOJI + the 5
+  // terminal/prefix glyphs), hence the 'emoji' infix to keep the two apart.
+  | 'legend.intro'
+  | 'legend.emojiSpec'
+  | 'legend.emojiSubgroup'
+  | 'legend.emojiExclusion'
+  | 'legend.emojiTails'
+  | 'legend.emojiPeek'
+  | 'legend.emojiSubmit'
+  | 'legend.emojiAbandon'
+  | 'legend.emojiPrereg'
+  | 'legend.emojiCallCorrect'
+  | 'legend.emojiCallIncorrect'
   | 'errors.workerCrash'
   | 'errors.storageOff'
   | 'a11y.localeToggle'
@@ -129,6 +165,7 @@ export const copy: Record<CopyKey, string> = {
   'nav.puzzleNumber': 'Puzzle #{n}',
   'nav.about': 'About',
   'nav.stats': 'Stats',
+  'nav.legend': 'Legend',
   'nav.localeToggle': 'Language',
   'nav.themePaper': 'Paper',
   'nav.themeDark': 'Dark',
@@ -210,6 +247,10 @@ export const copy: Record<CopyKey, string> = {
   'summary.breakdownUnderpoweredLuck': 'Underpowered luck',
   'summary.breakdownFalsePositive': 'False positive',
 
+  // T17 additions — see the CopyKey union above.
+  'summary.invoiceTitle': 'Invoice',
+  'summary.preregUpsell': 'Preregistration is unlocked: commit to one analysis before you see the data.',
+
   'prereg.title': 'Preregistration',
   'prereg.commit': 'Commit to this spec',
   'prereg.locked': 'Locked in — no more changes until the reveal.',
@@ -221,6 +262,17 @@ export const copy: Record<CopyKey, string> = {
   'stats.callAccuracy': 'Call accuracy',
   'stats.avgScore': 'Average score',
   'stats.close': 'Close',
+
+  // T17 additions — see the CopyKey union above.
+  'stats.callAccuracyLast20': 'Last 20 calls',
+  'stats.successRateTitle': 'Success rate: hacking vs. preregistration',
+  'stats.hackModeLabel': 'Hacking Mode',
+  'stats.preregModeLabel': 'Prereg Mode',
+  'stats.noData': '—',
+  'stats.forkHistogramTitle': 'Forks per day',
+  'stats.forkHistogramBar': '{forks} forks: {count}',
+  'stats.achievementsTitle': 'Achievements',
+  'stats.locked': 'Locked achievement',
 
   'about.title': 'About P-hackle',
   'about.intro':
@@ -249,12 +301,31 @@ export const copy: Record<CopyKey, string> = {
   'about.glossaryTitle': 'Glossary',
   'about.contact': 'Questions or bug reports welcome.',
 
+  // T17 additions — see the CopyKey union above.
+  'about.version': 'Version {version}',
+  'about.sourceLink': 'Source on GitHub',
+
   'legend.title': 'Legend',
   'legend.explored': 'Specification you viewed',
   'legend.unexplored': "Specification you didn't view",
   'legend.significant': 'p < .05',
   'legend.published': 'The one you published',
   'legend.trueEffect': 'True effect',
+
+  // T17 additions — the §2.9 share-grid emoji table; see the CopyKey union
+  // above for why these are 'emoji'-infixed and distinct from the 5 keys
+  // just above (T16's SpecCurve chart legend).
+  'legend.intro': 'How to read a shared result.',
+  'legend.emojiSpec': 'Any specification change (outcome, covariates or transform)',
+  'legend.emojiSubgroup': 'Subgroup filter change',
+  'legend.emojiExclusion': 'Outlier exclusion change',
+  'legend.emojiTails': 'Switched to one-tailed',
+  'legend.emojiPeek': 'Collected more data ("just one more batch")',
+  'legend.emojiSubmit': 'Submitted for publication',
+  'legend.emojiAbandon': 'Reported a null result',
+  'legend.emojiPrereg': 'Preregistered (prefix)',
+  'legend.emojiCallCorrect': 'Call was correct',
+  'legend.emojiCallIncorrect': 'Call was incorrect',
 
   'errors.workerCrash': "Something went wrong generating today's puzzle. Reloading usually fixes it.",
   'errors.storageOff': "Your browser is blocking local storage, so progress won't be saved between visits.",
