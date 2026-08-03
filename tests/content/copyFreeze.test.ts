@@ -70,6 +70,28 @@ const BRACKET_RE = /\bcopy\[\s*(['"`])([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+)\1\s*\]/g
  * "repeatable check" is deliberately narrower and complementary, not a
  * tsc replacement; run both (this suite's "full gate" always includes
  * `npx tsc --noEmit`).
+ *
+ * A SECOND, DIFFERENT blind spot (disclosed honestly, not just the one
+ * above): both regexes require a LITERAL quote character immediately after
+ * `t(` / `copy[` — so a DYNAMIC call site, `t(someVariable)` or
+ * `copy[someVariable]`, is invisible to this scan entirely; it contributes
+ * nothing to `referencedKeys`' output, neither a hit nor a miss. This
+ * codebase has exactly two such sites today: `Legend.tsx`'s
+ * `t(entry.labelKey)` (`entry: LegendEntry`, `labelKey: CopyKey`) and
+ * `Summary.tsx`'s invoice row `t(key)` (`key` destructured from
+ * `breakdown: [CopyKey, number][]`). Both are CURRENTLY SAFE for the same
+ * reason the previous paragraph's literal-in-a-typed-slot case is: the
+ * value flowing into each call is already typed `CopyKey` at its own
+ * declaration, so `tsc` rejects an invalid one there regardless of whether
+ * this regex scan can see the call site — the same "complementary to tsc,
+ * not a replacement for it" relationship, just from the opposite direction
+ * (a false NEGATIVE here instead of this file's other false-positive risk).
+ * This is a property to PRESERVE, not just a fact to note: any new dynamic
+ * `t(...)`/`copy[...]` call site must keep feeding it a value some other
+ * declaration already types as `CopyKey` (never a plain `string`, and never
+ * a value reaching it via an `as CopyKey` cast, which suppresses exactly
+ * the check this paragraph is relying on) — otherwise a typo'd dynamic key
+ * would be invisible to BOTH this test and `tsc`.
  */
 function referencedKeys(text: string): string[] {
   const keys: string[] = [];

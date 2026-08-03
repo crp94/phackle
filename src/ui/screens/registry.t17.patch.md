@@ -168,6 +168,58 @@ flex; gap: var(--space-4); }`, reusing the existing `.ph-seg` button styling
   lives in `tests/ui/appNav.test.tsx` (T17's own file) instead, to respect
   file ownership boundaries.
 
+## 2a. The nav-remount interaction (review fix — read this before merging)
+
+**This is the reason `persistAndComputeSummary` has a durable (storage-based,
+not React-ref-based) idempotency guard, and it is exactly the interaction the
+merge controller needs to re-verify survives whatever the final, reconciled
+`App.tsx` looks like.**
+
+§2's wiring means the header nav and the game machine are siblings under the
+same `<main>`, switched by `page`: `{page === 'game' && children}` — where
+`children` is (per T14's report) `<ScreenRouter />`, which in turn renders
+whatever `SCREENS[screen]` is, i.e. `SummaryScreen` once `screen ===
+'summary'`. Clicking "Stats" sets `page` to `'stats'`; React UNMOUNTS the
+`page === 'game'` branch entirely (and everything under it, including
+`ScreenRouter` and `SummaryScreen`) rather than merely hiding it. Clicking
+"Close" on the Stats page sets `page` back to `'game'`, which REMOUNTS that
+whole branch — a fresh `SummaryScreen`, with a fresh `savedRef` (`useRef(false)`
+re-initializes on every mount), and the underlying game-store singleton is
+completely unaffected by any of this (`screen` is still `'summary'`, `reveal`
+is still populated, exactly as before the detour).
+
+Before the review fix, `SummaryScreen`'s only guard against re-persisting was
+that `savedRef`, so this exact click sequence — finish a day, land on Summary
+(persists once, correctly), open Stats, close Stats — fired
+`persistAndComputeSummary` a SECOND time for the SAME (todayIso, mode), and
+`storage.ts`'s `saveDay` builds `callsTotal`/`callsCorrect`/`careerPoints`/
+`hackDays`/`preregDays`/`forkHistogram` as INCREMENTS (not an upsert), so every
+such visit silently inflated every one of those numbers — exactly the ones
+the Stats page the player just came from was displaying.
+
+**The fix:** `persistAndComputeSummary` now checks `loadState().history[todayIso]?.[mode]`
+itself — real persisted storage, which survives the remount, StrictMode, or
+any other component-lifecycle event — and skips the `saveDay` call entirely
+when that record already exists (see the function's own doc comment in
+`Summary.tsx` for the full reasoning, including how the streak/share-text
+computation stays correct either way). `SummaryScreen`'s `savedRef` still
+exists as a cheap same-mount optimization (avoids redundant
+`loadState()`/`scoreDay()` work within one mount, e.g. under StrictMode's
+dev-only double-effect), but it is no longer the CORRECTNESS guard — the
+durable one is. **Whatever shape the final merged `App.tsx`/registry ends up
+taking, as long as it is even theoretically possible for the same finished
+day's `SummaryScreen` to mount more than once (which any conditional-render
+nav sitting alongside the game machine implies), this durable guard is what
+keeps that safe — it does not depend on anything about how the remount is
+triggered.** Verified directly: `tests/ui/summary.test.tsx`'s "does not
+persist a finished day twice across a real unmount/remount (the nav path)"
+test renders the actual `SummaryScreen` default export against a real,
+store-driven 'summary' state (booted via a fake `EngineClient` through
+`submit`→`makeCall`→`finishReveal`, the same sequence `store.test.ts` itself
+uses), asserts the persisted `PersistedStats` numbers after the first mount,
+unmounts, remounts, and asserts those exact numbers are UNCHANGED (not merely
+that `saveDay`/`localStorage.setItem` was called a certain number of times).
+
 ## 3. Files this task added under `src/ui/screens/`
 
 `Summary.tsx`/`.css`, `Stats.tsx`/`.css`, `Legend.tsx`/`.css`, `About.tsx`/

@@ -89,6 +89,11 @@ export type CopyKey =
   // achievement-gated) Prereg Mode upsell body line — see Summary.tsx.
   | 'summary.invoiceTitle'
   | 'summary.preregUpsell'
+  // T17 review fix (Important #1): shown when shareViaNavigator's whole
+  // fallback chain rejects (no share API AND a failing clipboard write) —
+  // share.ts's own doc comment says a rejection is "not swallowed... so the
+  // caller can surface an error"; this is that surface.
+  | 'summary.shareFailed'
   | 'prereg.title'
   | 'prereg.commit'
   | 'prereg.locked'
@@ -250,6 +255,7 @@ export const copy: Record<CopyKey, string> = {
   // T17 additions — see the CopyKey union above.
   'summary.invoiceTitle': 'Invoice',
   'summary.preregUpsell': 'Preregistration is unlocked: commit to one analysis before you see the data.',
+  'summary.shareFailed': "Couldn't share this result.",
 
   'prereg.title': 'Preregistration',
   'prereg.commit': 'Commit to this spec',

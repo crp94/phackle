@@ -47,6 +47,7 @@ export interface SummaryProps {
 
 export function Summary({ t, breakdown, score, streak, now, shareText, preregUnlocked }: SummaryProps) {
   const [toastVisible, setToastVisible] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -54,13 +55,25 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
   }, []);
 
   async function handleShare() {
-    const result = await shareViaNavigator(shareText);
-    // Only the clipboard path gets a toast — navigator.share already shows
-    // the OS's own share sheet, which is its own confirmation.
-    if (result === 'copied') {
-      setToastVisible(true);
-      if (toastTimeout.current) clearTimeout(toastTimeout.current);
-      toastTimeout.current = setTimeout(() => setToastVisible(false), TOAST_MS);
+    // A fresh attempt always clears any previous failure message — a retry
+    // that succeeds shouldn't leave a stale error sitting on screen.
+    setShareFailed(false);
+    try {
+      const result = await shareViaNavigator(shareText);
+      // Only the clipboard path gets a toast — navigator.share already shows
+      // the OS's own share sheet, which is its own confirmation.
+      if (result === 'copied') {
+        setToastVisible(true);
+        if (toastTimeout.current) clearTimeout(toastTimeout.current);
+        toastTimeout.current = setTimeout(() => setToastVisible(false), TOAST_MS);
+      }
+    } catch {
+      // share.ts's own doc comment: a rejection here (no share API AND a
+      // failing clipboard write) is "not swallowed... so the caller can
+      // surface an error" — this is that surface. Quiet clinical register
+      // (Act II), role="alert" (not "status" like the success toast): this
+      // is a failure, not a passive confirmation.
+      setShareFailed(true);
     }
   }
 
@@ -107,6 +120,15 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
         {toastVisible && (
           <p role="status" aria-live="polite" className="ph-summary__toast">
             {t('summary.copied')}
+          </p>
+        )}
+        {/* Same quiet, --muted styling as the success toast (DESIGN.md R1.3:
+            --sig-red is reserved for exactly 4 places, none of which is a
+            transient share-failure line) — only the ARIA role differs:
+            "alert" for a failure, "status" for a passive confirmation. */}
+        {shareFailed && (
+          <p role="alert" className="ph-summary__toast">
+            {t('summary.shareFailed')}
           </p>
         )}
       </div>
@@ -161,13 +183,26 @@ export interface ComputedSummary {
  * Turns one finished day into the numbers Summary renders, AND is the one
  * place in the app that actually persists it (§5.6) — flagged as an open
  * seam by T13's own report ("a natural seam for whichever task ... wires
- * Reveal -> Summary"). Not itself idempotent against being CALLED twice for
- * the same day (storage.ts's stats fields are running increments, not an
- * upsert) — SummaryScreen below guards that with a mount-scoped ref, which
- * covers the realistic risk (React StrictMode's dev-only double-effect); a
- * genuine full page reload resets the whole in-memory game store back to
- * 'briefing' anyway, so there is no path back to 'summary' for the same
- * finished day without replaying it.
+ * Reveal -> Summary").
+ *
+ * IDEMPOTENT against being called more than once for the same (todayIso,
+ * mode) — this is load-bearing, not a nicety: `SummaryScreen`'s own
+ * mount-scoped `savedRef` guard only protects a SINGLE mount (e.g. React
+ * StrictMode's dev-only double-effect); it does NOT survive App.tsx's
+ * header nav, whose local page-state unmounts the running game machine
+ * (including this screen) when the player clicks "Stats"/"Legend"/"About"
+ * and remounts it — with a FRESH `savedRef` — on the way back (see
+ * `src/ui/screens/registry.t17.patch.md`'s "nav-remount interaction"
+ * section). `storage.ts`'s `saveDay` builds `callsTotal`/`callsCorrect`/
+ * `careerPoints`/`hackDays`/`preregDays`/`forkHistogram` as INCREMENTS, not
+ * an upsert, so a second `saveDay` for the same day+mode would silently
+ * inflate every one of those numbers on every such visit. The durable guard
+ * below is `loadState().history[todayIso]?.[mode]` — real storage, which
+ * survives remounts, StrictMode, and any other component-lifecycle event —
+ * rather than anything React-lifecycle-scoped. The invoice/streak/share
+ * text still render identically either way (this function recomputes them
+ * fresh every call, from the same deterministic inputs); only the actual
+ * `saveDay` write is skipped once the record already exists.
  *
  * Prereg Mode's own flow (commit-before-data, no significance gate on
  * submit — unlike Hacking Mode, where store.submit() only ever fires once
@@ -193,19 +228,30 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
   const scoreResult = scoreDay({ mode, dayType, published, callCorrect, forks, stamp, preregSig });
 
   const state = loadState();
+  // The DURABLE idempotency guard (see the doc comment above): storage
+  // itself, not a React ref, so it survives an unmount/remount of this
+  // whole screen (the nav path) and not merely a StrictMode double-effect.
+  const alreadySaved = state.history[todayIso]?.[mode] !== undefined;
 
   // The resulting streak (INCLUDING today) is needed before the DayRecord
-  // can be built (its shareString embeds it) — computed by mirroring
-  // storage.ts's own saveDay history-merge via the already-exported
-  // streakAfter, rather than calling saveDay first and reading its result
-  // back (which would need a second, redundant persistState round-trip).
-  const placeholderRec = { mode, score: 0, forks: 0, stamp, shareString: '' };
-  const mergedHistory = { ...state.history, [todayIso]: { ...state.history[todayIso], [mode]: placeholderRec } };
-  const { streak } = streakAfter(mergedHistory, todayIso);
+  // can be built (its shareString embeds it). If today's record already
+  // exists, `state.history` already reflects it — streakAfter can read it
+  // directly. Otherwise, mirror storage.ts's own saveDay history-merge via
+  // the already-exported streakAfter over a PLACEHOLDER entry (streakAfter
+  // only checks presence of `.hack`/`.prereg`, never field values, so a
+  // placeholder is exact for this purpose) — computing what the streak
+  // WOULD BE once saved, without a second, redundant persistState round-trip.
+  const historyForStreak = alreadySaved
+    ? state.history
+    : {
+        ...state.history,
+        [todayIso]: { ...state.history[todayIso], [mode]: { mode, score: 0, forks: 0, stamp, shareString: '' } },
+      };
+  const { streak } = streakAfter(historyForStreak, todayIso);
 
   const shareText = shareString({ puzzleNumber, log, mode, callCorrect: callCorrect ?? false, streak, copy });
 
-  if (!practice) {
+  if (!practice && !alreadySaved) {
     saveDay(todayIso, {
       mode,
       score: scoreResult.score,
