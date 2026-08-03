@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="P-hackle — the daily p-hacking game">
+  <!--
+    Master spec section 7.6 OG image: "the RETRACTED stamp over a blurred
+    journal cover plus tagline". Task T21 controller pins: 1200x630, no
+    external images or fonts (system serif stack only), palette discipline
+    restricted to the paper/ink/sig-red tokens (docs/DESIGN.md's radius and
+    spacing rules do not bind this poster). Rendered once via
+    scripts/generate-pwa-images.mjs (at resvg/resvg-js) to public/og.png;
+    this file is never loaded at runtime.
+
+    Layers, back to front:
+      1. paper background
+      2. "cover" group: a fake journal cover/headline, blurred and faded
+         (feGaussianBlur plus group opacity), the "blurred journal cover mock"
+      3. "stamp" group: crisp, rotated about -12deg, with a distressed-edge
+         filter (feTurbulence/feDisplacementMap, per master spec section
+         7.1's own "SVG filter, no image assets" description of this stamp)
+      4. tagline: crisp, plain text, on clear paper below the cover card
+  -->
+  <defs>
+    <filter id="coverBlur" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="2.4" />
+    </filter>
+    <filter id="stampDistress" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+
+  <!-- 1. paper background -->
+  <rect width="1200" height="630" fill="#FBF8F1" />
+
+  <!-- 2. blurred/subdued fake journal-cover mock -->
+  <g filter="url(#coverBlur)" opacity="0.8">
+    <rect x="100" y="36" width="1000" height="460" rx="4" fill="#FBF8F1" stroke="#1C1B18" stroke-opacity="0.25" stroke-width="2" />
+
+    <text x="600" y="90" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="20" letter-spacing="3" fill="#1C1B18" fill-opacity="0.75">P-HACKLE &#183; VOL. 1, NO. 42</text>
+    <line x1="160" y1="110" x2="1040" y2="110" stroke="#1C1B18" stroke-opacity="0.25" stroke-width="1.5" />
+
+    <text x="600" y="182" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="46" font-weight="700" fill="#1C1B18">Null Result Confirmed</text>
+    <text x="600" y="236" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="46" font-weight="700" fill="#1C1B18">After Extensive Reanalysis</text>
+
+    <text x="600" y="274" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="19" font-style="italic" fill="#1C1B18" fill-opacity="0.7">A. Researcher, B. Coauthor</text>
+    <line x1="160" y1="298" x2="1040" y2="298" stroke="#1C1B18" stroke-opacity="0.25" stroke-width="1.5" />
+
+    <!-- abstract paragraph, stood in for by plain bars -->
+    <rect x="170" y="326" width="660" height="11" rx="2" fill="#1C1B18" fill-opacity="0.3" />
+    <rect x="170" y="350" width="700" height="11" rx="2" fill="#1C1B18" fill-opacity="0.3" />
+    <rect x="170" y="374" width="610" height="11" rx="2" fill="#1C1B18" fill-opacity="0.3" />
+    <rect x="170" y="398" width="680" height="11" rx="2" fill="#1C1B18" fill-opacity="0.3" />
+    <rect x="170" y="422" width="560" height="11" rx="2" fill="#1C1B18" fill-opacity="0.3" />
+
+    <text x="600" y="470" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" fill="#1C1B18" fill-opacity="0.55">10.1337/phk.042</text>
+  </g>
+
+  <!-- 3. the RETRACTED stamp: crisp, rotated, distressed edges -->
+  <g transform="rotate(-12 600 300)" filter="url(#stampDistress)">
+    <rect x="290" y="195" width="620" height="210" rx="14" fill="#FBF8F1" fill-opacity="0.97" stroke="#B3261E" stroke-width="9" />
+    <rect x="306" y="211" width="588" height="178" rx="8" fill="none" stroke="#B3261E" stroke-width="3.5" />
+    <text x="600" y="318" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="70" font-weight="700" letter-spacing="3" fill="#B3261E">RETRACTED</text>
+    <text x="600" y="366" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="19" letter-spacing="4" fill="#B3261E">BY THE EDITORIAL BOARD</text>
+  </g>
+
+  <!-- 4. tagline: crisp, on clear paper, below the cover card -->
+  <text x="600" y="578" text-anchor="middle" font-family="Georgia, 'Times New Roman', Times, serif" font-size="33" fill="#1C1B18">You will find <tspan font-weight="700" fill="#B3261E">p &lt; 0.05</tspan>. That's the problem.</text>
+</svg>
