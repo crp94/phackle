@@ -20,6 +20,10 @@ export interface PathResult {
   ci: [number, number]; excludedCount: number; valid: boolean; // n>=30
 }
 
+// trueBeta (T11 clarification): on effect days, the INJECTED magnitude in the
+// true outcome's own raw units (effect.d * the pre-injection sample sd of
+// that outcome column) — not the bare standardized `d` draw. See day.ts's
+// assemblePuzzle for how it's computed and why the distinction matters.
 export interface DailyPuzzle {           // worker-side only until reveal
   isoDate: string; puzzleNumber: number; scenarioId: string;
   dayType: DayType; trueOutcome?: Outcome; trueBeta?: number;

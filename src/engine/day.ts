@@ -278,6 +278,61 @@ function puzzleNumberFor(iso: string): number {
   return daysFromCivil(y, m, d) - daysFromCivil(ey, em, ed) + 1;
 }
 
+// ---- trueBeta (T11 controller amendment) ----
+
+/** Sample standard deviation (n-1 denominator) — a private, local duplicate
+ * of dgp.ts's own (unexported) meanAndSd, needed ONLY to reconstruct the
+ * exact baseline sd effect injection multiplied by (see effectMagnitude
+ * below): same loop order as dgp.ts's copy, so the float result is
+ * bit-identical to whatever dgp.ts's injection pass actually used.
+ * Deliberately duplicated rather than exported from dgp.ts and imported here
+ * — mirroring this file's own puzzleNumberFor precedent above (and dgp.ts's
+ * own precedent of duplicating meanAndSd rather than cross-importing from
+ * stats.ts): small pure numeric helpers get duplicated, not shared, across
+ * this codebase's independently-evolving engine modules. */
+function sampleSd(v: Float64Array): number {
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) sum += v[i];
+  const mean = sum / v.length;
+
+  let sq = 0;
+  for (let i = 0; i < v.length; i++) {
+    const dev = v[i] - mean;
+    sq += dev * dev;
+  }
+  return Math.sqrt(sq / (v.length - 1));
+}
+
+/**
+ * The actual injected magnitude, in the true outcome's own raw units (T11
+ * controller amendment: DailyPuzzle.trueBeta / RevealPayload.trueBeta must
+ * carry this, not the bare standardized `d` draw — §2.7.1's reveal line
+ * reads "β = 0.24", a raw-units number, not a re-labeled effect size).
+ *
+ * dgp.ts's generateRows defines the injection as (§3.2) "generate all Y
+ * first with beta=0; compute sd = meanSd(y[j*]).sd; add d*sd*x[i]" — a
+ * single pass over the *complete* array, run AFTER the per-row loop that
+ * produces every Y column. By the time `acceptedData` is in hand, that
+ * injection has already happened, so the pre-injection sd can't be read back
+ * off `acceptedData.y[outcome]` directly — the injection itself shifts the
+ * treated group's mean (and therefore the column's sd).
+ *
+ * generateRows' per-row loop never actually consults `effect` at all — only
+ * the post-loop injection pass does (see generateRows' own header comment on
+ * the "one deliberate exception" to its prefix property) — so
+ * generateDataset(seed, null) with the SAME seed reproduces the exact
+ * pre-injection column byte-for-byte. This is exactly what
+ * tests/engine/dgp.test.ts's own "diff-in-diff: ... == d*sd" test already
+ * relies on to verify the injection itself, so re-deriving `sd` the same way
+ * here is a proven-sound pattern, not a new assumption. The cost (one extra
+ * full 400-row generateDataset call) is negligible next to the
+ * up-to-MAX_ATTEMPTS calls the acceptance loop above it already pays.
+ */
+function effectMagnitude(seed: number, outcome: Outcome, d: number): number {
+  const baseline = generateDataset(seed, null);
+  return d * sampleSd(baseline.y[outcome]);
+}
+
 // ---- shared puzzle assembly ----
 
 interface AssembleArgs {
@@ -324,7 +379,7 @@ function assemblePuzzle(args: AssembleArgs): GeneratedDay {
     scenarioId: String(scenarioIdx),
     dayType,
     trueOutcome: params.outcome,
-    trueBeta: params.d,
+    trueBeta: effectMagnitude(seedForAttempt(attemptUsed), params.outcome, params.d),
     ...(params.hetero ? { heterogeneous: { subgroup: params.heteroSubgroup, multiplier: HETERO_MULTIPLIER } } : {}),
     attemptUsed,
     nFull: 400,
