@@ -9,6 +9,7 @@
 //
 // Uses @resvg/resvg-js (devDependency), which loads system fonts by default
 // -- exactly what the SVGs' "system serif stack" font-family lists rely on.
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,13 +25,54 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // serif happens to sort first on whatever machine re-runs this script; the
 // SVGs' own font-family lists stay a generic "system serif stack" for intent,
 // this is just resvg's fallback-of-last-resort.
+const SERIF_FAMILY = 'DejaVu Serif';
+const SANS_FAMILY = 'DejaVu Sans';
+const MONO_FAMILY = 'DejaVu Sans Mono';
+
 const FONT_OPTIONS = {
   loadSystemFonts: true,
-  serifFamily: 'DejaVu Serif',
-  sansSerifFamily: 'DejaVu Sans',
-  monospaceFamily: 'DejaVu Sans Mono',
-  defaultFontFamily: 'DejaVu Serif',
+  serifFamily: SERIF_FAMILY,
+  sansSerifFamily: SANS_FAMILY,
+  monospaceFamily: MONO_FAMILY,
+  defaultFontFamily: SERIF_FAMILY,
 };
+
+/**
+ * Fix round 1 (Important #2): the families above were previously hardcoded
+ * with no check that they actually exist on the machine running this
+ * script -- re-running it on a box without DejaVu installed would silently
+ * fall through to resvg's own fallback-of-last-resort again and reproduce
+ * the exact Greek-glyph bug this pinning exists to prevent (see the T21
+ * report §4), just as silently as the original bug happened. This is a
+ * manual, one-off script (never part of `npm run build`), so a hard throw
+ * naming exactly what's missing -- not a silent degrade -- is correct here.
+ */
+function assertFontsResolvable(families) {
+  let fcList;
+  try {
+    fcList = execFileSync('fc-list', [], { encoding: 'utf8' });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `generate-pwa-images.mjs: could not run \`fc-list\` to verify the pinned font families ` +
+        `(${families.map((f) => `"${f}"`).join(', ')}) are installed on this machine (${cause}). ` +
+        'Install fontconfig (Debian/Ubuntu: `apt-get install fontconfig`) so `fc-list` is on PATH, then re-run. ' +
+        'Without this check, a missing family silently falls back to an arbitrary system font instead of failing loudly.',
+    );
+  }
+  const missing = families.filter((family) => !fcList.includes(family));
+  if (missing.length > 0) {
+    throw new Error(
+      `generate-pwa-images.mjs: required font famil${missing.length === 1 ? 'y' : 'ies'} not found via \`fc-list\`: ` +
+        `${missing.map((f) => `"${f}"`).join(', ')}. This script pins these fonts explicitly so resvg's text ` +
+        "rendering is deterministic; without them installed, resvg silently falls back to an arbitrary system " +
+        'font instead (on a past run, a symbol font that rendered Latin text as Greek-lookalike glyphs -- see ' +
+        'the T21 report §4). Install hint (Debian/Ubuntu): `apt-get install fonts-dejavu-core`, then re-run.',
+    );
+  }
+}
+
+assertFontsResolvable([SERIF_FAMILY, SANS_FAMILY, MONO_FAMILY]);
 
 /** @param {string} svgPath @param {string} outPath @param {number} [fitWidth] */
 function render(svgPath, outPath, fitWidth) {

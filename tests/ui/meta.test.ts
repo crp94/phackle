@@ -90,8 +90,17 @@ describe('index.html inline theme-flash boot script (ledgered from T5)', () => {
 
   it('maps paper -> light and dark -> dark, the same vocabulary as LocaleProvider.domTheme', () => {
     expect(bootScript).toContain("theme === 'dark'");
-    expect(bootScript).toContain("theme !== 'paper'");
     expect(bootScript).toMatch(/data-theme',\s*dark\s*\?\s*'dark'\s*:\s*'light'/);
+  });
+
+  it('consults matchMedia ONLY when no value is stored at all -- any stored value (valid or not) maps straight through, matching readStoredTheme() ?? systemTheme() exactly (fix round 1, Important #1)', () => {
+    // A truthy `theme` must short-circuit to `theme === 'dark'` and never
+    // reach matchMedia -- not just for 'paper', but for ANY stored value,
+    // including one that's neither 'dark' nor 'paper' (domTheme's own
+    // fallthrough-to-light applies there too; LocaleProvider's
+    // readStoredTheme() only falls back to systemTheme()'s matchMedia via
+    // `??` when the stored value is null/undefined, not merely non-'dark').
+    expect(bootScript).toMatch(/dark\s*=\s*theme\s*\?\s*theme === 'dark'\s*:\s*matchMedia/);
   });
 
   it('falls back to matchMedia prefers-color-scheme when no theme is stored, same as systemTheme()', () => {
@@ -215,5 +224,20 @@ describe('inline theme-flash boot script behaviour (self-review: cannot throw on
     stubMatchMedia(true);
     expect(runBootScript).not.toThrow();
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+  });
+
+  it("stamps 'light' for a stored-but-invalid theme value, matching domTheme's fallthrough -- NOT matchMedia, even though matchMedia prefers dark (fix round 1, Important #1 regression test)", () => {
+    // Regression test for the exact bug the coordinator's review caught:
+    // a parseable-but-invalid stored theme (neither 'dark' nor 'paper', e.g.
+    // a future schema bug or hand-edited storage) must map straight to
+    // light via domTheme's own `=== 'dark' ? 'dark' : 'light'` fallthrough,
+    // the same as the real app would (readStoredTheme() returns the raw
+    // stored string as a *truthy* value here, so LocaleProvider's `??
+    // systemTheme()` never fires) -- it must NOT fall through to
+    // matchMedia and pick dark just because the stored value isn't 'paper'.
+    stubStorage(() => JSON.stringify({ settings: { theme: 'sepia' } }));
+    stubMatchMedia(true); // system prefers dark; the stored (if invalid) value must still win, mapping to light
+    expect(runBootScript).not.toThrow();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 });

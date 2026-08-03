@@ -13,16 +13,24 @@
       'light' is the DOM contract. This is a duck-typed, best-effort read of
       the same phackle.v1 key storage.ts owns; it never writes, so a wrong
       guess (corrupt JSON, private-browsing lockout) is harmless and gets
-      corrected the instant LocaleProvider's own useLayoutEffect runs. The
-      inner try/catch isolates the storage read (localStorage may throw
-      outright, e.g. Safari private browsing); the outer one is a backstop
-      so this script can never throw and block the page.
+      corrected the instant LocaleProvider's own useLayoutEffect runs.
+      `theme ? theme === 'dark' : matchMedia(...)` deliberately matches
+      domTheme/readStoredTheme exactly, not just its two named cases:
+      matchMedia is consulted ONLY when no value is stored at all (a falsy
+      `theme`, mirroring readStoredTheme() ?? systemTheme()'s `??`); ANY
+      stored value -- 'dark', 'paper', or a stored-but-invalid string a
+      future schema/version bug could leave behind -- maps straight through
+      via `=== 'dark'`, same as domTheme's own fallthrough-to-light, with no
+      second matchMedia consultation. The inner try/catch isolates the
+      storage read (localStorage may throw outright, e.g. Safari private
+      browsing); the outer one is a backstop so this script can never throw
+      and block the page.
     -->
     <script>
       try {
         var theme;
         try { theme = JSON.parse(localStorage.getItem('phackle.v1')).settings.theme; } catch (e) {}
-        var dark = theme === 'dark' || (theme !== 'paper' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
       } catch (e) {}
     </script>
