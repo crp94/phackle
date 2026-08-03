@@ -20,9 +20,13 @@ export type CopyKey =
   | 'nav.about'
   | 'nav.stats'
   | 'nav.localeToggle'
+  | 'nav.themePaper'
+  | 'nav.themeDark'
   | 'briefing.openData'
   | 'briefing.correspondingAuthor'
   | 'briefing.vol'
+  | 'email.from'
+  | 'email.subject'
   | 'lab.outcome'
   | 'lab.subgroup'
   | 'lab.covariates'
@@ -101,10 +105,15 @@ export const copy: Record<CopyKey, string> = {
   'nav.about': 'About',
   'nav.stats': 'Stats',
   'nav.localeToggle': 'Language',
+  'nav.themePaper': 'Paper',
+  'nav.themeDark': 'Dark',
 
   'briefing.openData': 'Open Data',
   'briefing.correspondingAuthor': 'Corresponding author: Prof. R. Grantwell',
   'briefing.vol': 'Vol. {volume}, No. {issue}',
+
+  'email.from': 'From:',
+  'email.subject': 'Subject:',
 
   'lab.outcome': 'Outcome',
   'lab.subgroup': 'Subgroup',

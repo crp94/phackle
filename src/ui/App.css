@@ -1,0 +1,86 @@
+.ph-app {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */
+.ph-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-16);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-16) var(--space-24);
+  border-block-end: var(--hairline);
+}
+
+.ph-header__masthead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+}
+
+.ph-header__wordmark {
+  font-weight: var(--weight-medium);
+}
+
+/* R2.4: puzzle volume/issue are numerals — mono, tabular. */
+.ph-header__vol {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.ph-header__vol::before {
+  content: '·';
+  margin-inline-end: var(--space-8);
+}
+
+.ph-header__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.ph-locale-toggle {
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* R6.4: >=44x44 tap target via scale padding, not a bigger font.
+   R4.6: the selected option is a 2px --ink underline, never a filled pill. */
+.ph-toggle,
+.ph-seg {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-toggle:hover,
+.ph-seg:hover {
+  text-decoration: underline;
+}
+
+.ph-toggle:focus-visible,
+.ph-seg:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-seg[aria-pressed='true'] {
+  border-block-end: 2px solid var(--ink);
+}
