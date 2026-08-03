@@ -31,7 +31,7 @@ import { puzzleNumber as gamePuzzleNumber } from '../../src/game/daily';
 import { MAX_ATTEMPTS, NULL_SIG_BAND } from '../../src/game/tuning';
 import { enumerateCurve, sigCount } from '../../src/engine/specGrid';
 import type { CurvePoint } from '../../src/engine/specGrid';
-import type { Spec } from '../../src/engine/types';
+import type { PathResult, Spec } from '../../src/engine/types';
 
 const SCENARIO_COUNT = 20; // production scenario count (T6: 20 English scenarios)
 
@@ -237,6 +237,136 @@ describe('best-attempt fallback — end-to-end via mocked tuning constants', () 
       expect(message).toContain('1'); // the mocked MAX_ATTEMPTS
     } finally {
       warnSpy.mockRestore();
+      vi.doUnmock('../../src/game/tuning');
+      vi.resetModules();
+    }
+  });
+});
+
+// --- null-day precheck actually GATES enumerateCurve (T9 review round 1 fix) ---
+//
+// Round 1 review caught that the precheck was being *read off* an
+// unconditionally-computed enumerateCurve result rather than actually
+// deciding whether to compute it -- letter-correct decision, zero gating.
+// These two tests force each side of that branch deterministically (via a
+// mocked runSpec, since the precheck itself calls runSpec directly -- see
+// day.ts's nullDayPrecheckHit) and spy on enumerateCurve (specGrid.ts) to
+// prove the expensive step really is skipped/run accordingly.
+
+describe('null-day precheck gates enumerateCurve', () => {
+  it('a precheck-failing attempt completes without enumerateCurve ever being invoked', async () => {
+    vi.resetModules();
+
+    let enumerateCurveCalls = 0;
+    vi.doMock('../../src/engine/specGrid', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/engine/specGrid')>();
+      return {
+        ...actual,
+        enumerateCurve: (...args: Parameters<typeof actual.enumerateCurve>) => {
+          enumerateCurveCalls++;
+          return actual.enumerateCurve(...args);
+        },
+      };
+    });
+    vi.doMock('../../src/engine/analyze', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/engine/analyze')>();
+      return {
+        ...actual,
+        // Force every precheck spec-check to be non-significant, regardless
+        // of the real underlying data -- guarantees the precheck fails on
+        // every attempt, deterministically (no date-mining required to find
+        // a real day whose fixed 256-spec subsample happens to miss).
+        runSpec: (): PathResult => ({
+          spec: {} as Spec,
+          n: 200,
+          beta: 0,
+          se: 1,
+          t: 0.1,
+          p: 0.9,
+          ci: [0, 0],
+          excludedCount: 0,
+          valid: true,
+        }),
+      };
+    });
+    vi.doMock('../../src/game/tuning', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/game/tuning')>();
+      return { ...actual, MAX_ATTEMPTS: 2 }; // small, keeps this (cap-exhaustion) test fast
+    });
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { generateDay: generateDayMocked } = await import('../../src/engine/day');
+      // 2026-09-02 is a verified NULL day for this seed set.
+      const { puzzle } = generateDayMocked('2026-09-02', SCENARIO_COUNT);
+
+      expect(puzzle.dayType).toBe('null');
+      expect(enumerateCurveCalls).toBe(0);
+      // Fallback-of-last-resort: no attempt ever got a sigCount computed, so
+      // the loop deterministically falls back to the first attempt (see
+      // acceptNullDay's comment) rather than paying for an enumeration.
+      expect(puzzle.attemptUsed).toBe(0);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0].join(' ')).toContain('n/a (precheck never passed)');
+    } finally {
+      warnSpy.mockRestore();
+      vi.doUnmock('../../src/engine/specGrid');
+      vi.doUnmock('../../src/engine/analyze');
+      vi.doUnmock('../../src/game/tuning');
+      vi.resetModules();
+    }
+  });
+
+  it('a precheck-passing attempt invokes enumerateCurve exactly once', async () => {
+    vi.resetModules();
+
+    let enumerateCurveCalls = 0;
+    vi.doMock('../../src/engine/specGrid', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/engine/specGrid')>();
+      return {
+        ...actual,
+        enumerateCurve: (...args: Parameters<typeof actual.enumerateCurve>) => {
+          enumerateCurveCalls++;
+          return actual.enumerateCurve(...args);
+        },
+      };
+    });
+    vi.doMock('../../src/engine/analyze', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/engine/analyze')>();
+      return {
+        ...actual,
+        // Force every precheck spec-check to be significant --
+        // nullDayPrecheckHit early-exits on the very first one, so this
+        // alone guarantees the precheck passes deterministically,
+        // independent of whether the real underlying data's fixed
+        // 256-subsample happens to contain a hit.
+        runSpec: (): PathResult => ({
+          spec: {} as Spec,
+          n: 200,
+          beta: 1,
+          se: 0.1,
+          t: 8,
+          p: 0.0001,
+          ci: [0, 0],
+          excludedCount: 0,
+          valid: true,
+        }),
+      };
+    });
+    vi.doMock('../../src/game/tuning', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/game/tuning')>();
+      return { ...actual, MAX_ATTEMPTS: 1 }; // exactly one attempt -- makes "exactly once" unambiguous
+    });
+
+    try {
+      const { generateDay: generateDayMocked } = await import('../../src/engine/day');
+      const { puzzle } = generateDayMocked('2026-09-02', SCENARIO_COUNT);
+
+      expect(puzzle.dayType).toBe('null');
+      expect(enumerateCurveCalls).toBe(1);
+    } finally {
+      vi.doUnmock('../../src/engine/specGrid');
+      vi.doUnmock('../../src/engine/analyze');
       vi.doUnmock('../../src/game/tuning');
       vi.resetModules();
     }

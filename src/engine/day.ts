@@ -10,18 +10,29 @@
 //
 // Acceptance (§3.3, controller-amended):
 //   attempt = 0, 1, 2, ... MAX_ATTEMPTS-1, dataset from a per-mode seed:
-//   - null day: sigCount(enumerateCurve(data, 200)) must land in
-//     NULL_SIG_BAND, AND a fixed stride-7 subsample of the 1792 specs (256 of
-//     them, in allSpecs()/enumerateCurve()'s own fixed order) must contain at
-//     least one significant point ("precheck"). Both are required; either
-//     failing rejects the attempt.
+//   - null day: a fixed stride-7 subsample of the 1792 specs (256 of them, in
+//     allSpecs()'s own fixed order) must contain at least one significant
+//     point ("precheck") -- checked FIRST, via direct runSpec calls, and
+//     gating the expensive step: only when it passes do we run the full
+//     1792-spec enumeration (enumerateCurve) to get sigCount(...,200), which
+//     must then land in NULL_SIG_BAND. Both are required for acceptance;
+//     either failing rejects the attempt -- but the precheck failing means
+//     the (expensive) full enumeration is never even computed for that
+//     attempt. See acceptNullDay's own comment and the T9 fix report for the
+//     measured cost of getting this ordering wrong (T9 review round 1 caught
+//     an earlier version that computed the full curve unconditionally and
+//     merely *read* the precheck off a slice of it -- letter-correct
+//     decision, but never actually gated anything).
 //   - effect day: the canonical spec (true outcome j*, everyone, both
 //     covariates, no exclusion, canonicalTransform(j*), two-tailed) must have
 //     p < .05 at N=400 AND p < .15 at N=200. p@200 < .15 always implies the
 //     precheck's p@200 < .3, so both p@200 and p@400 are always computed for
-//     every attempt (cheap -- single-spec regressions) and the "precheck"
-//     exists here purely as its own named, spec-traceable condition, not as
-//     a computation-skipping optimization (see the T9 report's self-review).
+//     every attempt (cheap -- single-spec regressions, unlike the null-day
+//     path's full enumeration) and the "precheck" exists here purely as its
+//     own named, spec-traceable condition, not as a computation-skipping
+//     optimization (see the T9 report's self-review -- the reviewer
+//     confirmed this one is fine, since neither p@200 nor p@400 is
+//     expensive).
 //   - cap: if no attempt passes within MAX_ATTEMPTS, accept the best-scoring
 //     attempt among the ones already generated (bandDistance for null days,
 //     pickBestEffectAttempt for effect days) and console.warn exactly once.
@@ -31,7 +42,7 @@ import { generateDataset } from './dgp';
 import { fnv1a32 } from './prng';
 import { daySeed, dayTypeFor, effectParamsFor, scenarioIndexFor } from './seeds';
 import type { CurvePoint } from './specGrid';
-import { enumerateCurve, sigCount, specKey } from './specGrid';
+import { allSpecs, enumerateCurve, sigCount, specKey } from './specGrid';
 import type { DailyPuzzle, Outcome, Spec } from './types';
 import { EPOCH, HETERO_MULTIPLIER, MAX_ATTEMPTS, NULL_SIG_BAND } from '../game/tuning';
 
@@ -117,35 +128,89 @@ const EFFECT_PRECHECK_P200_MAX = 0.3;
 const EFFECT_P200_MAX = 0.15;
 const EFFECT_P400_MAX = 0.05;
 
+// The fixed 256-spec precheck subsample (§3.3, controller-pinned): every 7th
+// spec in allSpecs()'s own fixed order (stride 7, start 0) -- 1792/7 = 256
+// exactly. allSpecs() is a pure, dataset-independent function, so this list
+// is the same for every attempt/date/call; computed once here rather than
+// re-filtering allSpecs() on every attempt (mirrors dgp.ts's CORRELATION_R/
+// CHOLESKY module-load-time precomputation).
+const PRECHECK_SPECS: Spec[] = allSpecs().filter((_, i) => i % 7 === 0);
+
+/**
+ * The null-day precheck (§3.3): true iff at least one of the fixed 256-spec
+ * subsample is significant at N=200. Deliberately calls `runSpec` directly,
+ * spec by spec, with an early exit on the first hit -- NOT `enumerateCurve`
+ * -- so this cheap-ish check can run BEFORE, and actually gate, the
+ * expensive full 1792-spec enumeration (see acceptNullDay below). An earlier
+ * version of this file called `enumerateCurve` first and read the precheck
+ * off a slice of the resulting array -- correct in its DECISION (same 256
+ * specs, same "any significant" logic, since enumerateCurve's per-spec
+ * {p,valid} is bit-for-bit identical to runSpec's, per specGrid.ts's own
+ * parity guarantee), but that ordering meant the "cheap" check never
+ * actually happened before the expensive one -- caught in T9 review round 1
+ * (see the T9 fix report for the measured wall-clock cost of each
+ * ordering).
+ */
+function nullDayPrecheckHit(data: Dataset): boolean {
+  for (const spec of PRECHECK_SPECS) {
+    const result = runSpec(data, spec, 200);
+    if (result.valid && result.p < 0.05) return true;
+  }
+  return false;
+}
+
+interface NullCandidate {
+  attempt: number;
+  data: Dataset;
+  // null iff the precheck failed and the full curve was therefore never
+  // computed for this attempt (see acceptNullDay) -- there is no sigCount to
+  // record in that case, by construction of the fix this type exists for.
+  sig: number | null;
+}
+
+function hasSig(c: NullCandidate): c is NullCandidate & { sig: number } {
+  return c.sig !== null;
+}
+
 function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext: string): AcceptanceResult {
-  const candidates: { attempt: number; data: Dataset; sig: number }[] = [];
+  const candidates: NullCandidate[] = [];
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const data = generateDataset(seedForAttempt(attempt), null);
-    const curve = enumerateCurve(data, 200);
 
-    // Precheck: fixed stride-7 subsample of the 256 specs, in
-    // allSpecs()/enumerateCurve()'s own fixed order (specGrid.ts guarantees
-    // these two never drift apart) -- at least one must be significant.
-    let precheckHit = false;
-    for (let i = 0; i < curve.length; i += 7) {
-      if (curve[i].valid && curve[i].p < 0.05) {
-        precheckHit = true;
-        break;
-      }
+    // Precheck FIRST -- gates the expensive step. Only when it passes do we
+    // pay for the full 1792-spec enumeration; when it fails, this attempt is
+    // rejected without ever computing enumerateCurve at all (§3.3: "only if
+    // the precheck passes do you run the full enumeration gates").
+    if (!nullDayPrecheckHit(data)) {
+      candidates.push({ attempt, data, sig: null });
+      continue;
     }
 
-    const sig = sigCount(curve);
-    const accepted = precheckHit && sig >= NULL_SIG_BAND[0] && sig <= NULL_SIG_BAND[1];
-    if (accepted) return { attemptUsed: attempt, data };
-
+    const sig = sigCount(enumerateCurve(data, 200));
+    if (sig >= NULL_SIG_BAND[0] && sig <= NULL_SIG_BAND[1]) {
+      return { attemptUsed: attempt, data };
+    }
     candidates.push({ attempt, data, sig });
   }
 
-  const chosen = pickMinBy(candidates, (c) => bandDistance(c.sig, NULL_SIG_BAND));
+  // Best-attempt fallback (§3.3 controller amendment): nearest-to-band among
+  // attempts that actually got a sigCount computed (precheck passed but the
+  // band check didn't). If literally every attempt failed the precheck --
+  // meaning no sigCount was ever computed for any of them, an astronomically
+  // unlikely event (it would take MAX_ATTEMPTS independent draws each
+  // missing every one of a subsample that's typically ~2-10% significant;
+  // see the T9 fix report's 30-day measurement) -- there is no sigCount left
+  // to compare, so this deterministically falls back to the first attempt
+  // rather than paying for an enumeration just to break a tie that's
+  // otherwise undecidable from the data we have.
+  const scored = candidates.filter(hasSig);
+  const chosen = scored.length > 0 ? pickMinBy(scored, (c) => bandDistance(c.sig, NULL_SIG_BAND)) : candidates[0];
+
+  const sigDisplay = chosen.sig === null ? 'n/a (precheck never passed)' : String(chosen.sig);
   console.warn(
     `P-hackle acceptance loop: ${warnContext} exhausted MAX_ATTEMPTS=${MAX_ATTEMPTS} without a passing ` +
-      `attempt (null day); using best-attempt fallback (attempt ${chosen.attempt}, sigCount=${chosen.sig}).`,
+      `attempt (null day); using best-attempt fallback (attempt ${chosen.attempt}, sigCount=${sigDisplay}).`,
   );
   return { attemptUsed: chosen.attempt, data: chosen.data };
 }
