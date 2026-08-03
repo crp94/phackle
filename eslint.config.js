@@ -29,7 +29,7 @@ const noNewDate = {
 };
 
 export default tseslint.config(
-  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', '.superpowers']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', '.superpowers', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
