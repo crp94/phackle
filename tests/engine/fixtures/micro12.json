@@ -1,0 +1,296 @@
+{
+  "dataset": {
+    "age": [
+      25,
+      30,
+      35,
+      45,
+      50,
+      55,
+      28,
+      32,
+      60,
+      22,
+      48,
+      38
+    ],
+    "urban": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "experience": [
+      1,
+      2,
+      0,
+      2,
+      1,
+      0,
+      2,
+      1,
+      0,
+      2,
+      1,
+      0
+    ],
+    "income": [
+      30000,
+      45000,
+      25000,
+      60000,
+      35000,
+      50000,
+      28000,
+      40000,
+      70000,
+      22000,
+      48000,
+      33000
+    ],
+    "risk": [
+      0.3,
+      0.5,
+      0.2,
+      0.6,
+      0.4,
+      0.55,
+      0.25,
+      0.45,
+      0.65,
+      0.15,
+      0.5,
+      0.35
+    ],
+    "x": [
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "y0": [
+      10,
+      10.2,
+      9.8,
+      10.1,
+      9.9,
+      13,
+      0,
+      5,
+      -5,
+      20,
+      -10,
+      25
+    ],
+    "y1": [
+      110,
+      110.2,
+      109.8,
+      110.1,
+      109.9,
+      113,
+      100,
+      105,
+      95,
+      120,
+      90,
+      125
+    ],
+    "y2": [
+      10,
+      10.2,
+      9.8,
+      10.1,
+      9.9,
+      13,
+      0,
+      5,
+      -5,
+      20,
+      -10,
+      25
+    ],
+    "y3": [
+      10,
+      10.2,
+      9.8,
+      10.1,
+      9.9,
+      13,
+      0,
+      5,
+      -5,
+      20,
+      -10,
+      25
+    ]
+  },
+  "specs": [
+    {
+      "name": "A_urban_z2_raw_order_proof",
+      "spec": {
+        "outcome": 0,
+        "subgroup": "urban",
+        "covariates": {
+          "income": false,
+          "risk": false
+        },
+        "exclusion": "z2",
+        "transform": "raw",
+        "tails": "two"
+      },
+      "n": 5,
+      "beta": -0.25,
+      "se": 0.083333333333,
+      "t": -3.0,
+      "p": 0.057668885622,
+      "ci": [
+        -0.515204906464,
+        0.015204906464
+      ],
+      "excludedCount": 1,
+      "valid": false
+    },
+    {
+      "name": "B_all_log1p_shifted_income",
+      "spec": {
+        "outcome": 0,
+        "subgroup": "all",
+        "covariates": {
+          "income": true,
+          "risk": false
+        },
+        "exclusion": "none",
+        "transform": "log1p",
+        "tails": "two"
+      },
+      "n": 12,
+      "beta": -1.057712273305,
+      "se": 0.449788175209,
+      "t": -2.351578657693,
+      "p": 0.043193232401,
+      "ci": [
+        -2.075206514071,
+        -0.040218032539
+      ],
+      "excludedCount": 0,
+      "valid": false
+    },
+    {
+      "name": "C_urban_log1p_unshifted",
+      "spec": {
+        "outcome": 0,
+        "subgroup": "urban",
+        "covariates": {
+          "income": false,
+          "risk": false
+        },
+        "exclusion": "none",
+        "transform": "log1p",
+        "tails": "two"
+      },
+      "n": 6,
+      "beta": -0.098570673357,
+      "se": 0.076104681082,
+      "t": -1.295198560133,
+      "p": 0.264947808211,
+      "ci": [
+        -0.30987377706,
+        0.112732430346
+      ],
+      "excludedCount": 0,
+      "valid": false
+    },
+    {
+      "name": "D_age_ge40_z2_5_risk_onetail",
+      "spec": {
+        "outcome": 0,
+        "subgroup": "age_ge40",
+        "covariates": {
+          "income": false,
+          "risk": true
+        },
+        "exclusion": "z2_5",
+        "transform": "raw",
+        "tails": "one"
+      },
+      "n": 5,
+      "beta": -16.311392405063,
+      "se": 7.739189989193,
+      "t": -2.107635608874,
+      "p": 0.915193801926,
+      "ci": [
+        -49.61037742355,
+        16.987592613423
+      ],
+      "excludedCount": 0,
+      "valid": false
+    },
+    {
+      "name": "E_exp_high_z3_log1p_outcome1",
+      "spec": {
+        "outcome": 1,
+        "subgroup": "exp_high",
+        "covariates": {
+          "income": false,
+          "risk": false
+        },
+        "exclusion": "z3",
+        "transform": "log1p",
+        "tails": "two"
+      },
+      "n": 4,
+      "beta": -0.124063357845,
+      "se": 0.05660905407,
+      "t": -2.191581539087,
+      "p": 0.15975400359,
+      "ci": [
+        -0.367632005988,
+        0.119505290298
+      ],
+      "excludedCount": 0,
+      "valid": false
+    },
+    {
+      "name": "F_exp_low_both_covs_df0_onetail",
+      "spec": {
+        "outcome": 0,
+        "subgroup": "exp_low",
+        "covariates": {
+          "income": true,
+          "risk": true
+        },
+        "exclusion": "none",
+        "transform": "raw",
+        "tails": "one"
+      },
+      "n": 4,
+      "beta": 0.0,
+      "se": 0.0,
+      "t": 0.0,
+      "p": 1.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "excludedCount": 0,
+      "valid": false
+    }
+  ]
+}
