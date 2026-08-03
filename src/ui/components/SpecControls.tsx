@@ -1,13 +1,14 @@
 // The Lab's six specification knobs (master spec §2.4, §7.3; DESIGN.md
 // R6.5): every fork is a segmented radiogroup, never a <select> — a dropdown
-// hides the garden of forking paths, which is the whole lesson. Each group
-// is a WAI-ARIA radiogroup with roving tabindex: arrow keys both move focus
-// AND change the selection (native radio-button behavior), matching the
-// brief's "arrow-key moves selection & fires one debounced runSpec" (the
-// debounce itself lives in store.changeSpec — this component only calls the
-// `onChange` prop it's given).
-import type { KeyboardEvent } from 'react';
+// hides the garden of forking paths, which is the whole lesson. The shared
+// radiogroup mechanics (roving tabindex, arrow keys move + select) live in
+// RadioGroup.tsx (post-review fix: extracted so this file stays under the
+// ≤150-line component cap) — this file only maps each of the six Spec axes
+// to its own set of options and wires onChange to a full, updated Spec. The
+// debounce itself lives in store.changeSpec; this component just calls the
+// `onChange` prop it's given.
 import { useLocale } from '../../i18n/LocaleProvider';
+import { RadioGroup } from './RadioGroup';
 import type { Outcome, Spec } from '../../engine/types';
 import type { Scenario } from '../../content/types';
 import './SpecControls.css';
@@ -32,73 +33,12 @@ function covariatesFromChoice(choice: CovariateChoice): Spec['covariates'] {
   return { income: choice === 'income' || choice === 'both', risk: choice === 'risk' || choice === 'both' };
 }
 
-interface RadioOption<T> {
-  value: T;
-  label: string;
-}
-
-interface GroupProps<T extends string | number> {
-  name: string;
-  legend: string;
-  options: RadioOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  disabled: boolean;
-}
-
-/** One radiogroup: a visible legend (`--muted`, uppercase per R2.7) plus its
- * `role="radio"` options. WAI-ARIA radiogroup pattern: Right/Down selects
- * the next option (wrapping), Left/Up the previous — focus moves WITH the
- * new selection, exactly like a native <input type="radio"> group. */
-function Group<T extends string | number>({ name, legend, options, value, onChange, disabled }: GroupProps<T>) {
-  const legendId = `ph-spec-${name}-legend`;
-
-  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    const idx = options.findIndex((o) => o.value === value);
-    let next = -1;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % options.length;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + options.length) % options.length;
-    if (next === -1) return;
-    e.preventDefault();
-    onChange(options[next].value);
-    const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
-    buttons[next]?.focus();
-  }
-
-  return (
-    <div className="ph-spec-group">
-      <p className="ph-spec-group__legend" id={legendId}>
-        {legend}
-      </p>
-      <div className="ph-spec-group__options" role="radiogroup" aria-labelledby={legendId} onKeyDown={handleKeyDown}>
-        {options.map((opt) => {
-          const selected = opt.value === value;
-          return (
-            <button
-              key={String(opt.value)}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              tabIndex={selected ? 0 : -1}
-              disabled={disabled}
-              className={selected ? 'ph-radio ph-radio--selected' : 'ph-radio'}
-              onClick={() => onChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export function SpecControls({ spec, onChange, scenario, disabled }: SpecControlsProps) {
   const { t } = useLocale();
 
   return (
     <div className="ph-spec-controls">
-      <Group<Outcome>
+      <RadioGroup<Outcome>
         name="outcome"
         legend={t('lab.outcome')}
         value={spec.outcome}
@@ -106,7 +46,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
         onChange={(outcome) => onChange({ ...spec, outcome })}
         options={scenario.outcomeLabels.map((label, i) => ({ value: i as Outcome, label }))}
       />
-      <Group<Spec['subgroup']>
+      <RadioGroup<Spec['subgroup']>
         name="subgroup"
         legend={t('lab.subgroup')}
         value={spec.subgroup}
@@ -122,7 +62,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
           { value: 'rural', label: t('lab.subgroupRural') },
         ]}
       />
-      <Group<CovariateChoice>
+      <RadioGroup<CovariateChoice>
         name="covariates"
         legend={t('lab.covariates')}
         value={covariateChoice(spec.covariates)}
@@ -141,7 +81,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
           },
         ]}
       />
-      <Group<Spec['exclusion']>
+      <RadioGroup<Spec['exclusion']>
         name="exclusion"
         legend={t('lab.exclusion')}
         value={spec.exclusion}
@@ -154,7 +94,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
           { value: 'z2', label: t('lab.exclusionZ2') },
         ]}
       />
-      <Group<Spec['transform']>
+      <RadioGroup<Spec['transform']>
         name="transform"
         legend={t('lab.transform')}
         value={spec.transform}
@@ -165,7 +105,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
           { value: 'log1p', label: t('lab.transformLog1p') },
         ]}
       />
-      <Group<Spec['tails']>
+      <RadioGroup<Spec['tails']>
         name="tails"
         legend={t('lab.tails')}
         value={spec.tails}
