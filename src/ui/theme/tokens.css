@@ -46,6 +46,12 @@
   --dial-step-1: #5E6B5A;
   --dial-step-2: #4E6C56;
   --dial-step-3: #3E6D52;
+  /* The Call overlay's dimmed backdrop (R4.2): --ink at 60% alpha, exactly as
+     R4.2 specifies. No separate dark-theme declaration needed -- --ink
+     already flips per theme, so this follows automatically, the same as
+     --sig-band (R7.4). Never used for text (R1.7's TEXT_TOKENS excludes it),
+     only as a full-viewport wash behind the Call modal. */
+  --scrim: color-mix(in srgb, var(--ink) 60%, transparent);
 
   /* --- Surfaces ----------------------------------------------------------- */
   --hairline: 1px solid var(--rule);

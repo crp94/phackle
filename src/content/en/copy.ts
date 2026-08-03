@@ -25,6 +25,11 @@ export type CopyKey =
   | 'briefing.openData'
   | 'briefing.correspondingAuthor'
   | 'briefing.vol'
+  // T15 additions: the Grantwell EmailCard's `from`/`subject` prop VALUES
+  // (email.from/email.subject, just above and below, are the generic
+  // "From:"/"Subject:" LABELS EmailCard renders itself — see EmailCard.tsx).
+  | 'briefing.emailFrom'
+  | 'briefing.emailSubject'
   | 'email.from'
   | 'email.subject'
   | 'lab.outcome'
@@ -76,6 +81,18 @@ export type CopyKey =
   | 'published.simulatedPress'
   | 'published.editorsPick'
   | 'published.doiPrefix'
+  // T15 addition: JournalCover's citation-style "authors" line.
+  | 'published.authors'
+  // T15 addition: the celebration's inline career-points figure (R1.6: the
+  // one place --hack-gold-ink paints characters, alongside the confetti
+  // marks that use plain --hack-gold).
+  | 'published.careerPoints'
+  // T15 review fix: master spec §2.5's fifth celebration element, the fake
+  // altmetric counter — static and tier-scaled (see src/game/published.ts's
+  // altmetricScore/altmetricPercentile), never the spec's "spinning up"
+  // motion (a fifth, un-budgeted animation).
+  | 'published.altmetricScore'
+  | 'published.altmetricPercentile'
   | 'call.title'
   | 'call.real'
   | 'call.noise'
@@ -218,8 +235,16 @@ export const copy: Record<CopyKey, string> = {
   'nav.themeDark': 'Dark',
 
   'briefing.openData': 'Open Data',
-  'briefing.correspondingAuthor': 'Corresponding author: Prof. R. Grantwell',
+  // Fix (T15 review, subsumed one-liner): the PLAYER is the paper's author
+  // ("You"); Grantwell is only the PI *emailing* them (briefing.emailFrom).
+  // "Corresponding author: You" is master spec §2.3/§7.3's own wording — the
+  // T4-authored value below had this backwards (crediting the PI, not the
+  // player). IT/ES (T19/T20): carry this same correction into your own
+  // transcreations, not the pre-fix wording.
+  'briefing.correspondingAuthor': 'Corresponding author: You',
   'briefing.vol': 'Vol. {volume}, No. {issue}',
+  'briefing.emailFrom': 'Prof. R. Grantwell',
+  'briefing.emailSubject': 'Re: the deadline',
 
   'email.from': 'From:',
   'email.subject': 'Subject:',
@@ -282,6 +307,10 @@ export const copy: Record<CopyKey, string> = {
   'published.simulatedPress': 'SIMULATED PRESS',
   'published.editorsPick': "Editor's Pick",
   'published.doiPrefix': 'DOI:',
+  'published.authors': 'You, et al.',
+  'published.careerPoints': '+{n} career points',
+  'published.altmetricScore': 'Attention score: {n}',
+  'published.altmetricPercentile': 'Top {n}% of all research outputs, all time',
 
   // §2.6 verbatim: the call is conspiratorial, not accusatory — Act I's last
   // beat, and the hinge into Act II. "Noise I dressed up" is the player's own

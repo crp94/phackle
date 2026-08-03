@@ -1,0 +1,72 @@
+/* JournalCover -- the Published screen's generated fake-journal masthead
+   (DESIGN.md R8.3: static, no animation, no gradient, no second stamp -- it
+   must never compete with Act I's dial or Act II's stamp for attention). */
+.ph-journal-cover {
+  max-width: var(--measure);
+  padding-block: var(--space-24) var(--space-16);
+}
+
+/* R2.7: an uppercase label carries --tracking-label. R1.2: --muted is for
+   captions/footnotes, which is exactly what a watermark is. */
+.ph-journal-cover__watermark {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0 0 var(--space-16);
+}
+
+/* R4.5: a hairline below, never a 4-side border. */
+.ph-journal-cover__masthead {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0 0 var(--space-16);
+  border-block-end: var(--hairline);
+  padding-block-end: var(--space-16);
+}
+
+/* tier 3 ("Editor's Pick"): a legal medium-weight emphasis from the closed
+   R2.3 weight scale -- no new colour, no shadow, no animation (R8.3 bars a
+   second signature moment; this is a quiet nod, not one). */
+.ph-journal-cover__masthead--pick {
+  font-weight: var(--weight-medium);
+}
+
+/* R2.1: headlines are --font-display. */
+.ph-journal-cover__headline {
+  font-family: var(--font-display);
+  font-size: var(--text-40);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+  margin: 0 0 var(--space-24);
+}
+
+.ph-journal-cover__headline--pick {
+  font-weight: var(--weight-medium);
+}
+
+.ph-journal-cover__authors {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0 0 var(--space-8);
+}
+
+/* R2.4: every numeral is mono/tabular -- the DOI is mostly numerals. */
+.ph-journal-cover__doi {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0;
+}

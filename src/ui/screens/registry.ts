@@ -7,12 +7,14 @@ import type { Screen } from '../../game/store';
 import { Lab } from './Lab';
 import { Call } from './Call';
 import { Reveal } from './Reveal';
-import { BriefingStub, PublishedStub, SummaryStub } from './stubs';
+import { Briefing } from './Briefing';
+import { Published } from './Published';
+import { SummaryStub } from './stubs';
 
 export const SCREENS: Record<Screen, ComponentType> = {
-  briefing: BriefingStub,
+  briefing: Briefing,
   lab: Lab,
-  published: PublishedStub,
+  published: Published,
   call: Call,
   reveal: Reveal,
   summary: SummaryStub,

@@ -22,7 +22,7 @@ This document only narrows §7; it never invents a different product.
 
 ## §0 Reconciliation with master spec §7
 
-The approved direction narrows seven pieces of §7 wording. These are recorded, not
+The approved direction narrows eight pieces of §7 wording. These are recorded, not
 silently applied — revert any of them by editing this section and the rule it points at.
 The last row is also the **registry of derived colours** that R1.3a and R1.6
 depend on: a colour derived from the §7.2 palette exists only if it appears both
@@ -37,7 +37,7 @@ in `tokens.css` and in this table.
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
 | §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) steps `--muted` → `--dial-step-1` → `-2` → `-3` → `--assist-green` as p crosses .5/.2/.1/.05, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for the final, solid-green step; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all. A continuous opacity ramp toward the same two tokens was tried first and rejected: on a light-on-paper token, reducing opacity alpha-composites toward `--paper` and collapses contrast (1.60:1 at p=1.0 light, 1.70:1 dark) — see the T14 fix-round report for the exact numbers. Discrete, contrast-verified steps are what actually keeps R1.8's own "stays ≥4.5:1" claim true |
-| §7.2 fixes **seven** colours | Exactly **five** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any sixth derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
+| §7.2 fixes **seven** colours | Exactly **six** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), `--scrim` (`color-mix` of `--ink` at 60%, R4.2's Call-modal backdrop), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any seventh derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, R4.2's "separate the Call modal from the cover" backdrop forces the third, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
 
@@ -68,7 +68,8 @@ p < .05. Nowhere else, in either theme.
 **R1.3a — `--sig-band` is a derived token, not a fifth place.** It is mixed from
 `var(--sig-red)` inside `tokens.css`, declared there, and registered by name in
 §0; R4.1 sanctions its single use. The general rule, which `--hack-gold-ink`
-also obeys: **a derived colour must be declared in `tokens.css` and registered in
+and `--scrim` (R4.2's Call-modal backdrop, mixed from `--ink`) also obey:
+**a derived colour must be declared in `tokens.css` and registered in
 §0's table — otherwise it does not exist, and it gets no exemption from R1.3 or
 R1.6.** This is what makes R1.3 countable: `grep -rn 'var(--sig-red)' src/ui`
 enumerates every use, and each hit must be one of the four places or the
@@ -233,8 +234,13 @@ is `--paper` or nothing.
 **R4.2 — `box-shadow` does not exist.** Not for cards, not for modals, not for
 the stamp, not as a focus ring, not at 2% opacity.
 - Do: separate the Call modal from the cover with a `--hairline` and a dimmed
-  backdrop (`--ink` at 60% alpha via `color-mix`).
-- Don't: `box-shadow: 0 1px 2px rgba(0,0,0,.06);`
+  backdrop, `background: var(--scrim)` — the registered derivation (§0,
+  R1.3a), `--ink` at 60% alpha via `color-mix`, declared once in
+  `tokens.css`.
+- Don't: `box-shadow: 0 1px 2px rgba(0,0,0,.06);`, and don't inline
+  `color-mix(in srgb, var(--ink) 60%, transparent)` in a component — an
+  unregistered derivation is exactly R1.3a's "new loud colour wearing a
+  disguise," even for a neutral ink tint.
 
 **R4.3 — `border-radius` is `0`, `var(--radius)` (2px), or `50%` for true
 circles** (SpecCurve points, confetti particles, the published-path ring).
@@ -430,7 +436,7 @@ retypes their values.
 | Group | Tokens |
 |---|---|
 | Palette (§7.2, fixed) | `--paper` `--ink` `--rule` `--sig-red` `--assist-green` `--hack-gold` `--muted` |
-| Derived colour | `--hack-gold-ink` `--sig-band` `--dial-step-1` `--dial-step-2` `--dial-step-3` |
+| Derived colour | `--hack-gold-ink` `--sig-band` `--scrim` `--dial-step-1` `--dial-step-2` `--dial-step-3` |
 | Surfaces | `--hairline` `--radius` |
 | Families | `--font-display` `--font-ui` `--font-mono` |
 | Sizes | `--text-13` `--text-15` `--text-22` `--text-28` `--text-40` `--text-dial` |
