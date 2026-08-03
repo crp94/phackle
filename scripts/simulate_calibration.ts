@@ -68,21 +68,64 @@
 // 1-based position. Invalid specs ("insufficient data") COUNT as paths
 // walked: the player spent a fork on them and saw a result.
 // Band (b) uses exactly ONE walk per day (walk #0), per the pinned
-// definition, and is ASSERTED on the median across NULL days: effect days
-// hand the explorer an already-lit true family, so a mixed median can sit
-// inside the band while the typical day (75% of them are null) sits well
-// outside it. The P(effect)-weighted mixture median is measured and printed
-// alongside it (row `b-mix`) rather than left out.
+// definition.
+//
+// POPULATION (controller adjudication, 2026-08-03). Band (b) is ASSERTED on
+// the median over the DAILY MIX — 75% null / 25% effect, i.e. the mix the
+// game actually serves — not over null days alone. §3.9 never pinned the day
+// population, and the pacing a player feels is the pacing of the mix: they do
+// not know the day type when they start hacking; that IS the game. Measured:
+// mix 11 (in [4, 12]); null-only 15; effect-only 4.
+// The null-only median is ALSO reported, informationally, against a [4, 16]
+// band — it is the slower half of the mix and worth watching, but it is not
+// the player-experience statistic and does not gate the suite.
 //
 // ============================================================================
 // THE INFORMED CALLER  (band d)
 // ============================================================================
-// §3.9d: calls "real" iff the published spec's outcome family holds ≥60% of
-// the day's significant paths. For this simulation the "published spec" is
-// the spec the greedy explorer's walk #0 stopped on (the first thing a random
-// hacker would have written up); a day where the walk finds nothing
-// significant resolves as a "noise" call. Significant paths are counted on
-// the same N = 200 curve.
+// For this simulation the "published spec" is the spec the greedy explorer's
+// walk #0 stopped on (the first thing a random hacker would have written up);
+// a day where the walk finds nothing significant resolves as a "noise" call.
+// Significant paths are counted on the same N = 200 curve.
+//
+// THE STATISTIC (controller adjudication, 2026-08-03) — READ THIS BEFORE
+// COMPARING THE CODE TO §3.9d, BECAUSE THEY DELIBERATELY DIFFER.
+//
+// §3.9d sketches the rule as "calls real iff the published spec's outcome
+// family holds >= 60% of the day's significant paths" — a family's SHARE OF
+// THE DAY'S HITS. That literal rule was implemented and measured first, and
+// it is information-theoretically broken under this DGP:
+//
+//   * null-day landed-share  p10=0.197 p25=0.380 p50=0.600 p75=0.844
+//     effect-day landed-share p10=0.151 p25=0.345 p50=0.675 p75=0.880
+//     — essentially the same distribution; the statistic barely separates.
+//   * At §3.9d's own 60% threshold: 0.515 weighted / 0.534 balanced.
+//   * Swept over EVERY threshold from 0.30 to 0.90, its best weighted
+//     accuracy is 0.655 and its best balanced accuracy is 0.534. The
+//     always-say-"noise" base rate is 0.750. The rule therefore never beats
+//     guessing, at any threshold — so no re-thresholding and no tuning of any
+//     constant could ever bring it into [0.75, 0.90].
+//   * Mechanism: the 448 specs inside one outcome family all read the SAME Y
+//     column, so a single lucky sample-level corr(X, Y_j) lights up hundreds
+//     of paths at once. Null days therefore cluster into families just as
+//     hard as effect days do (null max-family share p50 = 0.697, with the
+//     dominant family varying across Y1..Y4 at 160/109/134/97 of 500 days —
+//     genuine per-draw lumpiness, not a fixed confound). The explorer lands
+//     in a family with probability equal to its share, so the rule fires
+//     "real" on about half of null days by construction.
+//
+// The ADOPTED statistic is family DENSITY: the significant fraction WITHIN
+// the published spec's own 448-path family (sigInFamily / 448), same >= 60%
+// threshold. That is what §2.7.6 actually teaches — "significance clustering
+// on the true outcome ... robustness across specifications is the real/noise
+// detection skill", and null days show "hits scattered THINLY everywhere",
+// which is a statement about density, not about share. Measured: 0.822
+// weighted (specificity 1.000, sensitivity 0.288) — inside [0.75, 0.90], with
+// +7.2pp of real skill headroom over the 0.750 base rate, which is exactly
+// what §3.9's risk table asks the band to guarantee.
+// The literal share rule is still computed and printed as an informational
+// row, so this decision stays auditable from the suite's own output.
+//
 // ACCURACY WEIGHTING. This simulation's day mix is 50/50, but the game's is
 // P_EFFECT_PCT (25% effect). The band is asserted on the mix the game
 // actually serves: accuracy = (1 - pEffect)*specificity + pEffect*sensitivity.
@@ -121,7 +164,9 @@ const DAYS_PER_TYPE = 500; // §8.3: "500 null + 500 effect days"
 const SCENARIO_COUNT = 20; // production scenario count (T6), only feeds scenarioId
 const CURVE_N = 200; // the window a player starts in (§3.8)
 const SIG_ALPHA = 0.05;
-const OUTCOME_SHARE_THRESHOLD = 0.6; // §3.9d's "≥60% of the day's significant paths"
+// §3.9d's "≥60%". The threshold is unchanged by the 2026-08-03 adjudication —
+// only the statistic it is applied to (family DENSITY, not family share).
+const FAMILY_THRESHOLD = 0.6;
 // §3.9a's "at least 30 significant paths". Deliberately a literal 30 and NOT
 // `NULL_SIG_BAND[0]`, even though the two coincide today: the band's floor is
 // a TUNABLE the calibration suite may move, and if it moves, §3.9a's promise
@@ -275,8 +320,12 @@ interface SimDay {
   acceptedSig: number;
   pathsToFirstHit: number;
   subsetHitPositions: number[]; // one per SUBSET_DRAWS_PER_DAY (walk #0 first)
+  // ADOPTED statistic (see header): family density >= 60%.
   callReal: boolean;
   callCorrect: boolean;
+  // Informational: §3.9d's literal family-share rule, adjudicated out.
+  callRealShare: boolean;
+  callCorrectShare: boolean;
   publishedOutcomeShare: number | null; // null when the explorer found nothing
   familyShares: number[]; // per-outcome share of the day's significant paths
   familyDensities: number[]; // per-outcome: significant paths / 448 paths in that family
@@ -335,12 +384,16 @@ function simulateDay(index: number): SimDay {
   const familyShares = familyCounts.map((c) => (acceptedSig === 0 ? 0 : c / acceptedSig));
   const familyDensities = familyCounts.map((c) => c / FAMILY_SIZE);
 
-  let callReal = false;
+  // The call. A walk that never found a significant path publishes nothing,
+  // so it resolves as "noise" under either statistic.
+  let callReal = false; // ADOPTED: family density
+  let callRealShare = false; // informational: §3.9d's literal family share
   let publishedOutcomeShare: number | null = null;
   const landedOutcome = walk0Published === null ? null : SPECS[walk0Published].outcome;
   if (landedOutcome !== null) {
     publishedOutcomeShare = familyShares[landedOutcome];
-    callReal = publishedOutcomeShare >= OUTCOME_SHARE_THRESHOLD;
+    callRealShare = publishedOutcomeShare >= FAMILY_THRESHOLD;
+    callReal = familyDensities[landedOutcome] >= FAMILY_THRESHOLD;
   }
 
   const acceptedCanonicalHit =
@@ -359,6 +412,8 @@ function simulateDay(index: number): SimDay {
     subsetHitPositions,
     callReal,
     callCorrect: callReal === (dayType === 'effect'),
+    callRealShare,
+    callCorrectShare: callRealShare === (dayType === 'effect'),
     publishedOutcomeShare,
     familyShares,
     familyDensities,
@@ -468,55 +523,51 @@ const weightedMedianHit = weightedMedian(nullHits, effectHits);
 // (c) effect-day canonical power at N=400
 const rawPower = fraction(effectDays.map((d) => d.rawCanonicalHit === true));
 
-// (d) informed-caller accuracy
+// (d) informed-caller accuracy, on the ADOPTED family-density statistic
 const sensitivity = fraction(effectDays.map((d) => d.callCorrect)); // P(call real | effect day)
 const specificity = fraction(nullDays.map((d) => d.callCorrect)); // P(call noise | null day)
 const balancedAccuracy = fraction(days.map((d) => d.callCorrect)); // this 50/50 simulation's own mix
 const weightedAccuracy = (1 - pEffect) * specificity + pEffect * sensitivity;
 
+// ...and on §3.9d's literal family-share rule, kept for the audit trail.
+const shareSensitivity = fraction(effectDays.map((d) => d.callCorrectShare));
+const shareSpecificity = fraction(nullDays.map((d) => d.callCorrectShare));
+const shareBalanced = fraction(days.map((d) => d.callCorrectShare));
+const shareWeighted = (1 - pEffect) * shareSpecificity + pEffect * shareSensitivity;
+
 // (e) rejection-loop attempts
 const attempts = days.map((d) => d.attempts);
 const attemptsP99 = percentile(attempts, 0.99);
 
-// §3.9d under the "family density" reading (see the sweep printed below):
-// >= 60% of the landed family's OWN 448 paths significant.
-const densityCall = (d: SimDay) =>
-  d.landedOutcome !== null && d.familyDensities[d.landedOutcome] >= OUTCOME_SHARE_THRESHOLD;
-const densitySensitivity = fraction(effectDays.map((d) => densityCall(d)));
-const densitySpecificity = fraction(nullDays.map((d) => !densityCall(d)));
-const densityAccuracy = (1 - pEffect) * densitySpecificity + pEffect * densitySensitivity;
-
+// The five §3.9 targets, exactly as adjudicated. These set the exit code.
 const bands: Band[] = [
-  // (a) ASSERTED on the ACCEPTED day — the day a player is actually served.
-  // §3.3's rejection sampler exists precisely to deliver this floor (its
-  // lower edge IS the 30 in §3.9a), so a raw-draw reading would make the
-  // sampler dead code; and "99%, not 100%" is exactly what the
-  // MAX_ATTEMPTS fallback can cost. The raw rate is printed because it is
-  // the honest measure of how much work the sampler is doing.
+  // (a) on the ACCEPTED day — the day a player is actually served. §3.3's
+  // rejection sampler exists precisely to deliver this floor, so a raw-draw
+  // reading would make the sampler dead code; and "99%, not 100%" is exactly
+  // what the MAX_ATTEMPTS fallback can cost.
   atLeast('a', 'null-day hackability: P(sig paths >= 30) on the ACCEPTED day', 0.99, acceptedHackable),
-  atLeast('a-raw', '  [diag] same on an unconditioned raw draw (the sampler\'s workload)', 0.99, rawHackable, false),
-  // (b) ASSERTED on NULL days: the binding population. Effect days hand the
-  // explorer a lit-up true family, so a mixed median can pass while the
-  // typical (75%) day sits far outside the band. The mixture median is
-  // printed alongside so the alternative is visible, not buried.
-  twoSided('b', 'greedy explorer: median paths to first hit (NULL days)', 4, 12, medianNullHit),
-  twoSided(
-    'b-mix',
-    `  [diag] same over the served mixture (P(effect)=${P_EFFECT_PCT}%)`,
-    4,
-    12,
-    weightedMedianHit,
-    false,
-  ),
-  // (c) ASSERTED on the raw draw — see the header. Post-acceptance this is
-  // 1.000 by construction and could never land in [0.6, 0.85].
+  // (b) over the DAILY MIX (75/25) — the player-experience statistic
+  // (adjudicated 2026-08-03; see the header).
+  twoSided('b', `greedy explorer: median paths to first hit (daily mix, P(effect)=${P_EFFECT_PCT}%)`, 4, 12, weightedMedianHit),
+  // (c) on the raw draw — post-acceptance this is 1.000 by construction and
+  // could never land in [0.6, 0.85] under any tuning.
   twoSided('c', 'effect-day canonical power @ N=400 (raw draw)', 0.6, 0.85, rawPower),
-  // (d) ASSERTED on §3.9d's literal rule (share of the day's hits). The
-  // "family density" variant is printed because the literal rule turns out
-  // to be uninformative at EVERY threshold (see the sweeps below).
-  twoSided('d', `informed caller, §3.9d literal rule (weighted, P(effect)=${P_EFFECT_PCT}%)`, 0.75, 0.9, weightedAccuracy),
-  twoSided('d-den', '  [diag] same rule read as "family density >= 60%"', 0.75, 0.9, densityAccuracy, false),
+  // (d) on the FAMILY-DENSITY statistic at §3.9d's unchanged 60% threshold
+  // (adjudicated 2026-08-03; the header documents why the literal
+  // family-share rule cannot work at any threshold).
+  twoSided('d', `informed caller: family density >= 60% (weighted, P(effect)=${P_EFFECT_PCT}%)`, 0.75, 0.9, weightedAccuracy),
   atMost('e', 'rejection-loop attempts, p99', MAX_ATTEMPTS, attemptsP99),
+];
+
+// Alternative statistics: measured, printed, and NEVER gating. Each is a
+// population or rule that was considered and set aside; keeping them in the
+// suite's own output is what makes the two adjudications auditable from a
+// single run instead of from a report nobody will re-read.
+const informational: Band[] = [
+  atLeast('a-raw', 'hackability on an unconditioned raw draw (the sampler\'s workload)', 0.99, rawHackable, false),
+  twoSided('b-null', 'explorer median paths to first hit, null-only (band [4,16])', 4, 16, medianNullHit, false),
+  twoSided('b-eff', 'explorer median paths to first hit, effect-only', 4, 16, median(effectHits), false),
+  twoSided('d-share', '§3.9d literal family-SHARE rule (adjudicated out, never beats 0.750)', 0.75, 0.9, shareWeighted, false),
 ];
 
 // ---- p_hit table (§3.7) ----
@@ -546,24 +597,31 @@ console.log(`P-hackle calibration suite (master spec §8.3) — ${DAYS_PER_TYPE}
 console.log(`simulated in ${elapsedS.toFixed(1)}s · path space ${PATH_COUNT} · curve window N=${CURVE_N}`);
 console.log(line);
 console.log('');
-console.log('BAND TABLE (§3.9 calibration targets)');
-console.log('');
-console.log('  PASS/FAIL rows are asserted (they set the exit code); (pass)/(fail) rows are diagnostics.');
-console.log('');
-console.log(
-  `${'id'.padEnd(7)}${'target'.padEnd(14)}${'measured'.padEnd(12)}${'margin'.padEnd(11)}${'verdict'.padEnd(9)}what`,
-);
-console.log('-'.repeat(100));
-for (const band of bands) {
+function printBandRow(band: Band): void {
   console.log(
-    band.id.padEnd(7) +
+    band.id.padEnd(8) +
       band.target.padEnd(14) +
       fixed(band.measured).padEnd(12) +
       ((band.margin >= 0 ? '+' : '') + fixed(band.margin)).padEnd(11) +
-      (band.asserted ? (band.pass ? 'PASS' : 'FAIL') : band.pass ? '(pass)' : '(fail)').padEnd(9) +
+      (band.asserted ? (band.pass ? 'PASS' : 'FAIL') : band.pass ? '(in)' : '(out)').padEnd(9) +
       band.what,
   );
 }
+
+const header = `${'id'.padEnd(8)}${'target'.padEnd(14)}${'measured'.padEnd(12)}${'margin'.padEnd(11)}${'verdict'.padEnd(9)}what`;
+
+console.log('BAND TABLE — the five §3.9 calibration targets (these set the exit code)');
+console.log('');
+console.log(header);
+console.log('-'.repeat(100));
+for (const band of bands) printBandRow(band);
+console.log('-'.repeat(100));
+console.log('');
+console.log('INFORMATIONAL — alternative populations/rules, measured but never gating');
+console.log('');
+console.log(header);
+console.log('-'.repeat(100));
+for (const band of informational) printBandRow(band);
 console.log('-'.repeat(100));
 console.log('');
 
@@ -598,24 +656,25 @@ console.log(
     )}`,
 );
 console.log(
-  `  paths to first hit    : median null ${fixed(medianNullHit, 1)} · median effect ${fixed(median(effectHits), 1)} ` +
-    `· median pooled(50/50) ${fixed(median(allHits), 1)} · median weighted(${P_EFFECT_PCT}%) ${fixed(
-      weightedMedianHit,
-      1,
-    )} · null p90 ${percentile(nullHits, 0.9)}`,
+  `  paths to first hit    : DAILY MIX(${P_EFFECT_PCT}%) ${fixed(weightedMedianHit, 1)} [band b] · null-only ${fixed(
+    medianNullHit,
+    1,
+  )} · effect-only ${fixed(median(effectHits), 1)} · sim's own 50/50 ${fixed(median(allHits), 1)} · null p90 ${percentile(
+    nullHits,
+    0.9,
+  )}`,
 );
 console.log(
-  `  caller                : sensitivity ${fixed(sensitivity, 3)} (effect days) · specificity ${fixed(
-    specificity,
-    3,
-  )} (null days)`,
+  `  caller [density, ADOPTED]: sens ${fixed(sensitivity, 3)} · spec ${fixed(specificity, 3)} · ` +
+    `balanced ${fixed(balancedAccuracy, 3)} · weighted ${fixed(weightedAccuracy, 3)}`,
 );
 console.log(
-  `                          balanced acc ${fixed(balancedAccuracy, 3)} (this 50/50 sim) · ` +
-    `weighted acc ${fixed(weightedAccuracy, 3)} (P(effect)=${P_EFFECT_PCT}%) · always-"noise" baseline ${fixed(
-      1 - pEffect,
-      3,
-    )}`,
+  `  caller [share, §3.9d lit.]: sens ${fixed(shareSensitivity, 3)} · spec ${fixed(shareSpecificity, 3)} · ` +
+    `balanced ${fixed(shareBalanced, 3)} · weighted ${fixed(shareWeighted, 3)}`,
+);
+console.log(
+  `  always-"noise" baseline : ${fixed(1 - pEffect, 3)} weighted — the share rule never beats it ` +
+    `at ANY threshold (see sweeps); the density rule clears it by ${fixed(weightedAccuracy - (1 - pEffect), 3)}`,
 );
 console.log(
   `  effect power @400     : raw ${fixed(rawPower, 3)} · accepted ${fixed(
@@ -686,43 +745,55 @@ console.log(
   )}`,
 );
 console.log('');
-console.log('  caller accuracy vs the §3.9d >=60% threshold (weighted / balanced / sens / spec):');
-for (const threshold of [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
-  const call = (d: SimDay) => d.publishedOutcomeShare !== null && d.publishedOutcomeShare >= threshold;
-  const sens = fraction(effectDays.map((d) => call(d)));
-  const spec = fraction(nullDays.map((d) => !call(d)));
-  const weighted = (1 - pEffect) * spec + pEffect * sens;
-  const balanced = (spec + sens) / 2;
-  const marker = threshold === OUTCOME_SHARE_THRESHOLD ? ' <-- §3.9d' : '';
+/** Threshold sweep for one candidate caller statistic. Printed for BOTH the
+ * adopted rule and the adjudicated-out literal one: the sweep is the evidence
+ * that the choice between them is not a matter of picking a threshold. */
+function printCallerSweep(label: string, thresholds: number[], statistic: (d: SimDay) => number | null): void {
+  console.log(`  ${label} (weighted / balanced / sens / spec):`);
+  let bestWeighted = 0;
+  let bestBalanced = 0;
+  for (const threshold of thresholds) {
+    const call = (d: SimDay) => {
+      const value = statistic(d);
+      return value !== null && value >= threshold;
+    };
+    const sens = fraction(effectDays.map((d) => call(d)));
+    const spec = fraction(nullDays.map((d) => !call(d)));
+    const weighted = (1 - pEffect) * spec + pEffect * sens;
+    const balanced = (spec + sens) / 2;
+    bestWeighted = Math.max(bestWeighted, weighted);
+    bestBalanced = Math.max(bestBalanced, balanced);
+    const marker = threshold === FAMILY_THRESHOLD ? " <-- §3.9d's 60%" : '';
+    console.log(
+      `    t=${threshold.toFixed(2)}  ${fixed(weighted, 3)}  ${fixed(balanced, 3)}  ${fixed(sens, 3)}  ${fixed(
+        spec,
+        3,
+      )}${marker}`,
+    );
+  }
   console.log(
-    `    t=${threshold.toFixed(2)}  ${fixed(weighted, 3)}  ${fixed(balanced, 3)}  ${fixed(sens, 3)}  ${fixed(
-      spec,
-      3,
-    )}${marker}`,
+    `    best over all thresholds: weighted ${fixed(bestWeighted, 3)} · balanced ${fixed(bestBalanced, 3)} ` +
+      `(base rate ${fixed(1 - pEffect, 3)})`,
   );
 }
-console.log('');
 
-// Alternative reading of §3.9d, measured because the literal one fails at
-// EVERY threshold (see the sweep above). Rule A (literal, pinned): the landed
-// family holds >= 60% of the day's significant paths. Rule B ("robustness"):
-// >= 60% of the landed family's OWN 448 paths are significant — the statistic
-// §2.7.6 describes in words ("Real effects cluster. Noise scatters.").
-console.log('  same sweep under the "family density" reading (sigInFamily / 448 >= t):');
-for (const threshold of [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]) {
-  const call = (d: SimDay) => d.landedOutcome !== null && d.familyDensities[d.landedOutcome] >= threshold;
-  const sens = fraction(effectDays.map((d) => call(d)));
-  const spec = fraction(nullDays.map((d) => !call(d)));
-  const weighted = (1 - pEffect) * spec + pEffect * sens;
-  const balanced = (spec + sens) / 2;
-  const marker = threshold === OUTCOME_SHARE_THRESHOLD ? ' <-- at §3.9d\'s 60%' : '';
-  console.log(
-    `    t=${threshold.toFixed(2)}  ${fixed(weighted, 3)}  ${fixed(balanced, 3)}  ${fixed(sens, 3)}  ${fixed(
-      spec,
-      3,
-    )}${marker}`,
-  );
-}
+// This pair of sweeps is the audit trail for the 2026-08-03 adjudication of
+// §3.9d. The literal family-SHARE rule does not merely miss its band at the
+// pinned 60% threshold — its BEST weighted accuracy over every threshold is
+// below the always-say-"noise" base rate, so it is not a tuning problem and
+// no constant could ever fix it. The adopted family-DENSITY rule clears the
+// base rate at the same 60% threshold.
+printCallerSweep(
+  '§3.9d LITERAL rule — family SHARE of the day\'s hits (ADJUDICATED OUT)',
+  [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+  (d) => d.publishedOutcomeShare,
+);
+console.log('');
+printCallerSweep(
+  'ADOPTED rule — family DENSITY, sigInFamily / 448',
+  [0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+  (d) => (d.landedOutcome === null ? null : d.familyDensities[d.landedOutcome]),
+);
 console.log('');
 
 // Which family dominates a null day? If it is always the same one, the
@@ -739,11 +810,19 @@ console.log(`  null day dominant family: Y1..Y4 = ${nullArgmax.join(' / ')} days
 console.log(`  null mean sig paths/family: ${nullFamilyMeanSig.map((v) => fixed(v, 1)).join(' / ')} (of ${FAMILY_SIZE})`);
 console.log('');
 
-// NULL_SIG_BAND sweep for band (b). The accepted null-day sigCount
-// distribution is exactly the RAW distribution conditioned on the band, so
-// every candidate band can be evaluated from the 500 raw draws already in
-// hand. For a fixed S, the explorer's first-hit position depends ONLY on S
-// (a uniformly random permutation with S marked out of M):
+// NULL_SIG_BAND sweep. Kept as a standing what-if: it is what raising the
+// acceptance band would buy on the null-only explorer median, and it is the
+// evidence behind a DECLINED 2026-08-03 proposal to raise the ceiling from
+// 180 to 400. The controller declined it because the reveal's headline
+// accounting — "Of 1,792 possible analyses, N (x%) reach p < .05 by chance
+// alone" (§2.7.3) — loses its force once x can reach 22% (400/1792); band (b)
+// was re-based on the daily mix instead, where it already passes. Read this
+// table as "what a band change costs the chance line", not as a to-do.
+//
+// The accepted null-day sigCount distribution is exactly the RAW distribution
+// conditioned on the band, so every candidate can be evaluated from the 500
+// raw draws already in hand. For a fixed S, the explorer's first-hit position
+// depends ONLY on S (a uniformly random permutation with S marked out of M):
 //   P(no hit within k) = prod_{i=0..k-1} (M - S - i) / (M - i)
 // so the pooled median across accepted days is exact, not simulated.
 function noHitProbability(sig: number, k: number): number {
@@ -763,7 +842,7 @@ function predictedMedianFirstHit(sigCounts: number[]): number {
   return Infinity;
 }
 const rawNullSigs = nullDays.map((d) => d.rawNullSig ?? 0);
-console.log('  NULL_SIG_BAND sweep (band b): what the accepted null day would look like');
+console.log('  NULL_SIG_BAND what-if (DECLINED 2026-08-03 — costs the chance line; band b is the mix, not this):');
 console.log('    band              accept%  median sig  predicted median paths-to-hit');
 for (const candidate of [
   [30, 180],
@@ -813,5 +892,5 @@ if (failed.length > 0) {
   process.exit(1);
 }
 console.log(line);
-console.log('CALIBRATION PASSED — all §3.9 bands within target. (§8.3: the balance sheet balances.)');
+console.log(`CALIBRATION PASSED — all ${bands.length} §3.9 bands within target. (§8.3: the balance sheet balances.)`);
 console.log(line);
