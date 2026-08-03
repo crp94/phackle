@@ -1,0 +1,3 @@
+/* Design tokens (master spec §7.2). Intentionally empty in T1 — this file is
+   wired up via src/main.tsx's import so later tasks can populate it without
+   touching the bootstrap. */
