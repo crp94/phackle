@@ -1,19 +1,31 @@
 // Act I's signature (DESIGN.md R8.1): the big p-value. Master spec §2.4/§7.2
-// + the controller's ACT-I COLOUR RULE pin, now folded into DESIGN.md R1.8
-// (amended by this task — see §0's dial-prose reconciliation row and R1.5's
-// second registered exception):
-//   p >= .05 -> reads --muted, growing more "solid" (opacity) as p -> .05
-//   p <  .05 -> solid --assist-green ("the glow" -- SUBMIT is now legal)
+// + the controller's ACT-I COLOUR RULE pin, folded into DESIGN.md R1.8
+// (amended by this task — see §0's dial-prose reconciliation row, R1.5's
+// second registered exception, and the §7.3 contrast table):
+//   p >  .5        -> --muted (the resting default)
+//   .2 < p <= .5    -> --dial-step-1
+//   .1 < p <= .2    -> --dial-step-2
+//   .05 <= p <= .1  -> --dial-step-3
+//   p <  .05        -> solid --assist-green ("the glow" -- SUBMIT is legal)
 //   --sig-red NEVER appears here -- it belongs to Act II (R1.3's four places
 //   are all on the reveal: the RETRACTED stamp, the .05 threshold rule+label,
 //   the published path+leader line, and the Act II accounting figures).
 //
-// The blend is an OPACITY ramp between the two tokens, never a literal
-// color-mix(): R1.3a bans color-mix()/color-contrast() outside tokens.css,
-// and tests/ui/tokens.test.ts's R1.7 suite ("finds no inline colour
-// derivation outside tokens.css") enforces that mechanically, failing the
-// build on any hit in this file. Two tokens, never mixed, never a third
-// colour, never a literal shadow/halo (R8.1 bans those outright regardless).
+// FIX ROUND (post-review): an earlier version of this component read a
+// continuous opacity ramp (0.35 + 0.65*proximity) on a --muted-coloured
+// element instead of these five discrete steps. That fails DESIGN.md's own
+// "stays >= 4.5:1" claim: reducing a token's opacity alpha-composites it
+// toward --paper, and at low proximity (p near 1) the effective rendered
+// contrast collapsed to ~1.6:1 (light) / ~1.7:1 (dark) -- nowhere near the
+// floor, and invisible to the static token suite because it only ever reads
+// tokens.css's literal declarations, never a runtime opacity value. The fix:
+// full opacity always, and the "as p approaches .05" ramp is now a genuine
+// perceptible colour STEP through --dial-step-1/-2/-3 -- three NEW derived
+// tokens (color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%),
+// computed offline and hardcoded as literal hex in tokens.css, per §0's
+// derived-colour registry) that are themselves in tokens.test.ts's
+// TEXT_TOKENS contrast set, so R1.8's contrast claim is now mechanically
+// enforced rather than merely asserted.
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -25,12 +37,20 @@ export interface PValueDialProps {
   pending: boolean;
 }
 
-/** 0 at p=1 (as far from .05 as a p-value gets), 1 at p<=.05. Drives the
- * dial's opacity ramp toward full saturation as significance approaches. */
-function pProximity(p: number): number {
-  if (!Number.isFinite(p) || p >= 1) return 0;
-  if (p <= 0.05) return 1;
-  return (1 - p) / 0.95;
+type DialBand = 'step-1' | 'step-2' | 'step-3' | 'significant' | null;
+
+/** The dial's discrete Act-I colour band for a given p (DESIGN.md R1.8):
+ * `null` is the --muted default (p > .5); every other value names the
+ * `ph-dial--<band>` modifier class PValueDial.css maps to a token. Boundaries
+ * are inclusive on their lower edge except .05 itself, which reads as the
+ * highest non-significant step (matching store.submit()'s own strict
+ * `p < 0.05` — p===.05 is never itself significant). */
+function dialBand(p: number): DialBand {
+  if (p < 0.05) return 'significant';
+  if (p <= 0.1) return 'step-3';
+  if (p <= 0.2) return 'step-2';
+  if (p <= 0.5) return 'step-1';
+  return null;
 }
 
 /** n - p, p = 2 (intercept + treatment) + one per active covariate — the
@@ -83,24 +103,14 @@ export function PValueDial({ result, pending }: PValueDialProps) {
     );
   }
 
-  const significant = result.p < 0.05;
-  const proximity = pProximity(result.p);
-  const opacity = significant ? 1 : 0.35 + 0.65 * proximity;
+  const band = dialBand(result.p);
+  const dialClassName = band ? `ph-dial ph-dial--${band}` : 'ph-dial';
   const formatted = result.p < 0.001 ? t('lab.pBelow') : t('lab.pEquals', { p: result.p.toFixed(3) });
   const df = degreesOfFreedom(result);
 
   return (
-    <div
-      className={significant ? 'ph-dial ph-dial--significant' : 'ph-dial'}
-      data-testid="pvalue-dial"
-      aria-busy={pending}
-    >
-      <p
-        className={ticking ? 'ph-dial__value ph-dial__value--tick' : 'ph-dial__value'}
-        style={{ opacity }}
-      >
-        {formatted}
-      </p>
+    <div className={dialClassName} data-testid="pvalue-dial" aria-busy={pending}>
+      <p className={ticking ? 'ph-dial__value ph-dial__value--tick' : 'ph-dial__value'}>{formatted}</p>
       <p className="ph-dial__meta">
         {t('lab.nLabel', { n: result.n })} · {t('lab.dfLabel', { df })}
       </p>

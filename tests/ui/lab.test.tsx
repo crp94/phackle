@@ -269,6 +269,47 @@ describe('PValueDial', () => {
     expect(hasClass(container.querySelector('[data-testid="pvalue-dial"]'), 'ph-dial--significant')).toBe(true);
   });
 
+  // DESIGN.md R1.8 (post-review fix): a discrete 5-state colour ramp, never a
+  // continuous opacity blend — see the band boundaries in PValueDial.tsx's
+  // own dialBand(). One test per boundary (0.5 / 0.2 / 0.1 / 0.05).
+  describe('R1.8 stepped colour band (0.5 / 0.2 / 0.1 / 0.05 boundaries)', () => {
+    const cases: Array<[p: number, band: string | null]> = [
+      [0.6, null], // p > .5 -> the --muted default, no step/significant class
+      [0.5, 'ph-dial--step-1'], // .2 < p <= .5
+      [0.2, 'ph-dial--step-2'], // .1 < p <= .2
+      [0.1, 'ph-dial--step-3'], // .05 <= p <= .1
+      [0.05, 'ph-dial--step-3'], // boundary: never itself significant (submit needs p < .05 strictly)
+      [0.049, 'ph-dial--significant'], // p < .05
+    ];
+
+    it.each(cases)('p=%s maps to %s', async (p, band) => {
+      const { container } = render(
+        <LocaleProvider>
+          <PValueDial result={makeResult({ p })} pending={false} />
+        </LocaleProvider>
+      );
+      await screen.findByText(/^p [=<]/);
+      const dial = container.querySelector('[data-testid="pvalue-dial"]');
+      for (const candidate of ['ph-dial--step-1', 'ph-dial--step-2', 'ph-dial--step-3', 'ph-dial--significant']) {
+        expect(hasClass(dial, candidate)).toBe(candidate === band);
+      }
+    });
+
+    it('never sets an inline opacity on the value element, at any band', async () => {
+      for (const p of [0.9, 0.5, 0.2, 0.1, 0.049]) {
+        const { container, unmount } = render(
+          <LocaleProvider>
+            <PValueDial result={makeResult({ p })} pending={false} />
+          </LocaleProvider>
+        );
+        await screen.findByText(/^p [=<]/);
+        const value = container.querySelector('.ph-dial__value') as HTMLElement;
+        expect(value.style.opacity).toBe('');
+        unmount();
+      }
+    });
+  });
+
   it('renders the insufficient-data copy instead of the numeral when valid=false, even with a plausible p', async () => {
     render(
       <LocaleProvider>
@@ -494,6 +535,9 @@ describe('Lab', () => {
 
     fireEvent.click(collectBtn());
     await waitFor(() => expect(screen.getByText(enCopy['lab.peekFootnoteArmitage'])).toBeTruthy());
+    // Co-presence: the Armitage wink is ADDITIONAL, not a replacement — the
+    // sincere 1st-peek line must still be on screen after the 2nd peek.
+    expect(screen.getByText(enCopy['lab.peekFootnote'])).toBeTruthy();
   });
 
   it('disables "Collect more" once N has reached 400', async () => {
