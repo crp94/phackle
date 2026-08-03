@@ -76,7 +76,7 @@ afterEach(() => {
 // --- boot --------------------------------------------------------------
 
 describe('boot', () => {
-  it('initializes the engine, runs the default spec, and lands on lab', async () => {
+  it('initializes the engine, prefetches the default spec, and stays on briefing until openData()', async () => {
     const client = makeFakeClient();
     const store = createGameStore();
 
@@ -85,7 +85,9 @@ describe('boot', () => {
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
 
     const s = store.getState();
-    expect(s.screen).toBe('lab');
+    // §2.3: "Open the data" is a player CTA — boot() prefetches the default
+    // spec's result but must not itself advance past briefing.
+    expect(s.screen).toBe('briefing');
     expect(s.mode).toBe('hack');
     expect(s.practice).toBe(false);
     expect(s.puzzleNumber).toBe(1); // EPOCH is puzzle #1
@@ -136,7 +138,7 @@ describe('boot', () => {
     crashHandler();
 
     expect(store.getState().error).toBe('engine crashed');
-    expect(store.getState().screen).toBe('lab');
+    expect(store.getState().screen).toBe('briefing');
   });
 
   it('captures an init failure into `error` instead of throwing, and does not advance past briefing', async () => {
@@ -152,6 +154,64 @@ describe('boot', () => {
   });
 });
 
+// --- openData (§2.3 "Open the data" CTA) ----------------------------------
+
+describe('openData (§2.2/§2.3 briefing -> lab)', () => {
+  it('flips briefing -> lab with no log entry and no fork implications (pure navigation)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+
+    const before = store.getState();
+    expect(before.screen).toBe('briefing');
+    // Prefetch already happened during boot(); the initial spec stays free.
+    expect(before.log).toHaveLength(1);
+    expect(before.forks).toBe(0);
+
+    store.getState().openData();
+
+    const after = store.getState();
+    expect(after.screen).toBe('lab');
+    // Pure navigation: nothing else about the prefetched state changes.
+    expect(after.log).toEqual(before.log);
+    expect(after.forks).toBe(0);
+    expect(after.result).toEqual(before.result);
+  });
+
+  it('throws when called from any screen reached after the briefing (lab/published/reveal/summary)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    expect(store.getState().screen).toBe('lab');
+    expect(() => store.getState().openData()).toThrow();
+
+    await store.getState().submit(); // boot's own prefetched result is p=0.02, valid
+    expect(store.getState().screen).toBe('published');
+    expect(() => store.getState().openData()).toThrow();
+
+    await store.getState().makeCall('real');
+    expect(store.getState().screen).toBe('reveal');
+    expect(() => store.getState().openData()).toThrow();
+
+    store.getState().finishReveal();
+    expect(store.getState().screen).toBe('summary');
+    expect(() => store.getState().openData()).toThrow();
+  });
+
+  it('throws when called from "call" (post-abandon)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().abandon();
+
+    expect(store.getState().screen).toBe('call');
+    expect(() => store.getState().openData()).toThrow();
+  });
+});
+
 // --- changeSpec / debounce ------------------------------------------------
 
 describe('changeSpec (debounce + §2.10 logging)', () => {
@@ -159,6 +219,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     expect(store.getState().spec).toEqual(specA);
@@ -171,6 +232,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS - 50);
@@ -185,6 +247,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockResolvedValueOnce(makeResult({ spec: specA, p: 0.03 }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -205,6 +268,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(100);
@@ -239,6 +303,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
 
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -269,6 +334,7 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockRejectedValueOnce(new Error('boom'));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -293,6 +359,7 @@ describe('peekAndExtend', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockImplementationOnce(() => new Promise(() => {}));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -307,6 +374,7 @@ describe('peekAndExtend', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockResolvedValueOnce(makeResult({ n: 250, p: 0.03 }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     await store.getState().peekAndExtend();
 
@@ -329,6 +397,7 @@ describe('peekAndExtend', () => {
     }
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     for (let i = 0; i < rest.length; i++) {
       await store.getState().peekAndExtend();
@@ -349,6 +418,7 @@ describe('submit (§2.2 lab -> published)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockResolvedValueOnce(makeResult({ spec: specA, p: 0.01, valid: true }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
     store.getState().changeSpec(specA);
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
@@ -365,6 +435,7 @@ describe('submit (§2.2 lab -> published)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.06, valid: true }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     await expect(store.getState().submit()).rejects.toThrow();
     expect(store.getState().screen).toBe('lab');
@@ -376,6 +447,7 @@ describe('submit (§2.2 lab -> published)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01 })).mockImplementationOnce(() => new Promise(() => {}));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     store.getState().changeSpec(specA); // starts an in-flight (hanging) request
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -390,6 +462,7 @@ describe('submit (§2.2 lab -> published)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01, valid: false }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     await expect(store.getState().submit()).rejects.toThrow();
     expect(store.getState().screen).toBe('lab');
@@ -403,6 +476,7 @@ describe('abandon (§2.2 lab -> call)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     await store.getState().abandon();
 
@@ -417,6 +491,7 @@ describe('abandon (§2.2 lab -> call)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01 }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
     await store.getState().submit(); // now on 'published'
 
     await expect(store.getState().abandon()).rejects.toThrow();
@@ -431,6 +506,7 @@ describe('makeCall (§2.2 published|call -> reveal)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
 
     await expect(store.getState().makeCall('real')).rejects.toThrow();
     expect(store.getState().screen).toBe('lab');
@@ -443,6 +519,7 @@ describe('makeCall (§2.2 published|call -> reveal)', () => {
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01 }));
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
     await store.getState().submit();
 
     await store.getState().makeCall('real');
@@ -459,6 +536,7 @@ describe('makeCall (§2.2 published|call -> reveal)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
     await store.getState().abandon();
 
     await store.getState().makeCall('noise');
@@ -477,6 +555,7 @@ describe('finishReveal (§2.2 reveal -> summary)', () => {
     const client = makeFakeClient();
     const store = createGameStore();
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
     await store.getState().abandon();
     await store.getState().makeCall('real');
 
@@ -497,6 +576,10 @@ describe('full happy path: briefing -> lab -> published -> reveal -> summary', (
     expect(store.getState().screen).toBe('briefing');
 
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    // §2.3: boot() prefetches but the player must open the data themselves.
+    expect(store.getState().screen).toBe('briefing');
+
+    store.getState().openData();
     expect(store.getState().screen).toBe('lab');
 
     store.getState().changeSpec(specA);

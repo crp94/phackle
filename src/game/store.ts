@@ -41,13 +41,19 @@ export interface GameStore {
   reveal: RevealPayload | null;
   error: string | null;
 
-  /** Initializes the engine for `iso`'s puzzle and runs the default spec once,
-   * landing on 'lab' with a live result already showing. */
+  /** Initializes the engine for `iso`'s puzzle and prefetches the default
+   * spec's result, but stays on 'briefing' (§2.3: "Open the data" is a player
+   * CTA, not automatic) — the prefetch just means the lab has a result ready
+   * to show the instant the player opens it. */
   boot(
     client: EngineClient,
     iso: string,
     opts: { practice: boolean; mode: 'hack' | 'prereg'; scenarioCount: number },
   ): Promise<void>;
+  /** The briefing's "Open the data" CTA (§2.3): pure navigation from
+   * 'briefing' to 'lab' — no log entry, no fork implications. Guarded to
+   * only fire from 'briefing'. */
+  openData(): void;
   /** Debounced DEBOUNCE_MS; only the settled spec reaches runSpec + the log
    * (§2.10: rapid multi-knob changes before results render count once). */
   changeSpec(next: Spec): void;
@@ -64,7 +70,7 @@ export interface GameStore {
 
 function initialState(): Omit<
   GameStore,
-  'boot' | 'changeSpec' | 'peekAndExtend' | 'submit' | 'abandon' | 'makeCall' | 'finishReveal'
+  'boot' | 'openData' | 'changeSpec' | 'peekAndExtend' | 'submit' | 'abandon' | 'makeCall' | 'finishReveal'
 > {
   return {
     screen: 'briefing',
@@ -126,12 +132,19 @@ export function createGameStore() {
         set((s) => {
           // Initial default spec is free (§2.10) — logged so distinctExplored
           // / the fork trail have a first entry, but never itself a fork.
+          // screen stays 'briefing': prefetching is intentional, but landing
+          // on 'lab' is the player's own doing via openData() (§2.3).
           const log: PlayerAction[] = [...s.log, { t: 'VIEW_SPEC', spec: DEFAULT_SPEC, seen: false, at }];
-          return { spec: DEFAULT_SPEC, result, pending: false, screen: 'lab', log, forks: countForks(log) };
+          return { spec: DEFAULT_SPEC, result, pending: false, log, forks: countForks(log) };
         });
       } catch (err) {
         set({ pending: false, error: err instanceof Error ? err.message : String(err) });
       }
+    },
+
+    openData() {
+      if (get().screen !== 'briefing') throw new Error('can only open the data from the briefing');
+      set({ screen: 'lab' });
     },
 
     changeSpec(next) {
