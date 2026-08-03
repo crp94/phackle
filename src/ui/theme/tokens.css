@@ -1,3 +1,134 @@
-/* Design tokens (master spec §7.2). Intentionally empty in T1 — this file is
-   wired up via src/main.tsx's import so later tasks can populate it without
-   touching the bootstrap. */
+/**
+ * P-hackle design tokens — "Preprint Gothic, Nothing-disciplined".
+ *
+ * Master spec §7.2 fixes the seven palette values; docs/DESIGN.md governs how
+ * they may be used and pins everything else here. This file is the ONLY place
+ * in the codebase allowed to contain a colour literal: UI code reads tokens or
+ * it does not get the colour. See tests/ui/tokens.test.ts, which enforces that.
+ *
+ * The theme is selected by an explicit `data-theme="light|dark"` attribute on
+ * <html>, written at boot from the stored setting (falling back to
+ * `matchMedia('(prefers-color-scheme: dark)')`). CSS never guesses the theme —
+ * one authoritative dark block, no duplicated palette under a media query.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* --- Palette (master spec §7.2 — fixed values, never edit) -------------- */
+  --paper: #FBF8F1;
+  --ink: #1C1B18;
+  --rule: #D8D2C4;
+  --sig-red: #B3261E;
+  --assist-green: #2E6E4E;
+  --hack-gold: #B98A2C;
+  --muted: #6E6A5E;
+
+  /* --- Derived colour ----------------------------------------------------- */
+  /* --hack-gold is 2.94:1 on paper: legible as a mark, illegal as text (§7.5
+     wants >= 4.5:1). This darkened variant (5.03:1) is the only gold that may
+     carry characters. DESIGN.md R1.6. */
+  --hack-gold-ink: #8C6401;
+  /* The single permitted filled area in the whole product: the p < .05 band in
+     SpecCurve (§7.4). 6% keeps --muted captions on it at 4.62:1. */
+  --sig-band: color-mix(in srgb, var(--sig-red) 6%, transparent);
+
+  /* --- Surfaces ----------------------------------------------------------- */
+  --hairline: 1px solid var(--rule);
+  --radius: 2px;
+
+  /* --- Type --------------------------------------------------------------- */
+  --font-display: 'STIX Two Text', 'Times New Roman', Times, serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-13: 13px;
+  --text-15: 15px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-40: 40px;
+  --text-dial: clamp(64px, 11vw, 96px);
+
+  --leading-dial: 1;
+  --leading-display: 1.15;
+  --leading-ui: 1.4;
+  --leading-prose: 1.45;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+
+  --tracking-label: 0.08em;
+
+  /* --- Spacing (closed scale — no value outside it exists) ---------------- */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-40: 40px;
+  --space-64: 64px;
+
+  /* --- Layout ------------------------------------------------------------- */
+  --measure: 62ch;
+  --page-max: 68rem;
+
+  /* --- Motion (exhaustive: four animations exist, §7.5) ------------------- */
+  --dur-tick: 120ms;
+  --dur-fade: 300ms;
+  --dur-stamp: 450ms;
+  --dur-confetti: 3000ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-stamp: cubic-bezier(0.2, 1.4, 0.3, 1);
+
+  /* --- Focus (identical in both themes: --ink flips with the theme) ------- */
+  --focus-ring: 2px solid var(--ink);
+  --focus-offset: 2px;
+
+  /* --- Figures (SpecCurve point radii, master spec §7.4) ------------------ */
+  --dot-all: 1.5px;
+  --dot-explored: 4px;
+  --dot-published: 6px;
+
+  /* --- Stacking (no raw z-index anywhere) --------------------------------- */
+  --z-sticky: 10;
+  --z-overlay: 20;
+  --z-modal: 30;
+  --z-stamp: 40;
+}
+
+/**
+ * Dark theme. --paper and --ink are the master spec §7.2 values. The accents
+ * keep their exact OKLCH hue and chroma and raise lightness until they clear
+ * §7.5's 4.5:1 floor against the dark paper — the spec's nominal "+10%" is only
+ * enough for gold, so red and green take +30%. Measured ratios in DESIGN.md §7.
+ */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper: #141821;
+  --ink: #E8E4D9;
+  --rule: #2E3542;
+  --sig-red: #E85B4C;
+  --assist-green: #5A9A78;
+  --hack-gold: #CE9F44;
+  --muted: #8D897C;
+
+  /* Gold is already 7.33:1 on the dark paper, so text gold needs no darkening. */
+  --hack-gold-ink: #CE9F44;
+}
+
+/**
+ * Reduced motion collapses every CSS animation to an instant state change
+ * (§7.5). Canvas confetti has no CSS duration to shorten: --dur-confetti drops
+ * to 0ms and the Published screen must skip the canvas entirely by reading
+ * matchMedia('(prefers-reduced-motion: reduce)') in JS.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-tick: 1ms;
+    --dur-fade: 1ms;
+    --dur-stamp: 1ms;
+    --dur-confetti: 0ms;
+    --ease-stamp: linear;
+  }
+}
