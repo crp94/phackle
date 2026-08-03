@@ -79,15 +79,67 @@ export type CopyKey =
   | 'call.title'
   | 'call.real'
   | 'call.noise'
+  // T16 additions: §2.6 words the two option cards as a claim plus its
+  // testable consequence ("A real effect — this would replicate"), so each
+  // card needs a second line.
+  | 'call.realSub'
+  | 'call.noiseSub'
   | 'call.prompt'
   | 'reveal.truthNull'
   | 'reveal.truthEffect'
   | 'reveal.curveCaption'
+  // T16 review I4: the published caption's "Yours is highlighted" is false on
+  // the abandon path -- nothing was published, and nothing is highlighted.
+  // Same precedent as reveal.accounting2Abandoned.
+  | 'reveal.curveCaptionAbandoned'
   | 'reveal.groupedCaption'
+  // T16 review I5: the sole assistive-technology and keyboard route to
+  // §2.7.2's pinned content. The figure is role="img", so its recipe callout
+  // is invisible to a screen reader and unreachable by tab; this line sets the
+  // published recipe as real text, in full labels, once.
+  | 'reveal.publishedRecipe'
   | 'reveal.accounting1'
   | 'reveal.accounting2'
+  // T16 addition: §2.7.3's accounting2 assumes a publication. A player who
+  // reported a null result explored their paths before doing something else,
+  // and the sentence has to say so rather than lie by a verb.
+  | 'reveal.accounting2Abandoned'
   | 'reveal.accounting3'
   | 'reveal.peekSurcharge'
+  // T16 additions: figure furniture (§7.4, DESIGN.md R8.3 — "a plain figure
+  // with a --muted caption"). Kept out of the caption strings themselves so
+  // the figure number can carry R2.4's mono/tabular numeral style.
+  | 'reveal.fig1'
+  | 'reveal.fig2'
+  | 'reveal.omittedFootnote'
+  // T16 additions: statistical NOTATION, not prose. §5 (about.decimalNote)
+  // fixes the decimal point in every language, so a translator's job here is
+  // to leave the digits alone and translate nothing.
+  | 'reveal.pValue'
+  | 'reveal.pValueTiny'
+  // T16 additions: the localized spec-recipe vocabulary the SpecCurve's
+  // published callout and hover tooltips are built from (§7.4's example
+  // reads "Y₂ · Age<40 · +Income · |z|>2.5 · log · one-tailed"). These are
+  // the COMPACT figure forms, deliberately terser than the Lab's segmented
+  // control labels: a callout has one line, a button has a whole row.
+  | 'reveal.subgroupAll'
+  | 'reveal.subgroupAgeLt40'
+  | 'reveal.subgroupAgeGe40'
+  | 'reveal.subgroupExpHigh'
+  | 'reveal.subgroupExpLow'
+  | 'reveal.subgroupUrban'
+  | 'reveal.subgroupRural'
+  | 'reveal.covNone'
+  | 'reveal.covIncome'
+  | 'reveal.covRisk'
+  | 'reveal.exclusionNone'
+  | 'reveal.exclusionZ3'
+  | 'reveal.exclusionZ25'
+  | 'reveal.exclusionZ2'
+  | 'reveal.transformRaw'
+  | 'reveal.transformLog'
+  | 'reveal.tailsTwo'
+  | 'reveal.tailsOne'
   | 'reveal.retracted'
   | 'reveal.replicated'
   | 'reveal.nullReported'
@@ -231,19 +283,67 @@ export const copy: Record<CopyKey, string> = {
   'published.editorsPick': "Editor's Pick",
   'published.doiPrefix': 'DOI:',
 
+  // §2.6 verbatim: the call is conspiratorial, not accusatory — Act I's last
+  // beat, and the hinge into Act II. "Noise I dressed up" is the player's own
+  // admission to make; the game does not make it for them.
   'call.title': 'Before you see the reveal…',
-  'call.real': 'Real',
-  'call.noise': 'Noise',
-  'call.prompt': 'Is this a genuine effect, or did you just find noise?',
+  'call.real': 'A real effect',
+  'call.realSub': 'This would replicate.',
+  'call.noise': 'Noise I dressed up',
+  'call.noiseSub': 'This would not replicate.',
+  'call.prompt': 'Between us: what do you think you found?',
 
-  'reveal.truthNull': 'The true effect was zero.',
-  'reveal.truthEffect': 'The true effect was real.',
+  // §2.7.1. {beta} is always "0.000" here — it is a parameter rather than a
+  // literal only so the numeral can be typeset in mono (R2.4); translate the
+  // sentence around it and leave the token alone.
+  'reveal.truthNull': 'True effect on every outcome measured: {beta}.',
+  // {beta} is the injected coefficient in the outcome's OWN raw units (not a
+  // standardized d), which is why {unit} qualifies the outcome rather than
+  // trailing the number: "on Self-assessed profundity (1–10 scale): β = 0.37"
+  // reads; "β = 0.37 1–10 scale" does not.
+  'reveal.truthEffect': 'True effect on {outcome} ({unit}): β = {beta} — and only that outcome.',
+  'reveal.fig1': 'Fig. 1',
+  'reveal.fig2': 'Fig. 2',
   'reveal.curveCaption': 'Every specification you could have run, sorted by p-value. Yours is highlighted.',
-  'reveal.groupedCaption': 'Paths grouped by analytical choice.',
-  'reveal.accounting1': 'You viewed {viewed} of {total} possible specifications.',
-  'reveal.accounting2': '{sigFraction}% of all specifications would have reached significance.',
-  'reveal.accounting3': 'Your published result ranked #{rank} by significance.',
-  'reveal.peekSurcharge': '{peeks} extra batches collected along the way.',
+  'reveal.curveCaptionAbandoned':
+    'Every specification you could have run, sorted by p-value. Nothing was published.',
+  'reveal.publishedRecipe': 'You published: {recipe}',
+  // §7.3 pins this sentence. It holds on null days too: nothing clusters, and
+  // that is the same lesson read from the other side.
+  'reveal.groupedCaption': 'Real effects cluster. Noise scatters.',
+  'reveal.omittedFootnote': '{n} specifications had too little data to analyze and are not plotted.',
+  'reveal.pValue': 'p = {p}',
+  'reveal.pValueTiny': 'p < 0.001',
+  'reveal.accounting1': 'Of {total} possible analyses, {sig} ({sigPct}%) reach p < .05 by chance alone.',
+  'reveal.accounting2': 'You explored {k} paths before publishing.',
+  'reveal.accounting2Abandoned': 'You explored {k} paths before reporting a null result.',
+  'reveal.accounting3':
+    'A researcher exploring {k} paths at random finds at least one "significant" result about {pHitPct}% of the time.',
+  // §3.7's honest form: m peeks make the true number of analyses ≈ (m+1)×
+  // larger. Not 5^m, and not a scolding.
+  'reveal.peekSurcharge':
+    'Your {peeks} data-peeks make the true number of analyses roughly {mult}× larger than this curve shows.',
+
+  // §7.4 recipe vocabulary — compact by design; see the CopyKey union above.
+  'reveal.subgroupAll': 'Everyone',
+  'reveal.subgroupAgeLt40': 'Age<40',
+  'reveal.subgroupAgeGe40': 'Age≥40',
+  'reveal.subgroupExpHigh': 'High experience',
+  'reveal.subgroupExpLow': 'Low experience',
+  'reveal.subgroupUrban': 'Urban',
+  'reveal.subgroupRural': 'Rural',
+  'reveal.covNone': 'no covariates',
+  'reveal.covIncome': '+Income',
+  'reveal.covRisk': '+Risk',
+  'reveal.exclusionNone': 'no exclusions',
+  'reveal.exclusionZ3': '|z|>3',
+  'reveal.exclusionZ25': '|z|>2.5',
+  'reveal.exclusionZ2': '|z|>2',
+  'reveal.transformRaw': 'raw',
+  'reveal.transformLog': 'log',
+  'reveal.tailsTwo': 'two-tailed',
+  'reveal.tailsOne': 'one-tailed',
+
   'reveal.retracted': 'RETRACTED',
   'reveal.replicated': 'REPLICATED',
   'reveal.nullReported': 'NULL REPORTED',

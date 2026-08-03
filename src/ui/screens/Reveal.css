@@ -1,0 +1,153 @@
+/**
+ * The Reveal — master spec §2.7/§7.3, DESIGN.md R1.2, R1.3, R2.1, R2.4, R2.8,
+ * R3.2, R4.4, R4.5, R4.7, R5.3, R8.2, R8.3.
+ *
+ * Act II is a manuscript's results section: display serif prose at the
+ * measure, mono numerals, hairlines, --space-40 between blocks so the rhythm
+ * is measurable. The only thing here that asks to be looked at is the stamp.
+ */
+
+.ph-reveal {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-block: var(--space-40);
+}
+
+/* R5.3: opacity only, 300ms, one block per intersection. No slide, no scale.
+   tokens.css collapses --dur-fade to 1ms under prefers-reduced-motion, and
+   Block() additionally starts visible there, so nothing is ever waiting on a
+   scroll that a reduced-motion reader did not ask for. */
+.ph-fade {
+  display: block;
+  opacity: 0;
+  transition: opacity var(--dur-fade) var(--ease-out);
+}
+
+.ph-fade--in {
+  opacity: 1;
+}
+
+/* R3.2: the page rhythm, and it should be measurable with a ruler. */
+.ph-fade + .ph-fade {
+  margin-block-start: var(--space-40);
+}
+
+.ph-reveal__truth {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+.ph-reveal__accounting {
+  max-width: var(--measure);
+  padding-block-start: var(--space-16);
+  border-block-start: var(--hairline);
+}
+
+.ph-reveal__statement {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+}
+
+.ph-reveal__statement + .ph-reveal__statement {
+  margin-block-start: var(--space-12);
+}
+
+/* The published recipe as real text (review I5) -- quieter than the
+   accounting statements above it, because it is a restatement rather than a
+   finding, but present for anyone the SVG cannot reach. */
+.ph-reveal__published-recipe {
+  max-width: var(--measure);
+  margin: var(--space-16) 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+/* R2.4: every numeral, everywhere, mono and tabular. */
+.ph-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-regular);
+}
+
+/* R1.3's fourth place: the Act II accounting figures for p < .05. */
+.ph-num--sig {
+  color: var(--sig-red);
+}
+
+/* ---- figures (§7.4, R8.3: a plain figure with a muted caption) ---------- */
+
+.ph-figure {
+  max-width: var(--page-max);
+  margin: 0;
+}
+
+.ph-figure__caption {
+  display: block;
+  max-width: var(--measure);
+  margin-block-start: var(--space-12);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+.ph-figure__footnote {
+  display: block;
+  margin-block-start: var(--space-4);
+}
+
+/* ---- the stamp beat (§2.7.4, R8.2) ------------------------------------- */
+
+.ph-reveal__cover {
+  position: relative;
+  max-width: var(--measure);
+  padding-block: var(--space-40);
+}
+
+/* §0: a "cover" is a hairline-ruled block, not a boxed card. */
+.ph-reveal__cover-card {
+  padding-block: var(--space-24);
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
+}
+
+.ph-reveal__cover-vol {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-reveal__cover-title {
+  margin: var(--space-12) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+/* The stamp lands ON the cover — R4.7's ladder, never a raw z-index. */
+.ph-reveal__stamp {
+  position: absolute;
+  inset-block-start: var(--space-16);
+  inset-inline-start: var(--space-24);
+  z-index: var(--z-stamp);
+  width: 60%;
+  pointer-events: none;
+}
