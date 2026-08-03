@@ -1,0 +1,104 @@
+/* R8.2: oversized, rotated -12deg, distressed, --sig-red, rendered once. */
+.ph-stamp {
+  display: inline-block;
+}
+
+.ph-stamp__mark {
+  display: block;
+  width: min(100%, 320px);
+  height: auto;
+  overflow: visible;
+  transform: rotate(-12deg);
+  transform-origin: 50% 50%;
+}
+
+.ph-stamp__border {
+  fill: none;
+  stroke-width: 4;
+}
+
+.ph-stamp__label {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-40);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-stamp__subline {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-15);
+}
+
+.ph-stamp__mark--red .ph-stamp__border,
+.ph-stamp__mark--red .ph-stamp__label,
+.ph-stamp__mark--red .ph-stamp__subline {
+  stroke: var(--sig-red);
+  fill: var(--sig-red);
+}
+
+.ph-stamp__mark--red .ph-stamp__border {
+  fill: none;
+}
+
+.ph-stamp__mark--ink .ph-stamp__border,
+.ph-stamp__mark--ink .ph-stamp__label,
+.ph-stamp__mark--ink .ph-stamp__subline {
+  stroke: var(--ink);
+  fill: var(--ink);
+}
+
+.ph-stamp__mark--ink .ph-stamp__border {
+  fill: none;
+}
+
+/* DESIGN.md R1.5 exception (§0 registry): the REPLICATED verdict stamp is the
+   one sanctioned display-scale --assist-green, parallel to R1.3's red entry. */
+.ph-stamp__mark--green .ph-stamp__border,
+.ph-stamp__mark--green .ph-stamp__label,
+.ph-stamp__mark--green .ph-stamp__subline {
+  stroke: var(--assist-green);
+  fill: var(--assist-green);
+}
+
+.ph-stamp__mark--green .ph-stamp__border {
+  fill: none;
+}
+
+/* R5.2: single 450ms slam (scale + rotate, one overshoot) on the mark, plus a
+   <=2px "page" shake on the container -- one timeline, both ending together. */
+@keyframes ph-stamp-slam {
+  0% {
+    transform: scale(1.6) rotate(6deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.94) rotate(-14deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-12deg);
+    opacity: 1;
+  }
+}
+
+@keyframes ph-stamp-shake {
+  0% {
+    transform: translateY(0);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.ph-stamp--animate {
+  animation: ph-stamp-shake var(--dur-stamp) var(--ease-stamp) both;
+}
+
+.ph-stamp--animate .ph-stamp__mark {
+  animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
+}

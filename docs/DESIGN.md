@@ -22,7 +22,7 @@ This document only narrows §7; it never invents a different product.
 
 ## §0 Reconciliation with master spec §7
 
-The approved direction narrows six pieces of §7 wording. These are recorded, not
+The approved direction narrows seven pieces of §7 wording. These are recorded, not
 silently applied — revert any of them by editing this section and the rule it points at.
 The last row is also the **registry of derived colours** that R1.3a and R1.6
 depend on: a colour derived from the §7.2 palette exists only if it appears both
@@ -35,6 +35,7 @@ in `tokens.css` and in this table.
 | §7.1 stamp "+ subtle paper-shake" | Folded **into** the single 450ms stamp timeline, ≤2px, not a fifth animation (R5.2) | Keeps §7.5's motion budget exhaustive without dropping the effect |
 | §7.2 `--hack-gold` for "career points" (i.e. text) | Gold on characters uses `--hack-gold-ink` (R1.6) | `--hack-gold` is 2.94:1 on paper — it fails §7.5's 4.5:1 floor as text. §7.2's hex is unchanged |
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
+| §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
 | §7.2 fixes **seven** colours | Exactly **two** are derived from them, both declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6) and `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1). Neither counts as a new colour against R1.3 or R1.6; any third derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first and §7.4's tint forces the second — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
@@ -80,7 +81,10 @@ band.
 - Don't: `color: var(--rule);` — it is 1.42:1 on paper and illegible by design.
 
 **R1.5 — `--assist-green` appears only inline at text scale (≤1em)** — the
-REPLICATED verdict word, the integrity-bonus line, "better" deltas.
+REPLICATED verdict word, the integrity-bonus line, "better" deltas. Exception
+(registered in §0): the REPLICATED verdict stamp renders in `--assist-green`
+— the one sanctioned display-scale green, exactly parallel to R1.3's stamp
+entry for `--sig-red`.
 - Do: `<em style="color: var(--assist-green)">REPLICATED</em>` at `--text-15`.
 - Don't: `background: var(--assist-green);` on a success banner — green is never a
   fill, a button, or a background.

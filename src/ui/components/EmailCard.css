@@ -1,0 +1,34 @@
+/* Grantwell's email — DESIGN.md R4.5: a hairline-topped block, never a box
+   (no border shorthand, no all-four-sides rule). */
+/* No external margin here by design: R3.2's --space-40 section rhythm is the
+   consuming screen's call to make (e.g. the Briefing layout, T14) — a value
+   baked in here would risk stacking with it into an unmeasurable gap. */
+.ph-email {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+  max-width: var(--measure);
+}
+
+/* R4.5's own example: "a mono `From:` line" — header metadata reads as
+   typewriter/manuscript register, not display prose. */
+.ph-email__header {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  margin-block: 0 var(--space-8);
+}
+
+.ph-email__label {
+  font-weight: var(--weight-medium);
+  margin-inline-end: var(--space-4);
+}
+
+/* The email body is Act I prose (R2.1: --font-display for scenario prose). */
+.ph-email__body {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  margin-block-start: var(--space-16);
+}
