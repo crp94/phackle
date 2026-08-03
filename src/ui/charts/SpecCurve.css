@@ -1,0 +1,189 @@
+/**
+ * SpecCurve — master spec §7.4, DESIGN.md R1.2/R1.3/R1.4/R4.1/R8.3.
+ *
+ * The figure is quiet: hairline axes, muted ticks, one tinted region, and the
+ * single loud colour spent only where R1.3 sanctions it (threshold + label,
+ * published point + ring + leader). Radii come from the --dot-* tokens (§9
+ * "Figures"), never retyped: `r` is a CSS geometry property, so the tokens
+ * apply to the circles directly.
+ */
+
+.ph-speccurve {
+  margin-block-start: var(--space-16);
+}
+
+.ph-speccurve__plot {
+  position: relative;
+}
+
+.ph-speccurve__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* R4.1: the one filled area in the product. */
+.ph-speccurve__band {
+  fill: var(--sig-band);
+}
+
+.ph-speccurve__axis {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.ph-speccurve__tick {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  font-weight: var(--weight-regular);
+}
+
+/* R1.3 place 2. */
+.ph-speccurve__threshold {
+  stroke: var(--sig-red);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.ph-speccurve__threshold-label {
+  fill: var(--sig-red);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+}
+
+/* §7.4 point sizes, straight off the tokens. */
+.ph-speccurve__dot--base,
+.ph-speccurve__key-dot--base {
+  r: var(--dot-all);
+  fill: var(--rule);
+}
+
+.ph-speccurve__dot--explored,
+.ph-speccurve__key-dot--explored {
+  r: var(--dot-explored);
+  fill: var(--ink);
+}
+
+/* R1.3 place 3. */
+.ph-speccurve__dot--published,
+.ph-speccurve__key-dot--published {
+  r: var(--dot-published);
+  fill: var(--sig-red);
+}
+
+/* R6.3: the published path is red AND a ring, so hue is never load-bearing. */
+.ph-speccurve__ring,
+.ph-speccurve__key-ring {
+  r: calc(var(--dot-published) + var(--space-4));
+  fill: none;
+  stroke: var(--sig-red);
+  stroke-width: 1;
+}
+
+.ph-speccurve__leader {
+  stroke: var(--sig-red);
+  stroke-width: 1;
+}
+
+.ph-speccurve__callout {
+  fill: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  font-weight: var(--weight-regular);
+}
+
+.ph-speccurve__band-label {
+  fill: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+}
+
+/* The pointer surface for every point at once: invisible, but hit-testable. */
+.ph-speccurve__hit {
+  fill: none;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.ph-speccurve__tooltip {
+  position: absolute;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--measure);
+  padding: var(--space-8) var(--space-12);
+  background: var(--paper);
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
+  transform: translate(-50%, calc(-100% - var(--space-8)));
+  pointer-events: none;
+}
+
+/* Near the ceiling there is no room above the point; near an edge, no room to
+   centre on it. Three modifiers, no measurement, no reflow. */
+.ph-speccurve__tooltip--below {
+  transform: translate(-50%, var(--space-8));
+}
+
+.ph-speccurve__tooltip--start {
+  transform: translate(0, calc(-100% - var(--space-8)));
+}
+
+.ph-speccurve__tooltip--start.ph-speccurve__tooltip--below {
+  transform: translate(0, var(--space-8));
+}
+
+.ph-speccurve__tooltip--end {
+  transform: translate(-100%, calc(-100% - var(--space-8)));
+}
+
+.ph-speccurve__tooltip--end.ph-speccurve__tooltip--below {
+  transform: translate(-100%, var(--space-8));
+}
+
+.ph-speccurve__tooltip-recipe {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+}
+
+.ph-speccurve__tooltip-p {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  color: var(--muted);
+}
+
+/* R3.6: a hairline-separated list, not a row of chips. */
+.ph-speccurve__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  margin-block-start: var(--space-12);
+  padding: 0;
+  list-style: none;
+}
+
+.ph-speccurve__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+.ph-speccurve__swatch {
+  display: block;
+  flex: none;
+  width: var(--space-24);
+  height: var(--space-24);
+  overflow: visible;
+}

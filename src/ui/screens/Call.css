@@ -1,0 +1,93 @@
+/**
+ * The Call — master spec §2.6/§7.3, DESIGN.md §0 (every "card" is a
+ * hairline-ruled block), R2.7, R3.1, R4.2, R4.5, R6.1, R6.4.
+ *
+ * §7.3 asks for "two large option cards". §0 narrows every card in the
+ * product to a hairline-ruled block on --paper: the size does the work the
+ * box would have done, and the top rule does the separating. The dimmed
+ * backdrop belongs to whatever container mounts this (see Call.tsx).
+ */
+
+.ph-call {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-block: var(--space-40);
+}
+
+.ph-call__eyebrow {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-call__prompt {
+  margin: var(--space-12) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+.ph-call__options {
+  display: grid;
+  gap: var(--space-24);
+  margin-block-start: var(--space-40);
+}
+
+@media (min-width: 768px) {
+  .ph-call__options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ph-call__option {
+  display: block;
+  width: 100%;
+  padding: var(--space-24) var(--space-16);
+  text-align: start;
+  background: var(--paper);
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
+  border-inline: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.ph-call__option:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-call__option[disabled] {
+  cursor: default;
+}
+
+.ph-call__option-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+/* R5.5: state changes instantly, with no transition property anywhere. */
+.ph-call__option:hover .ph-call__option-title,
+.ph-call__option:focus-visible .ph-call__option-title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ph-call__option-sub {
+  display: block;
+  margin-block-start: var(--space-8);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
