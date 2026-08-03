@@ -6,6 +6,7 @@ import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand/react';
 import type { EngineClient, RevealPayload } from '../engine/protocol';
 import type { PathResult, PlayerAction, Spec, WindowN } from '../engine/types';
+import { specKey } from '../engine/specGrid';
 import { countForks, distinctExplored } from './forkLog';
 import { practiceSeed, puzzleNumber } from './daily';
 import { DEBOUNCE_MS, N_SCHEDULE } from './tuning';
@@ -23,6 +24,25 @@ export const DEFAULT_SPEC: Spec = {
 };
 
 const MAX_N: WindowN = N_SCHEDULE[N_SCHEDULE.length - 1];
+
+/** T30: one entry per settled spec whose result was ACTUALLY displayed to
+ * the player — captured the moment it's superseded by the next settled spec
+ * (see `commitSettledSpec`'s own `seenPrev` check below, which this reuses
+ * exactly: an entry is only pushed when a result had genuinely rendered for
+ * the spec being replaced, never for one still `pending`). `key` is the
+ * canonical, N-independent spec-shape key (`engine/specGrid.ts`'s own
+ * `specKey` — already used by the reveal/curve pipeline for exactly this
+ * "same spec, regardless of sample size" notion). Feeds
+ * `dayComplete.ts`'s `computeDecisiveTails` (§2.11 "The One-Tailed Bandit"):
+ * was the SAME spec, two-tailed, ever seen non-significant before the player
+ * flipped it to one-tailed and published? Additive-only: entries are never
+ * pruned within a day; the whole array is reset to `[]` only by `boot()` (a
+ * fresh puzzle day), same as `log`/`forks`. */
+export interface ResultLogEntry {
+  key: string;
+  p: number;
+  valid: boolean;
+}
 
 export interface GameStore {
   screen: Screen;
@@ -45,6 +65,8 @@ export interface GameStore {
   n: WindowN;
   log: PlayerAction[];
   forks: number;
+  /** See `ResultLogEntry`'s own doc comment (T30). */
+  resultLog: ResultLogEntry[];
   published: Spec | null;
   call: 'real' | 'noise' | null;
   reveal: RevealPayload | null;
@@ -97,6 +119,7 @@ function initialState(): Omit<
     n: N_SCHEDULE[0],
     log: [],
     forks: 0,
+    resultLog: [],
     published: null,
     call: null,
     reveal: null,
@@ -255,7 +278,24 @@ export function createGameStore() {
     const at = Date.now();
     store.setState((st) => {
       const log: PlayerAction[] = [...st.log, { t: 'VIEW_SPEC', spec: settled, seen: seenPrev, at }];
-      return { pending: true, log, forks: countForks(log) };
+      const forks = countForks(log);
+      // T30: durably record the OUTGOING result, but only if `seenPrev` says
+      // it had genuinely rendered. Keyed by `st.result.spec` — the spec the
+      // CURRENT result actually belongs to — never `st.spec`: `changeSpec`
+      // updates the visible control spec synchronously, well before this
+      // debounced commit runs, so by the time we get here `st.spec` may
+      // already be `settled` (or something later still, per the "three rapid
+      // changes" collapse) while `st.result` still holds the PREVIOUS spec's
+      // data, tagged with its own `.spec` field (PathResult carries this
+      // itself — see engine/types.ts).
+      if (seenPrev && st.result) {
+        const resultLog: ResultLogEntry[] = [
+          ...st.resultLog,
+          { key: specKey(st.result.spec), p: st.result.p, valid: st.result.valid },
+        ];
+        return { pending: true, log, forks, resultLog };
+      }
+      return { pending: true, log, forks };
     });
     try {
       const result = await client.runSpec(settled);

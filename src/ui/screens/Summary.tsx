@@ -13,11 +13,14 @@
 // touching zustand or React context at all (tests/ui/summary.test.tsx).
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../game/store';
+import type { ResultLogEntry } from '../../game/store';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
+import type { AchievementId } from '../../content/types';
 import type { DayType, PlayerAction, RevealMetrics } from '../../engine/types';
 import { callIsCorrect, scoreDay } from '../../game/scoring';
-import { loadState, saveDay, streakAfter } from '../../game/storage';
+import { loadState, saveAchievements, saveDay, streakAfter } from '../../game/storage';
+import { unlockAchievements } from '../../game/dayComplete';
 import { shareString, shareViaNavigator } from '../../game/share';
 import { msToNextLocalMidnight } from '../../game/daily';
 import './Summary.css';
@@ -179,6 +182,11 @@ export interface FinishedGameFields {
    * called at — see the doc comment below for exactly what that does and
    * does not cover. */
   puzzleIso: string;
+  /** T30: every settled spec's result that was actually displayed today
+   * (store.ts's own `resultLog`) — feeds dayComplete.ts's
+   * computeDecisiveTails via unlockAchievements, inside this same
+   * function's one persistence moment (see below). */
+  resultLog: ResultLogEntry[];
 }
 
 export interface ComputedSummary {
@@ -250,7 +258,7 @@ export interface ComputedSummary {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSummary {
-  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, puzzleIso } = fields;
+  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, puzzleIso, resultLog } = fields;
 
   const callCorrect = call !== null ? callIsCorrect(call, dayType) : null;
   const preregSig = mode === 'prereg' ? stamp !== 'NULL_REPORTED' : undefined;
@@ -282,6 +290,13 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
 
   const shareText = shareString({ puzzleNumber, log, mode, callCorrect: callCorrect ?? false, streak, copy });
 
+  // T30: achievements newly unlocked TODAY — stays empty unless the block
+  // below actually runs. Folded into `preregUnlocked` regardless (see the
+  // return statement) so the achievement-gated upsell can render on the
+  // SAME summary that just earned it (§2.11: RETRACTED -> first_retraction
+  // -> Prereg Mode), not only on some later day's.
+  let unlockedToday: AchievementId[] = [];
+
   if (!practice && !alreadySaved) {
     saveDay(puzzleIso, {
       mode,
@@ -291,6 +306,27 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
       stamp,
       shareString: shareText,
     });
+
+    // T30: evaluated against the history PRIOR to today — `state.history`,
+    // captured above BEFORE saveDay's write, never `historyForStreak` (which
+    // may carry a synthetic today-placeholder; see that variable's own doc
+    // comment) — and persisted via storage.ts's merge-only saveAchievements.
+    // Deliberately INSIDE this exact `!practice && !alreadySaved` guard, the
+    // app's one sanctioned persistence moment (see this function's own doc
+    // comment above), rather than a second guard of its own: a practice day
+    // must never unlock anything, and a re-visit must never re-evaluate —
+    // idempotence is inherited from the SAME check saveDay already uses, not
+    // reimplemented.
+    unlockedToday = unlockAchievements({
+      log,
+      resultLog,
+      history: state.history,
+      call,
+      callCorrect,
+      mode,
+      stamp,
+    });
+    saveAchievements(unlockedToday, puzzleIso);
   }
 
   return {
@@ -298,10 +334,11 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     score: scoreResult.score,
     streak,
     shareText,
-    // Achievement UNLOCKING isn't wired yet either (same T13-flagged seam) —
-    // this only ever READS whatever is already in storage, so the upsell
-    // stays correctly dormant until a future task starts writing it.
-    preregUnlocked: state.achievements.first_retraction !== undefined,
+    // True if EITHER a past day already unlocked first_retraction, OR today
+    // just did (`unlockedToday` — see its own doc comment above for why
+    // "today" must be included here, not only what was already in storage
+    // before this call started).
+    preregUnlocked: state.achievements.first_retraction !== undefined || unlockedToday.includes('first_retraction'),
   };
 }
 
@@ -320,6 +357,7 @@ export default function SummaryScreen() {
   const call = useGameStore((s) => s.call);
   const reveal = useGameStore((s) => s.reveal);
   const log = useGameStore((s) => s.log);
+  const resultLog = useGameStore((s) => s.resultLog);
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -350,6 +388,7 @@ export default function SummaryScreen() {
         // and FinishedGameFields.puzzleIso for exactly why: a live
         // wall-clock read is the T17 review round-2 bug).
         puzzleIso: iso,
+        resultLog,
       })
     );
     // Deliberately NOT re-running on every store field change: this fires

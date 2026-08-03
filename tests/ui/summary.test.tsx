@@ -312,6 +312,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     });
 
     expect(result.streak).toBe(3); // 08-08, 08-09, 08-10 (today) consecutive
@@ -332,6 +333,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     });
     const expected = scoreDay({
       mode: 'hack',
@@ -358,6 +360,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     });
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(saved.history?.['2026-08-10']).toBeUndefined();
@@ -378,6 +381,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     });
     expect(unlocked.preregUnlocked).toBe(true);
 
@@ -395,6 +399,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-11',
+      resultLog: [],
     });
     expect(locked.preregUnlocked).toBe(false);
   });
@@ -412,6 +417,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     });
     expect(result.shareText.startsWith('P-hackle #7')).toBe(true);
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
@@ -438,6 +444,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     };
 
     const first = persistAndComputeSummary(fields);
@@ -472,6 +479,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
+      resultLog: [],
     };
     persistAndComputeSummary({ ...base, mode: 'hack', call: 'real', practice: false });
     persistAndComputeSummary({ ...base, mode: 'prereg', practice: false });
@@ -484,8 +492,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
   });
 });
 
-// --- REQUIRED test: a real unmount/remount cycle of the actual SummaryScreen,
-// driven through a real store instance (not just the pure function above) ---
+// --- shared harness: drives the REAL store singleton to 'summary' ---------
 //
 // Reproduces the exact review-flagged path: App.tsx's header nav is a local
 // page-state that UNMOUNTS the running game machine (children, including
@@ -496,81 +503,87 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
 // its own real actions (boot -> openData -> submit -> makeCall ->
 // finishReveal), via a small harness component — the same sequence
 // tests/game/store.test.ts itself uses to reach 'summary', with the same
-// fake EngineClient shape.
-describe('SummaryScreen — a real unmount/remount cycle does not double-persist (the nav path)', () => {
-  function makeFakeClient(): EngineClient {
-    return {
-      init: vi.fn().mockResolvedValue({ scenarioIndex: 0, n: 200 }),
-      runSpec: vi.fn().mockResolvedValue({
-        spec: DEFAULT_SPEC,
-        n: 200,
-        beta: 0.12,
-        se: 0.05,
-        t: 2.4,
-        p: 0.02, // valid + significant: store.submit()'s own guard requires this
-        ci: [0.02, 0.22] as [number, number],
-        excludedCount: 0,
-        valid: true,
-      }),
-      extend: vi.fn().mockResolvedValue({ n: 250 }),
-      reveal: vi.fn().mockResolvedValue({
-        totalPaths: 1792,
-        sigPaths: 87,
-        sigFraction: 0.0486,
-        playerExplored: 1,
-        pHitAtK: 0.52,
-        curve: [],
-        stamp: 'RETRACTED',
-        peeks: 0,
-        dayType: 'null',
-        trueOutcome: null,
-        trueBeta: 0,
-        hetero: null,
-      }),
-      onCrash: vi.fn(),
+// fake EngineClient shape. Hoisted to module scope (T30) so both the
+// original nav-remount describe block below AND the newer achievements-wiring
+// describe block can share it without duplicating ~30 lines of harness.
+function makeFakeClient(): EngineClient {
+  return {
+    init: vi.fn().mockResolvedValue({ scenarioIndex: 0, n: 200 }),
+    runSpec: vi.fn().mockResolvedValue({
+      spec: DEFAULT_SPEC,
+      n: 200,
+      beta: 0.12,
+      se: 0.05,
+      t: 2.4,
+      p: 0.02, // valid + significant: store.submit()'s own guard requires this
+      ci: [0.02, 0.22] as [number, number],
+      excludedCount: 0,
+      valid: true,
+    }),
+    extend: vi.fn().mockResolvedValue({ n: 250 }),
+    reveal: vi.fn().mockResolvedValue({
+      totalPaths: 1792,
+      sigPaths: 87,
+      sigFraction: 0.0486,
+      playerExplored: 1,
+      pHitAtK: 0.52,
+      curve: [],
+      stamp: 'RETRACTED',
+      peeks: 0,
+      dayType: 'null',
+      trueOutcome: null,
+      trueBeta: 0,
+      hetero: null,
+    }),
+    onCrash: vi.fn(),
+  };
+}
+
+/** Drives the REAL store singleton (via useGameStore) through the exact
+ * sequence tests/game/store.test.ts uses to reach 'summary': boot (with a
+ * fake client) -> openData -> submit (boot's own prefetched result is
+ * p=0.02, valid) -> makeCall('real') -> finishReveal. Calls `onReady` once
+ * `screen` is actually 'summary'. `practice` (T30 addition, defaults false —
+ * every existing call site is unaffected) drives boot's own practice flag,
+ * for the "practice never persists achievements" case. */
+function DriveToSummary({ onReady, practice = false }: { onReady: () => void; practice?: boolean }) {
+  const boot = useGameStore((s) => s.boot);
+  const openData = useGameStore((s) => s.openData);
+  const submit = useGameStore((s) => s.submit);
+  const makeCall = useGameStore((s) => s.makeCall);
+  const finishReveal = useGameStore((s) => s.finishReveal);
+  const screen = useGameStore((s) => s.screen);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const client = makeFakeClient();
+      await boot(client, '2026-08-10', { practice, mode: 'hack', scenarioCount: 20 });
+      if (cancelled) return;
+      openData();
+      await submit();
+      if (cancelled) return;
+      await makeCall('real');
+      if (cancelled) return;
+      finishReveal();
+    })();
+    return () => {
+      cancelled = true;
     };
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  /** Drives the REAL store singleton (via useGameStore) through the exact
-   * sequence tests/game/store.test.ts uses to reach 'summary': boot (with a
-   * fake client) -> openData -> submit (boot's own prefetched result is
-   * p=0.02, valid) -> makeCall('real') -> finishReveal. Calls `onReady` once
-   * `screen` is actually 'summary'. */
-  function DriveToSummary({ onReady }: { onReady: () => void }) {
-    const boot = useGameStore((s) => s.boot);
-    const openData = useGameStore((s) => s.openData);
-    const submit = useGameStore((s) => s.submit);
-    const makeCall = useGameStore((s) => s.makeCall);
-    const finishReveal = useGameStore((s) => s.finishReveal);
-    const screen = useGameStore((s) => s.screen);
+  useEffect(() => {
+    if (screen === 'summary') onReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
-    useEffect(() => {
-      let cancelled = false;
-      void (async () => {
-        const client = makeFakeClient();
-        await boot(client, '2026-08-10', { practice: false, mode: 'hack', scenarioCount: 20 });
-        if (cancelled) return;
-        openData();
-        await submit();
-        if (cancelled) return;
-        await makeCall('real');
-        if (cancelled) return;
-        finishReveal();
-      })();
-      return () => {
-        cancelled = true;
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  return null;
+}
 
-    useEffect(() => {
-      if (screen === 'summary') onReady();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [screen]);
-
-    return null;
-  }
-
+// --- REQUIRED test: a real unmount/remount cycle of the actual SummaryScreen,
+// driven through a real store instance (not just the pure function above) ---
+describe('SummaryScreen — a real unmount/remount cycle does not double-persist (the nav path)', () => {
   it('does not persist a finished day twice across a real unmount/remount, and the persisted NUMBERS (not just call counts) stay unchanged', async () => {
     const ready = vi.fn();
     const harness = render(
@@ -691,5 +704,101 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// --- T30: achievement evaluation wired into the SAME persist moment --------
+//
+// Before T30, evaluateAchievements (T13) had zero call sites: the wall stayed
+// all-locked and the prereg upsell (gated on achievements.first_retraction)
+// was dead. These tests drive a real RETRACTED day end-to-end (same harness
+// as the nav-remount describe block above — its fake client's `reveal`
+// always returns stamp: 'RETRACTED') and prove the achievement actually
+// unlocks, the upsell renders on the SAME summary that earned it, a remount
+// never moves the unlock date, and practice mode never persists anything.
+describe('SummaryScreen — achievement evaluation wired into the one persist moment (T30)', () => {
+  it('a first-ever RETRACTED day unlocks first_retraction under the PUZZLE iso, and the SAME summary already shows the prereg upsell', async () => {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    // The boot iso itself ('2026-08-10', DriveToSummary's own fixed boot
+    // call) — never a wall-clock read.
+    expect(saved.achievements.first_retraction).toBe('2026-08-10');
+
+    // The upsell renders on THIS SAME render — proving preregUnlocked flips
+    // true the instant the achievement is earned, not only on some later day.
+    expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
+    const button = screen.getByRole('button', { name: t('summary.playPrereg') });
+    expect(button.hasAttribute('disabled')).toBe(true);
+  });
+
+  it('a remount does not move the unlock date (saveAchievements is not re-invoked; alreadySaved skips the whole persist block)', async () => {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+
+    const first = render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    const afterFirst = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(afterFirst.achievements.first_retraction).toBe('2026-08-10');
+    first.unmount(); // <- "click Stats"
+
+    const second = render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    const afterSecond = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+
+    expect(afterSecond.achievements.first_retraction).toBe(afterFirst.achievements.first_retraction);
+    expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy(); // still shown, from persisted state
+
+    second.unmount();
+  });
+
+  it('practice mode never persists achievements, even on a RETRACTED day that would otherwise unlock first_retraction', async () => {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} practice />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(saved.achievements ?? {}).toEqual({});
+    expect(screen.queryByText(t('summary.preregUpsell'))).toBeNull();
   });
 });
