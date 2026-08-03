@@ -12,19 +12,15 @@ export interface StampProps {
   animate: boolean;
 }
 
-// DESIGN.md R1.3 reserves --sig-red for exactly four named places, and the
-// RETRACTED stamp is the only one of the three kinds on that list. R1.5 confines
-// --assist-green to inline text at <=1em ("Don't: background: var(--assist-green)
-// ...on a success banner -- green is never a fill"), which an oversized stamp
-// mark plainly is. Both non-RETRACTED kinds therefore render in --ink here --
-// see the task report for this deviation from the brief's literal
-// "--sig-red (--assist-green for REPLICATED)" note; R8.2 also warns that reusing
-// the stamp *texture* elsewhere turns a signature into a pattern, which reads as
-// a second reason the REPLICATED/NULL_REPORTED cases shouldn't reach for a second
-// loud colour of their own.
+// Controller-ratified carve-out (DESIGN.md R1.5, §0 registry): master spec
+// §7.2 names --assist-green for "REPLICATED" among its uses, and the
+// REPLICATED verdict stamp is the exact parallel of R1.3's RETRACTED-stamp
+// entry for --sig-red -- a signature moment (R8.2), not the ambient chrome
+// R1.5's inline-only/never-a-fill discipline targets. NULL_REPORTED has no
+// such registered exception, so it stays on R1.2's default, --ink.
 const MARK_CLASS: Record<StampProps['kind'], string> = {
   RETRACTED: 'ph-stamp__mark--red',
-  REPLICATED: 'ph-stamp__mark--ink',
+  REPLICATED: 'ph-stamp__mark--green',
   NULL_REPORTED: 'ph-stamp__mark--ink',
 };
 

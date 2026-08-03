@@ -10,7 +10,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
-import { Stamp } from '../../src/ui/components/Stamp';
+import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
 import { useReducedMotion } from '../../src/ui/hooks/useReducedMotion';
@@ -57,8 +57,11 @@ function installMatchMedia(initial: Record<string, boolean> = {}) {
   };
 }
 
+// getAttribute('class'), not .className: on an <svg> element .className is an
+// SVGAnimatedString (no .split), not a plain string — getAttribute works the
+// same way for both HTML and SVG elements.
 function hasClass(el: Element | null, className: string): boolean {
-  return !!el && el.className.split(/\s+/).includes(className);
+  return !!el && (el.getAttribute('class') ?? '').split(/\s+/).includes(className);
 }
 
 beforeEach(() => {
@@ -218,6 +221,24 @@ describe('Stamp', () => {
     installMatchMedia({ '(prefers-reduced-motion: reduce)': false });
     const { container } = render(<Stamp kind="RETRACTED" label="RETRACTED" animate={false} />);
     expect(hasClass(container.querySelector('.ph-stamp'), 'ph-stamp--animate')).toBe(false);
+  });
+
+  // DESIGN.md R1.3/R1.5 (§0 registry): RETRACTED is one of R1.3's four
+  // --sig-red places; REPLICATED is R1.5's one registered --assist-green
+  // exception (a verdict-stamp parallel to R1.3's entry); NULL_REPORTED has no
+  // registered exception and stays on R1.2's default, --ink.
+  it('maps each kind to its sanctioned colour class', () => {
+    const cases: Array<[StampProps['kind'], string]> = [
+      ['RETRACTED', 'ph-stamp__mark--red'],
+      ['REPLICATED', 'ph-stamp__mark--green'],
+      ['NULL_REPORTED', 'ph-stamp__mark--ink'],
+    ];
+    for (const [kind, expectedClass] of cases) {
+      const { container, unmount } = render(<Stamp kind={kind} label={kind} animate={false} />);
+      const mark = container.querySelector('.ph-stamp__mark');
+      expect(hasClass(mark, expectedClass)).toBe(true);
+      unmount();
+    }
   });
 });
 

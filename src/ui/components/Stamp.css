@@ -53,6 +53,19 @@
   fill: none;
 }
 
+/* DESIGN.md R1.5 exception (§0 registry): the REPLICATED verdict stamp is the
+   one sanctioned display-scale --assist-green, parallel to R1.3's red entry. */
+.ph-stamp__mark--green .ph-stamp__border,
+.ph-stamp__mark--green .ph-stamp__label,
+.ph-stamp__mark--green .ph-stamp__subline {
+  stroke: var(--assist-green);
+  fill: var(--assist-green);
+}
+
+.ph-stamp__mark--green .ph-stamp__border {
+  fill: none;
+}
+
 /* R5.2: single 450ms slam (scale + rotate, one overshoot) on the mark, plus a
    <=2px "page" shake on the container -- one timeline, both ending together. */
 @keyframes ph-stamp-slam {
