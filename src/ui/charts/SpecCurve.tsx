@@ -22,7 +22,7 @@
 // implementation_plan §7 above it. The sanctioned --sig-red uses here are
 // R1.3's places 2 and 3: the .05 threshold rule and its label, and the
 // published point with its ring and leader line.
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { CopyKey } from '../../content/en/copy';
 import type { Outcome, Spec } from '../../engine/types';
@@ -44,48 +44,114 @@ export interface SpecCurveProps {
 }
 
 /**
- * Figure geometry in viewBox user units. The SVG scales to its container
- * (width 100%, height auto), so these are aspect-ratio coordinates, not CSS
- * pixels -- DESIGN.md's closed spacing/type scales govern the page around the
- * figure, not the inside of a plot, but the values are drawn from that scale
- * anyway so nothing here looks foreign next to it.
+ * SCALE INVARIANCE (review I3). An SVG with a fixed viewBox scales its own
+ * interior: a 13-unit label in a 720-unit box renders at 5.8 CSS px on a
+ * 320 px phone and at 19.6 CSS px on a 1088 px desktop -- illegible on the
+ * surface most players will use, and ballooned past the design system's 13 px
+ * captions on the one they won't. The first draft of this figure was reviewed
+ * at ~660 px, the single width where that artifact is invisible.
  *
- * `height` is the ungrouped total; grouped mode reserves two extra lines
- * under the plot for the outcome band labels (see `heightFor`).
+ * The fix is to make the viewBox TRACK the container instead of scaling
+ * inside it: one user unit is then one CSS pixel at every width, so
+ * `font-size: var(--text-13)` really is 13 px and `hitRadius` really is 12 px,
+ * everywhere. The plot simply gets narrower on a phone -- which is what should
+ * happen -- and nothing in this file has to divide by a scale factor.
+ *
+ * `cssPixelsPerUnit` is therefore exactly 1 across the whole supported range,
+ * and that is the property the unit tests pin at 320 / 660 / 1088. Below
+ * FIGURE_MIN_WIDTH it degrades predictably rather than going degenerate.
  */
-export const SPEC_CURVE_GEOM = {
-  width: 720,
-  height: 352,
-  plotWidth: 664,
-  plotHeight: 320,
-  padLeft: 40,
-  padRight: 16,
-  padTop: 16,
-  padBottom: 16,
-  /** Extra room under the plot for wrapped band labels in grouped mode --
-   * three lines, because four of the eighty shipped outcome labels need
-   * them and a truncated axis label is a figure that lies. */
-  padBottomGrouped: 56,
-  /** Horizontal gap between the four outcome bands of fig. 2. */
-  bandGap: 12,
-  /** Keeps the first and last ranked points (and the published point's ring,
-   * which is the widest mark in the figure) clear of the axis and the right
-   * edge -- the published path is almost always rank ~0, so without this it
-   * lands exactly on the y-axis every time. */
-  plotInset: 12,
-  /** Pointer proximity, in user units, that counts as hovering a point. The
-   * figure renders ~660 CSS px wide, so 12 units is ~11 px in every
-   * direction -- comfortably past the 8 px floor, on a touch screen too. */
-  hitRadius: 12,
-} as const;
+export const FIGURE_TEXT_PX = 13;
+export const HIT_RADIUS_PX = 12;
+/** DESIGN.md's own floor (R2.5 sizes the dial for the small viewport). Under
+ * this the plot is too cramped to wrap a recipe, so the figure shrinks
+ * proportionally instead of laying out into nothing. */
+export const FIGURE_MIN_WIDTH = 320;
+/** A sanity guard on a bad measurement only: `--page-max` (68rem = 1088 px)
+ * caps the reveal's column well inside it, so this never binds in the app. */
+export const FIGURE_MAX_WIDTH = 2048;
+/** Used until a ResizeObserver reports, and in environments without one. */
+export const FIGURE_DEFAULT_WIDTH = 720;
 
-const G = SPEC_CURVE_GEOM;
-const BAND_WIDTH = (G.plotWidth - G.bandGap * 3) / 4;
+export interface FigureGeometry {
+  width: number;
+  height: number;
+  plotWidth: number;
+  plotHeight: number;
+  padLeft: number;
+  padRight: number;
+  padTop: number;
+  padBottom: number;
+  bandGap: number;
+  bandWidth: number;
+  /** Keeps the first and last ranked points (and the published point's ring,
+   * the widest mark in the figure) clear of the axis and the right edge --
+   * the published path is almost always rank ~0, so without this it lands
+   * exactly on the y-axis every time. */
+  plotInset: number;
+  /** Pointer proximity, in user units == CSS px, that counts as a hover. */
+  hitRadius: number;
+  calloutX: number;
+  /** How many characters of recipe fit on one callout line at this width. */
+  calloutMaxChars: number;
+  /** How many characters of outcome label fit on one band-label line. */
+  bandLabelMaxChars: number;
+}
+
+/** Average glyph advance as a fraction of the font size, for the UI sans at
+ * sentence case. Deliberately generous: over-estimating the advance wraps a
+ * line early, under-estimating it overflows the plate. */
+const GLYPH_ADVANCE = 0.55;
+
+export function geometryFor(containerWidth: number, grouped: boolean): FigureGeometry {
+  const measured = Math.round(containerWidth) || FIGURE_DEFAULT_WIDTH;
+  const width = Math.min(Math.max(measured, FIGURE_MIN_WIDTH), FIGURE_MAX_WIDTH);
+  const padLeft = 40;
+  const padRight = 16;
+  const padTop = 16;
+  // Grouped mode reserves three label lines: four of the eighty shipped
+  // outcome labels need them, and a truncated axis label is a figure that lies.
+  const padBottom = grouped ? 56 : 16;
+  const plotHeight = 320;
+  const plotWidth = width - padLeft - padRight;
+  const bandGap = 12;
+  const bandWidth = (plotWidth - bandGap * 3) / 4;
+  const calloutX = padLeft + 4;
+  const perChar = FIGURE_TEXT_PX * GLYPH_ADVANCE;
+  return {
+    width,
+    height: padTop + plotHeight + padBottom,
+    plotWidth,
+    plotHeight,
+    padLeft,
+    padRight,
+    padTop,
+    padBottom,
+    bandGap,
+    bandWidth,
+    plotInset: 12,
+    hitRadius: HIT_RADIUS_PX,
+    calloutX,
+    calloutMaxChars: Math.max(12, Math.floor((width - calloutX - padRight) / perChar)),
+    bandLabelMaxChars: Math.max(6, Math.floor(bandWidth / perChar)),
+  };
+}
+
+/** CSS pixels per viewBox user unit at a given container width: 1 across the
+ * whole supported range, by construction. */
+export function cssPixelsPerUnit(containerWidth: number): number {
+  const measured = Math.round(containerWidth) || FIGURE_DEFAULT_WIDTH;
+  return measured / geometryFor(measured, false).width;
+}
+
+/** The default geometry, kept as a named export because the y-mapping tests
+ * and the reveal's fixtures address it directly. */
+export const SPEC_CURVE_GEOM = geometryFor(FIGURE_DEFAULT_WIDTH, false);
+
 const BANDS: Outcome[] = [0, 1, 2, 3];
 
-function heightFor(grouped: boolean): number {
-  return G.padTop + G.plotHeight + (grouped ? G.padBottomGrouped : G.padBottom);
-}
+/** Baseline-to-baseline for wrapped callout and band-label lines. */
+const CALLOUT_LINE = 14;
 
 /**
  * The pinned zoom-band mapping (§7.4, controller pin):
@@ -140,23 +206,68 @@ const TAILS_KEY: Record<Spec['tails'], CopyKey> = {
   one: 'reveal.tailsOne',
 };
 
-/** "30-day portfolio return · Age<40 · +Income · |z|>2.5 · log · one-tailed"
- * -- §7.4's recipe line, every segment localized: the outcome from the day's
- * scenario, the other five from the copy catalog. */
-export function recipeLabel(spec: Spec, outcomeLabels: string[], copy: Record<CopyKey, string>): string {
+/**
+ * The outcome column's notation, 1-based to match the DGP's own Y1..Y4
+ * naming (§3.2's fixed order: heavy-tailed, skewed, count, bounded scale).
+ * Notation, like RECIPE_SEP and the decimal point -- identical in every
+ * language, so it is a constant here rather than four copy keys a translator
+ * would be invited to translate.
+ */
+const OUTCOME_NOTATION = ['Y₁', 'Y₂', 'Y₃', 'Y₄'];
+
+/** The five forks after the outcome, which both recipe forms share. */
+function recipeTail(spec: Spec, copy: Record<CopyKey, string>): string[] {
   const covariates = [
     spec.covariates.income ? copy['reveal.covIncome'] : null,
     spec.covariates.risk ? copy['reveal.covRisk'] : null,
   ].filter((label): label is string => label !== null);
 
   return [
-    outcomeLabels[spec.outcome] ?? '',
     copy[SUBGROUP_KEY[spec.subgroup]],
     covariates.length === 0 ? copy['reveal.covNone'] : covariates.join(' '),
     copy[EXCLUSION_KEY[spec.exclusion]],
     copy[TRANSFORM_KEY[spec.transform]],
     copy[TAILS_KEY[spec.tails]],
-  ].join(RECIPE_SEP);
+  ];
+}
+
+/** "30-day portfolio return · Age<40 · +Income · |z|>2.5 · log · one-tailed"
+ * -- §7.4's recipe line in full, every segment localized: the outcome from
+ * the day's scenario, the other five from the copy catalog. This is the form
+ * the tooltip and the reveal's published-recipe text line use. */
+export function recipeLabel(spec: Spec, outcomeLabels: string[], copy: Record<CopyKey, string>): string {
+  return [outcomeLabels[spec.outcome] ?? '', ...recipeTail(spec, copy)].join(RECIPE_SEP);
+}
+
+/**
+ * "Y₂ · Age<40 · +Income · |z|>2.5 · log · one-tailed" -- §7.4's worked
+ * example verbatim, and the reason it abbreviates: a shipped outcome label
+ * runs to 55 characters ("Attendee-rated sense that this could have been an
+ * email"), which pushes the full recipe to 107-126 characters and straight
+ * off the plate into the gutter. The callout takes the notation; the full
+ * label is a hover away in the tooltip, and set as real text under the
+ * accounting for anyone not using a pointer.
+ */
+export function recipeLabelCompact(spec: Spec, copy: Record<CopyKey, string>): string {
+  return [OUTCOME_NOTATION[spec.outcome] ?? '', ...recipeTail(spec, copy)].join(RECIPE_SEP);
+}
+
+/** Under this many characters per band, even a single word of a shipped
+ * outcome label ("Attendee-rated") runs past its band and collides with the
+ * neighbour's -- observed at a 320px container, where a band is 57px wide. */
+const BAND_LABEL_MIN_CHARS = 12;
+
+/**
+ * Fig. 2's band label: the outcome's name where it fits, and §7.4's notation
+ * where it cannot. On a phone four labels share ~260px, which is not enough
+ * for four names and never will be; the notation degrades honestly instead of
+ * overlapping, it is the same abbreviation the callout uses, and the full
+ * label stays one tap away in the tooltip (and in the truth line above, which
+ * names the true outcome in words).
+ */
+export function bandLabel(band: Outcome, outcomeLabels: string[], geom: FigureGeometry): string {
+  if (geom.bandLabelMaxChars >= BAND_LABEL_MIN_CHARS) return outcomeLabels[band] ?? '';
+  return OUTCOME_NOTATION[band] ?? '';
 }
 
 interface Placed {
@@ -194,27 +305,27 @@ function rankOrder(points: SpecCurvePoint[], indices: number[]): number[] {
   return [...indices].sort((a, b) => points[a].p - points[b].p || a - b);
 }
 
-function place(points: SpecCurvePoint[], grouped: boolean): Placed[] {
+function place(points: SpecCurvePoint[], grouped: boolean, geom: FigureGeometry): Placed[] {
   const out: Placed[] = [];
   const spread = (order: number[], left: number, width: number) => {
-    const inner = Math.max(0, width - G.plotInset * 2);
+    const inner = Math.max(0, width - geom.plotInset * 2);
     order.forEach((i, rank) => {
       const x =
         order.length <= 1
           ? left + width / 2
-          : left + G.plotInset + (rank / (order.length - 1)) * inner;
-      out.push({ x, y: G.padTop + curveY(points[i].p, G.plotHeight), point: points[i] });
+          : left + geom.plotInset + (rank / (order.length - 1)) * inner;
+      out.push({ x, y: geom.padTop + curveY(points[i].p, geom.plotHeight), point: points[i] });
     });
   };
 
   const all = points.map((_, i) => i);
   if (!grouped) {
-    spread(rankOrder(points, all), G.padLeft, G.plotWidth);
+    spread(rankOrder(points, all), geom.padLeft, geom.plotWidth);
     return out;
   }
   for (const band of BANDS) {
     const members = all.filter((i) => points[i].outcome === band);
-    spread(rankOrder(points, members), G.padLeft + band * (BAND_WIDTH + G.bandGap), BAND_WIDTH);
+    spread(rankOrder(points, members), geom.padLeft + band * (geom.bandWidth + geom.bandGap), geom.bandWidth);
   }
   return out;
 }
@@ -238,35 +349,57 @@ export function wrapLabel(label: string, maxChars: number, maxLines = 3): string
 
 export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurveProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const plotRef = useRef<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  // null until measured; the viewBox tracks the container so one user unit is
+  // one CSS pixel at every width (see the FIGURE_* block above).
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
-  const height = heightFor(grouped);
-  const placed = useMemo(() => place(points, grouped), [points, grouped]);
+  useEffect(() => {
+    const node = plotRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const measured = entries[0]?.contentRect.width ?? 0;
+      if (measured > 0) setContainerWidth(measured);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
-  const thresholdY = G.padTop + curveY(0.05, G.plotHeight);
-  const seamY = G.padTop + curveY(0.1, G.plotHeight);
-  const plotBottom = G.padTop + G.plotHeight;
+  const geom = useMemo(
+    () => geometryFor(containerWidth ?? FIGURE_DEFAULT_WIDTH, grouped),
+    [containerWidth, grouped]
+  );
+  const placed = useMemo(() => place(points, grouped, geom), [points, grouped, geom]);
+
+  const height = geom.height;
+  const thresholdY = geom.padTop + curveY(0.05, geom.plotHeight);
+  const seamY = geom.padTop + curveY(0.1, geom.plotHeight);
+  const plotBottom = geom.padTop + geom.plotHeight;
   const publishedIndex = placed.findIndex((entry) => entry.point.published);
   const published = publishedIndex === -1 ? null : placed[publishedIndex];
   const tip = hovered === null ? null : placed[hovered];
+  // §7.4's compact notation, wrapped to whatever this width actually fits.
+  const calloutLines =
+    published === null ? [] : wrapLabel(recipeLabelCompact(published.point.spec, copy), geom.calloutMaxChars, 2);
 
-  function handleMove(event: ReactPointerEvent<SVGRectElement>) {
+  function handlePointer(event: ReactPointerEvent<SVGRectElement>) {
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
-    const x = ((event.clientX - rect.left) / rect.width) * G.width;
+    const x = ((event.clientX - rect.left) / rect.width) * geom.width;
     const y = ((event.clientY - rect.top) / rect.height) * height;
-    setHovered(nearestIndex(placed, x, y, G.hitRadius));
+    setHovered(nearestIndex(placed, x, y, geom.hitRadius));
   }
 
   return (
     <div className="ph-speccurve">
-      <div className="ph-speccurve__plot">
+      <div className="ph-speccurve__plot" ref={plotRef}>
         <svg
           ref={svgRef}
           className="ph-speccurve__svg"
-          viewBox={`0 0 ${G.width} ${height}`}
+          viewBox={`0 0 ${geom.width} ${height}`}
           role="img"
           aria-label={copy['a11y.specCurveChart']}
         >
@@ -274,27 +407,27 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           <rect
             data-role="sig-band"
             className="ph-speccurve__band"
-            x={G.padLeft}
+            x={geom.padLeft}
             y={thresholdY}
-            width={G.plotWidth}
+            width={geom.plotWidth}
             height={plotBottom - thresholdY}
           />
 
           {/* Axis furniture: the floor, and the zoom-band seam at p = .10. */}
           <line
             className="ph-speccurve__axis"
-            x1={G.padLeft}
+            x1={geom.padLeft}
             y1={plotBottom}
-            x2={G.padLeft + G.plotWidth}
+            x2={geom.padLeft + geom.plotWidth}
             y2={plotBottom}
           />
-          <line className="ph-speccurve__axis" x1={G.padLeft} y1={seamY} x2={G.padLeft + G.plotWidth} y2={seamY} />
+          <line className="ph-speccurve__axis" x1={geom.padLeft} y1={seamY} x2={geom.padLeft + geom.plotWidth} y2={seamY} />
           {[0, 0.1, 1].map((value) => (
             <text
               key={value}
               className="ph-speccurve__tick"
-              x={G.padLeft - 8}
-              y={G.padTop + curveY(value, G.plotHeight)}
+              x={geom.padLeft - 8}
+              y={geom.padTop + curveY(value, geom.plotHeight)}
               textAnchor="end"
               dominantBaseline="middle"
             >
@@ -306,15 +439,15 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           <line
             data-role="threshold"
             className="ph-speccurve__threshold"
-            x1={G.padLeft}
+            x1={geom.padLeft}
             y1={thresholdY}
-            x2={G.padLeft + G.plotWidth}
+            x2={geom.padLeft + geom.plotWidth}
             y2={thresholdY}
           />
           <text
             data-role="threshold-label"
             className="ph-speccurve__threshold-label"
-            x={G.padLeft + G.plotWidth}
+            x={geom.padLeft + geom.plotWidth}
             y={thresholdY - 6}
             textAnchor="end"
           >
@@ -372,13 +505,22 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
               <line
                 data-role="leader"
                 className="ph-speccurve__leader"
-                x1={G.padLeft + 4}
-                y1={G.padTop + 18}
+                x1={geom.calloutX}
+                y1={geom.padTop + 6 + calloutLines.length * CALLOUT_LINE}
                 x2={published.x}
                 y2={published.y}
               />
-              <text data-role="callout" className="ph-speccurve__callout" x={G.padLeft + 4} y={G.padTop + 12}>
-                {recipeLabel(published.point.spec, outcomeLabels, copy)}
+              <text
+                data-role="callout"
+                className="ph-speccurve__callout"
+                x={geom.calloutX}
+                y={geom.padTop + 12}
+              >
+                {calloutLines.map((line, i) => (
+                  <tspan key={i} x={geom.calloutX} dy={i === 0 ? 0 : CALLOUT_LINE}>
+                    {line}
+                  </tspan>
+                ))}
               </text>
             </>
           )}
@@ -387,7 +529,7 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           {!grouped
             ? null
             : BANDS.map((band) => {
-                const centre = G.padLeft + band * (BAND_WIDTH + G.bandGap) + BAND_WIDTH / 2;
+                const centre = geom.padLeft + band * (geom.bandWidth + geom.bandGap) + geom.bandWidth / 2;
                 return (
                   <text
                     key={band}
@@ -398,8 +540,8 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
                     y={plotBottom + 16}
                     textAnchor="middle"
                   >
-                    {wrapLabel(outcomeLabels[band] ?? '', 22).map((line, i) => (
-                      <tspan key={i} x={centre} dy={i === 0 ? 0 : 14}>
+                    {wrapLabel(bandLabel(band, outcomeLabels, geom), geom.bandLabelMaxChars).map((line, i) => (
+                      <tspan key={i} x={centre} dy={i === 0 ? 0 : CALLOUT_LINE}>
                         {line}
                       </tspan>
                     ))}
@@ -412,11 +554,12 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           <rect
             data-role="hit"
             className="ph-speccurve__hit"
-            x={G.padLeft}
-            y={G.padTop}
-            width={G.plotWidth}
-            height={G.plotHeight}
-            onPointerMove={handleMove}
+            x={geom.padLeft}
+            y={geom.padTop}
+            width={geom.plotWidth}
+            height={geom.plotHeight}
+            onPointerDown={handlePointer}
+            onPointerMove={handlePointer}
             onPointerLeave={() => setHovered(null)}
           />
         </svg>
@@ -427,12 +570,12 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
             className={[
               'ph-speccurve__tooltip',
               tip.y < height * 0.25 ? 'ph-speccurve__tooltip--below' : '',
-              tip.x > G.width * 0.7 ? 'ph-speccurve__tooltip--end' : '',
-              tip.x < G.width * 0.3 ? 'ph-speccurve__tooltip--start' : '',
+              tip.x > geom.width * 0.7 ? 'ph-speccurve__tooltip--end' : '',
+              tip.x < geom.width * 0.3 ? 'ph-speccurve__tooltip--start' : '',
             ]
               .filter((name) => name !== '')
               .join(' ')}
-            style={{ left: `${(tip.x / G.width) * 100}%`, top: `${(tip.y / height) * 100}%` }}
+            style={{ left: `${(tip.x / geom.width) * 100}%`, top: `${(tip.y / height) * 100}%` }}
           >
             <span className="ph-speccurve__tooltip-recipe">{recipeLabel(tip.point.spec, outcomeLabels, copy)}</span>
             <span className="ph-speccurve__tooltip-p">{formatP(tip.point.p, copy)}</span>
@@ -453,13 +596,17 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           </svg>
           {copy['legend.explored']}
         </li>
-        <li className="ph-speccurve__legend-item">
-          <svg className="ph-speccurve__swatch" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="ph-speccurve__key-ring" cx="12" cy="12" />
-            <circle className="ph-speccurve__key-dot ph-speccurve__key-dot--published" cx="12" cy="12" />
-          </svg>
-          {copy['legend.published']}
-        </li>
+        {/* A player who reported a null result published nothing; a legend
+            row for a mark that is not in the figure is a small lie. */}
+        {published === null ? null : (
+          <li className="ph-speccurve__legend-item">
+            <svg className="ph-speccurve__swatch" viewBox="0 0 24 24" aria-hidden="true">
+              <circle className="ph-speccurve__key-ring" cx="12" cy="12" />
+              <circle className="ph-speccurve__key-dot ph-speccurve__key-dot--published" cx="12" cy="12" />
+            </svg>
+            {copy['legend.published']}
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -61,6 +61,18 @@
   margin-block-start: var(--space-12);
 }
 
+/* The published recipe as real text (review I5) -- quieter than the
+   accounting statements above it, because it is a restatement rather than a
+   finding, but present for anyone the SVG cannot reach. */
+.ph-reveal__published-recipe {
+  max-width: var(--measure);
+  margin: var(--space-16) 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
 /* R2.4: every numeral, everywhere, mono and tabular. */
 .ph-num {
   font-family: var(--font-mono);

@@ -34,13 +34,21 @@ lines are `call: <Call />,` and `reveal: <Reveal />,` — both components take
   `published`, `scenarioIndex` and `puzzleNumber` from the store. Renders
   `null` until `store.reveal` is populated (i.e. until after `makeCall`).
 
-## Note for T15 (Published screen)
+## Note for T15 (Published screen) — MOUNT CONDITION
+
+**Mount `<Call />` behind the Published screen's "Face the truth" action, not
+unconditionally.** `Call` self-gates on `screen === 'published' | 'call'`, so an
+unconditional mount would put the dialog on screen the instant the paper is
+published — stepping on §2.5's celebration, which is played 100% straight. Do
+not rely on discovering the self-gate: gate it on the CTA as well.
 
 `Call` is deliberately container-agnostic: it renders a `role="dialog"`
 section and *nothing* around it — no backdrop, no fixed positioning, no focus
 trap. The Published screen can mount `<Call />` inside its own overlay
 (§7.3's "modal over dimmed cover") without fighting any of T16's layout, and
-owns the dim + the focus trap itself.
+owns the dim + the focus trap itself. Because the dialog role lives on T16's
+section, the container should not add a second one — set `aria-modal` on this
+element (or wrap without a role) rather than nesting dialogs.
 
 One design-law snag the overlay author should know about: DESIGN.md R4.2's
 worked example spells the backdrop as `--ink` at 60% alpha "via `color-mix`",

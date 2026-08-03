@@ -56,7 +56,16 @@ export type CopyKey =
   | 'reveal.truthNull'
   | 'reveal.truthEffect'
   | 'reveal.curveCaption'
+  // T16 review I4: the published caption's "Yours is highlighted" is false on
+  // the abandon path -- nothing was published, and nothing is highlighted.
+  // Same precedent as reveal.accounting2Abandoned.
+  | 'reveal.curveCaptionAbandoned'
   | 'reveal.groupedCaption'
+  // T16 review I5: the sole assistive-technology and keyboard route to
+  // §2.7.2's pinned content. The figure is role="img", so its recipe callout
+  // is invisible to a screen reader and unreachable by tab; this line sets the
+  // published recipe as real text, in full labels, once.
+  | 'reveal.publishedRecipe'
   | 'reveal.accounting1'
   | 'reveal.accounting2'
   // T16 addition: §2.7.3's accounting2 assumes a publication. A player who
@@ -232,6 +241,9 @@ export const copy: Record<CopyKey, string> = {
   'reveal.fig1': 'Fig. 1',
   'reveal.fig2': 'Fig. 2',
   'reveal.curveCaption': 'Every specification you could have run, sorted by p-value. Yours is highlighted.',
+  'reveal.curveCaptionAbandoned':
+    'Every specification you could have run, sorted by p-value. Nothing was published.',
+  'reveal.publishedRecipe': 'You published: {recipe}',
   // §7.3 pins this sentence. It holds on null days too: nothing clusters, and
   // that is the same lesson read from the other side.
   'reveal.groupedCaption': 'Real effects cluster. Noise scatters.',

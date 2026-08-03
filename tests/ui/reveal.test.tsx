@@ -15,6 +15,7 @@ import type { EngineClient, RevealPayload } from '../../src/engine/protocol';
 import type { RevealCurveEntry } from '../../src/engine/reveal';
 import type { Outcome, PathResult, Spec } from '../../src/engine/types';
 import { Reveal, formatSigFigs } from '../../src/ui/screens/Reveal';
+import { recipeLabel } from '../../src/ui/charts/SpecCurve';
 
 afterEach(cleanup);
 
@@ -330,5 +331,75 @@ describe('a11y', () => {
     const text = container.textContent ?? '';
     // Every number the figure encodes is also present as text (§7.5).
     for (const fragment of ['1792', '87', '4.9', '14', '52']) expect(text).toContain(fragment);
+  });
+});
+
+/* ------------------------------------------------------------------ review */
+
+describe('review I4 — the abandon path claims nothing it did not do', () => {
+  /** A payload consistent with having published nothing: no curve entry is
+   * flagged, exactly as buildRevealMetrics produces for `published: null`. */
+  function abandonedPayload(): Partial<RevealPayload> {
+    return {
+      stamp: 'NULL_REPORTED',
+      curve: payload().curve.map((entry) => ({ ...entry, published: false })),
+    };
+  }
+
+  it('drops "Yours is highlighted" from fig. 1 when nothing was published', async () => {
+    const { container } = await mountReveal(abandonedPayload(), { path: 'abandon' });
+    expect(blockText(container, 'fig1')).toContain(copy['reveal.curveCaptionAbandoned']);
+    expect(blockText(container, 'fig1')).not.toContain(copy['reveal.curveCaption']);
+  });
+
+  it('keeps the published caption when there is a published path', async () => {
+    const { container } = await mountReveal({}, { path: 'submit' });
+    expect(blockText(container, 'fig1')).toContain(copy['reveal.curveCaption']);
+    expect(blockText(container, 'fig1')).not.toContain(copy['reveal.curveCaptionAbandoned']);
+  });
+
+  it('omits the published legend row on the abandon path', async () => {
+    const { container } = await mountReveal(abandonedPayload(), { path: 'abandon' });
+    const legend = container.querySelector('[data-block="fig1"] [data-role="legend"]') as HTMLElement;
+    expect(legend.querySelectorAll('li').length).toBe(2);
+    expect(legend.textContent).not.toContain(copy['legend.published']);
+  });
+
+  it('keeps the published legend row when there is one', async () => {
+    const { container } = await mountReveal({}, { path: 'submit' });
+    const legend = container.querySelector('[data-block="fig1"] [data-role="legend"]') as HTMLElement;
+    expect(legend.querySelectorAll('li').length).toBe(3);
+    expect(legend.textContent).toContain(copy['legend.published']);
+  });
+});
+
+describe('review I5 — the published recipe exists as real text', () => {
+  it('sets it in FULL labels under the accounting, where AT and the tab key can reach it', async () => {
+    const { container } = await mountReveal({}, { path: 'submit' });
+    const line = container.querySelector('[data-role="published-recipe"]');
+    expect(line).not.toBeNull();
+    expect(line?.textContent).toBe(
+      t(copy, 'reveal.publishedRecipe', { recipe: recipeLabel(SPEC, SCENARIO.outcomeLabels, copy) })
+    );
+    // The full outcome label, not the figure's Y-notation abbreviation.
+    expect(line?.textContent).toContain(SCENARIO.outcomeLabels[0]);
+    expect(line?.textContent).not.toContain('Y₁');
+  });
+
+  it('lives inside the accounting block, so §2.7 still has exactly six blocks', async () => {
+    const { container } = await mountReveal({}, { path: 'submit' });
+    expect(blocks(container)).toEqual(['truth', 'fig1', 'accounting', 'stamp', 'call', 'fig2']);
+    expect(container.querySelector('[data-block="accounting"] [data-role="published-recipe"]')).not.toBeNull();
+  });
+
+  it('adds no numerals to the accounting — the R1.3/R2.4 spans are unchanged', async () => {
+    const { container } = await mountReveal({}, { path: 'submit' });
+    const nums = [...container.querySelectorAll('[data-block="accounting"] .ph-num')].map((n) => n.textContent);
+    expect(nums).toEqual(['1792', '87', '4.9', '14', '14', '52']);
+  });
+
+  it('is absent when the player published nothing', async () => {
+    const { container } = await mountReveal({ stamp: 'NULL_REPORTED' }, { path: 'abandon' });
+    expect(container.querySelector('[data-role="published-recipe"]')).toBeNull();
   });
 });

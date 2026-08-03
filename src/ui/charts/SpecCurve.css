@@ -102,11 +102,15 @@
   font-size: var(--text-13);
 }
 
-/* The pointer surface for every point at once: invisible, but hit-testable. */
+/* The pointer surface for every point at once: invisible, but hit-testable.
+   touch-action is pan-y, not none: the reveal is a scroll sequence, so a
+   finger that lands on the figure must still be able to scroll the page. Only
+   horizontal panning is claimed, and a stationary tap still reaches
+   onPointerDown to summon the tooltip. */
 .ph-speccurve__hit {
   fill: none;
   pointer-events: all;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .ph-speccurve__tooltip {

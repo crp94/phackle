@@ -22,7 +22,7 @@ import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { Stamp } from '../components/Stamp';
-import { SpecCurve, type SpecCurvePoint } from '../charts/SpecCurve';
+import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve';
 import type { CopyKey } from '../../content/en/copy';
 import type { RevealCurveEntry } from '../../engine/reveal';
 import type { RevealPayload } from '../../engine/protocol';
@@ -240,7 +240,7 @@ export function Reveal() {
       <Block name="fig1">
         <Figure
           number={t('reveal.fig1')}
-          caption={t('reveal.curveCaption')}
+          caption={t(published === null ? 'reveal.curveCaptionAbandoned' : 'reveal.curveCaption')}
           footnote={omitted === 0 ? null : t('reveal.omittedFootnote', { n: formatCount(omitted) })}
         >
           <SpecCurve points={points} grouped={false} outcomeLabels={scenario.outcomeLabels} copy={copy} />
@@ -253,6 +253,15 @@ export function Reveal() {
           <p className="ph-reveal__statement">{accounting2}</p>
           <p className="ph-reveal__statement">{accounting3}</p>
           {surcharge === null ? null : <p className="ph-reveal__statement">{surcharge}</p>}
+          {/* The figure is role="img", so its recipe callout reaches neither a
+              screen reader nor the tab key -- and §7.4's callout abbreviates
+              the outcome to Y-notation anyway. This is the one place the
+              published recipe exists as real text, in full labels. */}
+          {published === null ? null : (
+            <p className="ph-reveal__published-recipe" data-role="published-recipe">
+              {t('reveal.publishedRecipe', { recipe: recipeLabel(published, scenario.outcomeLabels, copy) })}
+            </p>
+          )}
         </div>
       </Block>
 
