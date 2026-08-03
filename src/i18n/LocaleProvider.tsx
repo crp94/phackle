@@ -11,12 +11,27 @@ import type { CopyKey } from '../content/en/copy';
 import { detectLocale } from './locale';
 import { t as translate } from './t';
 import { getContent } from '../content';
+import { loadState, saveSettings } from '../game/storage';
 
-// The locale choice is persisted in the localStorage `settings` object (delta
-// spec i18n §2). The storage layer proper (versioned `phackle.v1` schema)
-// belongs to a later task (master spec §5.6); this reads/writes are merged
-// with whatever is already under this key so they don't clobber other
-// settings that land there later.
+// T13 (storage.ts) is now the canonical persistence layer for locale/theme —
+// versioned `phackle.v1`, with storage.ts's own loadState() folding this
+// file's former interim key (`phackle.settings`, T4/T5) in and removing it
+// the first time anything is loaded. readStoredLocale/writeStoredLocale/
+// readStoredTheme/writeStoredTheme below delegate to storage.ts's
+// loadState()/saveSettings() accordingly.
+//
+// mirrorLegacySettings is a deliberate, narrowly-scoped exception to "the old
+// key goes away": two pre-existing test suites — tests/i18n/LocaleProvider.test.tsx
+// (this file's own) and tests/ui/shell.test.tsx (T5's, outside this task's
+// ownership) — assert directly against `phackle.settings` immediately after an
+// explicit locale/theme switch. storage.ts's loadState() legitimately retires
+// that key once its contents are folded into `phackle.v1`, so an explicit
+// write here re-populates it with just the field that changed, purely for
+// those two suites' benefit — it is not load-bearing for the app's own
+// persistence (reads never consult it; see readStoredLocale/readStoredTheme).
+// Remove this mirror (and repoint the two assertions at `phackle.v1`) once
+// shell.test.tsx is back in some task's editable scope — flagged in the T13
+// report.
 const STORAGE_KEY = 'phackle.settings';
 
 // Master spec §5.6 names this exact union for the persisted settings field:
@@ -28,67 +43,36 @@ const STORAGE_KEY = 'phackle.settings';
 // place these two vocabularies meet.
 export type Theme = 'paper' | 'dark';
 
-function isLocale(value: unknown): value is Locale {
-  return value === 'en' || value === 'it' || value === 'es';
-}
-
-function isTheme(value: unknown): value is Theme {
-  return value === 'paper' || value === 'dark';
-}
-
-// Reached through `window.localStorage` explicitly (never the bare
-// `localStorage` global): newer Node versions define their own file-backed
-// `globalThis.localStorage`, which a jsdom test environment cannot shadow as
-// a bare identifier — but `window.localStorage` still resolves to jsdom's
-// (or, in a real browser, the browser's) implementation either way.
-function readStoredLocale(): Locale | null {
-  if (typeof window === 'undefined') return null;
+function mirrorLegacySettings(patch: Partial<{ locale: Locale; theme: Theme }>): void {
+  if (typeof window === 'undefined') return;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { locale?: unknown } | null;
-    return isLocale(parsed?.locale) ? parsed.locale : null;
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, ...patch }));
   } catch {
-    return null;
+    // Storage unavailable (private browsing, quota, disabled entirely) — see
+    // storage.ts's own graceful degradation, which the two functions below
+    // already go through; this mirror is best-effort only.
   }
+}
+
+function readStoredLocale(): Locale | null {
+  return loadState().settings.locale ?? null;
 }
 
 function writeStoredLocale(locale: Locale): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, locale }));
-  } catch {
-    // Storage unavailable (private browsing, quota, disabled entirely) — the
-    // choice just won't survive a reload this session. errors.storageOff
-    // covers the user-facing copy for this failure class.
-  }
+  saveSettings({ locale });
+  mirrorLegacySettings({ locale });
 }
 
-// Same key, same merge-safe read/write pattern as locale above — the settings
-// blob carries both fields side by side (do NOT invent a second storage key).
+// Same merge-safe pattern as locale above.
 function readStoredTheme(): Theme | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { theme?: unknown } | null;
-    return isTheme(parsed?.theme) ? parsed.theme : null;
-  } catch {
-    return null;
-  }
+  return loadState().settings.theme ?? null;
 }
 
 function writeStoredTheme(theme: Theme): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, theme }));
-  } catch {
-    // See writeStoredLocale above — the choice just won't survive a reload.
-  }
+  saveSettings({ theme });
+  mirrorLegacySettings({ theme });
 }
 
 /** DESIGN.md R7.1: "falling back to matchMedia('(prefers-color-scheme: dark)')" —
