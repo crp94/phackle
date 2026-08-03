@@ -33,6 +33,14 @@ export interface PersistedSettings {
   reducedMotion?: boolean;
   theme?: 'paper' | 'dark';
   locale?: Locale;
+  /** SCHEMA EXTENSION (T31), on the same footing as `locale` above: master
+   * spec §5.6 names `{ reducedMotion?, theme? }` for this object, and each
+   * later addition extends rather than contradicts it. `introSeen` records
+   * that the player has dismissed the Lab's first-run "How to play" panel, so
+   * it is shown exactly once per browser and never again. Absent means
+   * not-yet-dismissed, which is the correct default for a fresh install AND
+   * for a state written before this field existed — no migration needed. */
+  introSeen?: boolean;
 }
 
 export interface PersistedState {
@@ -143,6 +151,7 @@ function pickValidSettings(value: unknown): PersistedSettings {
   if (raw.locale === 'en' || raw.locale === 'it' || raw.locale === 'es') out.locale = raw.locale;
   if (raw.theme === 'paper' || raw.theme === 'dark') out.theme = raw.theme;
   if (typeof raw.reducedMotion === 'boolean') out.reducedMotion = raw.reducedMotion;
+  if (typeof raw.introSeen === 'boolean') out.introSeen = raw.introSeen;
   return out;
 }
 

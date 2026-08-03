@@ -45,6 +45,14 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           question set as the title, in display serif (R2.1). */}
       <h1 className="ph-briefing__question">{scenario.question}</h1>
       <p className="ph-briefing__corresponding-author">{t('briefing.correspondingAuthor')}</p>
+      {/* T31 (second play-test round): the goal, stated outright, before the
+          cover story's fiction has a chance to bury it. Sincere and literal —
+          this really is the task Act I sets. Hairline-ruled above and below
+          (R4.4/R4.5: two edges, never a box), which is how this document
+          makes a line prominent without a fill, a shadow or a second colour. */}
+      <p className="ph-briefing__goal" data-testid="briefing-goal">
+        {t('briefing.goal')}
+      </p>
       <p className="ph-briefing__cover-story">{scenario.coverStory}</p>
       <EmailCard from={t('briefing.emailFrom')} subject={t('briefing.emailSubject')} body={grantwellBody} />
       {/* T18: the Prereg Mode chooser (checkbox: "I solemnly commit") renders

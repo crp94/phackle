@@ -12,13 +12,93 @@
   padding: var(--space-24);
 }
 
+/* MOBILE STICKINESS, REMOVED — T31, on measured evidence, flagged for the
+   controller.
+   T14 made this pane `position: sticky; top: 0` with an opaque --paper
+   background and --z-sticky, so the dial stayed on screen while the knobs
+   scrolled beneath it. That works only while the pane is a modest fraction of
+   the viewport. With T31's explanation layer (how-to-play panel, dial
+   caption, labelled CoefPlot, DataCut) the pane measures 998px on a 360x640
+   phone — taller than the viewport. A sticky flex item that tall does not
+   pin: it slides to the end of its containing block and, being opaque and
+   above --z-sticky, paints straight over its sibling. Measured at the bottom
+   of the document at 360x640: results box [-390, 608], controls box
+   [-802, 608], first radio at top -776 and NOT VISIBLE — i.e. the six knobs
+   were unreachable on a phone.
+   Static positioning fixes that with no DOM change and no second breakpoint.
+   What master spec §7.3 actually pins for this width is "stacked below"
+   (DESIGN.md R3.4 quotes it), which DOM order already satisfies — Lab.tsx
+   still renders results before controls. The cost is real and belongs on the
+   record: on mobile the dial is no longer on screen while a knob at the
+   bottom of the page is turned. Restoring it needs the dial ALONE to be the
+   sticky element, as a direct child of .ph-lab so its containing block spans
+   the controls too — a layout change that touches the >=768px two-pane rule
+   and so is the controller's call, not this task's. */
 .ph-lab__results {
-  position: sticky;
-  top: 0;
-  background: var(--paper);
-  z-index: var(--z-sticky);
   padding-block-end: var(--space-16);
   border-block-end: var(--hairline);
+}
+
+/* T31: the first-run "How to play" panel. A hairline-topped block, never a
+   card (R4.1/R4.2/R4.5) — no fill, no shadow, no four-sided border. Native
+   <details>, so collapsing is instant: R5.5's budget has four animations and
+   an accordion slide is not one of them. */
+.ph-lab__intro {
+  margin-block-end: var(--space-24);
+  padding-block-end: var(--space-16);
+  border-block-end: var(--hairline);
+}
+
+.ph-lab__intro-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  cursor: pointer;
+}
+
+.ph-lab__intro-title:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* R3.6-adjacent: a real ordered list, numbered by the browser, so the
+   sequence survives a screen reader and no number has to be typed as copy. */
+.ph-lab__intro-steps {
+  max-width: var(--measure);
+  margin: var(--space-12) 0 0 0;
+  padding-inline-start: var(--space-24);
+}
+
+.ph-lab__intro-step {
+  margin-block-start: var(--space-4);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+}
+
+.ph-lab__intro-dismiss {
+  margin-block-start: var(--space-12);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  color: var(--muted);
+  background: none;
+  border-style: none;
+  padding: var(--space-12) var(--space-16);
+  padding-inline-start: 0;
+  cursor: pointer;
+}
+
+.ph-lab__intro-dismiss:hover {
+  text-decoration: underline;
+}
+
+.ph-lab__intro-dismiss:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 .ph-lab__collect {
@@ -124,7 +204,6 @@
   }
 
   .ph-lab__results {
-    position: static;
     flex: 1;
     padding-block-end: 0;
     border-block-end: none;

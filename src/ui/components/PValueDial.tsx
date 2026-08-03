@@ -26,7 +26,7 @@
 // derived-colour registry) that are themselves in tokens.test.ts's
 // TEXT_TOKENS contrast set, so R1.8's contrast claim is now mechanically
 // enforced rather than merely asserted.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { PathResult } from '../../engine/types';
@@ -65,6 +65,37 @@ function degreesOfFreedom(result: PathResult): number {
 
 const TICK_MS = 120; // mirrors --dur-tick (R5.1) for the JS-driven translateY bump's own timing.
 
+/**
+ * T31 (second play-test round: "beautiful but hard to fully grasp"). The
+ * dial's own caption, and — by the controller's framing — the single most
+ * important explanation in the app: a first-timer has to understand the big
+ * number from this line alone. It therefore renders in EVERY state, including
+ * the pre-first-result placeholder and the n<30 state, which are precisely
+ * the moments someone is most likely to be looking at the dial without
+ * knowing what it is.
+ *
+ * A shell rather than three copies of the same markup: the caption is the
+ * only thing all three branches share, and `data-testid` / the band modifier
+ * class stay on this one element so R1.8's own tests keep addressing it.
+ */
+function DialShell({
+  className,
+  pending,
+  children,
+}: {
+  className: string;
+  pending: boolean;
+  children: ReactNode;
+}) {
+  const { t } = useLocale();
+  return (
+    <div className={className} data-testid="pvalue-dial" aria-busy={pending}>
+      {children}
+      <p className="ph-dial__caption">{t('lab.dialCaption')}</p>
+    </div>
+  );
+}
+
 export function PValueDial({ result, pending }: PValueDialProps) {
   const { t } = useLocale();
   const reducedMotion = useReducedMotion();
@@ -89,17 +120,17 @@ export function PValueDial({ result, pending }: PValueDialProps) {
 
   if (!result) {
     return (
-      <div className="ph-dial" data-testid="pvalue-dial" aria-busy={pending}>
+      <DialShell className="ph-dial" pending={pending}>
         <p className="ph-dial__value">—</p>
-      </div>
+      </DialShell>
     );
   }
 
   if (!result.valid) {
     return (
-      <div className="ph-dial" data-testid="pvalue-dial" aria-busy={pending}>
+      <DialShell className="ph-dial" pending={pending}>
         <p className="ph-dial__insufficient">{t('lab.insufficient')}</p>
-      </div>
+      </DialShell>
     );
   }
 
@@ -109,11 +140,11 @@ export function PValueDial({ result, pending }: PValueDialProps) {
   const df = degreesOfFreedom(result);
 
   return (
-    <div className={dialClassName} data-testid="pvalue-dial" aria-busy={pending}>
+    <DialShell className={dialClassName} pending={pending}>
       <p className={ticking ? 'ph-dial__value ph-dial__value--tick' : 'ph-dial__value'}>{formatted}</p>
       <p className="ph-dial__meta">
         {t('lab.nLabel', { n: result.n })} · {t('lab.dfLabel', { df })}
       </p>
-    </div>
+    </DialShell>
   );
 }
