@@ -26,7 +26,7 @@ export interface DailyPuzzle {           // worker-side only until reveal
 }
 
 export type PlayerAction =
-  | { t: 'VIEW_SPEC'; spec: Spec; at: number }
+  | { t: 'VIEW_SPEC'; spec: Spec; seen: boolean; at: number } // seen: result was displayed for the previous spec (fork rule §2.10)
   | { t: 'PEEK_AND_EXTEND'; newN: number; at: number }
   | { t: 'SUBMIT'; spec: Spec; p: number; at: number }
   | { t: 'ABANDON'; at: number }
