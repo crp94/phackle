@@ -458,4 +458,47 @@ describe('spoiler guard (§5.4): no pre-reveal Res leaks the day type', () => {
     expect(json).toContain('"dayType"');
     expect(json).toContain('"effect"');
   });
+
+  // T31: PathResult gained an optional `cut` (the Lab's DataCut figure
+  // payload), which crosses this same wire on EVERY knob turn. The scan above
+  // already proves it leaks no forbidden key or literal; these two pin the
+  // stronger property that makes that true BY CONSTRUCTION rather than by
+  // luck — `cut` is four arrays of plain finite numbers and nothing else, so
+  // there is no field in it that could ever carry truth, and it survives
+  // structured clone (it is JSON-round-trippable, i.e. no typed arrays, no
+  // NaN/Infinity, no undefined holes).
+  it('runSpec\'s cut carries ONLY number arrays — the four pinned keys, no others, no non-numeric member', () => {
+    const CUT_KEYS = ['control', 'treated', 'excludedControl', 'excludedTreated'];
+    for (const iso of [NULL_ISO, EFFECT_ISO]) {
+      for (const exclusion of ['none', 'z2'] as const) {
+        const state = freshState();
+        handleRequest(state, { id: 1, op: 'init', iso, scenarioCount: SCENARIO_COUNT });
+        const res = handleRequest(state, { id: 2, op: 'runSpec', spec: { ...SAMPLE_SPEC, exclusion } });
+        expect(res.ok).toBe(true);
+        const cut = (res as { data: PathResult }).data.cut;
+        expect(cut, `${iso}/${exclusion}: runSpec must attach a cut`).toBeDefined();
+        expect(Object.keys(cut as object).sort()).toEqual([...CUT_KEYS].sort());
+        for (const key of CUT_KEYS) {
+          const arr = (cut as unknown as Record<string, unknown>)[key];
+          expect(Array.isArray(arr), `${iso}/${exclusion}: cut.${key} must be a plain Array`).toBe(true);
+          for (const v of arr as unknown[]) {
+            expect(typeof v, `${iso}/${exclusion}: cut.${key} holds a non-number`).toBe('number');
+            expect(Number.isFinite(v as number)).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('runSpec\'s cut survives a JSON round trip unchanged (structured-clone-safe on the worker wire)', () => {
+    const state = freshState();
+    handleRequest(state, { id: 1, op: 'init', iso: EFFECT_ISO, scenarioCount: SCENARIO_COUNT });
+    const res = handleRequest(state, { id: 2, op: 'runSpec', spec: { ...SAMPLE_SPEC, exclusion: 'z2' } });
+    const cut = (res as { data: PathResult }).data.cut;
+    expect(JSON.parse(JSON.stringify(cut))).toEqual(cut);
+    // And it is non-trivial: |z|>2 on a real day always removes somebody, so
+    // this is not vacuously scanning four empty arrays.
+    expect((cut?.control.length ?? 0) + (cut?.treated.length ?? 0)).toBeGreaterThan(0);
+    expect((cut?.excludedControl.length ?? 0) + (cut?.excludedTreated.length ?? 0)).toBeGreaterThan(0);
+  });
 });

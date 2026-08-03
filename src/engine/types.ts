@@ -13,11 +13,45 @@ export interface Spec {
   tails: 'two'|'one';
 }
 
+/**
+ * T31 EXTENSION to master spec §6 (extends, does not contradict: §6's
+ * PathResult is unchanged, `cut` is a new OPTIONAL field on top of it, so any
+ * PathResult literal written against §6 still type-checks).
+ *
+ * The raw material of the Lab's DataCut figure — §2.4's "tiny scatter/box
+ * visual of the current cut". Four flat arrays of the TRANSFORMED outcome
+ * values of the current filtered window, split by treatment (`x === 1` is
+ * treated, `x === 0` is control), with the outlier-excluded points kept in
+ * their OWN arrays rather than dropped: the figure draws them as hollow
+ * crossed marks, so turning the exclusion knob visibly removes specific
+ * people from the analysis instead of silently shrinking n.
+ *
+ * Spoiler-safe by construction (§5.4): plain finite numbers only, no field
+ * that could name a day type, an outcome or a true effect — the values are
+ * exactly what the player's own current specification is looking at. Pinned
+ * as such by tests/engine/protocol.test.ts's spoiler-guard suite.
+ *
+ * Size: bounded by the window, so `control + treated + excludedControl +
+ * excludedTreated` is at most the largest WindowN (400) values in total.
+ *
+ * Order: within each array, source-row order of the filtered window — never
+ * sorted, so the arrays stay a pure function of (dataset, spec, n).
+ */
+export interface DataCut {
+  treated: number[];
+  control: number[];
+  excludedTreated: number[];
+  excludedControl: number[];
+}
+
 // NOTE: fields may carry real computed values even when valid === false —
-// always gate on valid before displaying or aggregating.
+// always gate on valid before displaying or aggregating. (`cut` is the one
+// field that stays MEANINGFUL when valid === false: the figure still shows
+// the data the dial has declined to analyse.)
 export interface PathResult {
   spec: Spec; n: number; beta: number; se: number; t: number; p: number;
   ci: [number, number]; excludedCount: number; valid: boolean; // n>=30
+  cut?: DataCut;                                               // T31, see above
 }
 
 // trueBeta (T11 clarification): on effect days, the INJECTED magnitude in the

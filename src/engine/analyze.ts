@@ -11,7 +11,7 @@
 import { MIN_CELL } from '../game/tuning';
 import type { Dataset } from './dgp';
 import { ols, tTwoTailedP, zScores } from './stats';
-import type { PathResult, Spec, WindowN } from './types';
+import type { DataCut, PathResult, Spec, WindowN } from './types';
 
 /** True iff row `i` of `d` belongs to subgroup `s` (§3.4/brief, pinned
  * comparisons): age_lt40 = age<40, age_ge40 = age>=40, exp_high =
@@ -83,6 +83,49 @@ export const EXCLUSION_THRESHOLD: Record<Exclude<Spec['exclusion'], 'none'>, num
   z2_5: 2.5,
   z2: 2,
 };
+
+/**
+ * Assembles the DataCut figure payload (T31; see types.ts's DataCut doc) from
+ * the intermediates runSpec already has in hand at the point exclusion has
+ * been decided: `filteredIdx` (window rows surviving the subgroup filter, in
+ * source order), `transformedY` (parallel to it), and `keptLocal` (the
+ * ascending local indices exclusion kept).
+ *
+ * One pass over the filtered sample, walking `keptLocal` with a moving cursor
+ * instead of building a Set: keptLocal is ascending by construction (both
+ * branches that produce it push in index order), so "is local index i kept?"
+ * is one comparison. Pure array bookkeeping — no arithmetic beyond the
+ * cursor's `+1`, so §3.1's determinism op-set is untouched, and the four
+ * arrays are a pure function of (d, spec, n) like everything else here.
+ *
+ * Excluded points are SEPARATED, never dropped: that separation is the whole
+ * figure — the player watches specific people leave their analysis when they
+ * turn the exclusion knob.
+ */
+function buildCut(
+  d: Dataset,
+  filteredIdx: number[],
+  transformedY: Float64Array,
+  keptLocal: number[]
+): DataCut {
+  const cut: DataCut = { treated: [], control: [], excludedTreated: [], excludedControl: [] };
+  let cursor = 0;
+  for (let i = 0; i < filteredIdx.length; i++) {
+    const kept = cursor < keptLocal.length && keptLocal[cursor] === i;
+    if (kept) cursor++;
+    const treated = d.x[filteredIdx[i]] === 1;
+    const value = transformedY[i];
+    if (kept) {
+      if (treated) cut.treated.push(value);
+      else cut.control.push(value);
+    } else if (treated) {
+      cut.excludedTreated.push(value);
+    } else {
+      cut.excludedControl.push(value);
+    }
+  }
+  return cut;
+}
 
 const TWO_TAILED_ALPHA = 0.05;
 const CRITICAL_T_LO = 0;
@@ -195,5 +238,12 @@ export function runSpec(d: Dataset, spec: Spec, n: WindowN): PathResult {
     ci,
     excludedCount,
     valid,
+    // T31: always attached, including when `valid` is false — the Lab's
+    // DataCut still draws the sample the dial has declined to analyse.
+    // Cheap by construction (one pass, <=400 pushes) and NOT on the reveal's
+    // hot path: specGrid.enumerateCurve reimplements this pipeline with its
+    // own memoized intermediates and never calls runSpec, so the 1,792-path
+    // enumeration pays nothing for this field.
+    cut: buildCut(d, filteredIdx, transformedY, keptLocal),
   };
 }
