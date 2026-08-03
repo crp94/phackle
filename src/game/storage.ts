@@ -327,3 +327,34 @@ export function saveDay(iso: string, rec: DayRecord): void {
 export function loadStats(): PersistedState['stats'] {
   return loadState().stats;
 }
+
+// --- saveAchievements (T30) -------------------------------------------------
+
+/**
+ * Merges newly-unlocked achievement ids into the persisted set (§2.11):
+ * MERGE-ONLY — an id that already has an unlock date keeps that date
+ * forever ("first date wins"); this only ever fills in a MISSING date, never
+ * overwrites an existing one. `iso` is the puzzle day being persisted (the
+ * caller's own `puzzleIso`, never a live wall-clock read — see
+ * Summary.tsx's persistAndComputeSummary, the only real caller). Same
+ * localStorage/memory-fallback semantics as the rest of this module (via
+ * the existing loadState/persistState pair — no separate try/catch here).
+ * A no-op `ids` list (nothing newly unlocked today, the common case) skips
+ * the read+write entirely.
+ */
+export function saveAchievements(ids: AchievementId[], iso: string): void {
+  if (ids.length === 0) return;
+
+  const state = loadState();
+  const achievements = { ...state.achievements };
+  let changed = false;
+  for (const id of ids) {
+    if (achievements[id] === undefined) {
+      achievements[id] = iso;
+      changed = true;
+    }
+  }
+  if (!changed) return; // every id already had an earlier date — nothing to write
+
+  persistState({ ...state, achievements });
+}

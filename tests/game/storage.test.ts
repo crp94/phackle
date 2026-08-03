@@ -299,3 +299,52 @@ describe('saveSettings — the write-side helper LocaleProvider delegates to', (
     expect(settings.theme).toBe('dark');
   });
 });
+
+// --- saveAchievements (T30) — merge-only, first date wins ------------------
+
+describe('saveAchievements — merge-only: existing unlock dates are never overwritten', () => {
+  it('sets the unlock date for a newly-unlocked id', async () => {
+    const { loadState, saveAchievements } = await freshStorage();
+    saveAchievements(['first_retraction'], '2026-08-10');
+    expect(loadState().achievements.first_retraction).toBe('2026-08-10');
+  });
+
+  it('never overwrites an existing unlock date — first date wins', async () => {
+    const { loadState, saveAchievements } = await freshStorage();
+    saveAchievements(['first_retraction'], '2026-08-10');
+    saveAchievements(['first_retraction'], '2026-08-11'); // re-supplied on a later day
+    expect(loadState().achievements.first_retraction).toBe('2026-08-10');
+  });
+
+  it('merges multiple ids in one call without disturbing already-set ones', async () => {
+    const { loadState, saveAchievements } = await freshStorage();
+    saveAchievements(['first_blood'], '2026-08-01');
+    saveAchievements(['first_retraction', 'harking'], '2026-08-10');
+    const achievements = loadState().achievements;
+    expect(achievements.first_blood).toBe('2026-08-01');
+    expect(achievements.first_retraction).toBe('2026-08-10');
+    expect(achievements.harking).toBe('2026-08-10');
+  });
+
+  it('a no-op call (empty ids) leaves existing achievements untouched', async () => {
+    const { loadState, saveAchievements } = await freshStorage();
+    saveAchievements(['first_blood'], '2026-08-01');
+    saveAchievements([], '2026-08-02');
+    expect(loadState().achievements).toEqual({ first_blood: '2026-08-01' });
+  });
+
+  it('persists across a fresh module load, same as saveDay', async () => {
+    const first = await freshStorage();
+    first.saveAchievements(['monk'], '2026-08-05');
+    const second = await freshStorage();
+    expect(second.loadState().achievements.monk).toBe('2026-08-05');
+  });
+
+  it('still works against the in-memory fallback when localStorage throws', async () => {
+    installThrowingLocalStorage();
+    const { loadState, saveAchievements, isStorageOff } = await freshStorage();
+    expect(() => saveAchievements(['first_retraction'], '2026-08-10')).not.toThrow();
+    expect(isStorageOff()).toBe(true);
+    expect(loadState().achievements.first_retraction).toBe('2026-08-10');
+  });
+});

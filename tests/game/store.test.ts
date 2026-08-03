@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import type { EngineClient, ExtendInfo, InitInfo, RevealPayload } from '../../src/engine/protocol';
 import type { PathResult, Spec } from '../../src/engine/types';
+import { specKey } from '../../src/engine/specGrid';
 import { createGameStore, DEFAULT_SPEC } from '../../src/game/store';
 import { DEBOUNCE_MS, EPOCH, N_SCHEDULE } from '../../src/game/tuning';
 
@@ -105,6 +106,8 @@ describe('boot', () => {
     // The default spec's initial viewing is logged but free (§2.10).
     expect(s.log).toEqual([{ t: 'VIEW_SPEC', spec: DEFAULT_SPEC, seen: false, at: expect.any(Number) }]);
     expect(s.forks).toBe(0);
+    // T30: resultLog starts empty — nothing has been superseded yet.
+    expect(s.resultLog).toEqual([]);
 
     expect(client.init).toHaveBeenCalledWith(EPOCH, 1792, undefined);
     expect(client.runSpec).toHaveBeenCalledTimes(1);
@@ -360,6 +363,73 @@ describe('changeSpec (debounce + §2.10 logging)', () => {
 
     expect(store.getState().pending).toBe(false);
     expect(store.getState().error).toBe('boom');
+  });
+});
+
+// --- resultLog (T30 — feeds dayComplete.ts's computeDecisiveTails) -------
+
+describe('resultLog (§2.11 — every settled result actually displayed, feeding computeDecisiveTails)', () => {
+  it('appends the OUTGOING spec (by its own result.spec, not the eagerly-updated control spec) once superseded, using the exact seenPrev check the VIEW_SPEC log already computes', async () => {
+    const specOneTailed: Spec = { ...DEFAULT_SPEC, tails: 'one' };
+    const client = makeFakeClient();
+    (client.runSpec as Mock)
+      .mockResolvedValueOnce(makeResult()) // boot: DEFAULT_SPEC (two-tailed), p=0.02, valid
+      .mockResolvedValueOnce(makeResult({ spec: specOneTailed, p: 0.01 }));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    expect(store.getState().resultLog).toEqual([]); // nothing superseded yet
+
+    store.getState().changeSpec(specOneTailed);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+
+    // The boot-prefetched DEFAULT_SPEC result WAS being displayed (seenPrev),
+    // so it is now durably recorded — this is exactly what lets a later
+    // one-tailed publish look back and find its two-tailed sibling.
+    expect(store.getState().resultLog).toEqual([{ key: specKey(DEFAULT_SPEC), p: 0.02, valid: true }]);
+  });
+
+  it('does not record anything for a spec whose result never rendered before the next settle (seenPrev=false)', async () => {
+    const specA: Spec = { ...DEFAULT_SPEC, outcome: 1 };
+    const specB: Spec = { ...DEFAULT_SPEC, subgroup: 'urban' };
+    const d1 = deferred<PathResult>();
+    const client = makeFakeClient();
+    (client.runSpec as Mock)
+      .mockResolvedValueOnce(makeResult()) // boot
+      .mockImplementationOnce(() => d1.promise) // changeSpec(specA) hangs forever
+      .mockResolvedValueOnce(makeResult({ spec: specB, p: 0.04 }));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().pending).toBe(true); // still waiting on d1
+    // DEFAULT_SPEC's boot-prefetched result WAS seen before specA settled:
+    expect(store.getState().resultLog).toEqual([{ key: specKey(DEFAULT_SPEC), p: 0.02, valid: true }]);
+
+    // specB settles while specA is STILL pending — specA's own result never
+    // rendered, so nothing new is appended for it.
+    store.getState().changeSpec(specB);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+
+    expect(store.getState().resultLog).toEqual([{ key: specKey(DEFAULT_SPEC), p: 0.02, valid: true }]);
+  });
+
+  it('is reset to empty by a fresh boot() (additive-only within a day, but never across days)', async () => {
+    const specA: Spec = { ...DEFAULT_SPEC, outcome: 1 };
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockResolvedValueOnce(makeResult({ spec: specA, p: 0.03 }));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().resultLog.length).toBe(1);
+
+    await store.getState().boot(client, EPOCH, BOOT_OPTS); // e.g. a fresh puzzle day
+    expect(store.getState().resultLog).toEqual([]);
   });
 });
 
