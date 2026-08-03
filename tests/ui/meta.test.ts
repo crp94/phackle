@@ -93,14 +93,16 @@ describe('index.html inline theme-flash boot script (ledgered from T5)', () => {
     expect(bootScript).toMatch(/data-theme',\s*dark\s*\?\s*'dark'\s*:\s*'light'/);
   });
 
-  it('consults matchMedia ONLY when no value is stored at all -- any stored value (valid or not) maps straight through, matching readStoredTheme() ?? systemTheme() exactly (fix round 1, Important #1)', () => {
-    // A truthy `theme` must short-circuit to `theme === 'dark'` and never
-    // reach matchMedia -- not just for 'paper', but for ANY stored value,
-    // including one that's neither 'dark' nor 'paper' (domTheme's own
-    // fallthrough-to-light applies there too; LocaleProvider's
-    // readStoredTheme() only falls back to systemTheme()'s matchMedia via
-    // `??` when the stored value is null/undefined, not merely non-'dark').
-    expect(bootScript).toMatch(/dark\s*=\s*theme\s*\?\s*theme === 'dark'\s*:\s*matchMedia/);
+  it('consults matchMedia ONLY when theme is nullish (never merely falsy) -- any stored value, including an empty string, maps straight through, matching readStoredTheme() ?? systemTheme() exactly (fix round 2, Important #1)', () => {
+    // Must be a nullish check (`!= null`), not a truthiness check
+    // (`theme ? ... : ...`): a stored empty string is falsy but NOT
+    // nullish, so a plain truthiness check would wrongly consult
+    // matchMedia for it. `readStoredTheme() ?? systemTheme()` only
+    // substitutes on null/undefined (`??`'s exact semantics) -- an empty
+    // string (or any other non-'dark' value) must map straight through to
+    // light via domTheme's fallthrough, with no second matchMedia
+    // consultation, exactly like the round-1 fix's stored-but-invalid case.
+    expect(bootScript).toMatch(/dark\s*=\s*theme\s*!=\s*null\s*\?\s*theme === 'dark'\s*:\s*matchMedia/);
   });
 
   it('falls back to matchMedia prefers-color-scheme when no theme is stored, same as systemTheme()', () => {
@@ -237,6 +239,21 @@ describe('inline theme-flash boot script behaviour (self-review: cannot throw on
     // matchMedia and pick dark just because the stored value isn't 'paper'.
     stubStorage(() => JSON.stringify({ settings: { theme: 'sepia' } }));
     stubMatchMedia(true); // system prefers dark; the stored (if invalid) value must still win, mapping to light
+    expect(runBootScript).not.toThrow();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it("stamps 'light' for a stored empty-string theme, NOT matchMedia -- falsy is not nullish (fix round 2, Important #1 regression test)", () => {
+    // The exact edge the round-1 fix (a truthiness check) still missed:
+    // '' is falsy, so `theme ? ... : matchMedia(...)` would wrongly treat
+    // it as "nothing stored" and consult matchMedia -- but the real app's
+    // `readStoredTheme() ?? systemTheme()` uses `??`, which does NOT
+    // substitute on '' (only on null/undefined), so readStoredTheme()
+    // returns '' itself and domTheme('') falls through to light without
+    // ever calling matchMedia. The fix (`theme != null ? ... : ...`) must
+    // do the same: only null/undefined reach matchMedia.
+    stubStorage(() => JSON.stringify({ settings: { theme: '' } }));
+    stubMatchMedia(true); // system prefers dark; the stored '' must still win, mapping to light
     expect(runBootScript).not.toThrow();
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });

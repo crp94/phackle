@@ -14,23 +14,28 @@
       the same phackle.v1 key storage.ts owns; it never writes, so a wrong
       guess (corrupt JSON, private-browsing lockout) is harmless and gets
       corrected the instant LocaleProvider's own useLayoutEffect runs.
-      `theme ? theme === 'dark' : matchMedia(...)` deliberately matches
-      domTheme/readStoredTheme exactly, not just its two named cases:
-      matchMedia is consulted ONLY when no value is stored at all (a falsy
-      `theme`, mirroring readStoredTheme() ?? systemTheme()'s `??`); ANY
-      stored value -- 'dark', 'paper', or a stored-but-invalid string a
+      `theme != null ? theme === 'dark' : matchMedia(...)` deliberately
+      matches domTheme/readStoredTheme exactly, not just its two named
+      cases, and uses a nullish check (`!= null`), NOT truthiness: matchMedia
+      is consulted ONLY when nothing is stored at all (theme is null or
+      undefined, mirroring readStoredTheme() ?? systemTheme()'s own `??`,
+      which likewise only substitutes on null/undefined). ANY stored value
+      -- 'dark', 'paper', an empty string, or a stored-but-invalid string a
       future schema/version bug could leave behind -- maps straight through
       via `=== 'dark'`, same as domTheme's own fallthrough-to-light, with no
-      second matchMedia consultation. The inner try/catch isolates the
-      storage read (localStorage may throw outright, e.g. Safari private
-      browsing); the outer one is a backstop so this script can never throw
-      and block the page.
+      second matchMedia consultation. (A truthiness check here would be a
+      subtly different, wrong contract: a stored empty string is falsy but
+      not nullish, so it must still map to light without consulting
+      matchMedia, exactly like any other non-'dark' stored value.) The
+      inner try/catch isolates the storage read (localStorage may throw
+      outright, e.g. Safari private browsing); the outer one is a backstop
+      so this script can never throw and block the page.
     -->
     <script>
       try {
         var theme;
         try { theme = JSON.parse(localStorage.getItem('phackle.v1')).settings.theme; } catch (e) {}
-        var dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = theme != null ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
       } catch (e) {}
     </script>
