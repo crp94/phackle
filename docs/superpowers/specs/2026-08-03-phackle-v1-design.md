@@ -19,6 +19,18 @@ Scope is the full v1 (milestones M0–M5): Hacking Mode, Prereg Mode,
 achievements, share grid, stats, dark theme, PWA. The confidence slider stays
 deferred to v1.1 per the master spec (§2.6); the binary call is the v1 core.
 
+## Aesthetic direction (added 2026-08-03, approved)
+
+Direction A — **"Preprint Gothic, Nothing-disciplined"**: the master spec's
+manuscript language (§7.1–7.2) executed with hard restraint — hairlines
+instead of boxes, paper/ink surfaces only, `--sig-red` as the single loud
+color (green/gold demoted to inline text scale and confetti), mono tabular
+numerals, a fixed 4–64px spacing scale, and the §7.5 motion budget as an
+exhaustive list. Codified in `docs/DESIGN.md` (task T28), binding on all UI
+tasks (T5, T14–T18) and enforced by a screenshot-driven polish pass (T29).
+Considered and declined: a full Nothing-OS reskin and a two-act visual
+split — the manuscript look is load-bearing for the satire.
+
 ## i18n architecture
 
 Principles: the engine is language-blind; content is data; missing
