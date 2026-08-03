@@ -366,17 +366,26 @@ describe('Published: "Face the truth" overlay', () => {
     expect(document.activeElement).toBe(noise);
   });
 
-  it('the registry loader default (no fake injected) resolves to null without throwing -- todays reality: T14s registry.ts does not exist in this worktree', async () => {
-    await expect(loadCallScreenFromRegistry()).resolves.toBeNull();
+  // These two tests originally pinned the PRE-MERGE interim reality (registry
+  // absent in T15's worktree -> loader resolves null). Updated at merge
+  // integration (controller, per registry.t15.patch.md) to pin the composed
+  // reality: the registry exists and 'call' maps to T16's real Call.
+  it('the registry loader default (no fake injected) resolves the real Call component', async () => {
+    await expect(loadCallScreenFromRegistry()).resolves.toBeTypeOf('function');
   });
 
-  it('does not crash when the real (today: absent) registry loader is used end-to-end -- overlay opens with nothing rendered inside yet', async () => {
+  it('end-to-end with the real registry loader: the overlay opens and mounts the registered Call component without crashing', async () => {
     renderPublished(); // no loadCallScreen override -> uses the real default
     await waitFor(() => expect(screen.getByText('Face the truth')).toBeTruthy());
 
     fireEvent.click(screen.getByText('Face the truth'));
 
     expect(screen.getByRole('dialog')).toBeTruthy();
-    await waitFor(() => expect(loadCallScreenFromRegistry()).resolves.toBeNull());
+    // The real Call reads the real gameStore singleton (not this test's fake
+    // store hook) and self-gates on screen === 'published' | 'call' — here the
+    // singleton sits on its unbooted default, so Call correctly renders null
+    // inside the open dialog. The full options-visible flow is E2E's job
+    // (tests with a driven singleton live in call.test.tsx).
+    await waitFor(() => expect(loadCallScreenFromRegistry()).resolves.toBeTypeOf('function'));
   });
 });

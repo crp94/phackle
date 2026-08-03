@@ -82,7 +82,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('ScreenRouter', () => {
-  it('renders the briefing stub once booted (screen stays "briefing" until openData())', async () => {
+  it('renders the real Briefing once booted (screen stays "briefing" until openData()) -- updated at merge integration: registry now maps briefing to the T15 component', async () => {
     const client = makeFakeClient();
     await act(async () => {
       await gameStore.getState().boot(client, EPOCH, { practice: false, mode: 'hack', scenarioCount: 1 });
@@ -92,7 +92,7 @@ describe('ScreenRouter', () => {
         <ScreenRouter />
       </LocaleProvider>
     );
-    expect(await screen.findByTestId('stub-briefing')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: enCopy['briefing.openData'] })).toBeTruthy();
   });
 
   it('renders the Lab once openData() has been called', async () => {
@@ -109,7 +109,7 @@ describe('ScreenRouter', () => {
     expect(await screen.findByTestId('lab-screen')).toBeTruthy();
   });
 
-  it('the briefing stub\'s CTA calls store.openData() and flips the router to the lab', async () => {
+  it('the Briefing CTA calls store.openData() and flips the router to the lab', async () => {
     const client = makeFakeClient();
     await act(async () => {
       await gameStore.getState().boot(client, EPOCH, { practice: false, mode: 'hack', scenarioCount: 1 });
@@ -134,7 +134,7 @@ describe('ScreenRouter', () => {
         <ScreenRouter />
       </LocaleProvider>
     );
-    await screen.findByTestId('stub-briefing');
+    await screen.findByRole('button', { name: enCopy['briefing.openData'] });
 
     const crashHandler = (client.onCrash as Mock).mock.calls[0][0] as () => void;
     act(() => {
@@ -142,7 +142,7 @@ describe('ScreenRouter', () => {
     });
 
     expect(await screen.findByText(enCopy['errors.workerCrash'])).toBeTruthy();
-    expect(screen.getByTestId('stub-briefing')).toBeTruthy();
+    expect(screen.getByRole('button', { name: enCopy['briefing.openData'] })).toBeTruthy();
   });
 
   it('shows no error banner when store.error is null', async () => {
@@ -155,7 +155,7 @@ describe('ScreenRouter', () => {
         <ScreenRouter />
       </LocaleProvider>
     );
-    await screen.findByTestId('stub-briefing');
+    await screen.findByRole('button', { name: enCopy['briefing.openData'] });
     expect(screen.queryByText(enCopy['errors.workerCrash'])).toBeNull();
   });
 });
@@ -175,7 +175,7 @@ describe('App boot wiring', () => {
     mocks.createEngineClient.mockReset();
   });
 
-  it('boots the engine on mount, once content has loaded, and stays on the briefing stub', async () => {
+  it('boots the engine on mount, once content has loaded, and stays on the Briefing screen', async () => {
     const client = makeFakeClient();
     mocks.createEngineClient.mockReturnValue(client);
 
@@ -198,7 +198,7 @@ describe('App boot wiring', () => {
     // hardcoded true/false, so this test can't rot once EPOCH passes.
     expect(gameStore.getState().practice).toBe(isPractice(window.location.search));
 
-    expect(await screen.findByTestId('stub-briefing')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: enCopy['briefing.openData'] })).toBeTruthy();
   });
 
   it('boots exactly once even if App re-renders (mount-once guard)', async () => {
