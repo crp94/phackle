@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="P-hackle">
+  <!--
+    P-hackle favicon: a fork (the utensil the game is named for) on a
+    paper-coloured rounded square. Drawn as plain SVG shapes only, with no
+    emoji glyph and no external font or image, so it renders identically
+    everywhere. Palette discipline (task T21 controller pin): paper and ink
+    tokens only. Favicons are exempt from docs/DESIGN.md's radius rule
+    (2px max elsewhere); 8px on this 64px grid reads as a normal rounded
+    app icon.
+  -->
+  <rect width="64" height="64" rx="8" fill="#FBF8F1" />
+
+  <!-- Four tines, evenly spaced and centred on x=32, rounded at the tip. -->
+  <rect x="21.5" y="10" width="3" height="17" rx="1.5" fill="#1C1B18" />
+  <rect x="27.5" y="10" width="3" height="17" rx="1.5" fill="#1C1B18" />
+  <rect x="33.5" y="10" width="3" height="17" rx="1.5" fill="#1C1B18" />
+  <rect x="39.5" y="10" width="3" height="17" rx="1.5" fill="#1C1B18" />
+
+  <!-- Crossbar the tines merge into. -->
+  <rect x="20" y="25" width="24" height="7" rx="3" fill="#1C1B18" />
+
+  <!-- Handle, running down to a rounded grip end. -->
+  <rect x="28.5" y="29" width="7" height="26" rx="3.5" fill="#1C1B18" />
+</svg>
