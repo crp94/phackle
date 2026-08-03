@@ -123,21 +123,89 @@ describe('R1/R7 contrast — §7.5 requires >= 4.5:1 on every text token', () =>
   });
 });
 
-/* ============================================================ R1.2 no raw hex */
+/* ======================================================= R1.7 no raw colour */
 
-describe('R1.2 tokens.css is the only source of colour', () => {
+/**
+ * Every CSS named colour (CSS Color Level 4), minus the two keywords that are
+ * not colours in R1.1's sense: `transparent` clears, `currentColor` inherits.
+ * R1.7 bans the rest outright — a `color: tomato` in a .css file or a
+ * `style={{ color: 'white' }}` in a .tsx file is exactly as illegal as a hex.
+ */
+const NAMED_COLORS = [
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black',
+  'blanchedalmond', 'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
+  'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan',
+  'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta', 'darkolivegreen',
+  'darkorange', 'darkorchid', 'darkred', 'darksalmon', 'darkseagreen', 'darkslateblue',
+  'darkslategray', 'darkslategrey', 'darkturquoise', 'darkviolet', 'deeppink', 'deepskyblue',
+  'dimgray', 'dimgrey', 'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen', 'fuchsia',
+  'gainsboro', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green', 'greenyellow', 'grey',
+  'honeydew', 'hotpink', 'indianred', 'indigo', 'ivory', 'khaki', 'lavender', 'lavenderblush',
+  'lawngreen', 'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan', 'lightgoldenrodyellow',
+  'lightgray', 'lightgreen', 'lightgrey', 'lightpink', 'lightsalmon', 'lightseagreen',
+  'lightskyblue', 'lightslategray', 'lightslategrey', 'lightsteelblue', 'lightyellow', 'lime',
+  'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid',
+  'mediumpurple', 'mediumseagreen', 'mediumslateblue', 'mediumspringgreen', 'mediumturquoise',
+  'mediumvioletred', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy',
+  'oldlace', 'olive', 'olivedrab', 'orange', 'orangered', 'orchid', 'palegoldenrod', 'palegreen',
+  'paleturquoise', 'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue',
+  'purple', 'rebeccapurple', 'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+  'seagreen', 'seashell', 'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey',
+  'snow', 'springgreen', 'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet',
+  'wheat', 'white', 'whitesmoke', 'yellow', 'yellowgreen',
+];
+
+/**
+ * A keyword only counts when it stands alone as a value. The lookbehind spares
+ * `var(--sig-red)` and `Math.tan`; the lookahead spares the CSS `tan()` function
+ * and hyphenated identifiers. Hyphenated framework palette utilities
+ * (`text-red-500`) are therefore caught by the separate scan below instead.
+ */
+const NAMED_COLOR_RE = new RegExp(String.raw`(?<![\w.$#-])(${NAMED_COLORS.join('|')})(?![\w(-])`, 'gi');
+
+/** Tailwind-style palette utilities smuggle a colour literal in as a class name. */
+const PALETTE_UTILITY_RE =
+  /\b(?:bg|text|border|ring|fill|stroke|from|via|to|decoration|outline|shadow|accent|caret|divide|placeholder)-(?:slate|gray|grey|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{2,3})?\b/g;
+
+/** Comments discuss colours by name legitimately; code may not. */
+const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+/** Files whose *code* (comments removed) must contain no colour literal at all. */
+const uiCode = uiSourceFiles.map((file) => ({ file: relative(ROOT, file), code: stripComments(readFileSync(file, 'utf8')) }));
+
+function offenders(pattern: RegExp): string[] {
+  return uiCode.flatMap(({ file, code }) => (code.match(pattern) ?? []).map((hit) => `${file}: ${hit}`));
+}
+
+describe('R1.7 tokens.css is the only source of colour', () => {
   it('finds no hex colour literal anywhere under src/ui outside tokens.css', () => {
-    const offenders = uiSourceFiles
-      .map((file) => ({ file: relative(ROOT, file), hits: readFileSync(file, 'utf8').match(/#[0-9a-fA-F]{3,8}\b/g) ?? [] }))
-      .filter((entry) => entry.hits.length > 0);
-    expect(offenders).toEqual([]);
+    expect(offenders(/#[0-9a-fA-F]{3,8}\b/g)).toEqual([]);
   });
 
   it('finds no rgb()/hsl() colour literal anywhere under src/ui outside tokens.css', () => {
-    const offenders = uiSourceFiles
-      .map((file) => ({ file: relative(ROOT, file), hits: readFileSync(file, 'utf8').match(/\b(rgba?|hsla?)\s*\(/g) ?? [] }))
-      .filter((entry) => entry.hits.length > 0);
-    expect(offenders).toEqual([]);
+    expect(offenders(/\b(rgba?|hsla?)\s*\(/g)).toEqual([]);
+  });
+
+  it('finds no CSS named colour anywhere under src/ui outside tokens.css', () => {
+    expect(offenders(NAMED_COLOR_RE)).toEqual([]);
+  });
+
+  it('finds no framework palette utility class anywhere under src/ui', () => {
+    expect(offenders(PALETTE_UTILITY_RE)).toEqual([]);
+  });
+
+  // R1.3a: colours may only be derived inside tokens.css, where §0 can register
+  // them. An inline mix is a new colour that never had to justify itself.
+  it('finds no inline colour derivation outside tokens.css', () => {
+    expect(offenders(/\b(color-mix|color-contrast)\s*\(/g)).toEqual([]);
+  });
+
+  it('still recognises a violation when one is introduced', () => {
+    // Guards the guards: the lookarounds above must not neuter the scan.
+    const sample = stripComments(`.a { color: tomato; }\n/* white is fine in prose */\n<b style={{ color: 'white' }} class="text-red-500" />`);
+    expect(sample.match(NAMED_COLOR_RE)).toEqual(['tomato', 'white']);
+    expect(sample.match(PALETTE_UTILITY_RE)).toEqual(['text-red-500']);
+    expect('color: var(--sig-red); width: tan(45deg);'.match(NAMED_COLOR_RE)).toBeNull();
   });
 });
 

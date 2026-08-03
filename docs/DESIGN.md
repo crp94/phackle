@@ -8,11 +8,12 @@ hairlines, figure captions, tabular numerals — executed with hard restraint. O
 loud colour. Four animations. No boxes. The tension between warm-paper academia
 and cold accounting is the Act I / Act II split made visual.
 
-**How to use this document.** Every rule below is checkable: it names an exact
-value or an exact token. A reviewer answers "does this violate R4.2?" by looking,
-not by taste. Cite rule ids in review ("violates R2.4"). Where a rule and your
-layout disagree, the rule wins; if the rule is wrong, change it here first, in a
-commit of its own.
+**How to use this document.** Every rule below names an exact value or an exact
+token, and is decided by a test, a grep, or a look at the diff — not by taste.
+The single exception is R8.3, which is a judgement call and is labelled as one;
+§10 states the tier of each of the 48 rules exactly once. Cite rule ids in review
+("violates R2.4"). Where a rule and your layout disagree, the rule wins; if the
+rule is wrong, change it here first, in a commit of its own.
 
 **Precedence.** `docs/implementation_plan.md` §7 → this document → your judgement.
 This document only narrows §7; it never invents a different product.
@@ -21,8 +22,11 @@ This document only narrows §7; it never invents a different product.
 
 ## §0 Reconciliation with master spec §7
 
-The approved direction narrows five pieces of §7 wording. These are recorded, not
+The approved direction narrows six pieces of §7 wording. These are recorded, not
 silently applied — revert any of them by editing this section and the rule it points at.
+The last row is also the **registry of derived colours** that R1.3a and R1.6
+depend on: a colour derived from the §7.2 palette exists only if it appears both
+in `tokens.css` and in this table.
 
 | Master spec says | This document says | Why |
 |---|---|---|
@@ -31,6 +35,7 @@ silently applied — revert any of them by editing this section and the rule it 
 | §7.1 stamp "+ subtle paper-shake" | Folded **into** the single 450ms stamp timeline, ≤2px, not a fifth animation (R5.2) | Keeps §7.5's motion budget exhaustive without dropping the effect |
 | §7.2 `--hack-gold` for "career points" (i.e. text) | Gold on characters uses `--hack-gold-ink` (R1.6) | `--hack-gold` is 2.94:1 on paper — it fails §7.5's 4.5:1 floor as text. §7.2's hex is unchanged |
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
+| §7.2 fixes **seven** colours | Exactly **two** are derived from them, both declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6) and `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1). Neither counts as a new colour against R1.3 or R1.6; any third derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first and §7.4's tint forces the second — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
 
@@ -57,6 +62,18 @@ p < .05. Nowhere else, in either theme.
 - Do: `stroke: var(--sig-red);` on the threshold rule.
 - Don't: `color: var(--sig-red);` on the Submit button — a fifth red use dilutes
   the four that carry meaning.
+
+**R1.3a — `--sig-band` is a derived token, not a fifth place.** It is mixed from
+`var(--sig-red)` inside `tokens.css`, declared there, and registered by name in
+§0; R4.1 sanctions its single use. The general rule, which `--hack-gold-ink`
+also obeys: **a derived colour must be declared in `tokens.css` and registered in
+§0's table — otherwise it does not exist, and it gets no exemption from R1.3 or
+R1.6.** This is what makes R1.3 countable: `grep -rn 'var(--sig-red)' src/ui`
+enumerates every use, and each hit must be one of the four places or the
+band.
+- Do: mix a new derived colour in `tokens.css` and add a §0 row for it.
+- Don't: write `color-mix(in srgb, var(--sig-red) 20%, var(--paper))` inline in a
+  component — an unregistered derivation is a new loud colour wearing a disguise.
 
 **R1.4 — `--rule` draws 1px hairlines only.** Never text, never a fill.
 - Do: `border-bottom: var(--hairline);`
@@ -332,6 +349,13 @@ and green take +30%. Ratios below are WCAG 2.1, measured against that theme's
 † Below 4.5:1 — which is precisely why R1.6 forbids `--hack-gold` on characters.
 `--rule` is likewise below the floor and is barred from text by R1.4.
 
+- Do: ship the dark values exactly as declared above — `--sig-red: #E85B4C`,
+  `--assist-green: #5A9A78`, `--hack-gold: #CE9F44` — and let `tokens.css` flip them.
+- Don't: apply a flat +10% lightness bump to a red or green that carries text;
+  that lands at 3.38:1 and 3.58:1, below §7.5's floor. Measure any new or retuned
+  accent against its theme's `--paper` before shipping it — `tests/ui/tokens.test.ts`
+  will fail it below 4.5:1, but the number belongs in this table too.
+
 **R7.4 — `--sig-band` is derived, not duplicated.** It is
 `color-mix(in srgb, var(--sig-red) 6%, transparent)`, so it follows the theme
 automatically and keeps `--muted` captions on it at ≥4.62:1.
@@ -389,40 +413,52 @@ retypes their values.
 
 ## §10 Review checklist
 
-`npx vitest run tests/ui/tokens.test.ts` enforces these in full: R1.7, R2.1,
-R2.2, R2.3, R2.5, R3.1, R4.2, R4.3, R5.6, R6.1, R7.3, and the four durations of
-R5.1–R5.4. It enforces the token half of R1.6 (the variant exists and clears
-4.5:1) but not its usage. R1.1–R1.5, R1.8, R2.4, R2.6–R2.8, R3.2–R3.6, R4.1,
-R4.4–R4.7, R5.5, R6.2–R6.5, R7.1, R7.2 and §8 are reviewed, not compiled. The
-greps below cover most of them; the first nine must print **nothing**:
+Each of the 48 rules is decided exactly one way. The table below is the single
+statement of that — no rule appears in two tiers.
+
+| Tier | How it is decided | Rules |
+|---|---|---|
+| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts` fails the build | R1.3a, R1.7, R4.2, R4.3, R5.6, R6.1, R7.3 |
+| **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R2.1, R2.3, R2.5, R5.1, R5.2, R5.3, R5.4, R7.4 |
+| **B+C — compiled where it is *defined*, grepped where it is *used*** | the test closes the scale inside `tokens.css`; the raw-px grep below catches a value typed anywhere else | R2.2, R3.1 |
+| **C — grep** | one of the commands below | R1.3, R3.4, R4.5, R4.7, R5.5, R6.5 |
+| **D — read the diff** | deterministic by inspection: the rule names the value, you check the line | R1.1, R1.2, R1.4, R1.5, R1.8, R2.4, R2.6, R2.7, R2.8, R3.2, R3.3, R3.5, R3.6, R4.1, R4.4, R4.6, R6.2, R6.3, R6.4, R7.1, R7.2, R8.1, R8.2 |
+| **E — judgement** | the one rule in this document that taste decides | R8.3 |
+
+**Tier A scope, stated precisely.** R1.7 is complete: the test scans every
+`src/ui/**/*.{ts,tsx,css}` except `tokens.css` for hex, `rgb()`/`hsl()`, all 148
+CSS named colours except `transparent`/`currentColor`, and framework palette
+utility classes (`text-red-500`), with comments stripped. R1.3a is complete for
+its mechanical half — no `color-mix()` outside `tokens.css`, and every token name
+and hex in `tokens.css` must appear in this document. R7.3 is complete: every
+text token's contrast is recomputed against its own theme's `--paper` and must
+clear 4.5:1.
+
+**Tier C — these five must print nothing:**
 
 ```sh
-grep -rnE '#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(' src/ui --exclude=tokens.css   # R1.7
-grep -rn 'box-shadow' src/ui                                                  # R4.2
-grep -rnE 'border-radius:\s*([3-9]|[1-9][0-9])px' src/ui                      # R4.3
 grep -rnE 'border:\s' src/ui                                                  # R4.5
-grep -rn 'transition: all' src/ui                                             # R5.5
-grep -rn 'outline: *none' src/ui                                              # R6.1
 grep -rnE '\bz-index:\s*[0-9]' src/ui                                         # R4.7
 grep -rn '<select' src/ui                                                     # R6.5
 grep -rnE '@media \(min-width:' src/ui | grep -v '768px'                      # R3.4
+grep -rn 'transition: all' src/ui                                             # R5.5
 ```
 
-Two produce hits that must each be justified, not merely counted:
+**Tier C — these three enumerate; every hit must map to a closed list:**
 
 ```sh
 grep -rnE '\b(transition|animation):' src/ui                                  # R5.5
-grep -rnE ':\s*[0-9]+px' src/ui --exclude=tokens.css                          # R2.2 / R3.1
+grep -rn 'var(--sig-red)' src/ui                                              # R1.3
+grep -rnE ':\s*[0-9]+px' src/ui --exclude=tokens.css                          # R2.2 / R3.1 usage
 ```
 
-Every hit of the first must be one of the four animations in §5. The only legal
-raw pixel values in the second are the strokes this document names by hand: the
-1px hairline (R4.4), the 2px selection underline (R4.6), the 2px underline
-offset (R6.2), and the ≤2px transforms in R5.1/R5.2. Anything else is a size or
-a space that belongs on a scale.
+1. Every hit of the first is one of the four animations in §5. A fifth is a
+   violation of R5.5 — this grep *is* that check, not a prompt to go looking.
+2. Every hit of the second is one of R1.3's four places, or `--sig-band` (R1.3a).
+3. The only legal raw pixel values are the strokes this document names by hand:
+   the 1px hairline (R4.4), the 2px selection underline (R4.6), the 2px underline
+   offset (R6.2), and the ≤2px transforms in R5.1/R5.2. Anything else is a size or
+   a space that belongs on a scale.
 
-And three that need eyes, not grep:
-
-1. Does any screen have a fifth animation? (R5.5)
-2. Is `--sig-red` used anywhere outside its four sanctioned places? (R1.3)
-3. Does anything other than the dial and the stamp ask to be looked at first? (R8.3)
+**Tier E — the one question a command cannot answer:** does anything other than
+the dial and the stamp ask to be looked at first? (R8.3)
