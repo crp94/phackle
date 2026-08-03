@@ -25,6 +25,11 @@ export type CopyKey =
   | 'briefing.openData'
   | 'briefing.correspondingAuthor'
   | 'briefing.vol'
+  // T15 additions: the Grantwell EmailCard's `from`/`subject` prop VALUES
+  // (email.from/email.subject, just above and below, are the generic
+  // "From:"/"Subject:" LABELS EmailCard renders itself — see EmailCard.tsx).
+  | 'briefing.emailFrom'
+  | 'briefing.emailSubject'
   | 'email.from'
   | 'email.subject'
   | 'lab.outcome'
@@ -44,6 +49,12 @@ export type CopyKey =
   | 'published.simulatedPress'
   | 'published.editorsPick'
   | 'published.doiPrefix'
+  // T15 addition: JournalCover's citation-style "authors" line.
+  | 'published.authors'
+  // T15 addition: the celebration's inline career-points figure (R1.6: the
+  // one place --hack-gold-ink paints characters, alongside the confetti
+  // marks that use plain --hack-gold).
+  | 'published.careerPoints'
   | 'call.title'
   | 'call.real'
   | 'call.noise'
@@ -136,6 +147,8 @@ export const copy: Record<CopyKey, string> = {
   'briefing.openData': 'Open Data',
   'briefing.correspondingAuthor': 'Corresponding author: Prof. R. Grantwell',
   'briefing.vol': 'Vol. {volume}, No. {issue}',
+  'briefing.emailFrom': 'Prof. R. Grantwell',
+  'briefing.emailSubject': 'Re: the deadline',
 
   'email.from': 'From:',
   'email.subject': 'Subject:',
@@ -166,6 +179,8 @@ export const copy: Record<CopyKey, string> = {
   'published.simulatedPress': 'SIMULATED PRESS',
   'published.editorsPick': "Editor's Pick",
   'published.doiPrefix': 'DOI:',
+  'published.authors': 'You, et al.',
+  'published.careerPoints': '+{n} career points',
 
   'call.title': 'Before you see the reveal…',
   'call.real': 'Real',

@@ -32,6 +32,12 @@
   /* The single permitted filled area in the whole product: the p < .05 band in
      SpecCurve (§7.4). 6% keeps --muted captions on it at 4.62:1. */
   --sig-band: color-mix(in srgb, var(--sig-red) 6%, transparent);
+  /* The Call overlay's dimmed backdrop (R4.2): --ink at 60% alpha, exactly as
+     R4.2 specifies. No separate dark-theme declaration needed -- --ink
+     already flips per theme, so this follows automatically, the same as
+     --sig-band (R7.4). Never used for text (R1.7's TEXT_TOKENS excludes it),
+     only as a full-viewport wash behind the Call modal. */
+  --scrim: color-mix(in srgb, var(--ink) 60%, transparent);
 
   /* --- Surfaces ----------------------------------------------------------- */
   --hairline: 1px solid var(--rule);

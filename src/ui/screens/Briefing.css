@@ -1,0 +1,77 @@
+/* Briefing -- R3.5's default page column (capped and centred; unlike
+   Published, this is not the one full-bleed exception). */
+.ph-briefing {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-40) var(--space-24) var(--space-24);
+}
+
+/* R2.1: headlines are --font-display; the research question IS the title. */
+.ph-briefing__question {
+  font-family: var(--font-display);
+  font-size: var(--text-40);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+  margin: 0 0 var(--space-16);
+  max-width: var(--measure);
+}
+
+/* Manuscript metadata line -- same register EmailCard's own "From:"/"Subject:"
+   header established (mono, not display prose). */
+.ph-briefing__corresponding-author {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0 0 var(--space-24);
+}
+
+/* R2.1: prose is --font-display; R2.8: prose never exceeds --measure. */
+.ph-briefing__cover-story {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  max-width: var(--measure);
+  margin: 0;
+}
+
+/* R3.2: sections are separated by --space-40 -- the email card sits below
+   the title page at that rhythm (EmailCard.css deliberately carries no
+   external margin of its own; see that file's header comment). Plain global
+   CSS (this project does not use CSS Modules), so this is a normal
+   descendant selector, not a `:global()` escape. */
+.ph-briefing .ph-email {
+  margin-block-start: var(--space-40);
+}
+
+/* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
+   carries --tracking-label. R4.5: a hairline underline, never a 4-side
+   border or a filled pill (matches Published's own CTA treatment). */
+.ph-briefing__cta {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  background: none;
+  border-style: none;
+  border-block-end: var(--hairline);
+  padding: var(--space-12) var(--space-16);
+  margin-block-start: var(--space-40);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-briefing__cta:hover {
+  text-decoration: underline;
+}
+
+.ph-briefing__cta:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

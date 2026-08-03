@@ -1,0 +1,165 @@
+/* Published -- the full-bleed takeover (R3.5's one named exception to the
+   --page-max column cap: "except the Published takeover, which S7.3 pins as
+   full-bleed by name"). */
+.ph-published {
+  width: 100%;
+  background: var(--paper);
+}
+
+/* The readable content still sits in a contained column (R2.8's measure
+   discipline would otherwise be meaningless on a 1440px headline) -- only
+   the outer .ph-published itself is exempted from the page-max cap. */
+.ph-published__cover {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-40) var(--space-24) var(--space-24);
+}
+
+/* R1.6: gold that must be READ uses --hack-gold-ink, never plain
+   --hack-gold (2.94:1, fails the 4.5:1 text floor). The whole short phrase
+   is mono/tabular, the same "numeral embedded in a label" precedent
+   src/ui/App.css's own .ph-header__vol sets (Vol./No. + digits as one
+   styled unit) -- not just the digits in isolation. */
+.ph-published__career {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--hack-gold-ink);
+  margin: var(--space-16) 0 0;
+}
+
+/* R3.2: the press cards are their own section (a distinct beat after the
+   citation block), so this gap joins the CTA's at --space-40, not a mix of
+   24/40 for what R3.2 calls the same page rhythm. R3.6: a hairline-separated
+   list, not a grid of bordered tiles. */
+.ph-press-list {
+  list-style: none;
+  margin: var(--space-40) 0 0;
+  padding: 0;
+  max-width: var(--measure);
+}
+
+/* R4.5: a hairline below each item, never a 4-side border. */
+.ph-press-card {
+  border-block-end: var(--hairline);
+  padding-block: var(--space-16);
+}
+
+.ph-press-card__watermark,
+.ph-chyron__watermark {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0 0 var(--space-8);
+}
+
+.ph-press-card__text {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  margin: 0 0 var(--space-8);
+}
+
+.ph-press-card__outlet,
+.ph-chyron__outlet {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Tier 3 only: master spec S4.4's TV-chyron mock. Hairline-topped-and-tailed
+   block (R4.5), never a filled banner (R4.1 reserves the one filled area for
+   the SpecCurve significance band). */
+.ph-chyron {
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
+  padding-block: var(--space-16);
+  margin-block-start: var(--space-40);
+}
+
+.ph-chyron__badge {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0 0 var(--space-8);
+}
+
+/* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
+   authored strings, e.g. "STUDY: FERNS = LEVERAGE?") -- no text-transform
+   here, so this never becomes a second, CSS-driven uppercase headline (R2.7:
+   "Headlines and prose are sentence case"; only labels are transformed). */
+.ph-chyron__text {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  color: var(--ink);
+  margin: 0 0 var(--space-8);
+}
+
+/* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
+   carries --tracking-label. R4.5: a hairline underline, never a 4-side
+   border or a filled pill (R4.6 is reserved for segmented-control
+   selection, so this reuses --hairline rather than inventing a bespoke
+   raw-px accent). */
+.ph-published__cta {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  background: none;
+  border-style: none;
+  border-block-end: var(--hairline);
+  padding: var(--space-12) var(--space-16);
+  margin-block-start: var(--space-40);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-published__cta:hover {
+  text-decoration: underline;
+}
+
+.ph-published__cta:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* The "Face the truth" overlay: R4.2's "dimmed backdrop" -- var(--scrim) is
+   the registered derived colour (DESIGN.md §0/R1.3a; --ink at 60% alpha,
+   declared once in tokens.css), covering the whole viewport (R4.7's
+   stacking ladder, never a raw z-index) so the cover underneath is dimly
+   visible THROUGH it rather than replaced by a solid fill (R4.1 still
+   reserves the one *solid* fill for the SpecCurve significance band -- a
+   translucent scrim is not that). Centring/focus-trap shell only; any
+   modal-card background or hairline of its own belongs to whatever the
+   registry's `call` screen (T16) renders inside, not duplicated here. */
+.ph-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24);
+  background: var(--scrim);
+}
+
+.ph-call-overlay:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

@@ -36,7 +36,7 @@ in `tokens.css` and in this table.
 | §7.2 `--hack-gold` for "career points" (i.e. text) | Gold on characters uses `--hack-gold-ink` (R1.6) | `--hack-gold` is 2.94:1 on paper — it fails §7.5's 4.5:1 floor as text. §7.2's hex is unchanged |
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
-| §7.2 fixes **seven** colours | Exactly **two** are derived from them, both declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6) and `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1). Neither counts as a new colour against R1.3 or R1.6; any third derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first and §7.4's tint forces the second — registering them keeps "one loud colour" and "seven fixed values" literally true |
+| §7.2 fixes **seven** colours | Exactly **three** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), and `--scrim` (`color-mix` of `--ink` at 60%, R4.2's Call-modal backdrop). None counts as a new colour against R1.3 or R1.6; any fourth derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, and R4.2's "separate the Call modal from the cover" backdrop forces the third — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
 
@@ -67,7 +67,8 @@ p < .05. Nowhere else, in either theme.
 **R1.3a — `--sig-band` is a derived token, not a fifth place.** It is mixed from
 `var(--sig-red)` inside `tokens.css`, declared there, and registered by name in
 §0; R4.1 sanctions its single use. The general rule, which `--hack-gold-ink`
-also obeys: **a derived colour must be declared in `tokens.css` and registered in
+and `--scrim` (R4.2's Call-modal backdrop, mixed from `--ink`) also obey:
+**a derived colour must be declared in `tokens.css` and registered in
 §0's table — otherwise it does not exist, and it gets no exemption from R1.3 or
 R1.6.** This is what makes R1.3 countable: `grep -rn 'var(--sig-red)' src/ui`
 enumerates every use, and each hit must be one of the four places or the
@@ -206,8 +207,13 @@ is `--paper` or nothing.
 **R4.2 — `box-shadow` does not exist.** Not for cards, not for modals, not for
 the stamp, not as a focus ring, not at 2% opacity.
 - Do: separate the Call modal from the cover with a `--hairline` and a dimmed
-  backdrop (`--ink` at 60% alpha via `color-mix`).
-- Don't: `box-shadow: 0 1px 2px rgba(0,0,0,.06);`
+  backdrop, `background: var(--scrim)` — the registered derivation (§0,
+  R1.3a), `--ink` at 60% alpha via `color-mix`, declared once in
+  `tokens.css`.
+- Don't: `box-shadow: 0 1px 2px rgba(0,0,0,.06);`, and don't inline
+  `color-mix(in srgb, var(--ink) 60%, transparent)` in a component — an
+  unregistered derivation is exactly R1.3a's "new loud colour wearing a
+  disguise," even for a neutral ink tint.
 
 **R4.3 — `border-radius` is `0`, `var(--radius)` (2px), or `50%` for true
 circles** (SpecCurve points, confetti particles, the published-path ring).
@@ -400,7 +406,7 @@ retypes their values.
 | Group | Tokens |
 |---|---|
 | Palette (§7.2, fixed) | `--paper` `--ink` `--rule` `--sig-red` `--assist-green` `--hack-gold` `--muted` |
-| Derived colour | `--hack-gold-ink` `--sig-band` |
+| Derived colour | `--hack-gold-ink` `--sig-band` `--scrim` |
 | Surfaces | `--hairline` `--radius` |
 | Families | `--font-display` `--font-ui` `--font-mono` |
 | Sizes | `--text-13` `--text-15` `--text-22` `--text-28` `--text-40` `--text-dial` |
