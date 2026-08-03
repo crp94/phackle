@@ -12,7 +12,10 @@ export interface Scenario {
   question: string; // must end in "?"
   coverStory: string; // one paragraph, Act I sincere register
   treatmentLabel: string; // e.g. "Owns a cat"
-  headline: string; // published-paper headline; may contain a literal "{n}" token, or none
+  // Published-paper headline. May carry at most one "{effect}" token — the
+  // published spec's treatment effect — or none. Never "{n}": the copy catalog
+  // binds that to sample size (lab.nLabel, lab.collectMore).
+  headline: string;
   outcomeLabels: [string, string, string, string]; // index = Outcome; order: heavy-tailed, skewed, count, bounded scale
   outcomeUnits: [string, string, string, string];
   covariateLabels: { income: string; risk: string };
@@ -23,6 +26,13 @@ export interface PressBlurb {
   text: string;
   outlet: string;
   tier: 1 | 2 | 3;
+  // Optional scenario binding. Most blurbs are written scenario-agnostically so
+  // any tier-appropriate line fits any day; the few that name a specific
+  // scenario's subject ("your cat...", "FERNS = LEVERAGE?") list the scenario
+  // ids they are true of. The Published screen prefers a blurb bound to today's
+  // scenario and falls back to the untagged pool — absent this field, a fern
+  // chyron could run over a sourdough study.
+  scenarioIds?: string[];
 }
 
 export type AchievementId =
@@ -39,7 +49,7 @@ export type AchievementId =
   | 'true_detective';
 
 export interface LocaleContent {
-  scenarios: Scenario[]; // >= 20 in v1 (>= 2 until T6 lands the full corpus); same ids+order in every locale
+  scenarios: Scenario[]; // >= 20 in v1; same ids+order in every locale
   grantwell: string[]; // >= 12, Prof. Grantwell's escalating-desperation email bank
   press: PressBlurb[];
   retractionSublines: string[];

@@ -34,6 +34,7 @@ export type CopyKey =
   | 'lab.nLabel'
   | 'lab.collectMore'
   | 'lab.peekFootnote'
+  | 'lab.peekFootnoteArmitage'
   | 'lab.insufficient'
   | 'published.faceTruth'
   | 'published.simulatedPress'
@@ -123,9 +124,16 @@ export const copy: Record<CopyKey, string> = {
   'lab.reportNull': 'Report null result',
   'lab.nLabel': 'n = {n}',
   'lab.collectMore': 'Collect {n} more',
-  // Act I never winks: collecting more data is what a diligent lab does. The
-  // logging detail is planted sincerely here and collected at the reveal.
+  // Two footnotes, in order. The first press gets the sincere one: collecting
+  // more data is what a diligent lab does, and the logging detail is planted
+  // here to be collected at the reveal. From the 2nd press (§2.4; the UI task
+  // owns the gating) the Armitage line fades in — the master spec's verbatim
+  // text, its §1.4 citation obligation, and the ONLY Act-I moment allowed to
+  // wink. It is meant to be easy to miss. Do not make it louder, and do not
+  // add a second wink anywhere else in Act I.
   'lab.peekFootnote': 'Collecting more data is what a careful lab does. Every batch is logged for the methods section.',
+  'lab.peekFootnoteArmitage':
+    'Fun fact: peeking five times at α = .05 inflates your false-positive rate to ~14% (Armitage, 1969).',
   'lab.insufficient': 'n < 30 — not enough data to analyze.',
 
   'published.faceTruth': 'Face the truth',

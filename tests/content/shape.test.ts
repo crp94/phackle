@@ -22,8 +22,8 @@ const BOUNDED_UNIT = /\b1\s*[–—-]\s*10\b/;
  * metric means *more* of the claimed effect. This lexicon is a phrasing guard,
  * not a semantics oracle — it catches the easy mistake ("Bugs shipped",
  * "Reduction in errors"), while the semantic reading stays a human review step.
- * English-only, hence not part of the locale-agnostic validator; T19/T20 pass
- * their own lexicon.
+ * The words are English, so the list is passed *into* validateLocaleContent
+ * rather than baked into it; T19/T20 supply their own.
  */
 export const NEGATIVE_DIRECTION_LEXICON = [
   'fewer',
@@ -95,12 +95,32 @@ export function findNegativeDirectionTerms(
 }
 
 /**
- * Structural + cross-reference validation for a LocaleContent object.
- * Reused as-is by the IT/ES shape tests in T19/T20, which additionally pass
- * `referenceIds` (the English scenario id order) to confirm every locale
- * ships the same scenarios, in the same order, under the same ids.
+ * The two language-specific word lists every locale must supply. Required, not
+ * optional: a locale suite that forgot them would silently skip the harm and
+ * direction guards, which are the two checks that actually protect the product.
  */
-export function validateLocaleContent(content: LocaleContent, referenceIds?: string[]): string[] {
+export interface ContentLexicons {
+  harmTerms: string[];
+  directionTerms: string[];
+}
+
+export const EN_LEXICONS: ContentLexicons = {
+  harmTerms: HARM_LEXICON,
+  directionTerms: NEGATIVE_DIRECTION_LEXICON,
+};
+
+/**
+ * Structural + cross-reference + lexicon validation for a LocaleContent object.
+ * Reused as-is by the IT/ES shape tests in T19/T20, which pass their own
+ * `lexicons` and additionally pass `referenceIds` (the English scenario id
+ * order) to confirm every locale ships the same scenarios, in the same order,
+ * under the same ids.
+ */
+export function validateLocaleContent(
+  content: LocaleContent,
+  lexicons: ContentLexicons,
+  referenceIds?: string[]
+): string[] {
   const problems: string[] = [];
 
   if (content.scenarios.length < MIN_SCENARIOS) {
@@ -157,40 +177,70 @@ export function validateLocaleContent(content: LocaleContent, referenceIds?: str
     if (!scenario.question.trim().endsWith('?')) {
       problems.push(`scenario "${scenario.id}" question must end in "?": "${scenario.question}"`);
     }
+
+    // Headline interpolation contract: at most one token, and it must be
+    // {effect}. {n} is bound to SAMPLE SIZE elsewhere in the copy catalog
+    // (lab.nLabel, lab.collectMore), so a shared interpolator meeting an {n}
+    // here would print N into an effect slot.
+    const tokens = scenario.headline.match(/\{[^}]*\}/g) ?? [];
+    const foreign = tokens.filter((t) => t !== '{effect}');
+    if (foreign.length > 0) {
+      problems.push(
+        `scenario "${scenario.id}" headline may only use {effect}, found ${foreign.join(', ')}: "${scenario.headline}"`
+      );
+    }
+    if (tokens.length > 1) {
+      problems.push(`scenario "${scenario.id}" headline has ${tokens.length} tokens, expected at most one`);
+    }
   }
+
+  // Scenario-bound press blurbs must name scenarios that exist.
+  const idSet = new Set(ids);
+  for (const blurb of content.press) {
+    for (const id of blurb.scenarioIds ?? []) {
+      if (!idSet.has(id)) {
+        problems.push(`press blurb from "${blurb.outlet}" is bound to unknown scenario id "${id}"`);
+      }
+    }
+  }
+
+  // The two language-specific guards. Run here, not only in their own describe
+  // blocks, so every locale that calls this validator gets them for free.
+  problems.push(...findHarmTerms(content, lexicons.harmTerms));
+  problems.push(...findNegativeDirectionTerms(content, lexicons.directionTerms));
 
   return problems;
 }
 
 describe('validateLocaleContent', () => {
   it('reports no problems for the English content', () => {
-    expect(validateLocaleContent(enContent)).toEqual([]);
+    expect(validateLocaleContent(enContent, EN_LEXICONS)).toEqual([]);
   });
 
   it('passes when referenceIds matches the content ids and order', () => {
     const ids = enContent.scenarios.map((s) => s.id);
-    expect(validateLocaleContent(enContent, ids)).toEqual([]);
+    expect(validateLocaleContent(enContent, EN_LEXICONS, ids)).toEqual([]);
   });
 
   it('flags a referenceIds mismatch', () => {
-    const problems = validateLocaleContent(enContent, ['not-a-real-id']);
+    const problems = validateLocaleContent(enContent, EN_LEXICONS, ['not-a-real-id']);
     expect(problems.some((p) => p.includes('reference locale'))).toBe(true);
   });
 
   it('flags too few scenarios', () => {
     const broken: LocaleContent = { ...enContent, scenarios: enContent.scenarios.slice(0, 1) };
-    expect(validateLocaleContent(broken).some((p) => p.includes('scenarios'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('scenarios'))).toBe(true);
   });
 
   it('flags too few grantwell emails', () => {
     const broken: LocaleContent = { ...enContent, grantwell: enContent.grantwell.slice(0, 1) };
-    expect(validateLocaleContent(broken).some((p) => p.includes('grantwell'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('grantwell'))).toBe(true);
   });
 
   it('flags a duplicate scenario id', () => {
     const [first] = enContent.scenarios;
     const broken: LocaleContent = { ...enContent, scenarios: [first, first] };
-    expect(validateLocaleContent(broken).some((p) => p.includes('unique'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('unique'))).toBe(true);
   });
 
   it('flags a journalTag that no journal carries', () => {
@@ -198,7 +248,7 @@ describe('validateLocaleContent', () => {
       ...enContent,
       scenarios: [{ ...enContent.scenarios[0], journalTags: ['not-a-real-tag'] }, ...enContent.scenarios.slice(1)],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('journalTag'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('journalTag'))).toBe(true);
   });
 
   it('flags a scenario missing an outcome label', () => {
@@ -209,7 +259,7 @@ describe('validateLocaleContent', () => {
         ...enContent.scenarios.slice(1),
       ],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('outcomeLabels'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeLabels'))).toBe(true);
   });
 
   it('flags a question that does not end in "?"', () => {
@@ -217,7 +267,7 @@ describe('validateLocaleContent', () => {
       ...enContent,
       scenarios: [{ ...enContent.scenarios[0], question: 'This is not a question.' }, ...enContent.scenarios.slice(1)],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('question'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('question'))).toBe(true);
   });
 
   it('flags a count outcome whose unit is not a rate', () => {
@@ -229,7 +279,7 @@ describe('validateLocaleContent', () => {
         ...enContent.scenarios.slice(1),
       ],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('outcomeUnits[2]'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeUnits[2]'))).toBe(true);
   });
 
   it('flags a bounded outcome that is not the 1-10 scale', () => {
@@ -241,7 +291,70 @@ describe('validateLocaleContent', () => {
         ...enContent.scenarios.slice(1),
       ],
     };
-    expect(validateLocaleContent(broken).some((p) => p.includes('outcomeUnits[3]'))).toBe(true);
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('outcomeUnits[3]'))).toBe(true);
+  });
+
+  it('flags a headline that uses the sample-size token {n}', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], headline: 'Cat Owners See {n}% Higher Returns' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('only use {effect}'))).toBe(true);
+  });
+
+  it('flags a headline with more than one token', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], headline: '{effect}% Higher Returns Over {effect} Weeks' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('at most one'))).toBe(true);
+  });
+
+  it('flags a press blurb bound to a scenario that does not exist', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      press: [{ ...enContent.press[0], scenarioIds: ['scenario-that-was-cut'] }, ...enContent.press.slice(1)],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('unknown scenario id'))).toBe(true);
+  });
+
+  // The two guards below are the reason lexicons are a required argument: a
+  // locale suite that only calls the validator must still get them.
+  it('surfaces harm-lexicon hits through the validator, not only the helper', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...enContent.scenarios[0], coverStory: 'Participants reported their supplement use.' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('banned term'))).toBe(true);
+  });
+
+  it('surfaces direction-lexicon hits through the validator, not only the helper', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        {
+          ...first,
+          outcomeLabels: ['Reduction in weekly spend', ...first.outcomeLabels.slice(1)] as [
+            string,
+            string,
+            string,
+            string,
+          ],
+        },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('reads as a decrease'))).toBe(true);
   });
 });
 

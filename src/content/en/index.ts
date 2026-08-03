@@ -21,6 +21,22 @@
 //     so every outcome is phrased such that MORE of the metric means MORE of
 //     the claimed effect. "Bugs shipped" is wrong; "releases shipped clean" is
 //     right. This is a contract with the engine, not a style preference.
+//  5. HEADLINE TOKEN. A headline may carry at most one `{effect}` token, and
+//     never `{n}` — the copy catalog already binds {n} to SAMPLE SIZE
+//     (lab.nLabel, lab.collectMore), so a shared interpolator would print N
+//     into an effect slot ("Cat Owners See 250% Higher Returns"). `{effect}`
+//     is substituted with the published specification's treatment effect,
+//     expressed in whatever frame the surrounding words imply — a percentage
+//     in "{effect}% Faster", euros in "€{effect}", minutes in "{effect}
+//     Minutes Longer" — and rounded to a whole number of at least 1. A
+//     headline with no token is legal and occasionally funnier: forcing a
+//     number into standing-desk-poetry's would spoil it.
+//  6. COHORT SIZE. Cover stories never state the final headcount. The lab
+//     opens at N = 200 with a "collect 50 more" button (§2.4), so a briefing
+//     that has already announced 400 participants deflates the optional-
+//     stopping fiction before the player reaches it. Drop the number, or say
+//     recruitment is still running — and vary how, since fifteen identical
+//     "four hundred participants" openings were themselves a visible seam.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -30,9 +46,16 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: 'Does owning a cat improve cryptocurrency returns?',
       coverStory:
-        'A pilot cohort of retail investors was recruited to test a folk hypothesis long whispered in personal-finance forums: that cat ownership confers a calming, risk-steadying influence on portfolio behavior. Four hundred self-directed traders logged their pet status alongside thirty days of trading activity; we set out, in good faith, to find out whether the cats were secretly running the numbers.',
+        'A pilot cohort of retail investors was recruited to test a folk hypothesis long whispered in personal-finance forums: that cat ownership confers a calming, risk-steadying influence on portfolio behavior. Self-directed traders log their pet status alongside thirty days of trading activity, and recruitment through those same forums is ongoing; we set out, in good faith, to find out whether the cats were secretly running the numbers.',
       treatmentLabel: 'Owns a cat',
-      headline: 'Cat Owners See {n}% Higher Returns, Study Finds',
+      headline: 'Cat Owners See {effect}% Higher Returns, Study Finds',
+      // DELIBERATE SPEC DIVERGENCE — do not "fix" back. The master spec (§2.4,
+      // §3.2, §4.1) illustrates this scenario with "portfolio volatility" and
+      // "trades/week", but both run against rule 4 above: the cover story sells
+      // cats as risk-steadying, so MORE volatility and MORE trading argue
+      // against the claimed effect, which breaks the one-tailed direction
+      // contract. Upside capture (still a skewed, positive finance quantity)
+      // and profitable trades preserve the spec's shapes and its joke.
       outcomeLabels: [
         '30-day portfolio return',
         'Upside capture ratio',
@@ -64,9 +87,9 @@ export const content: LocaleContent = {
       id: 'sourdough-marathon',
       question: 'Does baking sourdough improve marathon times?',
       coverStory:
-        'Endurance training has been studied to exhaustion; the baking has not. Our hypothesis is behavioral rather than nutritional — the twelve-week discipline of feeding a starter, the schedule, the flat refusal to rush a rise, should transfer directly to the patience a negative split demands. We recruited four hundred amateur marathoners through running clubs and one exceptionally cooperative flour co-op, matched their starter logs to their chip times, and waited.',
+        'Endurance training has been studied to exhaustion; the baking has not. Our hypothesis is behavioral rather than nutritional — the twelve-week discipline of feeding a starter, the schedule, the flat refusal to rush a rise, should transfer directly to the patience a negative split demands. We recruited amateur marathoners through running clubs and one exceptionally cooperative flour co-op, matched their starter logs to their chip times, and waited. The co-op is still sending people.',
       treatmentLabel: 'Keeps a sourdough starter',
-      headline: 'Sourdough Bakers Finish Marathons {n}% Faster, Researchers Report',
+      headline: 'Sourdough Bakers Finish Marathons {effect}% Faster, Researchers Report',
       outcomeLabels: [
         'Race-day improvement on personal best',
         'Final-10K surge over race-average pace',
@@ -83,7 +106,7 @@ export const content: LocaleContent = {
       coverStory:
         'Open-plan offices have argued about background music for a decade without once auditing a workbook. We gave one department of financial analysts a curated hard-bop playlist and left the other with their usual silence, then ran every cell of their quarterly models through an independent audit tool. The analysts were told the study was about lighting.',
       treatmentLabel: 'Listens to jazz while working',
-      headline: 'Jazz in the Office Linked to Measurably Cleaner Spreadsheets',
+      headline: 'Jazz in the Office Linked to {effect}% Cleaner Spreadsheets',
       outcomeLabels: [
         'Audit accuracy above the department baseline',
         'Longest clean stretch of audited cells',
@@ -98,9 +121,9 @@ export const content: LocaleContent = {
       id: 'fern-negotiation',
       question: 'Do office ferns make you a tougher negotiator?',
       coverStory:
-        'Biophilic design is sold to facilities managers on wellbeing alone; nobody has asked what it does across a table. We placed a single Boston fern in the offices of four hundred procurement staff, left it there for one full contracting cycle, and then obtained — with permission, and after considerable pleading — the final terms of every deal they closed.',
+        'Biophilic design is sold to facilities managers on wellbeing alone; nobody has asked what it does across a table. We placed a single Boston fern in the office of every procurement officer who agreed to take part, left it there for one full contracting cycle, and then obtained — with permission, and after considerable pleading — the final terms of every deal they closed.',
       treatmentLabel: 'Keeps a fern on the desk',
-      headline: 'Office Ferns Associated with €{n}k Better Contract Terms',
+      headline: 'Office Ferns Associated with €{effect}k Better Contract Terms',
       outcomeLabels: [
         'Value claimed above the opening offer',
         'Longest silence held after a counteroffer',
@@ -115,9 +138,9 @@ export const content: LocaleContent = {
       id: 'cold-shower-emails',
       question: 'Do cold showers make your emails more passive-aggressive?',
       coverStory:
-        "The morning cold shower has been credited with focus, resilience and character; its effect on the inbox is entirely unstudied. Four hundred office workers logged their shower temperature each morning and consented to sentiment scoring of their outgoing mail for six weeks. Our coders were blind to condition, and the phrase 'per my last email' was flagged automatically, which spared them a great deal.",
+        "The morning cold shower has been credited with focus, resilience and character; its effect on the inbox is entirely unstudied. Office workers log their shower temperature each morning and consent to sentiment scoring of six weeks of outgoing mail, with new enrollments arriving one wave at a time. Our coders are blind to condition, and the phrase 'per my last email' is flagged automatically, which spares them a great deal.",
       treatmentLabel: 'Takes cold showers',
-      headline: 'Cold Showers Linked to a {n}% Sharper Inbox Tone',
+      headline: 'Cold Showers Linked to a {effect}% Sharper Inbox Tone',
       outcomeLabels: [
         'Passive-aggression index of outgoing mail',
         'Reply latency on unwelcome requests',
@@ -132,9 +155,9 @@ export const content: LocaleContent = {
       id: 'horoscope-parking',
       question: 'Do horoscope readers find parking faster?',
       coverStory:
-        'Urban mobility research models the parking search as a rational process. We wondered whether it is in fact a devotional one. Four hundred drivers installed a logger that recorded every search from street entry to engine-off, and reported their morning app habits; those who read their star sign before driving were compared with those who did not. Neither group was told what we were looking for, which seemed only fair.',
+        'Urban mobility research models the parking search as a rational process. We wondered whether it is in fact a devotional one. Drivers install a logger that records every search from street entry to engine-off and report their morning app habits; those who read their star sign before driving are compared with those who do not. Neither group is told what we are looking for, which seems only fair.',
       treatmentLabel: 'Reads a daily horoscope',
-      headline: 'Horoscope Readers Save {n} Minutes a Week Looking for Parking',
+      headline: 'Horoscope Readers Save {effect} Minutes a Week Looking for Parking',
       outcomeLabels: [
         'Search time saved against the block average',
         'Distance advantage over the nearest legal alternative',
@@ -151,7 +174,7 @@ export const content: LocaleContent = {
       coverStory:
         'The tactile-feedback literature ends at typing speed and stops well short of production. With the cooperation of eleven engineering teams, we matched eighteen months of hardware procurement records to the same period of issue trackers, treating each switch changeover as a natural experiment. Two participants changed switch type mid-study and were, regrettably, dropped.',
       treatmentLabel: 'Types on a mechanical keyboard',
-      headline: 'Mechanical Keyboards Associated with {n}% Cleaner Releases',
+      headline: 'Mechanical Keyboards Associated with {effect}% Cleaner Releases',
       outcomeLabels: [
         'Defect-free code shipped per release',
         'Longest green-build streak',
@@ -166,9 +189,9 @@ export const content: LocaleContent = {
       id: 'dog-economist-stocks',
       question: 'Do people with dogs named after economists beat the market?',
       coverStory:
-        'Retail investing folklore holds that conviction has to come from somewhere. We asked four hundred brokerage customers for their pets\' names, hand-classified each against a reference list of economists — Keynes, Hayek, Ostrom, and one Milton we argued about for a week — and matched the classification to two years of audited account statements.',
+        "Retail investing folklore holds that conviction has to come from somewhere. We asked brokerage customers for their pets' names, hand-classified each against a reference list of economists — Keynes, Hayek, Ostrom, and one Milton we argued about for a week — and matched the classification to two years of audited account statements. The classification queue is not yet empty.",
       treatmentLabel: 'Dog named after an economist',
-      headline: 'Investors With Dogs Named for Economists Beat the Market by {n} Points',
+      headline: 'Investors With Dogs Named for Economists Beat the Market by {effect} Points',
       outcomeLabels: [
         'Annualized excess return over the benchmark',
         'Best single-position gain',
@@ -185,7 +208,7 @@ export const content: LocaleContent = {
       coverStory:
         "Calendar data is the most underused behavioral dataset in the modern firm. We extracted eighteen months of meeting records from a mid-sized consultancy — scheduled end times, actual end times, attendee counts, follow-up bookings — and joined them to a lunar ephemeris. The hypothesis was proposed, in complete earnest, by the department's calendar administrator.",
       treatmentLabel: 'Held under a full moon',
-      headline: 'Meetings Run {n} Minutes Longer Under a Full Moon, Analysis Finds',
+      headline: 'Meetings Run {effect} Minutes Longer Under a Full Moon, Analysis Finds',
       outcomeLabels: [
         'Overrun past the scheduled end',
         'Longest single tangent',
@@ -200,9 +223,9 @@ export const content: LocaleContent = {
       id: 'label-maker-inbox',
       question: 'Does owning a label maker help you reach inbox zero?',
       coverStory:
-        'Personal information management is a field rich in taxonomies and poor in fieldwork. We asked four hundred knowledge workers a single screening question — do you own a label maker? — and then, with consent, instrumented their mail clients for a quarter. The instrument counted metadata only; three participants asked us to confirm that twice, which we did, happily.',
+        'Personal information management is a field rich in taxonomies and poor in fieldwork. We ask knowledge workers a single screening question — do you own a label maker? — and then, with consent, instrument their mail clients for a quarter. The instrument counts metadata only; three participants have asked us to confirm that twice, which we did, happily.',
       treatmentLabel: 'Owns a label maker',
-      headline: 'Label-Maker Owners Clear {n}% More of Their Inbox Each Week',
+      headline: 'Label-Maker Owners Clear {effect}% More of Their Inbox Each Week',
       outcomeLabels: [
         'Weekly clearance rate of arriving mail',
         'Longest run of days at inbox zero',
@@ -217,9 +240,9 @@ export const content: LocaleContent = {
       id: 'vinyl-dinner-party',
       question: 'Do vinyl collectors throw better dinner parties?',
       coverStory:
-        "Hospitality research has characterized the menu exhaustively and the turntable not at all. Four hundred hosts agreed to have one dinner party observed by a research assistant, introduced to the other guests as 'a colleague from work'. The assistants recorded arrival and departure times, what guests brought, and what they asked for on the way out. The wine was not analyzed; the wine was not, in fairness, still available for analysis.",
+        "Hospitality research has characterized the menu exhaustively and the turntable not at all. Hosts agree to have one dinner party observed by a research assistant, introduced to the other guests as 'a colleague from work'; dinner parties being what they are, the observation schedule runs months ahead of the analysis. The assistants record arrival and departure times, what guests bring, and what they ask for on the way out. The wine is not analyzed; the wine is not, in fairness, still available for analysis.",
       treatmentLabel: 'Owns a vinyl collection',
-      headline: 'Vinyl-Owning Hosts Keep Guests {n} Minutes Longer, Study Finds',
+      headline: 'Vinyl-Owning Hosts Keep Guests {effect} Minutes Longer, Study Finds',
       outcomeLabels: [
         'Value of wine guests brought unprompted',
         'Time guests stayed past the stated end',
@@ -234,9 +257,9 @@ export const content: LocaleContent = {
       id: 'telescope-directions',
       question: 'Do backyard telescope owners give better directions?',
       coverStory:
-        'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors: assistants approached four hundred strangers in three cities, asked for directions to a landmark eight minutes away, recorded the answer verbatim, and only then — after a full debrief — asked whether the participant owned a telescope. Response rates were, to our genuine surprise, excellent.',
+        'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors: assistants approach strangers in three cities, ask for directions to a landmark eight minutes away, record the answer verbatim, and only then — after a full debrief — ask whether the participant owns a telescope. Response rates are, to our genuine surprise, excellent, and a fourth city is being added.',
       treatmentLabel: 'Owns a backyard telescope',
-      headline: 'Telescope Owners Give Directions {n}% More Efficient Than the App',
+      headline: 'Telescope Owners Give Directions {effect}% More Efficient Than the App',
       outcomeLabels: [
         'Route efficiency gain over the navigation app',
         'Landmark detail supplied per answer',
@@ -251,9 +274,9 @@ export const content: LocaleContent = {
       id: 'cafe-peer-review',
       question: 'Do reviewers who work in cafés write harsher reviews?',
       coverStory:
-        'Peer review is the least observed step in the entire scientific process, and we intend to keep it that way for everybody except ourselves. With the consent of two journals\' review boards, four hundred completed reports were matched to the location the reviewer reported writing in. Severity was scored by a panel that had itself, at various points, been reviewed in cafés.',
+        "Peer review is the least observed step in the entire scientific process, and we intend to keep it that way for everybody except ourselves. With the consent of two journals' review boards, completed reports are matched to the location the reviewer reported writing in, as the boards release them. Severity is scored by a panel that has itself, at various points, been reviewed in cafés.",
       treatmentLabel: 'Reviews from a café',
-      headline: 'Café Reviewers Request {n} More Experiments Per Manuscript',
+      headline: 'Café Reviewers Request {effect} More Experiments Per Manuscript',
       outcomeLabels: [
         'Severity index of the report',
         "Length of the 'major concerns' section",
@@ -268,9 +291,9 @@ export const content: LocaleContent = {
       id: 'terms-and-conditions-service',
       question: 'Do people who read the terms and conditions get better customer service?',
       coverStory:
-        'Consumer-protection research assumes that nobody reads the agreement, and has therefore never studied the people who do. We recruited four hundred customers who reported reading terms in full — a group we had considerable trouble locating — and, with their consent, transcribed and scored twelve months of their support interactions. The transcripts are the longest our lab has ever worked with.',
+        'Consumer-protection research assumes that nobody reads the agreement, and has therefore never studied the people who do. We are recruiting customers who report reading terms in full — a group we are still having considerable trouble locating — and, with their consent, transcribing and scoring twelve months of their support interactions. The transcripts are the longest our lab has ever worked with.',
       treatmentLabel: 'Reads the terms and conditions',
-      headline: 'Customers Who Read the Terms Receive €{n} More in Goodwill Credit',
+      headline: 'Customers Who Read the Terms Receive €{effect} More in Goodwill Credit',
       outcomeLabels: [
         'Goodwill credit granted per complaint',
         'Length of the apology received',
@@ -285,9 +308,9 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: 'Do people who do jigsaw puzzles pack a better suitcase?',
       coverStory:
-        'Spatial-reasoning research has produced four decades of block-rotation tasks and almost no luggage. We took the question to a regional airport: four hundred travelers were asked whether they had completed a jigsaw puzzle in the past year and then, with permission and a folding table, had the contents of their bags measured against the volume of the bag. Departure gates proved an unusually cooperative recruitment environment.',
+        'Spatial-reasoning research has produced four decades of block-rotation tasks and almost no luggage. We took the question to a regional airport: travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission and a folding table, have the contents of their bags measured against the volume of the bag. Departure gates are proving an unusually cooperative recruitment environment.',
       treatmentLabel: 'Does jigsaw puzzles',
-      headline: 'Puzzle Solvers Fit {n}% More Into the Same Suitcase',
+      headline: 'Puzzle Solvers Fit {effect}% More Into the Same Suitcase',
       outcomeLabels: [
         'Spare capacity remaining after packing',
         'Longest trip packed into a carry-on',
@@ -304,7 +327,7 @@ export const content: LocaleContent = {
       coverStory:
         'Building design determines who meets whom, but the resulting conversations are almost never recorded. In one twelve-storey office we logged stair-versus-lift choice from anonymized badge data and, separately, ran a rapport survey on every pair of colleagues who arrived on a floor together. Participants knew about the survey. Participants learned about the badges at debrief, a sequencing our ethics board asked us to describe in precisely these words.',
       treatmentLabel: 'Takes the stairs',
-      headline: 'Stair-Takers Score {n}% Higher on Workplace Rapport',
+      headline: 'Stair-Takers Score {effect}% Higher on Workplace Rapport',
       outcomeLabels: [
         'Rapport score above the building average',
         'Longest small-talk exchange sustained',
@@ -319,9 +342,9 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: 'Do people who fold their socks arrive earlier?',
       coverStory:
-        'Time-use research has documented the commute in extraordinary detail and the sock drawer not at all. We asked four hundred participants to photograph their sock storage — folded, rolled or loose — and matched the classification to six weeks of calendar and door-badge timestamps. The photographs were scored by two independent coders who agreed far more often than we had budgeted for.',
+        'Time-use research has documented the commute in extraordinary detail and the sock drawer not at all. We ask participants to photograph their sock storage — folded, rolled or loose — and match the classification to six weeks of calendar and door-badge timestamps. The photographs are scored by two independent coders, who agree far more often than we had budgeted for.',
       treatmentLabel: 'Folds their socks',
-      headline: 'Sock-Folders Arrive {n} Minutes Earlier, Six-Week Study Finds',
+      headline: 'Sock-Folders Arrive {effect} Minutes Earlier, Six-Week Study Finds',
       outcomeLabels: [
         'Minutes early to scheduled arrivals',
         'Longest unbroken streak of on-time days',
@@ -336,9 +359,9 @@ export const content: LocaleContent = {
       id: 'thirteen-mortgage',
       question: 'Do people who avoid the number 13 get better mortgage rates?',
       coverStory:
-        'Household finance assumes the borrower optimizes, and treats superstition as noise around that assumption. We surveyed four hundred recent mortgage holders on a battery of everyday number preferences — floors skipped, dates avoided, house numbers declined — and matched the resulting triskaidekaphobia score to the terms they actually signed. The broker who helped us obtain those terms has asked not to be named, but sends regards.',
+        'Household finance assumes the borrower optimizes, and treats superstition as noise around that assumption. We have been surveying recent mortgage holders on a battery of everyday number preferences — floors skipped, dates avoided, house numbers declined — and matching the resulting triskaidekaphobia score to the terms they actually signed. The broker who helps us obtain those terms has asked not to be named, but sends regards.',
       treatmentLabel: 'Avoids the number 13',
-      headline: 'Number-13 Avoiders Negotiate {n} Basis Points Off Their Mortgage',
+      headline: 'Number-13 Avoiders Negotiate {effect} Basis Points Off Their Mortgage',
       outcomeLabels: [
         'Rate advantage against the market average',
         'Fee concessions won during negotiation',
@@ -353,9 +376,9 @@ export const content: LocaleContent = {
       id: 'browser-tabs-side-projects',
       question: 'Do people who never close browser tabs ship more side projects?',
       coverStory:
-        'Attention research treats the open tab as a cost. We wondered whether it might be an inventory. Four hundred developers installed an extension that recorded a daily tab count and nothing else — a limitation we accepted for recruitment reasons — and self-reported every side project shipped over the following year, with a working public link required as evidence.',
+        'Attention research treats the open tab as a cost. We wondered whether it might be an inventory. Developers install an extension that records a daily tab count and nothing else — a limitation we accepted for recruitment reasons — and self-report every side project shipped over the following year, with a working public link required as evidence. We are still handing the extension out.',
       treatmentLabel: 'Keeps 40+ tabs open',
-      headline: 'Developers With the Most Open Tabs Ship {n}× More Side Projects',
+      headline: 'Developers With the Most Open Tabs Ship {effect}× More Side Projects',
       outcomeLabels: [
         'Side-project revenue over the year',
         'Longest uninterrupted build session',
@@ -400,10 +423,17 @@ export const content: LocaleContent = {
   // Simulated press (master spec §4.4), watermarked SIMULATED PRESS in the UI.
   // Tier = egregiousness of the published spec: tier 1 is credulous but sober,
   // tier 2 is aggregator-grade, tier 3 is the TV chyron. Blurbs are written
-  // scenario-agnostically so any tier-appropriate line fits any day; the two
-  // exceptions (cat, fern) are the master spec's own verbatim examples.
+  // scenario-agnostically so any tier-appropriate line fits any day. The three
+  // that name a subject are the master spec's own verbatim examples, and they
+  // carry `scenarioIds` so the Published screen can prefer them on the right
+  // day and never run a fern chyron over a sourdough study.
   press: [
-    { text: 'Scientists say: your cat may be your best financial advisor.', outlet: 'Morning Chirp', tier: 1 },
+    {
+      text: 'Scientists say: your cat may be your best financial advisor.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['cat-crypto'],
+    },
     { text: 'New study finds surprising link between everyday habit and performance.', outlet: 'The Weekly Ledger', tier: 1 },
     { text: 'A small habit, a measurable difference: what one new paper suggests.', outlet: 'The Sunday Supplement', tier: 1 },
     { text: 'The finding is preliminary. The researchers say that is exactly why it matters.', outlet: 'Public Record Weekly', tier: 1 },
@@ -416,8 +446,13 @@ export const content: LocaleContent = {
     { text: 'Nine habits of people who beat the average. Number four is in a real journal.', outlet: 'Clickwell', tier: 2 },
     { text: 'Scientists have finally confirmed what your group chat suspected all along.', outlet: 'Buzz & Broadsheet', tier: 2 },
     { text: 'Experts caution that the study is observational, then discuss it for eleven minutes.', outlet: 'Clickwell', tier: 2 },
-    { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3 },
-    { text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)', outlet: 'Nightly Chyron Network', tier: 3 },
+    { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
+    {
+      text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['fern-negotiation'],
+    },
     { text: 'SCIENCE CONFIRMS: THE THING YOU DO IS WHY EVERYTHING IS HAPPENING', outlet: 'Nightly Chyron Network', tier: 3 },
     { text: 'ONE NUMBER CHANGES EVERYTHING. THE NUMBER IS 0.049.', outlet: 'Nightly Chyron Network', tier: 3 },
     { text: 'STATISTICALLY SIGNIFICANT — WHAT IT MEANS FOR YOUR FAMILY', outlet: 'Channel 9 Nightly', tier: 3 },
