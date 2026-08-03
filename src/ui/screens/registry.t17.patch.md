@@ -37,6 +37,21 @@ things worth flagging precisely for reconciliation:
    (different regions of the same function), but they were written against
    the same starting file independently, so this is flagged rather than
    assumed.
+3. **`src/game/store.ts` is ALSO touched by both branches independently** —
+   a second collision point, surfaced only in review round 2 (controller
+   authorized ONE minimal T17 change there to fix the nav-remount/midnight-
+   straddle bug in §2a below). T14's report: `gameStore` (the module
+   singleton) changed from an unexported `const` to `export const gameStore
+   = createGameStore()`. T17's change (this round): `GameStore` gained one
+   new field, `iso: string` (empty-string initial, set by `boot()` alongside
+   `puzzleNumber`, extend-not-contradict — nothing else in `store.ts` was
+   touched). Both changes are purely additive and touch different lines
+   (an export keyword vs. a new interface field + one `set({...})` call), so
+   they should merge without real conflict, but — same caveat as `App.tsx`
+   above — flagged because both were written against the same starting file
+   independently. `tests/game/store.test.ts`'s one comprehensive `boot()`
+   assertion was extended (not weakened) with `expect(s.iso).toBe(EPOCH)`;
+   nothing else in that file changed.
 
 ## 1. Registry replacement line (machine screens)
 
@@ -188,37 +203,75 @@ re-initializes on every mount), and the underlying game-store singleton is
 completely unaffected by any of this (`screen` is still `'summary'`, `reveal`
 is still populated, exactly as before the detour).
 
-Before the review fix, `SummaryScreen`'s only guard against re-persisting was
-that `savedRef`, so this exact click sequence — finish a day, land on Summary
-(persists once, correctly), open Stats, close Stats — fired
-`persistAndComputeSummary` a SECOND time for the SAME (todayIso, mode), and
+Before the round-1 review fix, `SummaryScreen`'s only guard against
+re-persisting was that `savedRef`, so this exact click sequence — finish a
+day, land on Summary (persists once, correctly), open Stats, close Stats —
+fired `persistAndComputeSummary` a SECOND time for the SAME (day, mode), and
 `storage.ts`'s `saveDay` builds `callsTotal`/`callsCorrect`/`careerPoints`/
 `hackDays`/`preregDays`/`forkHistogram` as INCREMENTS (not an upsert), so every
 such visit silently inflated every one of those numbers — exactly the ones
 the Stats page the player just came from was displaying.
 
-**The fix:** `persistAndComputeSummary` now checks `loadState().history[todayIso]?.[mode]`
-itself — real persisted storage, which survives the remount, StrictMode, or
-any other component-lifecycle event — and skips the `saveDay` call entirely
-when that record already exists (see the function's own doc comment in
-`Summary.tsx` for the full reasoning, including how the streak/share-text
-computation stays correct either way). `SummaryScreen`'s `savedRef` still
-exists as a cheap same-mount optimization (avoids redundant
-`loadState()`/`scoreDay()` work within one mount, e.g. under StrictMode's
-dev-only double-effect), but it is no longer the CORRECTNESS guard — the
-durable one is. **Whatever shape the final merged `App.tsx`/registry ends up
-taking, as long as it is even theoretically possible for the same finished
-day's `SummaryScreen` to mount more than once (which any conditional-render
-nav sitting alongside the game machine implies), this durable guard is what
-keeps that safe — it does not depend on anything about how the remount is
-triggered.** Verified directly: `tests/ui/summary.test.tsx`'s "does not
-persist a finished day twice across a real unmount/remount (the nav path)"
-test renders the actual `SummaryScreen` default export against a real,
+**Round-1 fix (superseded by round 2 below — kept here for the full history):**
+`persistAndComputeSummary` was changed to check `loadState().history[todayIso]?.[mode]`
+before calling `saveDay`, where `todayIso` was `localIsoDate()` — a LIVE
+wall-clock read taken at persist time. This closed the bare-remount case
+above, but round 2's re-review found it does NOT close a remount that
+straddles a real midnight: finish puzzle day D before midnight (persists
+correctly under D) → sit on the Stats page past midnight (the countdown
+itself invites exactly this) → close back to Summary → `localIsoDate()` now
+returns D+1 → the guard checks `history[D+1]` (empty) → D's already-correct
+snapshot re-persists a SECOND time, under D+1's key → stats inflate again,
+`streakAfter` counts a phantom D+1 play, and the player's REAL D+1 game later
+finds that slot already occupied and silently gets skipped. The round-1
+fix's own patch notes overclaimed this guard was safe "independent of how
+the remount is triggered" — true only for a BARE remount; false for one that
+also crosses a midnight. Corrected here.
+
+**Round-2 fix (current):** the durable guard now keys on the puzzle's OWN
+day, not the wall clock. `store.ts`'s `GameStore` gained one field, `iso:
+string` (empty until `boot()` completes), set by `boot()` alongside
+`puzzleNumber` — `set({ ..., puzzleNumber: puzzleNumber(iso), iso })`, using
+`boot()`'s own `iso` parameter. `persistAndComputeSummary`'s field is now
+named `puzzleIso` (not `todayIso`), and `SummaryScreen` passes
+`useGameStore((s) => s.iso)` — `localIsoDate()` no longer appears anywhere in
+the persistence path (only the countdown DISPLAY still reads the wall clock,
+via `now`/`msToNextLocalMidnight`, which is a genuinely different concern:
+"how long until the next puzzle" legitimately needs the real time; "which
+day did I just finish" does not). Because `iso` is fixed once per boot and
+never drifts with wall-clock time, the guard is now correct **regardless of
+how much real time passes between mounts, and regardless of how the remount
+is triggered** — a bare remount and a midnight-straddling remount are both
+just "the same `iso` seen again," with no special-casing needed for either.
+What it still does NOT cover (unchanged from round 1): two genuinely
+different puzzle days wanting the same key (impossible — each `boot()` sets
+its own `iso`), or `saveDay` being invoked by something other than this
+function (nothing else in this codebase does).
+
+`SummaryScreen`'s `savedRef` still exists as a cheap same-mount optimization
+(avoids redundant `loadState()`/`scoreDay()` work within one mount, e.g.
+under StrictMode's dev-only double-effect), but it is not, and was never
+meant to be, the correctness guard — the durable, `iso`-anchored one is.
+
+**Verified directly**, three tests in `tests/ui/summary.test.tsx`: (1) "does
+not persist a finished day twice across a real unmount/remount (the nav
+path)" — renders the actual `SummaryScreen` default export against a real,
 store-driven 'summary' state (booted via a fake `EngineClient` through
 `submit`→`makeCall`→`finishReveal`, the same sequence `store.test.ts` itself
 uses), asserts the persisted `PersistedStats` numbers after the first mount,
-unmounts, remounts, and asserts those exact numbers are UNCHANGED (not merely
-that `saveDay`/`localStorage.setItem` was called a certain number of times).
+unmounts, remounts, and asserts those exact numbers are UNCHANGED; (2) "a
+real midnight rollover while sitting on a nav page does not create a
+phantom next-day entry" — the round-2 regression test: same setup, but
+`vi.setSystemTime` actually advances the clock past midnight between the two
+mounts (`shouldAdvanceTime: true` keeps `waitFor`'s own polling working via
+real elapsed time throughout), and asserts BOTH no phantom next-day entry
+AND the original day's numbers stay unchanged; (3) `tests/game/store.test.ts`
+extends its existing comprehensive `boot()` assertion with `expect(s.iso).toBe(EPOCH)`,
+plus a pre-boot check that `iso` starts `''`. All three were confirmed to
+have teeth: reverting the fix (restoring `localIsoDate()` in the persistence
+path) makes tests (1) and (2) fail with the exact symptom described above —
+verified directly, not merely asserted; see the T17 report's round-2
+fix-report appendix for the actual command output.
 
 ## 3. Files this task added under `src/ui/screens/`
 

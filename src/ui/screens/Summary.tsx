@@ -19,7 +19,7 @@ import type { DayType, PlayerAction, RevealMetrics } from '../../engine/types';
 import { callIsCorrect, scoreDay } from '../../game/scoring';
 import { loadState, saveDay, streakAfter } from '../../game/storage';
 import { shareString, shareViaNavigator } from '../../game/share';
-import { localIsoDate, msToNextLocalMidnight } from '../../game/daily';
+import { msToNextLocalMidnight } from '../../game/daily';
 import './Summary.css';
 
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
@@ -165,10 +165,20 @@ export interface FinishedGameFields {
   stamp: RevealMetrics['stamp'];
   log: PlayerAction[];
   copy: Record<CopyKey, string>;
-  /** localIsoDate(), passed in rather than computed here so this whole
-   * function stays a deterministic function of its arguments — no wall
-   * clock read buried inside it (easy to unit test any date). */
-  todayIso: string;
+  /** The store's OWN `iso` — the puzzle's day, as `boot()` was called with
+   * it (see `store.ts`'s `GameStore['iso']`) — NEVER `localIsoDate()` (a
+   * live wall-clock read). This is deliberate, not merely "passed in for
+   * testability": a live wall-clock read here is exactly the T17 review
+   * round-2 bug (finish puzzle day D before midnight → sit on a nav page
+   * past midnight, where `localIsoDate()` now returns D+1 → remount →
+   * "today's" key is wrongly D+1, so the already-correct D save is
+   * invisible to the `alreadySaved` check and D's snapshot re-persists a
+   * second time, under D+1's key, phantom-extending the streak and later
+   * silently blocking the real D+1 play). Anchoring to the puzzle's own day
+   * instead makes this whole function immune to what time it happens to be
+   * called at — see the doc comment below for exactly what that does and
+   * does not cover. */
+  puzzleIso: string;
 }
 
 export interface ComputedSummary {
@@ -185,7 +195,7 @@ export interface ComputedSummary {
  * seam by T13's own report ("a natural seam for whichever task ... wires
  * Reveal -> Summary").
  *
- * IDEMPOTENT against being called more than once for the same (todayIso,
+ * IDEMPOTENT against being called more than once for the same (puzzleIso,
  * mode) — this is load-bearing, not a nicety: `SummaryScreen`'s own
  * mount-scoped `savedRef` guard only protects a SINGLE mount (e.g. React
  * StrictMode's dev-only double-effect); it does NOT survive App.tsx's
@@ -197,12 +207,31 @@ export interface ComputedSummary {
  * `careerPoints`/`hackDays`/`preregDays`/`forkHistogram` as INCREMENTS, not
  * an upsert, so a second `saveDay` for the same day+mode would silently
  * inflate every one of those numbers on every such visit. The durable guard
- * below is `loadState().history[todayIso]?.[mode]` — real storage, which
- * survives remounts, StrictMode, and any other component-lifecycle event —
- * rather than anything React-lifecycle-scoped. The invoice/streak/share
- * text still render identically either way (this function recomputes them
- * fresh every call, from the same deterministic inputs); only the actual
- * `saveDay` write is skipped once the record already exists.
+ * below is `loadState().history[puzzleIso]?.[mode]` — real storage, which
+ * survives remounts, StrictMode, and any other component-lifecycle event.
+ *
+ * SAFE SPECIFICALLY BECAUSE `puzzleIso` is the puzzle's OWN day (the store's
+ * `iso`, set once by `boot()`), never a live wall-clock read — round 2 of
+ * review found that keying this same guard on `localIsoDate()` (this
+ * function's original shape) is safe against a bare remount ALONE, but not
+ * against a remount that straddles a real midnight: finish puzzle day D
+ * before midnight (persists correctly under D) → sit on a nav page past
+ * midnight (the countdown itself invites exactly this) → remount ->
+ * `localIsoDate()` now returns D+1 -> the guard checks `history[D+1]`
+ * (empty) -> D's already-correct snapshot re-persists a SECOND time, under
+ * D+1's key -> stats inflate again, `streakAfter` counts a phantom D+1 play,
+ * and the player's REAL D+1 game later finds that slot already occupied and
+ * silently gets skipped. `puzzleIso` cannot drift like this: it is fixed for
+ * this whole finished day at boot time, so the guard is correct regardless
+ * of what the wall clock reads when this function happens to run, and
+ * regardless of how many times or from how many mounts it runs. What it
+ * does NOT cover: two genuinely different puzzle days both wanting the same
+ * key (impossible — each boot() sets its own `iso`) or `saveDay` being
+ * called directly by something other than this function (nothing else in
+ * this codebase does). The invoice/streak/share text still render
+ * identically either way (this function recomputes them fresh every call,
+ * from the same deterministic inputs); only the actual `saveDay` write is
+ * skipped once the record already exists.
  *
  * Prereg Mode's own flow (commit-before-data, no significance gate on
  * submit — unlike Hacking Mode, where store.submit() only ever fires once
@@ -221,17 +250,19 @@ export interface ComputedSummary {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSummary {
-  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, todayIso } = fields;
+  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, puzzleIso } = fields;
 
   const callCorrect = call !== null ? callIsCorrect(call, dayType) : null;
   const preregSig = mode === 'prereg' ? stamp !== 'NULL_REPORTED' : undefined;
   const scoreResult = scoreDay({ mode, dayType, published, callCorrect, forks, stamp, preregSig });
 
   const state = loadState();
-  // The DURABLE idempotency guard (see the doc comment above): storage
-  // itself, not a React ref, so it survives an unmount/remount of this
-  // whole screen (the nav path) and not merely a StrictMode double-effect.
-  const alreadySaved = state.history[todayIso]?.[mode] !== undefined;
+  // The DURABLE idempotency guard (see the doc comment above): keyed on the
+  // PUZZLE's own day (never a live wall-clock read), so it survives an
+  // unmount/remount of this whole screen (the nav path) AND a real midnight
+  // rollover happening while the player is sitting on a nav page — not
+  // merely a StrictMode double-effect.
+  const alreadySaved = state.history[puzzleIso]?.[mode] !== undefined;
 
   // The resulting streak (INCLUDING today) is needed before the DayRecord
   // can be built (its shareString embeds it). If today's record already
@@ -245,14 +276,14 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     ? state.history
     : {
         ...state.history,
-        [todayIso]: { ...state.history[todayIso], [mode]: { mode, score: 0, forks: 0, stamp, shareString: '' } },
+        [puzzleIso]: { ...state.history[puzzleIso], [mode]: { mode, score: 0, forks: 0, stamp, shareString: '' } },
       };
-  const { streak } = streakAfter(historyForStreak, todayIso);
+  const { streak } = streakAfter(historyForStreak, puzzleIso);
 
   const shareText = shareString({ puzzleNumber, log, mode, callCorrect: callCorrect ?? false, streak, copy });
 
   if (!practice && !alreadySaved) {
-    saveDay(todayIso, {
+    saveDay(puzzleIso, {
       mode,
       score: scoreResult.score,
       forks,
@@ -283,6 +314,7 @@ export default function SummaryScreen() {
   const mode = useGameStore((s) => s.mode);
   const practice = useGameStore((s) => s.practice);
   const puzzleNumber = useGameStore((s) => s.puzzleNumber);
+  const iso = useGameStore((s) => s.iso);
   const forks = useGameStore((s) => s.forks);
   const published = useGameStore((s) => s.published);
   const call = useGameStore((s) => s.call);
@@ -313,7 +345,11 @@ export default function SummaryScreen() {
         stamp: reveal.stamp,
         log,
         copy,
-        todayIso: localIsoDate(),
+        // The puzzle's OWN day (store.iso, set once by boot()) — never
+        // localIsoDate() here (see persistAndComputeSummary's doc comment
+        // and FinishedGameFields.puzzleIso for exactly why: a live
+        // wall-clock read is the T17 review round-2 bug).
+        puzzleIso: iso,
       })
     );
     // Deliberately NOT re-running on every store field change: this fires

@@ -311,7 +311,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     });
 
     expect(result.streak).toBe(3); // 08-08, 08-09, 08-10 (today) consecutive
@@ -331,7 +331,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     });
     const expected = scoreDay({
       mode: 'hack',
@@ -357,7 +357,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     });
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(saved.history?.['2026-08-10']).toBeUndefined();
@@ -377,7 +377,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'NULL_REPORTED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     });
     expect(unlocked.preregUnlocked).toBe(true);
 
@@ -394,7 +394,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'NULL_REPORTED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-11',
+      puzzleIso: '2026-08-11',
     });
     expect(locked.preregUnlocked).toBe(false);
   });
@@ -411,7 +411,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED',
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     });
     expect(result.shareText.startsWith('P-hackle #7')).toBe(true);
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
@@ -425,7 +425,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
   // below (a real unmount/remount of the actual SummaryScreen component,
   // driven through a real store instance — the exact "nav away and back"
   // shape the review flagged, which a savedRef alone cannot survive).
-  it('a second call for the SAME (todayIso, mode) does not inflate the running stats', () => {
+  it('a second call for the SAME (puzzleIso, mode) does not inflate the running stats', () => {
     const fields = {
       mode: 'hack' as const,
       practice: false,
@@ -437,7 +437,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED' as const,
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     };
 
     const first = persistAndComputeSummary(fields);
@@ -471,7 +471,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       stamp: 'REPLICATED' as const,
       log: [],
       copy: enCopy,
-      todayIso: '2026-08-10',
+      puzzleIso: '2026-08-10',
     };
     persistAndComputeSummary({ ...base, mode: 'hack', call: 'real', practice: false });
     persistAndComputeSummary({ ...base, mode: 'prereg', practice: false });
@@ -581,7 +581,11 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
     await waitFor(() => expect(ready).toHaveBeenCalled());
     harness.unmount();
 
-    const todayIso = localIsoDate();
+    // The boot iso ITSELF (never localIsoDate()) — this is the exact
+    // distinction review round 2 found: persistence keys on the puzzle's
+    // own day (store.iso, fixed by boot() below), not on whatever the real
+    // wall clock happens to read when this test executes.
+    const puzzleIso = '2026-08-10';
 
     // --- First mount: the initial, correct persistence -----------------
     const first = render(
@@ -592,7 +596,7 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
     await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
     await waitFor(() => {
       const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
-      expect(saved.history?.[todayIso]?.hack).toBeDefined();
+      expect(saved.history?.[puzzleIso]?.hack).toBeDefined();
     });
 
     const afterFirst = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
@@ -618,8 +622,74 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
     expect(afterSecond.stats.callsTotal).toBe(1);
     expect(afterSecond.stats.careerPoints).toBe(25);
     expect(afterSecond.stats.forkHistogram[0]).toBe(1);
-    expect(afterSecond.history[todayIso].hack).toEqual(afterFirst.history[todayIso].hack);
+    expect(afterSecond.history[puzzleIso].hack).toEqual(afterFirst.history[puzzleIso].hack);
 
     second.unmount();
+  });
+
+  // --- review round 2: the exact straddle — a bare remount is not the only
+  // way to reach SummaryScreen twice; sitting on a nav page (which the
+  // countdown itself invites) can carry the player across a REAL midnight
+  // rollover too. `vi.setSystemTime` actually moves `Date`/`Date.now()`
+  // forward between the two mounts (shouldAdvanceTime keeps waitFor's own
+  // polling working via real elapsed time throughout) -- a strictly
+  // stronger simulation than mocking `localIsoDate`'s return value, since it
+  // proves the fix however the wall clock is read, not just through the one
+  // function this codebase happens to call it.
+  it('a real midnight rollover while sitting on a nav page does not create a phantom next-day entry (the exact straddle review round 2 found)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(new Date(2026, 7, 10, 23, 0, 0, 0)); // 23:00 on the puzzle's own day
+
+      const ready = vi.fn();
+      const harness = render(
+        <LocaleProvider>
+          <DriveToSummary onReady={ready} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(ready).toHaveBeenCalled());
+      harness.unmount();
+
+      // First mount: persists correctly under the puzzle's own day
+      // (DriveToSummary always boots with iso '2026-08-10').
+      const first = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+      await waitFor(() => {
+        const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+        expect(saved.history?.['2026-08-10']?.hack).toBeDefined();
+      });
+      first.unmount(); // <- "click Stats" — the player sits on a nav page...
+
+      // ...past a REAL midnight rollover. localIsoDate() would now return
+      // 2026-08-11 if the persistence path still consulted it — sanity-
+      // checked directly below, then proven irrelevant to persistence.
+      vi.setSystemTime(new Date(2026, 7, 11, 0, 30, 0, 0));
+      expect(localIsoDate()).toBe('2026-08-11'); // the straddle is real, not hypothetical
+
+      const second = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+
+      const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+      // No phantom next-day entry, under the date the wall clock now reads:
+      expect(saved.history['2026-08-11']).toBeUndefined();
+      // The original day's record is untouched — no second persist, ever:
+      expect(saved.stats.hackDays).toBe(1);
+      expect(saved.stats.callsTotal).toBe(1);
+      expect(saved.stats.careerPoints).toBe(25);
+      expect(saved.stats.forkHistogram[0]).toBe(1);
+      expect(Object.keys(saved.history)).toEqual(['2026-08-10']);
+
+      second.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
