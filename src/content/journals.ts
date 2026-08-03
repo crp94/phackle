@@ -12,7 +12,9 @@ export const JOURNALS: { name: string; tags: string[] }[] = [
   { name: 'Nature Feline Finance', tags: ['pets', 'finance'] },
   { name: 'The Lancet of Lifestyle Optimization', tags: ['lifestyle', 'wellness'] },
   { name: 'Journal of Irreproducible Portfolio Science', tags: ['finance', 'general'] },
-  { name: 'PNAS: Proceedings of the National Academy of Suspicious Findings', tags: ['general'] },
+  // Lowercase "findings" is the master spec's spelling (§4.3) and the joke: the
+  // Academy is suspicious, the findings are merely lowercase. Do not "fix" it.
+  { name: 'PNAS: Proceedings of the National Academy of Suspicious findings', tags: ['general'] },
   { name: 'Annals of Statistical Ambition', tags: ['general'] },
   { name: 'Cell (Spreadsheet)', tags: ['productivity', 'workplace', 'technology'] },
   // Authored to reach the >= 15 pool the brief calls for, same register.
