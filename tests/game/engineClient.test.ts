@@ -204,6 +204,7 @@ describe('createEngineClient — unknown/late responses', () => {
 
     const timedOut = client.extend();
     const timedOutId = fake.posted[0].id;
+    expect(client.pendingCount()).toBe(1);
     // Attached immediately (before advancing timers) so Node never sees this
     // rejection as briefly "unhandled" -- purely to keep the test run's
     // output clean; functionally equivalent to `await expect(...).rejects`.
@@ -217,15 +218,26 @@ describe('createEngineClient — unknown/late responses', () => {
     const timeoutErr = await timedOutSettled;
     expect(timeoutErr).toBeInstanceOf(Error);
     expect((timeoutErr as Error).message).toMatch(/timed out/i);
+    // Review fix (post-approval): a stale map entry receiving a late
+    // resolve/reject on an already-settled promise is itself a silent no-op,
+    // so "no throw" alone can't distinguish real cleanup from a leaked
+    // entry -- pendingCount() is the actual proof the timeout handler
+    // deleted its map entry, independent of anything that happens next.
+    expect(client.pendingCount()).toBe(0);
 
-    const stillPending = client.runSpec(SAMPLE_SPEC);
-
-    // A very late response for the already-timed-out id must not throw and
-    // must not resolve/reject the OTHER, still-pending request.
+    // A very late response for the already-timed-out id, with NOTHING else
+    // in flight yet, must not throw and must not resurrect a map entry.
     expect(() => fake.respond({ id: timedOutId, ok: true, data: { n: 400 } })).not.toThrow();
+    expect(client.pendingCount()).toBe(0);
+
+    // Only now does a genuinely new request exist; it must be unaffected by
+    // the stale id above (proving no cross-request contamination).
+    const stillPending = client.runSpec(SAMPLE_SPEC);
+    expect(client.pendingCount()).toBe(1);
 
     fake.respond({ id: fake.posted[1].id, ok: true, data: { spec: SAMPLE_SPEC, n: 200, beta: 0, se: 1, t: 0, p: 1, ci: [-1, 1], excludedCount: 0, valid: true } });
     await expect(stillPending).resolves.toMatchObject({ beta: 0 });
+    expect(client.pendingCount()).toBe(0);
   });
 });
 
@@ -235,6 +247,7 @@ describe('createEngineClient — timeout', () => {
     const client = createEngineClient(() => fake.worker);
 
     const promise = client.runSpec(SAMPLE_SPEC);
+    expect(client.pendingCount()).toBe(1);
     // Prevent an unhandled-rejection warning while we assert timing below.
     const settled = promise.catch((e: Error) => e);
 
@@ -242,12 +255,18 @@ describe('createEngineClient — timeout', () => {
     const raceSentinel = Symbol('pending');
     const notYet = await Promise.race([settled, Promise.resolve(raceSentinel)]);
     expect(notYet).toBe(raceSentinel); // still pending just under 10s
+    expect(client.pendingCount()).toBe(1); // not yet cleaned up -- the timeout hasn't fired
 
     await vi.advanceTimersByTimeAsync(1);
     const err = await settled;
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).toMatch(/timed out/i);
     expect((err as Error).message).toContain('runSpec');
+    // Review fix (post-approval): prove the timeout handler actually deletes
+    // its pending-map entry -- "the promise rejected" alone is consistent
+    // with both a cleaned-up map and a leaked entry, since nothing else ever
+    // reads a settled promise's resolve/reject again either way.
+    expect(client.pendingCount()).toBe(0);
   });
 });
 

@@ -25,8 +25,18 @@ interface PendingEntry {
  * omitted, it builds the real module worker; a test passes a scripted fake
  * satisfying just the surface this file calls (postMessage,
  * addEventListener('message'|'error')) — see tests/game/engineClient.test.ts.
+ *
+ * Return type is `EngineClient & {pendingCount}` rather than the brief's
+ * plain `EngineClient` — review finding (post-approval fix round): a
+ * black-box test cannot otherwise distinguish "the timeout handler deleted
+ * its pending-map entry" from "it didn't, but a stale resolve/reject on an
+ * already-settled promise is a silent no-op anyway" (both look identical
+ * from outside). `pendingCount` is a one-line, read-only size accessor, not
+ * the map itself; the intersection keeps every existing `EngineClient`-typed
+ * consumer (src/game/store.ts and its own tests) unaffected, since a value
+ * with an extra method still structurally satisfies the narrower type.
  */
-export function createEngineClient(makeWorker?: () => Worker): EngineClient {
+export function createEngineClient(makeWorker?: () => Worker): EngineClient & { pendingCount(): number } {
   const worker = (makeWorker ?? (() => new Worker(new URL('../engine/worker.ts', import.meta.url), { type: 'module' })))();
 
   let nextId = 1;
@@ -83,6 +93,12 @@ export function createEngineClient(makeWorker?: () => Worker): EngineClient {
     },
     onCrash(cb: () => void) {
       crashCallbacks.push(cb);
+    },
+    /** test-only: number of in-flight requests (the pending map's size). Not
+     * part of the brief's pinned EngineClient interface — see this
+     * function's own doc comment for why it exists and why it's safe to add. */
+    pendingCount() {
+      return pending.size;
     },
   };
 }
