@@ -13,6 +13,8 @@ export interface Spec {
   tails: 'two'|'one';
 }
 
+// NOTE: fields may carry real computed values even when valid === false —
+// always gate on valid before displaying or aggregating.
 export interface PathResult {
   spec: Spec; n: number; beta: number; se: number; t: number; p: number;
   ci: [number, number]; excludedCount: number; valid: boolean; // n>=30

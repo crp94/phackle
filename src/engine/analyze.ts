@@ -74,7 +74,11 @@ export function applyTransform(y: Float64Array, t: Spec['transform']): Float64Ar
   return out;
 }
 
-const EXCLUSION_THRESHOLD: Record<Exclude<Spec['exclusion'], 'none'>, number> = {
+// Exported (beyond the brief's original three-helper surface) so specGrid.ts
+// (T8) can replicate runSpec's exclusion-threshold lookup exactly when
+// building its own memoized "kept" sets, instead of duplicating this table --
+// a pure re-export of an existing internal, not a logic change.
+export const EXCLUSION_THRESHOLD: Record<Exclude<Spec['exclusion'], 'none'>, number> = {
   z3: 3,
   z2_5: 2.5,
   z2: 2,

@@ -22,6 +22,8 @@ export type Res = { id: number; ok: true; data: InitInfo | PathResult | ExtendIn
 
 export interface EngineClient {
   init(iso: string, scenarioCount: number, practiceSeed?: number): Promise<InitInfo>;
+  // NOTE: fields may carry real computed values even when valid === false —
+  // always gate on valid before displaying or aggregating.
   runSpec(spec: Spec): Promise<PathResult>;
   extend(): Promise<ExtendInfo>;
   reveal(published: Spec | null, explored: Spec[]): Promise<RevealPayload>;
