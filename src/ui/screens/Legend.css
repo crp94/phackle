@@ -1,0 +1,78 @@
+/* Legend nav page (§2.9 emoji table). DESIGN.md R3.5 (page column, centred),
+   R3.6/R4.4/R4.5 (hairline-separated list, never a box, never all-4-side
+   border), R6.4 (>=44x44 tap target via padding on the close button). */
+.ph-legend {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-24);
+}
+
+.ph-legend__title {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin: 0 0 var(--space-16);
+}
+
+.ph-legend__intro {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  max-width: var(--measure);
+  margin: 0 0 var(--space-24);
+}
+
+.ph-legend__list {
+  list-style: none;
+  margin: 0 0 var(--space-24);
+  padding: 0;
+  max-width: var(--measure);
+}
+
+/* R3.6/R4.4: a hairline-separated list, not a grid of cards. */
+.ph-legend__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-16);
+  padding-block: var(--space-12);
+  border-block-end: var(--hairline);
+}
+
+.ph-legend__glyph {
+  font-size: var(--text-22);
+  width: 2ch;
+  flex: none;
+}
+
+.ph-legend__label {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+}
+
+/* Same "instant hover, 2px --ink underline on state" idiom as App.css's
+   .ph-toggle/.ph-seg — no new interaction pattern invented. */
+.ph-legend__close {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-legend__close:hover {
+  text-decoration: underline;
+}
+
+.ph-legend__close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

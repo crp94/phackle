@@ -9,7 +9,7 @@ import { Call } from './Call';
 import { Reveal } from './Reveal';
 import { Briefing } from './Briefing';
 import { Published } from './Published';
-import { SummaryStub } from './stubs';
+import SummaryScreen from './Summary';
 
 export const SCREENS: Record<Screen, ComponentType> = {
   briefing: Briefing,
@@ -17,5 +17,5 @@ export const SCREENS: Record<Screen, ComponentType> = {
   published: Published,
   call: Call,
   reveal: Reveal,
-  summary: SummaryStub,
+  summary: SummaryScreen,
 };

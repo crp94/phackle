@@ -18,6 +18,11 @@ export const SITE_URL = 'https://phackle.carlosrodriguezpardo.es';
 // Exported so T14's ForkTrail (the Lab's live emoji strip) imports the SAME
 // legend rather than duplicating it — the one glyph source of truth for both
 // the mid-game trail and the end-of-day share string.
+//
+// T17 (Legend screen): also consumed, along with the 5 terminal/prefix glyphs
+// below, so the in-game Legend page can render the §2.9 emoji table FROM this
+// map rather than retyping the glyphs — single source of truth. Nothing about
+// shareString's own logic changes.
 export const FORK_EMOJI: Record<ForkKind, string> = {
   subgroup: '🎯',
   exclusion: '🔪',
@@ -26,11 +31,11 @@ export const FORK_EMOJI: Record<ForkKind, string> = {
   peek: '➕',
 };
 
-const PREREG_PREFIX = '🧾';
-const SUBMIT_EMOJI = '📄';
-const ABANDON_EMOJI = '🏳️';
-const CALL_CORRECT = '⚖️✅';
-const CALL_INCORRECT = '⚖️❌';
+export const PREREG_PREFIX = '🧾';
+export const SUBMIT_EMOJI = '📄';
+export const ABANDON_EMOJI = '🏳️';
+export const CALL_CORRECT = '⚖️✅';
+export const CALL_INCORRECT = '⚖️❌';
 
 /**
  * The emoji trail: 🧾 prefix iff prereg, then one glyph per counted fork (via
@@ -104,4 +109,47 @@ export function shareString(i: ShareStringInput): string {
   const line4 = SITE_URL;
 
   return [line1, line2, line3, line4].join('\n');
+}
+
+// --- shareViaNavigator (T17: Summary's Share button) ------------------------
+//
+// The side-effecting counterpart to shareString above: where shareString is a
+// pure function of game data (and is spoiler-tested accordingly), this talks
+// to two real browser APIs. Deliberately NOT exported alongside a "which one
+// fired" detail beyond the two-value result: the caller (Summary.tsx) only
+// ever needs to know whether to show the "Copied to clipboard" toast (never
+// shown for 'shared' — the OS's own share sheet is already the confirmation).
+//
+// Fallback chain, exactly two tiers (§7.3 "native share API + clipboard
+// fallback"):
+//   1. `navigator.share` if it exists AND resolves -> 'shared'.
+//   2. Otherwise (no navigator.share, OR it rejects -- e.g. the player
+//      cancelled the OS share sheet, or the call errors for any other
+//      reason) -> navigator.clipboard.writeText -> 'copied'.
+// A clipboard failure (missing API or a rejected write) is NOT swallowed: it
+// rejects the returned promise so the caller can surface an error rather than
+// silently doing nothing, matching the "no channel fails silently" pattern
+// storage.ts uses for its own localStorage guards.
+export async function shareViaNavigator(text: string): Promise<'shared' | 'copied'> {
+  const nav = navigator as Navigator & {
+    share?: (data: { text: string }) => Promise<void>;
+    clipboard?: { writeText: (text: string) => Promise<void> };
+  };
+
+  if (typeof nav.share === 'function') {
+    try {
+      await nav.share({ text });
+      return 'shared';
+    } catch {
+      // Fall through to the clipboard — a rejected share() (including the
+      // player dismissing the share sheet) still gets the result onto the
+      // clipboard rather than leaving the player with nothing.
+    }
+  }
+
+  if (!nav.clipboard?.writeText) {
+    throw new Error('shareViaNavigator: neither navigator.share nor navigator.clipboard is available');
+  }
+  await nav.clipboard.writeText(text);
+  return 'copied';
 }

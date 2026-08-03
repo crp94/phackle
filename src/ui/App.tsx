@@ -14,7 +14,12 @@
 // notably the ONLY way T5's pre-existing shell.test.tsx (which renders
 // <App> directly, unmocked) keeps passing: jsdom has no global Worker, so an
 // uncaught throw here would otherwise crash every one of those renders.
-import { useEffect, useRef, type ReactNode } from 'react';
+//
+// T17 adds the header's stats/legend/about nav: a tiny LOCAL page-state
+// (useState below), deliberately NOT the game machine's own `screen` — see
+// src/ui/screens/registry.t17.patch.md for the full integration note (this
+// is App.tsx's half of it; merged with T14's boot wiring at integration).
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocale, type Theme } from '../i18n/LocaleProvider';
 import { AVAILABLE_LOCALES } from '../i18n/locale';
 import type { Locale } from '../engine/types';
@@ -22,9 +27,18 @@ import type { CopyKey } from '../content/en/copy';
 import { gameStore, useGameStore } from '../game/store';
 import { createEngineClient } from '../game/engineClient';
 import { isPractice, localIsoDate } from '../game/daily';
+import StatsScreen from './screens/Stats';
+import LegendScreen from './screens/Legend';
+import AboutScreen from './screens/About';
 import './App.css';
 
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
+
+/** The header nav's own page-state — orthogonal to game/store.ts's `Screen`
+ * union entirely. 'game' renders whatever `children` is (the running game
+ * machine, whatever screen IT is on); the other three replace <main>'s
+ * content with a standalone nav page until its own close button returns here. */
+type NavPage = 'game' | 'stats' | 'legend' | 'about';
 
 export interface AppProps {
   /** Pre-boot fallback: main.tsx's own `puzzleNumber(localIsoDate())`, which
@@ -44,6 +58,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
   const boot = useGameStore((s) => s.boot);
   const storePuzzleNumber = useGameStore((s) => s.puzzleNumber);
   const didBootRef = useRef(false);
+  const [page, setPage] = useState<NavPage>('game');
 
   // Guarded by a ref (not only the dependency array): `content`'s reference
   // never actually changes mid-session in any of today's flows (locale
@@ -78,6 +93,8 @@ export default function App({ puzzleNumber, children }: AppProps) {
   // store has a real number of its own.
   const displayedPuzzleNumber = storePuzzleNumber || puzzleNumber;
 
+  const backToGame = () => setPage('game');
+
   return (
     <div className="ph-app">
       <header className="ph-header">
@@ -87,11 +104,27 @@ export default function App({ puzzleNumber, children }: AppProps) {
           <span className="ph-header__vol">{t('briefing.vol', { volume: 1, issue: displayedPuzzleNumber })}</span>
         </p>
         <div className="ph-header__controls">
+          <div className="ph-header__nav">
+            <button type="button" className="ph-seg" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
+              {t('nav.stats')}
+            </button>
+            <button type="button" className="ph-seg" aria-pressed={page === 'legend'} onClick={() => setPage('legend')}>
+              {t('nav.legend')}
+            </button>
+            <button type="button" className="ph-seg" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
+              {t('nav.about')}
+            </button>
+          </div>
           <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
           <LocaleToggle locales={AVAILABLE_LOCALES} locale={locale} setLocale={setLocale} t={t} />
         </div>
       </header>
-      <main>{children}</main>
+      <main>
+        {page === 'game' && children}
+        {page === 'stats' && <StatsScreen onClose={backToGame} />}
+        {page === 'legend' && <LegendScreen onClose={backToGame} />}
+        {page === 'about' && <AboutScreen onClose={backToGame} />}
+      </main>
     </div>
   );
 }

@@ -1,0 +1,153 @@
+/* Summary screen — the score breakdown styled as a journal fee invoice
+   (DESIGN.md hairline table rules: R4.4/R4.5 — hairlines only, never a
+   box, never a border on all four sides; R2.4 every numeral is mono and
+   tabular). */
+.ph-summary {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-24);
+}
+
+.ph-summary__title {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin: 0 0 var(--space-16);
+}
+
+.ph-summary__invoice {
+  width: 100%;
+  max-width: var(--measure);
+  border-collapse: collapse;
+}
+
+/* Every row is a hairline UNDER it, never a 4-side border (R4.5) — an
+   invoice ruled like a real fee statement, not a bordered box. */
+.ph-summary__row th,
+.ph-summary__row td {
+  border-block-end: var(--hairline);
+  padding-block: var(--space-8);
+  font-weight: var(--weight-regular);
+}
+
+.ph-summary__label {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  text-align: start;
+}
+
+.ph-summary__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  color: var(--ink);
+  text-align: end;
+}
+
+.ph-summary__total {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-28);
+  color: var(--ink);
+  max-width: var(--measure);
+  margin: var(--space-16) 0 0;
+}
+
+/* R2.4 names "streaks" explicitly as a numeral needing mono/tabular
+   treatment — same established idiom as App.css's .ph-header__vol ("Vol. 1,
+   No. 12"): a short UI string that MIXES words with a numeral renders
+   entirely in mono, not just the digits. */
+.ph-summary__streak {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: var(--space-24) 0 0;
+}
+
+.ph-summary__countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  color: var(--muted);
+  margin: var(--space-8) 0 0;
+}
+
+.ph-summary__share {
+  margin: var(--space-24) 0 0;
+}
+
+.ph-summary__share-button {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-summary__share-button:hover {
+  text-decoration: underline;
+}
+
+.ph-summary__share-button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-summary__toast {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  color: var(--muted);
+  margin: var(--space-8) 0 0;
+}
+
+.ph-summary__prereg {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+  margin: var(--space-40) 0 0;
+  max-width: var(--measure);
+}
+
+.ph-summary__prereg-title {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin: 0;
+}
+
+.ph-summary__prereg-body {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  margin: var(--space-16) 0 0;
+}
+
+.ph-summary__prereg-button {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  margin: var(--space-16) 0 0;
+  cursor: not-allowed;
+}
+
+.ph-summary__prereg-button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

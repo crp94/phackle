@@ -1,0 +1,122 @@
+// T17: pure aggregation helpers behind the Stats screen (§2.8's "call
+// accuracy all-time + rolling-20" and "prereg-vs-hacking success rates side
+// by side"). Pure logic over already-persisted history — plain node env,
+// same as storage.test.ts's own streakAfter suite (no localStorage touched
+// here; that lives in storage.ts, not this module).
+import { describe, expect, it } from 'vitest';
+import { modeSuccessRate, recordsForMode, rollingCallAccuracy, type ModeHistory } from '../../src/game/statsAgg';
+import type { DayRecord } from '../../src/engine/types';
+
+function day(overrides: Partial<DayRecord> = {}): DayRecord {
+  return { mode: 'hack', score: 100, forks: 0, stamp: 'RETRACTED', shareString: '', ...overrides };
+}
+
+// --- rollingCallAccuracy -----------------------------------------------------
+
+describe('rollingCallAccuracy — windows to the last N calls, chronologically, across both modes', () => {
+  it('returns null when no day in history has ever recorded a call (empty state)', () => {
+    expect(rollingCallAccuracy({}, 20)).toBeNull();
+    const history: ModeHistory = { '2026-08-01': { hack: day({ callCorrect: undefined }) } };
+    expect(rollingCallAccuracy(history, 20)).toBeNull();
+  });
+
+  it('averages over however many calls exist, when fewer than the window size', () => {
+    const history: ModeHistory = {
+      '2026-08-01': { hack: day({ callCorrect: true }) },
+      '2026-08-02': { hack: day({ callCorrect: false }) },
+      '2026-08-03': { hack: day({ callCorrect: true }) },
+    };
+    expect(rollingCallAccuracy(history, 20)).toBeCloseTo(2 / 3);
+  });
+
+  // The 25-day fixture the RED plan calls for: first 5 days all correct,
+  // remaining 20 all incorrect. All-time accuracy over all 25 would be 20%
+  // (5/25) — a clearly DIFFERENT number from the windowed one — so this
+  // proves the function actually windows to the last 20 rather than quietly
+  // averaging the whole history.
+  it('a 25-day history: last-20 accuracy (0%) differs from the all-time figure it would otherwise collapse to (20%)', () => {
+    const history: ModeHistory = {};
+    for (let d = 1; d <= 25; d++) {
+      const iso = `2026-08-${String(d).padStart(2, '0')}`;
+      const correct = d <= 5; // first 5 correct, last 20 wrong
+      history[iso] = { hack: day({ callCorrect: correct }) };
+    }
+    const allCorrect = Object.values(history).filter((r) => r.hack?.callCorrect).length;
+    expect(allCorrect / 25).toBeCloseTo(0.2); // sanity: the all-time figure this WOULD be if unwindowed
+    expect(rollingCallAccuracy(history, 20)).toBe(0); // last 20 (days 6-25) are all wrong
+  });
+
+  it('takes the chronologically LAST 20, not an arbitrary 20, when there are more than 20 calls', () => {
+    const history: ModeHistory = {};
+    for (let d = 1; d <= 30; d++) {
+      const iso = `2026-08-${String(d).padStart(2, '0')}`;
+      // last 20 calendar days (11..30) are all correct; the earlier 10 are wrong.
+      history[iso] = { hack: day({ callCorrect: d > 10 }) };
+    }
+    expect(rollingCallAccuracy(history, 20)).toBe(1);
+  });
+
+  it('any mode counts, and same-day hack+prereg both contribute (hack ordered before prereg on a tie, matching achievements.ts)', () => {
+    const history: ModeHistory = {
+      '2026-08-01': {
+        hack: day({ mode: 'hack', callCorrect: true }),
+        prereg: day({ mode: 'prereg', callCorrect: false }),
+      },
+    };
+    expect(rollingCallAccuracy(history, 20)).toBeCloseTo(0.5);
+  });
+
+  it('ignores day-records with no call at all (prereg abandoned days, or hack days abandoned with no callCorrect recorded)', () => {
+    const history: ModeHistory = {
+      '2026-08-01': { hack: day({ callCorrect: true }) },
+      '2026-08-02': { hack: day({ callCorrect: undefined }) },
+    };
+    expect(rollingCallAccuracy(history, 20)).toBe(1);
+  });
+});
+
+// --- recordsForMode -----------------------------------------------------------
+
+describe('recordsForMode — chronological DayRecords for one mode', () => {
+  it('returns an empty array for a mode with no history at all', () => {
+    expect(recordsForMode({}, 'prereg')).toEqual([]);
+  });
+
+  it('only returns the given mode, in ISO date order', () => {
+    const history: ModeHistory = {
+      '2026-08-03': { hack: day({ score: 3 }) },
+      '2026-08-01': { hack: day({ score: 1 }), prereg: day({ mode: 'prereg', score: 100 }) },
+      '2026-08-02': { hack: day({ score: 2 }) },
+    };
+    expect(recordsForMode(history, 'hack').map((r) => r.score)).toEqual([1, 2, 3]);
+    expect(recordsForMode(history, 'prereg').map((r) => r.score)).toEqual([100]);
+  });
+});
+
+// --- modeSuccessRate (the α-lesson panels) -----------------------------------
+
+describe('modeSuccessRate — fraction of days that ended published/replicated, not null-reported', () => {
+  it('returns null for an empty record set (renders as the em-dash empty state upstream)', () => {
+    expect(modeSuccessRate([])).toBeNull();
+  });
+
+  it('counts REPLICATED and RETRACTED as "success" (something was published), NULL_REPORTED as not', () => {
+    const records = [
+      day({ stamp: 'REPLICATED' }),
+      day({ stamp: 'RETRACTED' }),
+      day({ stamp: 'NULL_REPORTED' }),
+      day({ stamp: 'NULL_REPORTED' }),
+    ];
+    expect(modeSuccessRate(records)).toBeCloseTo(0.5);
+  });
+
+  it('is 1 when every day was published, matching the "unloseable" hacking-mode intuition', () => {
+    const records = [day({ stamp: 'REPLICATED' }), day({ stamp: 'RETRACTED' }), day({ stamp: 'RETRACTED' })];
+    expect(modeSuccessRate(records)).toBe(1);
+  });
+
+  it('is 0 when every day was an honest null report', () => {
+    const records = [day({ stamp: 'NULL_REPORTED' }), day({ stamp: 'NULL_REPORTED' })];
+    expect(modeSuccessRate(records)).toBe(0);
+  });
+});

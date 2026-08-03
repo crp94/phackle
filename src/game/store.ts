@@ -29,6 +29,15 @@ export interface GameStore {
   mode: 'hack' | 'prereg';
   practice: boolean;
   puzzleNumber: number;
+  /** The ISO date `boot()` was called with — the puzzle's OWN day. Empty
+   * string until boot() completes. Distinct, deliberately, from whatever
+   * `localIsoDate()` (a live wall-clock read) returns at some LATER moment —
+   * e.g. after the player has sat on a nav page (Stats/Legend/About) past a
+   * real midnight rollover. Summary's persistence (T17 review round 2)
+   * anchors to THIS field, never to the wall clock, so that a
+   * finish-before-midnight / re-render-after-midnight straddle can never
+   * key a save under the wrong day. */
+  iso: string;
   scenarioIndex: number;
   spec: Spec;
   result: PathResult | null;
@@ -80,6 +89,7 @@ function initialState(): Omit<
     mode: 'hack',
     practice: false,
     puzzleNumber: 0,
+    iso: '',
     scenarioIndex: 0,
     spec: DEFAULT_SPEC,
     result: null,
@@ -124,7 +134,7 @@ export function createGameStore() {
       try {
         const seed = opts.practice ? practiceSeed() : undefined;
         const info = await client.init(iso, opts.scenarioCount, seed);
-        set({ scenarioIndex: info.scenarioIndex, n: info.n, puzzleNumber: puzzleNumber(iso) });
+        set({ scenarioIndex: info.scenarioIndex, n: info.n, puzzleNumber: puzzleNumber(iso), iso });
 
         const myReq = ++requestSeq;
         set({ pending: true });

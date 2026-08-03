@@ -34,6 +34,21 @@ export function isPractice(search: string): boolean {
   return params.get('practice') === '1' || localIsoDate() < EPOCH;
 }
 
+/**
+ * T17: ms remaining until the next local (wall-clock) midnight — Summary's
+ * countdown to tomorrow's puzzle. Uses the `Date` constructor's LOCAL-
+ * component overload (`new Date(y, m, d, ...)`), which the JS engine resolves
+ * against the host's own DST rules for that specific calendar date, so a
+ * fall-back day (25 local hours) or spring-forward day (23 local hours)
+ * between `now` and the following midnight is reflected automatically in the
+ * returned ms — no special-casing needed, and no drift the way a naive
+ * "24h minus elapsed-today" calculation would have on either transition day.
+ */
+export function msToNextLocalMidnight(now: Date = new Date()): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return next.getTime() - now.getTime();
+}
+
 /** Non-daily entropy for practice mode: unlike the real daily puzzle, practice
  * play is intentionally fresh every time, not derived from the date. */
 export function practiceSeed(): number {

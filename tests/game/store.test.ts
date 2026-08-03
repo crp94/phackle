@@ -81,6 +81,7 @@ describe('boot', () => {
     const store = createGameStore();
 
     expect(store.getState().screen).toBe('briefing');
+    expect(store.getState().iso).toBe(''); // unset until boot() completes
 
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
 
@@ -91,6 +92,9 @@ describe('boot', () => {
     expect(s.mode).toBe('hack');
     expect(s.practice).toBe(false);
     expect(s.puzzleNumber).toBe(1); // EPOCH is puzzle #1
+    // T17 review round 2: boot() retains its own iso (the puzzle's day),
+    // distinct from any later live wall-clock read — see GameStore['iso'].
+    expect(s.iso).toBe(EPOCH);
     expect(s.scenarioIndex).toBe(0);
     expect(s.n).toBe(200);
     expect(s.spec).toEqual(DEFAULT_SPEC);
