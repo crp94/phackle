@@ -36,7 +36,8 @@ in `tokens.css` and in this table.
 | §7.2 `--hack-gold` for "career points" (i.e. text) | Gold on characters uses `--hack-gold-ink` (R1.6) | `--hack-gold` is 2.94:1 on paper — it fails §7.5's 4.5:1 floor as text. §7.2's hex is unchanged |
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
-| §7.2 fixes **seven** colours | Exactly **two** are derived from them, both declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6) and `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1). Neither counts as a new colour against R1.3 or R1.6; any third derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first and §7.4's tint forces the second — registering them keeps "one loud colour" and "seven fixed values" literally true |
+| §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) steps `--muted` → `--dial-step-1` → `-2` → `-3` → `--assist-green` as p crosses .5/.2/.1/.05, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for the final, solid-green step; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all. A continuous opacity ramp toward the same two tokens was tried first and rejected: on a light-on-paper token, reducing opacity alpha-composites toward `--paper` and collapses contrast (1.60:1 at p=1.0 light, 1.70:1 dark) — see the T14 fix-round report for the exact numbers. Discrete, contrast-verified steps are what actually keeps R1.8's own "stays ≥4.5:1" claim true |
+| §7.2 fixes **seven** colours | Exactly **five** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any sixth derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
 
@@ -81,11 +82,14 @@ band.
 - Don't: `color: var(--rule);` — it is 1.42:1 on paper and illegible by design.
 
 **R1.5 — `--assist-green` appears only inline at text scale (≤1em)** — the
-REPLICATED verdict word, the integrity-bonus line, "better" deltas. Exception
-(registered in §0): the REPLICATED verdict stamp renders in `--assist-green`
-— the one sanctioned display-scale green, exactly parallel to R1.3's stamp
-entry for `--sig-red`.
-- Do: `<em style="color: var(--assist-green)">REPLICATED</em>` at `--text-15`.
+REPLICATED verdict word, the integrity-bonus line, "better" deltas. Two
+exceptions (both registered in §0): the REPLICATED verdict stamp renders in
+`--assist-green` at display scale, exactly parallel to R1.3's stamp entry for
+`--sig-red`; and the Lab's `PValueDial` (R8.1's Act I signature, `--text-dial`
+scale) turns `--assist-green` once its p < .05 — R1.8's colour rule, Act I's
+half.
+- Do: `<em style="color: var(--assist-green)">REPLICATED</em>` at `--text-15`;
+  or `color: var(--assist-green)` on the PValueDial numeral once p < .05.
 - Don't: `background: var(--assist-green);` on a success banner — green is never a
   fill, a button, or a background.
 
@@ -101,11 +105,34 @@ no named CSS colours in `src/ui/**`.
 - Do: `color: var(--ink);`
 - Don't: `color: black;`
 
-**R1.8 — The dial's colour interpolates between exactly two tokens.** As p → .05
-it runs `--muted` → `--sig-red` in `oklab`, and touches no third colour. The whole
-path stays ≥5.05:1 in both themes; do not introduce a midpoint.
-- Do: `color: color-mix(in oklab, var(--muted), var(--sig-red) calc(var(--p-proximity) * 100%));`
-- Don't: `color: color-mix(in oklab, var(--hack-gold), var(--sig-red) 50%);`
+**R1.8 — The dial's colour steps through exactly five states, all at full
+opacity: `--muted` → `--dial-step-1` → `--dial-step-2` → `--dial-step-3` →
+`--assist-green`** (§0's dial-prose reconciliation row) — never `--sig-red`,
+which stays Act II's alone (R1.3's four places are all on the reveal). The
+band is p's own value, not a continuous function of it: `p > .5` reads
+`--muted`; `.2 < p ≤ .5` reads `--dial-step-1`; `.1 < p ≤ .2` reads
+`--dial-step-2`; `.05 ≤ p ≤ .1` reads `--dial-step-3`; `p < .05` is solid
+`--assist-green` (R1.5's second exception — significance is desirable in Act
+I). `--dial-step-1/-2/-3` are `color-mix(in srgb, var(--muted),
+var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal
+hex in `tokens.css` (§0's derived-colour registry) rather than a live
+`color-mix()` — both because R1.3a bans `color-mix()`/`color-contrast()`
+outside `tokens.css` (`tests/ui/tokens.test.ts` fails the build on a hit
+anywhere else in `src/ui`) and because a literal hex is what lets that same
+suite parse and contrast-check each step directly: all five states are text
+tokens in `TEXT_TOKENS`, so "stays ≥4.5:1 in both themes" is compiled, not
+merely asserted (§10 tier B). No opacity is ever used to signal the band —
+an opacity ramp toward `--paper` was tried and rejected for exactly this
+reason (see §0's reconciliation row for the numbers); the tick (R5.1) may
+still animate `color` and `transform` on a band change, never `opacity`.
+- Do: switch `color` outright between the five tokens by `dialBand(p)` — see
+  `src/ui/components/PValueDial.tsx`.
+- Don't: `color: color-mix(in oklab, var(--muted), var(--assist-green) …);` in
+  a component file — R1.3a's grep fails the build on any `color-mix(` outside
+  `tokens.css`.
+- Don't: set `opacity` on the dial's numeral to signal proximity to .05 — it
+  alpha-composites toward `--paper` and silently breaks the 4.5:1 floor.
+- Don't: reference `var(--sig-red)` anywhere in the Lab.
 
 ---
 
@@ -349,6 +376,9 @@ and green take +30%. Ratios below are WCAG 2.1, measured against that theme's
 | `--hack-gold` | `#B98A2C` | 2.94 † | `#CE9F44` | 7.33 | OKLCH L × 1.10 |
 | `--hack-gold-ink` | `#8C6401` | 5.03 | `#CE9F44` | 7.33 | light: OKLCH L × 0.80 |
 | `--muted` | `#6E6A5E` | 5.09 | `#8D897C` | 5.08 | chosen to reproduce the light muted ratio |
+| `--dial-step-1` | `#5E6B5A` | 5.31 | `#808D7B` | 5.09 | `color-mix(in srgb, --muted, --assist-green 25%)`, per theme |
+| `--dial-step-2` | `#4E6C56` | 5.49 | `#74927A` | 5.19 | `color-mix(in srgb, --muted, --assist-green 50%)`, per theme |
+| `--dial-step-3` | `#3E6D52` | 5.63 | `#679679` | 5.26 | `color-mix(in srgb, --muted, --assist-green 75%)`, per theme |
 
 † Below 4.5:1 — which is precisely why R1.6 forbids `--hack-gold` on characters.
 `--rule` is likewise below the floor and is barred from text by R1.4.
@@ -400,7 +430,7 @@ retypes their values.
 | Group | Tokens |
 |---|---|
 | Palette (§7.2, fixed) | `--paper` `--ink` `--rule` `--sig-red` `--assist-green` `--hack-gold` `--muted` |
-| Derived colour | `--hack-gold-ink` `--sig-band` |
+| Derived colour | `--hack-gold-ink` `--sig-band` `--dial-step-1` `--dial-step-2` `--dial-step-3` |
 | Surfaces | `--hairline` `--radius` |
 | Families | `--font-display` `--font-ui` `--font-mono` |
 | Sizes | `--text-13` `--text-15` `--text-22` `--text-28` `--text-40` `--text-dial` |
@@ -423,10 +453,10 @@ statement of that — no rule appears in two tiers.
 | Tier | How it is decided | Rules |
 |---|---|---|
 | **A — compiled** | `npx vitest run tests/ui/tokens.test.ts` fails the build | R1.3a, R1.7, R4.2, R4.3, R5.6, R6.1, R7.3 |
-| **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R2.1, R2.3, R2.5, R5.1, R5.2, R5.3, R5.4, R7.4 |
+| **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R1.8, R2.1, R2.3, R2.5, R5.1, R5.2, R5.3, R5.4, R7.4 |
 | **B+C — compiled where it is *defined*, grepped where it is *used*** | the test closes the scale inside `tokens.css`; the raw-px grep below catches a value typed anywhere else | R2.2, R3.1 |
 | **C — grep** | one of the commands below | R1.3, R3.4, R4.5, R4.7, R5.5, R6.5 |
-| **D — read the diff** | deterministic by inspection: the rule names the value, you check the line | R1.1, R1.2, R1.4, R1.5, R1.8, R2.4, R2.6, R2.7, R2.8, R3.2, R3.3, R3.5, R3.6, R4.1, R4.4, R4.6, R6.2, R6.3, R6.4, R7.1, R7.2, R8.1, R8.2 |
+| **D — read the diff** | deterministic by inspection: the rule names the value, you check the line | R1.1, R1.2, R1.4, R1.5, R2.4, R2.6, R2.7, R2.8, R3.2, R3.3, R3.5, R3.6, R4.1, R4.4, R4.6, R6.2, R6.3, R6.4, R7.1, R7.2, R8.1, R8.2 |
 | **E — judgement** | the one rule in this document that taste decides | R8.3 |
 
 **Tier A scope, stated precisely.** R1.7 is complete: the test scans every

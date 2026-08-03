@@ -1,0 +1,17 @@
+/* The Lab's six knobs, laid out as a hairline-separated stack (R3.6: not a
+   grid of cards). Each individual radiogroup's own styling (legend, options,
+   the selected-underline) moved to RadioGroup.css alongside the shared
+   RadioGroup component that now renders them (post-review split, keeping
+   this file under the component-css pairing convention). */
+.ph-spec-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: var(--measure);
+}
+
+/* R3.6: hairline-separated stack, not a grid of cards. */
+.ph-spec-group + .ph-spec-group {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+}

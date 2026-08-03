@@ -32,6 +32,20 @@
   /* The single permitted filled area in the whole product: the p < .05 band in
      SpecCurve (§7.4). 6% keeps --muted captions on it at 4.62:1. */
   --sig-band: color-mix(in srgb, var(--sig-red) 6%, transparent);
+  /* PValueDial's stepped Act-I colour ramp (DESIGN.md R1.8, R1.5's second
+     exception): --muted -> --dial-step-1 -> -2 -> -3 -> --assist-green as p
+     approaches .05. Each is color-mix(in srgb, var(--muted), var(--assist-green)
+     T%) at T=25/50/75, computed offline and hardcoded as a literal hex (not a
+     live color-mix()) so tests/ui/tokens.test.ts's contrast suite can parse
+     and verify it directly — the same "derived but literal" treatment as
+     --hack-gold-ink above. Both endpoints already individually clear ~5:1 on
+     --paper and sit close in luminance, so every step lands 5.31-5.63:1 here
+     (5.09-5.26:1 in dark, see the dark block below) — comfortably above the
+     4.5:1 floor at every step; see the T14 fix-round report for the full
+     scan across 5%-95% that this was picked from. */
+  --dial-step-1: #5E6B5A;
+  --dial-step-2: #4E6C56;
+  --dial-step-3: #3E6D52;
 
   /* --- Surfaces ----------------------------------------------------------- */
   --hairline: 1px solid var(--rule);
@@ -115,6 +129,13 @@
 
   /* Gold is already 7.33:1 on the dark paper, so text gold needs no darkening. */
   --hack-gold-ink: #CE9F44;
+
+  /* Same T=25/50/75 color-mix(in srgb, var(--muted), var(--assist-green) T%),
+     against THIS theme's own --muted/--assist-green — not a lightness bump
+     of the light values, exactly like every other accent in this block. */
+  --dial-step-1: #808D7B;
+  --dial-step-2: #74927A;
+  --dial-step-3: #679679;
 }
 
 /**

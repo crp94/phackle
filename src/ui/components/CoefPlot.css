@@ -1,0 +1,36 @@
+/* Quiet figure (DESIGN.md R8.3: only the dial and the RETRACTED stamp are
+   signature elements — everything else stays plain). No fill anywhere
+   (R4.1's one filled area is the reveal's significance band, not this): the
+   zero-reference line is a hairline-weight stroke, the CI interval is a
+   plain --ink stroke, the estimate is a small --ink point. */
+.ph-coef-plot {
+  margin: var(--space-16) 0 0 0;
+}
+
+.ph-coef-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ph-coef-plot__zero {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.ph-coef-plot__ci {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ph-coef-plot__point {
+  fill: var(--ink);
+}
+
+.ph-coef-plot__caption {
+  margin-block-start: var(--space-8);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  color: var(--muted);
+}

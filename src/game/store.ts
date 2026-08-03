@@ -262,7 +262,15 @@ export function createGameStore() {
 
 // --- React binding (thin; all logic above is framework-free) --------------
 
-const gameStore = createGameStore();
+// Exported (beyond the brief's original useGameStore-only surface) — T14's
+// screen-router glue (ScreenRouter/App.tsx boot wiring) and its tests need
+// the vanilla store's own getState()/setState()/subscribe() to drive
+// boot()/openData()/etc. from outside a component and to register the crash
+// path, exactly the way tests/game/store.test.ts already does via
+// createGameStore() for a FRESH instance. This is the SAME singleton
+// `useGameStore` was already bound to; nothing about useGameStore's own
+// behavior changes.
+export const gameStore = createGameStore();
 
 export function useGameStore<T>(selector: (state: GameStore) => T): T {
   return useStore(gameStore, selector);

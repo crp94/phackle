@@ -40,6 +40,38 @@ export type CopyKey =
   | 'lab.peekFootnote'
   | 'lab.peekFootnoteArmitage'
   | 'lab.insufficient'
+  // T14 additions: SpecControls' six radiogroups need one visible label per
+  // option, on top of the per-group headings (lab.outcome/subgroup/etc.
+  // above, all pre-existing). Outcome and the two covariate NAMES come from
+  // the scenario itself (Scenario.outcomeLabels/covariateLabels); every other
+  // option (subgroup/exclusion/transform/tails, plus the covariate
+  // none/both compound) is scenario-INDEPENDENT and lives here instead.
+  | 'lab.subgroupAll'
+  | 'lab.subgroupAgeLt40'
+  | 'lab.subgroupAgeGe40'
+  | 'lab.subgroupExpHigh'
+  | 'lab.subgroupExpLow'
+  | 'lab.subgroupUrban'
+  | 'lab.subgroupRural'
+  | 'lab.covariatesNone'
+  | 'lab.covariatesBoth'
+  | 'lab.exclusionNone'
+  | 'lab.exclusionZ3'
+  | 'lab.exclusionZ2_5'
+  | 'lab.exclusionZ2'
+  | 'lab.transformRaw'
+  | 'lab.transformLog1p'
+  | 'lab.tailsTwo'
+  | 'lab.tailsOne'
+  // PValueDial's mono notation (R2.4) and CoefPlot/ForkTrail's captions —
+  // routed through copy per the "no user-facing string literal" rule even
+  // though about.decimalNote documents the p-notation itself as
+  // locale-invariant.
+  | 'lab.pEquals'
+  | 'lab.pBelow'
+  | 'lab.dfLabel'
+  | 'lab.coefPlotCaption'
+  | 'lab.forkTrailLabel'
   | 'published.faceTruth'
   | 'published.simulatedPress'
   | 'published.editorsPick'
@@ -161,6 +193,38 @@ export const copy: Record<CopyKey, string> = {
   'lab.peekFootnoteArmitage':
     'Fun fact: peeking five times at α = .05 inflates your false-positive rate to ~14% (Armitage, 1969).',
   'lab.insufficient': 'n < 30 — not enough data to analyze.',
+
+  // Subgroup radiogroup options (master spec §2.4's own table wording).
+  'lab.subgroupAll': 'All participants',
+  'lab.subgroupAgeLt40': 'Age < 40',
+  'lab.subgroupAgeGe40': 'Age ≥ 40',
+  'lab.subgroupExpHigh': 'High experience',
+  'lab.subgroupExpLow': 'Low experience',
+  'lab.subgroupUrban': 'Urban',
+  'lab.subgroupRural': 'Rural',
+
+  // Covariates radiogroup: the two named options come from the scenario
+  // (covariateLabels.income/risk); these two cover the "neither" and "both" ends.
+  'lab.covariatesNone': 'None',
+  'lab.covariatesBoth': '{income} + {risk}',
+
+  'lab.exclusionNone': 'None',
+  'lab.exclusionZ3': '|z| > 3',
+  'lab.exclusionZ2_5': '|z| > 2.5',
+  'lab.exclusionZ2': '|z| > 2',
+
+  'lab.transformRaw': 'Raw',
+  'lab.transformLog1p': 'log(1+x)',
+
+  'lab.tailsTwo': 'Two-tailed',
+  'lab.tailsOne': 'One-tailed',
+
+  // PValueDial notation (R2.4 mono/tabular; 3-decimal format below .001).
+  'lab.pEquals': 'p = {p}',
+  'lab.pBelow': 'p < 0.001',
+  'lab.dfLabel': 'df = {df}',
+  'lab.coefPlotCaption': 'Estimate {beta} {unit} (95% CI {lo} to {hi})',
+  'lab.forkTrailLabel': 'Forks so far',
 
   'published.faceTruth': 'Face the truth',
   'published.simulatedPress': 'SIMULATED PRESS',

@@ -98,13 +98,24 @@ describe('R1 palette — §7.2 tokens', () => {
     expect(prop(rootBlock, 'hack-gold-ink')).toBeDefined();
     expect(prop(darkBlock, 'hack-gold-ink')).toBeDefined();
   });
+
+  it('declares the PValueDial\'s three stepped colours in both themes (DESIGN.md R1.8)', () => {
+    for (const name of ['dial-step-1', 'dial-step-2', 'dial-step-3']) {
+      expect(prop(rootBlock, name)).toBeDefined();
+      expect(prop(darkBlock, name)).toBeDefined();
+    }
+  });
 });
 
 /* ============================================================ §7.5 contrast */
 
 // --rule draws hairlines and --hack-gold paints confetti/marks; neither ever
 // renders characters (DESIGN.md R1.4, R1.6), so neither is a text token.
-const TEXT_TOKENS = ['ink', 'muted', 'sig-red', 'assist-green', 'hack-gold-ink'];
+// --dial-step-1/2/3 (R1.8) ARE text tokens — they paint the PValueDial's
+// numeral directly — which is exactly why they must live here: this is what
+// makes R1.8's "stays >= 4.5:1 at every step" claim mechanically enforced
+// rather than merely asserted in prose.
+const TEXT_TOKENS = ['ink', 'muted', 'sig-red', 'assist-green', 'hack-gold-ink', 'dial-step-1', 'dial-step-2', 'dial-step-3'];
 
 describe('R1/R7 contrast — §7.5 requires >= 4.5:1 on every text token', () => {
   for (const theme of ['light', 'dark'] as const) {

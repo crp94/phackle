@@ -1,0 +1,70 @@
+/* DESIGN.md R8.1: Act I's signature. Largest thing on the Lab screen,
+   prominent by SIZE AND COLOUR ONLY — no shadow, no halo, no pulse.
+
+   R1.8's colour rule (amended by this task, then FIXED in a post-review
+   round — see DESIGN.md §0's dial-prose reconciliation row, R1.5's second
+   registered exception, and the §7.3 contrast table): five discrete steps,
+   ALWAYS at full opacity — --muted (p>.5), --dial-step-1 (.2<p<=.5),
+   --dial-step-2 (.1<p<=.2), --dial-step-3 (.05<=p<=.1), solid --assist-green
+   ("the glow" — a colour pop, not a literal shadow/halo, which R8.1
+   explicitly forbids here) once p<.05. No opacity is ever used to signal the
+   band: an earlier opacity-ramp version alpha-composited toward --paper and
+   silently broke the 4.5:1 floor at low proximity — see PValueDial.tsx's own
+   top-of-file comment for the exact numbers. --sig-red never appears on this
+   screen — R1.3 reserves it for Act II (the four places named there are all
+   on the reveal). */
+.ph-dial {
+  text-align: center;
+}
+
+.ph-dial__value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-dial);
+  line-height: var(--leading-dial);
+  color: var(--muted);
+  transform: translateY(0);
+  /* R5.1: the dial tick — color and <=2px translateY, 120ms. No opacity
+     (see this file's own header comment for why). */
+  transition:
+    color var(--dur-tick) var(--ease-out),
+    transform var(--dur-tick) var(--ease-out);
+}
+
+.ph-dial--step-1 .ph-dial__value {
+  color: var(--dial-step-1);
+}
+
+.ph-dial--step-2 .ph-dial__value {
+  color: var(--dial-step-2);
+}
+
+.ph-dial--step-3 .ph-dial__value {
+  color: var(--dial-step-3);
+}
+
+.ph-dial--significant .ph-dial__value {
+  color: var(--assist-green);
+}
+
+.ph-dial__value--tick {
+  transform: translateY(-2px);
+}
+
+.ph-dial__insufficient {
+  max-width: var(--measure);
+  margin-inline: auto;
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--muted);
+}
+
+.ph-dial__meta {
+  margin: var(--space-8) 0 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  color: var(--muted);
+}
