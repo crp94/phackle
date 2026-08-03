@@ -1,0 +1,14 @@
+.ph-fork-trail {
+  margin: var(--space-16) 0 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+.ph-fork-trail__label {
+  margin-inline-end: var(--space-8);
+  font-size: var(--text-13);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}

@@ -1,0 +1,54 @@
+/* DESIGN.md R8.1: Act I's signature. Largest thing on the Lab screen,
+   prominent by SIZE AND COLOUR ONLY — no shadow, no halo, no pulse.
+
+   R1.8's colour rule (amended by this task — see DESIGN.md §0's dial-prose
+   reconciliation row and R1.5's second registered exception): p >= .05
+   reads --muted, leaning toward full opacity as p approaches .05; p < .05
+   is solid --assist-green ("the glow" — a colour pop, not a literal
+   shadow/halo, which R8.1 explicitly forbids here). --sig-red never
+   appears on this screen — R1.3 reserves it for Act II (the four places
+   named there are all on the reveal). See PValueDial.tsx's own top-of-file
+   comment for why the ramp is opacity-driven, never color-mix(). */
+.ph-dial {
+  text-align: center;
+}
+
+.ph-dial__value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-dial);
+  line-height: var(--leading-dial);
+  color: var(--muted);
+  transform: translateY(0);
+  /* R5.1: the dial tick — color, opacity and <=2px translateY, 120ms. */
+  transition:
+    color var(--dur-tick) var(--ease-out),
+    opacity var(--dur-tick) var(--ease-out),
+    transform var(--dur-tick) var(--ease-out);
+}
+
+.ph-dial--significant .ph-dial__value {
+  color: var(--assist-green);
+}
+
+.ph-dial__value--tick {
+  transform: translateY(-2px);
+}
+
+.ph-dial__insufficient {
+  max-width: var(--measure);
+  margin-inline: auto;
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--muted);
+}
+
+.ph-dial__meta {
+  margin: var(--space-8) 0 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  color: var(--muted);
+}

@@ -1,0 +1,69 @@
+/* The Lab's six segmented radiogroups (DESIGN.md R6.5: no dropdowns — every
+   fork is one visible tap). Options reuse the exact selected-state pattern
+   App.css already established for the header's toggles: a 2px --ink
+   underline on the checked option (R4.6), never a filled pill. */
+.ph-spec-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: var(--measure);
+}
+
+/* R3.6: hairline-separated stack, not a grid of cards. */
+.ph-spec-group + .ph-spec-group {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+}
+
+.ph-spec-group__legend {
+  margin: 0 0 var(--space-8) 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-spec-group__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-16);
+}
+
+/* R6.4: >=44x44 tap target via scale padding, not a bigger font. */
+.ph-radio {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-radio:hover {
+  text-decoration: underline;
+}
+
+.ph-radio:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-radio:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.ph-radio:disabled:hover {
+  text-decoration: none;
+}
+
+/* R4.6: selection is a 2px --ink underline, never a filled pill. */
+.ph-radio--selected {
+  border-block-end: 2px solid var(--ink);
+}

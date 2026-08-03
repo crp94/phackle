@@ -1,0 +1,136 @@
+/* Master spec §7.3: two-pane (controls left / results right) at >=768px,
+   stacked on mobile with results pinned top, controls scrolling beneath.
+   DOM order is [results, controls] throughout (see Lab.tsx) — `column`
+   naturally puts the first child on top; `row-reverse` puts the first
+   child on the right, which is exactly "controls left, results right". */
+.ph-lab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-24);
+}
+
+.ph-lab__results {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: var(--z-sticky);
+  padding-block-end: var(--space-16);
+  border-block-end: var(--hairline);
+}
+
+.ph-lab__collect {
+  margin-block-start: var(--space-16);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-lab__collect:hover {
+  text-decoration: underline;
+}
+
+.ph-lab__collect:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-lab__collect:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.ph-lab__collect:disabled:hover {
+  text-decoration: none;
+}
+
+/* Two quiet footnotes (T6 review ruling): sincere after the 1st peek, the
+   sanctioned Act-I wink after the 2nd. Both --muted, --text-13 — neither
+   competes with the dial (R8.3). */
+.ph-lab__footnote {
+  margin: var(--space-8) 0 0 0;
+  max-width: var(--measure);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+.ph-lab__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  margin-block-start: var(--space-24);
+}
+
+.ph-lab__submit {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid var(--ink);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-lab__submit:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.ph-lab__submit:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.ph-lab__submit:disabled {
+  color: var(--muted);
+  border-block-end-color: var(--rule);
+  cursor: default;
+}
+
+/* R1.2: the "Report a null result" action is quiet, --muted text. */
+.ph-lab__abandon {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  color: var(--muted);
+  background: none;
+  border-style: none;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-lab__abandon:hover {
+  text-decoration: underline;
+}
+
+.ph-lab__abandon:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+@media (min-width: 768px) {
+  .ph-lab {
+    flex-direction: row-reverse;
+    align-items: flex-start;
+  }
+
+  .ph-lab__results {
+    position: static;
+    flex: 1;
+    padding-block-end: 0;
+    border-block-end: none;
+  }
+
+  .ph-lab__controls {
+    flex: 1;
+  }
+}

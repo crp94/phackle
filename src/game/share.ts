@@ -15,7 +15,10 @@ export const SITE_URL = 'https://phackle.carlosrodriguezpardo.es';
 // PEEK_AND_EXTEND action is encountered below. Keeping the map total over
 // ForkKind (rather than the 4 classifyChange outcomes only) avoids a partial
 // switch and doubles as the single source of truth for both call sites.
-const FORK_EMOJI: Record<ForkKind, string> = {
+// Exported so T14's ForkTrail (the Lab's live emoji strip) imports the SAME
+// legend rather than duplicating it — the one glyph source of truth for both
+// the mid-game trail and the end-of-day share string.
+export const FORK_EMOJI: Record<ForkKind, string> = {
   subgroup: '🎯',
   exclusion: '🔪',
   tails: '🌗',
