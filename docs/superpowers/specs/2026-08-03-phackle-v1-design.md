@@ -13,7 +13,7 @@ conflicts beyond the four deltas below must be flagged, not resolved silently.
 | Localization | English v1; Spanish v2 | **EN (default) / IT / ES at launch, full transcreation** |
 | Hosting | Cloudflare Pages or GitHub Pages | **Vercel**, domain `phackle.carlosrodriguezpardo.es` (ops parity with climatle) |
 | EPOCH (puzzle #1) | 2026-09-01 | **The date of first production deploy.** Set once in `tuning.ts` at deploy time, then frozen forever (streak comparability). Before deploy, dev builds use practice mode. |
-| Analytics | "none, or Plausible if desired" | **None.** About page states that nothing leaves the browser. |
+| Analytics | "none, or Plausible if desired" | **Vercel Web Analytics** (free on Hobby: 50k events/mo, cookieless, no banner). Integration: `@vercel/analytics` `inject()` + dashboard toggle. About page discloses: anonymous cookieless page counts only; no cookies, no personal data; all game state (scores, streaks, history) stays in the browser. Fallback if the free cap is ever outgrown: GoatCounter. |
 
 Scope is the full v1 (milestones M0–M5): Hacking Mode, Prereg Mode,
 achievements, share grid, stats, dark theme, PWA. The confidence slider stays
