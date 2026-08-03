@@ -26,3 +26,6 @@ pnpm-debug.log*
 
 # Controller scratch — never commit, never touch except the task report file
 .superpowers/
+
+# Agent scratch — worktrees, session state, local agent config
+.claude/
