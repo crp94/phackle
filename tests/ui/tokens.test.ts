@@ -292,6 +292,13 @@ describe('R5 motion budget is exhaustive', () => {
 
 /* ============================================================ R6 focus */
 
+/**
+ * R6.1 forbids suppressing the focus ring, in every spelling: `outline: none`,
+ * `outline: 0`, `outline-style: none`, and the JSX camelCase equivalents inside
+ * a style object. `outline-offset` and `outline: var(--focus-ring)` must survive.
+ */
+const FOCUS_SUPPRESSION_RE = /\boutline(?:-?(?:width|style))?\s*:\s*['"]?\s*(?:none|0)/gi;
+
 describe('R6 focus is a token, not a per-component decision', () => {
   it('declares a 2px --ink ring with a 2px offset', () => {
     expect(prop(rootBlock, 'focus-ring')).toBe('2px solid var(--ink)');
@@ -300,6 +307,19 @@ describe('R6 focus is a token, not a per-component decision', () => {
 
   it('never overrides the ring in the dark theme — --ink already flips', () => {
     expect(prop(darkBlock, 'focus-ring')).toBeUndefined();
+  });
+
+  it('finds no focus suppression anywhere under src/ui', () => {
+    expect(offenders(FOCUS_SUPPRESSION_RE)).toEqual([]);
+  });
+
+  it('still recognises focus suppression when it is introduced', () => {
+    // Guards the guard: this scan is R6.1's only usage-side enforcement.
+    const bad = `a { outline: none } b { outline:0 } c { outline-style: none }
+      <i style={{ outline: 'none', outlineWidth: 0, outlineStyle: "none" }} />`;
+    expect(bad.match(FOCUS_SUPPRESSION_RE)).toHaveLength(6);
+    const good = `outline: var(--focus-ring); outline-offset: var(--focus-offset); outline: 2px solid;`;
+    expect(good.match(FOCUS_SUPPRESSION_RE)).toBeNull();
   });
 });
 

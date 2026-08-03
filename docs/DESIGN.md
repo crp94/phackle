@@ -432,7 +432,13 @@ utility classes (`text-red-500`), with comments stripped. R1.3a is complete for
 its mechanical half — no `color-mix()` outside `tokens.css`, and every token name
 and hex in `tokens.css` must appear in this document. R7.3 is complete: every
 text token's contrast is recomputed against its own theme's `--paper` and must
-clear 4.5:1.
+clear 4.5:1. R6.1 is complete for the violation it names: no `outline: none`,
+`outline: 0` or `outline-style: none` — in a stylesheet or in a JSX style object,
+camelCase included — may appear anywhere under `src/ui`, and the ring's value and
+its deliberate absence from the dark block are both pinned. The test cannot see
+an element that never declares `:focus-visible` at all; that is a *missing* focus
+style rather than a *suppressed* one, and it is caught by tabbing through the
+screen — the one thing §6 asks a reviewer to actually do.
 
 **Tier C — these five must print nothing:**
 
