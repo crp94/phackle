@@ -61,12 +61,29 @@ export type CopyKey =
   | 'reveal.nullReported'
   | 'reveal.callCorrect'
   | 'reveal.callIncorrect'
+  | 'share.forksWord'
+  | 'share.streakWord'
   | 'summary.score'
   | 'summary.share'
   | 'summary.copied'
   | 'summary.nextIn'
   | 'summary.streak'
   | 'summary.playPrereg'
+  // T13 addition: one label per §2.8 scoring-table row, for the Summary
+  // screen's "fee invoice" breakdown (§7.3) that scoring.ts's scoreDay()
+  // returns as `[CopyKey, number][]` pairs. Not in the brief's explicit
+  // "(share.*)" ownership note — flagged in the T13 report: the breakdown's
+  // return TYPE requires real CopyKey members and none pre-existed for these
+  // rows (unlike the call/stamp rows, which reuse existing reveal.* keys).
+  | 'summary.breakdownCallCorrect'
+  | 'summary.breakdownCallIncorrect'
+  | 'summary.breakdownParsimony'
+  | 'summary.breakdownIntegrity'
+  | 'summary.breakdownMissedDiscovery'
+  | 'summary.breakdownTrueDiscovery'
+  | 'summary.breakdownConfirmedNull'
+  | 'summary.breakdownUnderpoweredLuck'
+  | 'summary.breakdownFalsePositive'
   | 'prereg.title'
   | 'prereg.commit'
   | 'prereg.locked'
@@ -169,12 +186,29 @@ export const copy: Record<CopyKey, string> = {
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
 
+  // §2.9 share-string human words (the emoji grid, puzzle number and URL stay
+  // identical across locales — only these two words are ever localized).
+  'share.forksWord': 'forks',
+  'share.streakWord': 'streak',
+
   'summary.score': 'Score: {score}',
   'summary.share': 'Share',
   'summary.copied': 'Copied to clipboard',
   'summary.nextIn': 'Next puzzle in {hours}h {minutes}m',
   'summary.streak': '{n} day streak',
   'summary.playPrereg': 'Try Prereg Mode',
+
+  // §2.8 scoring-table row labels for the Summary "fee invoice" breakdown —
+  // see the CopyKey union above for why these were added under T13.
+  'summary.breakdownCallCorrect': 'Correct call',
+  'summary.breakdownCallIncorrect': 'Incorrect call',
+  'summary.breakdownParsimony': 'Parsimony bonus',
+  'summary.breakdownIntegrity': 'Integrity bonus',
+  'summary.breakdownMissedDiscovery': 'Missed discovery',
+  'summary.breakdownTrueDiscovery': 'True discovery',
+  'summary.breakdownConfirmedNull': 'Confirmed null',
+  'summary.breakdownUnderpoweredLuck': 'Underpowered luck',
+  'summary.breakdownFalsePositive': 'False positive',
 
   'prereg.title': 'Preregistration',
   'prereg.commit': 'Commit to this spec',

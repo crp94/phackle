@@ -11,13 +11,25 @@ import type { CopyKey } from '../content/en/copy';
 import { detectLocale } from './locale';
 import { t as translate } from './t';
 import { getContent } from '../content';
+import { loadState, saveSettings } from '../game/storage';
 
-// The locale choice is persisted in the localStorage `settings` object (delta
-// spec i18n §2). The storage layer proper (versioned `phackle.v1` schema)
-// belongs to a later task (master spec §5.6); this reads/writes are merged
-// with whatever is already under this key so they don't clobber other
-// settings that land there later.
-const STORAGE_KEY = 'phackle.settings';
+// T13 (storage.ts) is the canonical, SINGLE persistence layer for
+// locale/theme — versioned `phackle.v1`. storage.ts's own loadState() folds
+// this file's former interim key (`phackle.settings`, T4/T5) in and REMOVES
+// it the first time anything is loaded. The four functions below delegate
+// straight to storage.ts's loadState()/saveSettings(); nothing here ever
+// reads or writes `phackle.settings` directly, so the retired key stays
+// retired — an earlier draft of this delegation also mirrored explicit
+// writes back into `phackle.settings` (to keep two pre-existing tests'
+// literal assertions passing unmodified); that mirror was removed after
+// review because it resurrected the deprecated key on every switch and,
+// under localStorage-throwing conditions, kept writing to the mirror after
+// saveSettings had already degraded to the in-memory fallback — making the
+// deprecated key MORE durable than the canonical one. The two affected
+// assertions (tests/i18n/LocaleProvider.test.tsx, tests/ui/shell.test.tsx)
+// were updated to check `phackle.v1` instead; see
+// tests/i18n/LocaleProvider.test.tsx's "does not resurrect the legacy
+// phackle.settings key" test for the regression guard.
 
 // Master spec §5.6 names this exact union for the persisted settings field:
 // `settings: { reducedMotion?: boolean, theme?: 'paper'|'dark' } }`. 'paper' is
@@ -28,67 +40,21 @@ const STORAGE_KEY = 'phackle.settings';
 // place these two vocabularies meet.
 export type Theme = 'paper' | 'dark';
 
-function isLocale(value: unknown): value is Locale {
-  return value === 'en' || value === 'it' || value === 'es';
-}
-
-function isTheme(value: unknown): value is Theme {
-  return value === 'paper' || value === 'dark';
-}
-
-// Reached through `window.localStorage` explicitly (never the bare
-// `localStorage` global): newer Node versions define their own file-backed
-// `globalThis.localStorage`, which a jsdom test environment cannot shadow as
-// a bare identifier — but `window.localStorage` still resolves to jsdom's
-// (or, in a real browser, the browser's) implementation either way.
 function readStoredLocale(): Locale | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { locale?: unknown } | null;
-    return isLocale(parsed?.locale) ? parsed.locale : null;
-  } catch {
-    return null;
-  }
+  return loadState().settings.locale ?? null;
 }
 
 function writeStoredLocale(locale: Locale): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, locale }));
-  } catch {
-    // Storage unavailable (private browsing, quota, disabled entirely) — the
-    // choice just won't survive a reload this session. errors.storageOff
-    // covers the user-facing copy for this failure class.
-  }
+  saveSettings({ locale });
 }
 
-// Same key, same merge-safe read/write pattern as locale above — the settings
-// blob carries both fields side by side (do NOT invent a second storage key).
+// Same merge-safe pattern as locale above.
 function readStoredTheme(): Theme | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { theme?: unknown } | null;
-    return isTheme(parsed?.theme) ? parsed.theme : null;
-  } catch {
-    return null;
-  }
+  return loadState().settings.theme ?? null;
 }
 
 function writeStoredTheme(theme: Theme): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, theme }));
-  } catch {
-    // See writeStoredLocale above — the choice just won't survive a reload.
-  }
+  saveSettings({ theme });
 }
 
 /** DESIGN.md R7.1: "falling back to matchMedia('(prefers-color-scheme: dark)')" —

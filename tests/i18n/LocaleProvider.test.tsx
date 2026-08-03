@@ -4,13 +4,15 @@ import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/re
 import { LocaleProvider, useLocale } from '../../src/i18n/LocaleProvider';
 
 function Probe() {
-  const { locale, content, copy, t, setLocale } = useLocale();
+  const { locale, content, copy, t, setLocale, theme, setTheme } = useLocale();
   return (
     <div>
       <span data-testid="locale">{locale}</span>
+      <span data-testid="theme">{theme}</span>
       <span data-testid="title">{content ? t('nav.title') : 'loading'}</span>
       <span data-testid="copy-keys">{copy ? Object.keys(copy).length : 0}</span>
       <button onClick={() => setLocale('it')}>switch-to-it</button>
+      <button onClick={() => setTheme('dark')}>switch-to-dark</button>
     </div>
   );
 }
@@ -56,8 +58,40 @@ describe('LocaleProvider / useLocale', () => {
 
     await waitFor(() => expect(screen.getByTestId('locale').textContent).toBe('it'));
     expect(document.documentElement.lang).toBe('it');
-    const stored = JSON.parse(window.localStorage.getItem('phackle.settings') ?? '{}');
-    expect(stored.locale).toBe('it');
+    // T13 fix-up: the persisted contract is now `phackle.v1` (storage.ts) —
+    // not the retired interim `phackle.settings` key (see the removed
+    // mirrorLegacySettings note in src/i18n/LocaleProvider.tsx).
+    const stored = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(stored.settings.locale).toBe('it');
+  });
+
+  it('does not resurrect the legacy phackle.settings key on a locale/theme toggle', async () => {
+    // Seed the legacy key so loadState's fold-in-and-remove (storage.ts,
+    // ruling amending the brief) actually has something to remove — this
+    // test is about it STAYING removed afterward, not about it never having
+    // existed. No theme in the seed, so the "switch-to-dark" click below is
+    // a real paper->dark transition, not a same-value no-op.
+    window.localStorage.setItem('phackle.settings', JSON.stringify({ locale: 'es' }));
+
+    render(
+      <LocaleProvider>
+        <Probe />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByTestId('title').textContent).toBe('P-hackle'));
+
+    // The fold-in-and-remove already ran synchronously during mount (both
+    // useState lazy initializers call loadState()) — confirm it's gone
+    // BEFORE the toggle, so the assertion after the toggle proves
+    // non-resurrection rather than "was never removed to begin with".
+    expect(window.localStorage.getItem('phackle.settings')).toBeNull();
+
+    fireEvent.click(screen.getByText('switch-to-it'));
+    await waitFor(() => expect(screen.getByTestId('locale').textContent).toBe('it'));
+    fireEvent.click(screen.getByText('switch-to-dark'));
+    await waitFor(() => expect(screen.getByTestId('theme').textContent).toBe('dark'));
+
+    expect(window.localStorage.getItem('phackle.settings')).toBeNull();
   });
 
   it('reads a previously-stored locale on mount, ahead of the navigator default', () => {
