@@ -36,6 +36,7 @@ in `tokens.css` and in this table.
 | §7.2 `--hack-gold` for "career points" (i.e. text) | Gold on characters uses `--hack-gold-ink` (R1.6) | `--hack-gold` is 2.94:1 on paper — it fails §7.5's 4.5:1 floor as text. §7.2's hex is unchanged |
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
+| §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) interpolates `--muted` → `--assist-green`, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for this display-scale green; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all |
 | §7.2 fixes **seven** colours | Exactly **two** are derived from them, both declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6) and `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1). Neither counts as a new colour against R1.3 or R1.6; any third derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first and §7.4's tint forces the second — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
@@ -81,11 +82,14 @@ band.
 - Don't: `color: var(--rule);` — it is 1.42:1 on paper and illegible by design.
 
 **R1.5 — `--assist-green` appears only inline at text scale (≤1em)** — the
-REPLICATED verdict word, the integrity-bonus line, "better" deltas. Exception
-(registered in §0): the REPLICATED verdict stamp renders in `--assist-green`
-— the one sanctioned display-scale green, exactly parallel to R1.3's stamp
-entry for `--sig-red`.
-- Do: `<em style="color: var(--assist-green)">REPLICATED</em>` at `--text-15`.
+REPLICATED verdict word, the integrity-bonus line, "better" deltas. Two
+exceptions (both registered in §0): the REPLICATED verdict stamp renders in
+`--assist-green` at display scale, exactly parallel to R1.3's stamp entry for
+`--sig-red`; and the Lab's `PValueDial` (R8.1's Act I signature, `--text-dial`
+scale) turns `--assist-green` once its p < .05 — R1.8's colour rule, Act I's
+half.
+- Do: `<em style="color: var(--assist-green)">REPLICATED</em>` at `--text-15`;
+  or `color: var(--assist-green)` on the PValueDial numeral once p < .05.
 - Don't: `background: var(--assist-green);` on a success banner — green is never a
   fill, a button, or a background.
 
@@ -101,11 +105,23 @@ no named CSS colours in `src/ui/**`.
 - Do: `color: var(--ink);`
 - Don't: `color: black;`
 
-**R1.8 — The dial's colour interpolates between exactly two tokens.** As p → .05
-it runs `--muted` → `--sig-red` in `oklab`, and touches no third colour. The whole
-path stays ≥5.05:1 in both themes; do not introduce a midpoint.
-- Do: `color: color-mix(in oklab, var(--muted), var(--sig-red) calc(var(--p-proximity) * 100%));`
-- Don't: `color: color-mix(in oklab, var(--hack-gold), var(--sig-red) 50%);`
+**R1.8 — The dial's colour interpolates between exactly two tokens: `--muted`
+and `--assist-green`** (§0's dial-prose reconciliation row) — never
+`--sig-red`, which stays Act II's alone (R1.3's four places are all on the
+reveal). As p → .05 the dial reads more `--assist-green`-forward, landing on
+solid `--assist-green` at p < .05 (R1.5's second exception); the whole path
+stays ≥4.5:1 in both themes and touches no third colour. R1.3a separately
+forbids `color-mix()`/`color-contrast()` outside `tokens.css` (`tests/ui/
+tokens.test.ts` fails the build on a hit anywhere in `src/ui`), so the "as p
+approaches" motion is an **opacity** ramp on the two discrete tokens, never a
+literal colour mix.
+- Do: hold `color: var(--muted)` and ramp `opacity` up as p → .05, then switch
+  to solid `color: var(--assist-green)` (`opacity: 1`) once p < .05 — see
+  `pProximity` in `src/ui/components/PValueDial.tsx`.
+- Don't: `color: color-mix(in oklab, var(--muted), var(--assist-green) …);` in
+  a component file — R1.3a's grep fails the build on any `color-mix(` outside
+  `tokens.css`.
+- Don't: reference `var(--sig-red)` anywhere in the Lab.
 
 ---
 
