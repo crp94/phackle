@@ -18,6 +18,8 @@ import { useGameStore, type GameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { SCORING } from '../../game/tuning';
 import {
+  altmetricPercentile,
+  altmetricScore,
   confettiParticlesForTier,
   egregiousnessTier,
   fakeDoi,
@@ -181,6 +183,15 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
   // (that function's own cumulative, day-level breakdown belongs to the
   // Summary screen, T17) is needed just to show it here.
   const careerPoints = t('published.careerPoints', { n: SCORING.publishedCareer });
+  // Review fix (Important): master spec §2.5's fifth celebration element,
+  // "a fake altmetric counter spinning up" -- rendered STATIC (the "spinning
+  // up" motion would be a fifth, un-budgeted animation; DESIGN.md's list of
+  // four is exhaustive) precisely the way the press-card "sliding in"
+  // language was already resolved above: a documented precedence note, no
+  // animation added. See src/game/published.ts's altmetricScore/
+  // altmetricPercentile for the tier-scaling contract.
+  const altmetricScoreText = t('published.altmetricScore', { n: altmetricScore(iso, tier) });
+  const altmetricPercentileText = t('published.altmetricPercentile', { n: altmetricPercentile(iso, tier) });
 
   // Two press cards (master spec §2.5: "1-2 fake press blurbs"); the second
   // salts `iso` rather than growing pickPress a bespoke "exclude" parameter
@@ -242,6 +253,12 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
         {/* R1.6: the one place --hack-gold-ink paints characters (confetti's
             marks use plain --hack-gold instead -- see ConfettiLayer). */}
         <p className="ph-published__career">{careerPoints}</p>
+        {/* Master spec §2.5's altmetric counter -- static, tier-scaled (R1.6's
+            gold list does not include it: ink/muted only, see Published.css). */}
+        <div className="ph-altmetric">
+          <p className="ph-altmetric__score">{altmetricScoreText}</p>
+          <p className="ph-altmetric__percentile">{altmetricPercentileText}</p>
+        </div>
         <ul className="ph-press-list">
           <PressCard blurb={card1} t={t} />
           <PressCard blurb={card2} t={t} />

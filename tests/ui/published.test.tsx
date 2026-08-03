@@ -15,7 +15,7 @@ import type { PathResult } from '../../src/engine/types';
 import { content as enContent } from '../../src/content/en';
 import { JOURNALS } from '../../src/content/journals';
 import { isoFromPuzzleNumber } from '../../src/game/puzzleDate';
-import { pickJournal, pickPress, substituteEffect, fakeDoi } from '../../src/game/published';
+import { altmetricPercentile, altmetricScore, pickJournal, pickPress, substituteEffect, fakeDoi } from '../../src/game/published';
 import { SCORING } from '../../src/game/tuning';
 import { Published, loadCallScreenFromRegistry, type LazyScreenComponent } from '../../src/ui/screens/Published';
 import { JournalCover } from '../../src/ui/components/JournalCover';
@@ -166,6 +166,54 @@ describe('Published: journal cover wiring', () => {
     renderPublished();
     await waitFor(() => expect(document.documentElement.lang).toBe('it'));
     expect(screen.getByText(expectedJournal)).toBeTruthy();
+  });
+});
+
+describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th celebration element, static/tier-scaled, never animated)', () => {
+  it('shows the tier-scaled attention score and percentile line, computed the same way Published itself does', async () => {
+    const iso = isoFromPuzzleNumber(1);
+    const tier = 2; // forks=5 below
+    const expectedScore = altmetricScore(iso, tier);
+    const expectedPercentile = altmetricPercentile(iso, tier);
+
+    renderPublished({ forks: 5 });
+
+    await waitFor(() => expect(screen.getByText(`Attention score: ${expectedScore}`)).toBeTruthy());
+    expect(screen.getByText(`Top ${expectedPercentile}% of all research outputs, all time`)).toBeTruthy();
+  });
+
+  it('scales up with egregiousness tier -- a tier-3 (forks>=10) score is always bigger than a tier-1 (forks<=3) score, same day', async () => {
+    const iso = isoFromPuzzleNumber(1);
+
+    const tier1 = renderPublished({ forks: 1 });
+    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
+    const tier1Score = altmetricScore(iso, 1);
+    expect(screen.getByText(`Attention score: ${tier1Score}`)).toBeTruthy();
+    tier1.unmount();
+
+    const tier3 = renderPublished({ forks: 12 });
+    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
+    const tier3Score = altmetricScore(iso, 3);
+    expect(screen.getByText(`Attention score: ${tier3Score}`)).toBeTruthy();
+    expect(tier3Score).toBeGreaterThan(tier1Score);
+    tier3.unmount();
+  });
+
+  it('renders no animation/transition class on the altmetric block (§2.5\'s "spinning up" would be a 5th, un-budgeted motion)', async () => {
+    const { container } = renderPublished({ forks: 1 });
+    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
+
+    const block = container.querySelector('.ph-altmetric');
+    expect(block).toBeTruthy();
+    // Structural proof, not just a visual read: no element inside the block
+    // (or the block itself) declares a `class` naming an animation/transition
+    // hook, and the CSS file backing it is grepped for transition/animation
+    // properties in the DESIGN.md self-audit (tracked in the fix report).
+    const allNodes = [block, ...(block ? Array.from(block.querySelectorAll('*')) : [])];
+    for (const node of allNodes) {
+      const classAttr = node?.getAttribute('class') ?? '';
+      expect(classAttr).not.toMatch(/animate|spin|transition/i);
+    }
   });
 });
 

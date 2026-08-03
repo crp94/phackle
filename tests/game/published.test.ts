@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  altmetricPercentile,
+  altmetricScore,
   confettiParticlesForTier,
   egregiousnessTier,
   fakeDoi,
@@ -54,6 +56,71 @@ describe('confettiParticlesForTier (R5.4: 150/250/400 by tier)', () => {
 
   it('never exceeds R5.4s hard cap of 400', () => {
     expect(confettiParticlesForTier(3)).toBeLessThanOrEqual(400);
+  });
+});
+
+describe('altmetricScore (review fix: the §2.5 attention-score figure, static/tier-scaled, fnv1a32(iso)-seeded)', () => {
+  it('is deterministic for the same (iso, tier)', () => {
+    expect(altmetricScore(ISO, 1)).toBe(altmetricScore(ISO, 1));
+    expect(altmetricScore(ISO, 3)).toBe(altmetricScore(ISO, 3));
+  });
+
+  it('scales strictly monotonically with tier, for every iso (bigger tier -> more absurd score)', () => {
+    const isos = ['2026-01-01', '2026-08-10', '2026-08-11', '2027-03-03', '2027-12-25'];
+    for (const iso of isos) {
+      const s1 = altmetricScore(iso, 1);
+      const s2 = altmetricScore(iso, 2);
+      const s3 = altmetricScore(iso, 3);
+      expect(s1).toBeLessThan(s2);
+      expect(s2).toBeLessThan(s3);
+    }
+  });
+
+  it('varies across dates for the same tier (not a constant)', () => {
+    const isos = Array.from({ length: 30 }, (_, i) => `2026-08-${String(i + 1).padStart(2, '0')}`);
+    const scores = new Set(isos.map((iso) => altmetricScore(iso, 2)));
+    expect(scores.size).toBeGreaterThan(1);
+  });
+
+  it('is always a positive whole number', () => {
+    for (const tier of [1, 2, 3] as const) {
+      const score = altmetricScore(ISO, tier);
+      expect(Number.isInteger(score)).toBe(true);
+      expect(score).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('altmetricPercentile (the joke escalates: a SMALLER top-N% reads as MORE impressive)', () => {
+  it('is deterministic for the same (iso, tier)', () => {
+    expect(altmetricPercentile(ISO, 1)).toBe(altmetricPercentile(ISO, 1));
+  });
+
+  it('scales strictly monotonically DOWN with tier, for every iso (tier 3 always reads more exclusive than tier 1)', () => {
+    const isos = ['2026-01-01', '2026-08-10', '2026-08-11', '2027-03-03', '2027-12-25'];
+    for (const iso of isos) {
+      const p1 = altmetricPercentile(iso, 1);
+      const p2 = altmetricPercentile(iso, 2);
+      const p3 = altmetricPercentile(iso, 3);
+      expect(p1).toBeGreaterThan(p2);
+      expect(p2).toBeGreaterThan(p3);
+    }
+  });
+
+  it('reaches the controller-suggested "Top 1%" territory at tier 3', () => {
+    for (const iso of ['2026-01-01', '2026-08-10', '2027-12-25']) {
+      expect(altmetricPercentile(iso, 3)).toBeLessThanOrEqual(5);
+      expect(altmetricPercentile(iso, 3)).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('is always a whole number between 1 and 100', () => {
+    for (const tier of [1, 2, 3] as const) {
+      const pct = altmetricPercentile(ISO, tier);
+      expect(Number.isInteger(pct)).toBe(true);
+      expect(pct).toBeGreaterThanOrEqual(1);
+      expect(pct).toBeLessThanOrEqual(100);
+    }
   });
 });
 

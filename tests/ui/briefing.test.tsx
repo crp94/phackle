@@ -57,9 +57,9 @@ describe('Briefing', () => {
     await waitFor(() => expect(screen.getByText(enContent.scenarios[0].coverStory)).toBeTruthy());
   });
 
-  it('renders "Corresponding author: Prof. R. Grantwell" (existing copy key)', async () => {
+  it('renders "Corresponding author: You" (review fix: the player is the author, Grantwell is only the PI emailing them)', async () => {
     renderBriefing();
-    await waitFor(() => expect(screen.getByText('Corresponding author: Prof. R. Grantwell')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Corresponding author: You')).toBeTruthy());
   });
 
   it("renders Prof. Grantwell's EmailCard with the correct from/subject/body, rotated by date", async () => {

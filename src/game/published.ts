@@ -31,6 +31,52 @@ export function confettiParticlesForTier(tier: EgregiousnessTier): number {
   return CONFETTI_PARTICLES_BY_TIER[tier];
 }
 
+/**
+ * Master spec §2.5's fifth celebration element, "a fake altmetric counter
+ * spinning up" — review fix (Important): the "spinning up" motion would be a
+ * fifth, un-budgeted animation (DESIGN.md's four-item list is exhaustive),
+ * exactly the same conflict the press-card "sliding in" language raised —
+ * resolved the same way, one documented precedence note: rendered as a
+ * STATIC, tier-scaled figure instead.
+ *
+ * Non-overlapping per-tier ranges (not a single scaled multiplier) so
+ * "bigger tier -> more absurd score" is a HARD invariant — true for every
+ * iso, not just on average: tier 1 always lands below tier 2, which always
+ * lands below tier 3. `fnv1a32('altmetric:'+iso)` picks the offset within
+ * the tier's own band, so the score still varies day to day.
+ */
+const ALTMETRIC_SCORE_RANGE_BY_TIER: Record<EgregiousnessTier, [number, number]> = {
+  1: [40, 90], // "a modest amount of notice" -- still sincere, not yet absurd
+  2: [300, 900], // picked up by the aggregators
+  3: [9000, 9999], // "went viral"
+};
+
+export function altmetricScore(iso: string, tier: EgregiousnessTier): number {
+  const [min, max] = ALTMETRIC_SCORE_RANGE_BY_TIER[tier];
+  const span = max - min;
+  const offset = fnv1a32(`altmetric:${iso}`) % (span + 1);
+  return min + offset;
+}
+
+/**
+ * The companion percentile line (the joke escalates the OTHER direction: a
+ * SMALLER top-N% reads as more impressive). Same non-overlapping-ranges
+ * technique as `altmetricScore`, descending by tier, bottoming out at the
+ * controller-suggested "Top 1%" territory for tier 3.
+ */
+const ALTMETRIC_PERCENTILE_RANGE_BY_TIER: Record<EgregiousnessTier, [number, number]> = {
+  1: [50, 80], // "top 50-80%" reads as faint praise, deliberately unremarkable
+  2: [15, 40],
+  3: [1, 5], // "Top 1% of all research outputs, all time"
+};
+
+export function altmetricPercentile(iso: string, tier: EgregiousnessTier): number {
+  const [min, max] = ALTMETRIC_PERCENTILE_RANGE_BY_TIER[tier];
+  const span = max - min;
+  const offset = fnv1a32(`altmetric-pct:${iso}`) % (span + 1);
+  return min + offset;
+}
+
 /** `10.1337/phk.{puzzleNumber}` — master spec §7.3's fake DOI, exactly. */
 export function fakeDoi(puzzleNumber: number): string {
   return `10.1337/phk.${puzzleNumber}`;

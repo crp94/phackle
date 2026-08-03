@@ -29,6 +29,31 @@
   margin: var(--space-16) 0 0;
 }
 
+/* Review fix: master spec §2.5's altmetric counter. Static (no
+   transition/animation property anywhere here -- the spec's "spinning up"
+   would be a 5th, un-budgeted motion; DESIGN.md's four-item list is
+   exhaustive, resolved the same way the press-card "sliding in" language
+   was: a documented precedence note, no motion added). R1.6's gold list
+   does not include this figure, so it stays on R1.2's default tokens
+   (--muted), never --hack-gold/-ink. */
+.ph-altmetric {
+  margin: var(--space-8) 0 0;
+}
+
+/* R2.4: every numeral is mono/tabular -- both lines carry one as their
+   whole point, so (matching .ph-published__career's own precedent just
+   above, and .ph-header__vol's in src/ui/App.css) the short phrase is
+   styled as one mono unit, not just the digits in isolation. */
+.ph-altmetric__score,
+.ph-altmetric__percentile {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0;
+}
+
 /* R3.2: the press cards are their own section (a distinct beat after the
    citation block), so this gap joins the CTA's at --space-40, not a mix of
    24/40 for what R3.2 calls the same page rhythm. R3.6: a hairline-separated
