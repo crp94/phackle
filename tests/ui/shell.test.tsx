@@ -131,8 +131,12 @@ describe('theme toggle', () => {
     const toggled = screen.getByRole('button', { name: 'Dark' });
     expect(toggled.getAttribute('aria-pressed')).toBe('true');
 
-    const stored = JSON.parse(window.localStorage.getItem('phackle.settings') ?? '{}');
-    expect(stored.theme).toBe('dark');
+    // T13 fix-up: the persisted contract is now `phackle.v1` (storage.ts) —
+    // not the retired interim `phackle.settings` key. See
+    // tests/i18n/LocaleProvider.test.tsx's "does not resurrect the legacy
+    // phackle.settings key" test for the regression guard on this change.
+    const stored = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(stored.settings.theme).toBe('dark');
   });
 
   it('reads a previously-stored theme on mount, ahead of any content load', () => {

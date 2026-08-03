@@ -13,26 +13,23 @@ import { t as translate } from './t';
 import { getContent } from '../content';
 import { loadState, saveSettings } from '../game/storage';
 
-// T13 (storage.ts) is now the canonical persistence layer for locale/theme —
-// versioned `phackle.v1`, with storage.ts's own loadState() folding this
-// file's former interim key (`phackle.settings`, T4/T5) in and removing it
-// the first time anything is loaded. readStoredLocale/writeStoredLocale/
-// readStoredTheme/writeStoredTheme below delegate to storage.ts's
-// loadState()/saveSettings() accordingly.
-//
-// mirrorLegacySettings is a deliberate, narrowly-scoped exception to "the old
-// key goes away": two pre-existing test suites — tests/i18n/LocaleProvider.test.tsx
-// (this file's own) and tests/ui/shell.test.tsx (T5's, outside this task's
-// ownership) — assert directly against `phackle.settings` immediately after an
-// explicit locale/theme switch. storage.ts's loadState() legitimately retires
-// that key once its contents are folded into `phackle.v1`, so an explicit
-// write here re-populates it with just the field that changed, purely for
-// those two suites' benefit — it is not load-bearing for the app's own
-// persistence (reads never consult it; see readStoredLocale/readStoredTheme).
-// Remove this mirror (and repoint the two assertions at `phackle.v1`) once
-// shell.test.tsx is back in some task's editable scope — flagged in the T13
-// report.
-const STORAGE_KEY = 'phackle.settings';
+// T13 (storage.ts) is the canonical, SINGLE persistence layer for
+// locale/theme — versioned `phackle.v1`. storage.ts's own loadState() folds
+// this file's former interim key (`phackle.settings`, T4/T5) in and REMOVES
+// it the first time anything is loaded. The four functions below delegate
+// straight to storage.ts's loadState()/saveSettings(); nothing here ever
+// reads or writes `phackle.settings` directly, so the retired key stays
+// retired — an earlier draft of this delegation also mirrored explicit
+// writes back into `phackle.settings` (to keep two pre-existing tests'
+// literal assertions passing unmodified); that mirror was removed after
+// review because it resurrected the deprecated key on every switch and,
+// under localStorage-throwing conditions, kept writing to the mirror after
+// saveSettings had already degraded to the in-memory fallback — making the
+// deprecated key MORE durable than the canonical one. The two affected
+// assertions (tests/i18n/LocaleProvider.test.tsx, tests/ui/shell.test.tsx)
+// were updated to check `phackle.v1` instead; see
+// tests/i18n/LocaleProvider.test.tsx's "does not resurrect the legacy
+// phackle.settings key" test for the regression guard.
 
 // Master spec §5.6 names this exact union for the persisted settings field:
 // `settings: { reducedMotion?: boolean, theme?: 'paper'|'dark' } }`. 'paper' is
@@ -43,26 +40,12 @@ const STORAGE_KEY = 'phackle.settings';
 // place these two vocabularies meet.
 export type Theme = 'paper' | 'dark';
 
-function mirrorLegacySettings(patch: Partial<{ locale: Locale; theme: Theme }>): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, ...patch }));
-  } catch {
-    // Storage unavailable (private browsing, quota, disabled entirely) — see
-    // storage.ts's own graceful degradation, which the two functions below
-    // already go through; this mirror is best-effort only.
-  }
-}
-
 function readStoredLocale(): Locale | null {
   return loadState().settings.locale ?? null;
 }
 
 function writeStoredLocale(locale: Locale): void {
   saveSettings({ locale });
-  mirrorLegacySettings({ locale });
 }
 
 // Same merge-safe pattern as locale above.
@@ -72,7 +55,6 @@ function readStoredTheme(): Theme | null {
 
 function writeStoredTheme(theme: Theme): void {
   saveSettings({ theme });
-  mirrorLegacySettings({ theme });
 }
 
 /** DESIGN.md R7.1: "falling back to matchMedia('(prefers-color-scheme: dark)')" —
