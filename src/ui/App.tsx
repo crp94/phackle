@@ -1,24 +1,68 @@
 // The app shell (master spec §7.1/§7.3, DESIGN.md throughout): the running
 // header ("P-hackle · Vol. 1, No. {puzzleNumber}"), the theme and locale
-// toggles, and the <main> slot later screen tasks render into. Store-agnostic
-// by design (T12's store isn't merged yet) — puzzleNumber arrives as a prop.
-import type { ReactNode } from 'react';
+// toggles, and the <main> slot ScreenRouter renders into.
+//
+// T14 wiring: once T5's loading gate has resolved (content loaded), boot the
+// engine exactly once — `createEngineClient()` + `store.boot(...)` — using
+// today's local ISO date, practice-mode detection (`?practice=1` OR "today is
+// before EPOCH", both handled by daily.isPractice), hack mode, and the
+// loaded locale's own scenario count. `client.onCrash` -> store.error is
+// already wired INSIDE store.boot() itself (see store.ts); the try/catch
+// below extends that same store.error -> errors.workerCrash path to cover
+// createEngineClient() itself throwing synchronously (e.g., an environment
+// with no Worker support at all) — a real, if rare, failure mode, and
+// notably the ONLY way T5's pre-existing shell.test.tsx (which renders
+// <App> directly, unmocked) keeps passing: jsdom has no global Worker, so an
+// uncaught throw here would otherwise crash every one of those renders.
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useLocale, type Theme } from '../i18n/LocaleProvider';
 import { AVAILABLE_LOCALES } from '../i18n/locale';
 import type { Locale } from '../engine/types';
 import type { CopyKey } from '../content/en/copy';
+import { gameStore, useGameStore } from '../game/store';
+import { createEngineClient } from '../game/engineClient';
+import { isPractice, localIsoDate } from '../game/daily';
 import './App.css';
 
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
 
 export interface AppProps {
-  /** Placeholder value until the store (T12) is merged: `puzzleNumber(localIsoDate())`. */
+  /** Pre-boot fallback: main.tsx's own `puzzleNumber(localIsoDate())`, which
+   * is synchronously correct even before the engine has booted. Once the
+   * store's own boot() resolves, the header prefers ITS puzzleNumber (the
+   * same formula, but the single source of truth from then on) — see
+   * `displayedPuzzleNumber` below. Kept as a required prop (rather than
+   * folded away entirely) so this component still renders its header
+   * correctly in isolation, before any boot has ever happened — exactly
+   * tests/ui/shell.test.tsx's own use of it. */
   puzzleNumber: number;
   children?: ReactNode;
 }
 
 export default function App({ puzzleNumber, children }: AppProps) {
   const { content, copy, t, theme, setTheme, locale, setLocale } = useLocale();
+  const boot = useGameStore((s) => s.boot);
+  const storePuzzleNumber = useGameStore((s) => s.puzzleNumber);
+  const didBootRef = useRef(false);
+
+  // Guarded by a ref (not only the dependency array): `content`'s reference
+  // never actually changes mid-session in any of today's flows (locale
+  // never switches after first load), but the ref is cheap insurance against
+  // ever booting — and silently resetting the player's progress — twice.
+  useEffect(() => {
+    if (!content || didBootRef.current) return;
+    didBootRef.current = true;
+    try {
+      const client = createEngineClient();
+      void boot(client, localIsoDate(), {
+        practice: isPractice(window.location.search),
+        mode: 'hack',
+        scenarioCount: content.scenarios.length,
+      });
+    } catch (err) {
+      gameStore.setState({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }, [content, boot]);
 
   // Loading-gate convention (ratified by the controller alongside T4): content
   // is null for one async tick while the locale bundle loads. Nothing below
@@ -29,13 +73,18 @@ export default function App({ puzzleNumber, children }: AppProps) {
     return <div className="ph-app" aria-busy="true" data-testid="app-loading" />;
   }
 
+  // storePuzzleNumber is 0 (initialState()'s default) until boot() resolves,
+  // so this prefers the prop until then and switches over exactly once the
+  // store has a real number of its own.
+  const displayedPuzzleNumber = storePuzzleNumber || puzzleNumber;
+
   return (
     <div className="ph-app">
       <header className="ph-header">
         <p className="ph-header__masthead">
           {/* The wordmark is the one permitted raw string besides emoji. */}
           <span className="ph-header__wordmark">P-hackle</span>
-          <span className="ph-header__vol">{t('briefing.vol', { volume: 1, issue: puzzleNumber })}</span>
+          <span className="ph-header__vol">{t('briefing.vol', { volume: 1, issue: displayedPuzzleNumber })}</span>
         </p>
         <div className="ph-header__controls">
           <ThemeToggle theme={theme} setTheme={setTheme} t={t} />

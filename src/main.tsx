@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './ui/App';
+import { ScreenRouter } from './ui/ScreenRouter';
 import { LocaleProvider } from './i18n/LocaleProvider';
 import { puzzleNumber, localIsoDate } from './game/daily';
 import './ui/theme/tokens.css';
@@ -19,14 +20,17 @@ if (!rootElement) {
   throw new Error('Root element #root not found');
 }
 
-// Placeholder until T12's store is merged — App itself stays store-agnostic
-// and just accepts the number as a prop (see AppProps doc in ./ui/App.tsx).
+// Pre-boot fallback for the header (see AppProps doc in ./ui/App.tsx) —
+// App itself boots the real engine on mount and prefers the store's own
+// puzzleNumber the instant that resolves.
 const todaysPuzzleNumber = puzzleNumber(localIsoDate());
 
 createRoot(rootElement).render(
   <StrictMode>
     <LocaleProvider>
-      <App puzzleNumber={todaysPuzzleNumber} />
+      <App puzzleNumber={todaysPuzzleNumber}>
+        <ScreenRouter />
+      </App>
     </LocaleProvider>
   </StrictMode>,
 );
