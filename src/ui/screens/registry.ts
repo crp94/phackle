@@ -5,13 +5,15 @@
 import type { ComponentType } from 'react';
 import type { Screen } from '../../game/store';
 import { Lab } from './Lab';
-import { BriefingStub, CallStub, PublishedStub, RevealStub, SummaryStub } from './stubs';
+import { Call } from './Call';
+import { Reveal } from './Reveal';
+import { BriefingStub, PublishedStub, SummaryStub } from './stubs';
 
 export const SCREENS: Record<Screen, ComponentType> = {
   briefing: BriefingStub,
   lab: Lab,
   published: PublishedStub,
-  call: CallStub,
-  reveal: RevealStub,
+  call: Call,
+  reveal: Reveal,
   summary: SummaryStub,
 };
