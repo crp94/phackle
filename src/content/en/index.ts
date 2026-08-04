@@ -87,7 +87,7 @@ export const content: LocaleContent = {
       id: 'sourdough-marathon',
       question: 'Does baking sourdough improve marathon times?',
       coverStory:
-        'Endurance training has been studied to exhaustion. The baking has not. Our hypothesis is behavioral rather than nutritional: twelve weeks of refusing to rush a rise should transfer directly to the patience a negative split demands. We recruited amateur marathoners through running clubs and one exceptionally cooperative flour co-op, then matched their starter logs to their chip times. The co-op is still sending people.',
+        'Endurance training has been studied to exhaustion. The baking has not. Our hypothesis is behavioral rather than nutritional: twelve weeks of refusing to rush a rise should transfer directly to the patience a negative split demands. We recruited amateur marathoners through running clubs and one exceptionally cooperative flour co-op, matched their starter logs to their chip times, and waited. The co-op is still sending people.',
       treatmentLabel: 'Keeps a sourdough starter',
       headline: 'Sourdough Bakers Finish Marathons {effect}% Faster, Researchers Report',
       outcomeLabels: [
@@ -121,7 +121,7 @@ export const content: LocaleContent = {
       id: 'fern-negotiation',
       question: 'Do office ferns make you a tougher negotiator?',
       coverStory:
-        'Biophilic design is sold to facilities managers on wellbeing alone. Nobody has asked what it does across a table. We placed one Boston fern in the office of every procurement officer who agreed to take part, left it there for a full contracting cycle, and then obtained the final terms of every deal they closed. Permission was granted in every case, in several after considerable pleading.',
+        'Biophilic design is sold to facilities managers on wellbeing alone. Nobody has asked what it does across a table. We placed a single Boston fern in the office of every procurement officer who agreed to take part, left it there for one full contracting cycle, and then obtained the final terms of every deal they closed. Permission was granted in every case, in several after considerable pleading.',
       treatmentLabel: 'Keeps a fern on the desk',
       headline: 'Office Ferns Associated with €{effect}k Better Contract Terms',
       outcomeLabels: [
@@ -189,7 +189,7 @@ export const content: LocaleContent = {
       id: 'dog-economist-stocks',
       question: 'Do people with dogs named after economists beat the market?',
       coverStory:
-        "Retail investing folklore holds that conviction has to come from somewhere. We asked brokerage customers for their pets' names and hand-classified each against a reference list of economists (Keynes, Hayek, Ostrom, and one Milton the lab argued about for a week), then matched the classification to two years of audited account statements. The classification queue is not yet empty.",
+        "Retail investing folklore holds that conviction has to come from somewhere. We asked brokerage customers for their pets' names and hand-classified each against a reference list of economists (Keynes, Hayek, Ostrom, and one Milton we argued about for a week), then matched the classification to two years of audited account statements. The classification queue is not yet empty.",
       treatmentLabel: 'Dog named after an economist',
       headline: 'Investors With Dogs Named for Economists Beat the Market by {effect} Points',
       outcomeLabels: [
@@ -206,7 +206,7 @@ export const content: LocaleContent = {
       id: 'full-moon-meetings',
       question: 'Do meetings run longer under a full moon?',
       coverStory:
-        'Calendar data is the most underused behavioral dataset in the modern firm. We pulled eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. The hypothesis was proposed, in complete earnest, by the calendar administrator, who has been right about things before.',
+        'Calendar data is the most underused behavioral dataset in the modern firm. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. The hypothesis was proposed, in complete earnest, by the calendar administrator, who has been right about things before.',
       treatmentLabel: 'Held under a full moon',
       headline: 'Meetings Run {effect} Minutes Longer Under a Full Moon, Analysis Finds',
       outcomeLabels: [
@@ -240,7 +240,7 @@ export const content: LocaleContent = {
       id: 'vinyl-dinner-party',
       question: 'Do vinyl collectors throw better dinner parties?',
       coverStory:
-        "Hospitality research has characterized the menu exhaustively and the turntable not at all. Hosts agree to have one dinner party observed by a research assistant, introduced to the other guests as 'a colleague from work'; dinner parties being what they are, the observation schedule runs months ahead of the analysis. The assistants record arrival and departure times, what guests bring, and what they ask for on the way out. The wine is not analyzed. The wine is not, in fairness, still available for analysis.",
+        "Hospitality research has characterized the menu exhaustively and the turntable not at all. Hosts agree to have one dinner party observed by a research assistant, introduced to the other guests as 'a colleague from work'; dinner parties being what they are, the observation schedule runs months ahead of the analysis. The assistants record arrival and departure times, what guests bring, and what they ask for on the way out. The wine is not analyzed; the wine is not, in fairness, still available for analysis.",
       treatmentLabel: 'Owns a vinyl collection',
       headline: 'Vinyl-Owning Hosts Keep Guests {effect} Minutes Longer, Study Finds',
       outcomeLabels: [
@@ -257,7 +257,7 @@ export const content: LocaleContent = {
       id: 'telescope-directions',
       question: 'Do backyard telescope owners give better directions?',
       coverStory:
-        'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors. Assistants approach strangers in three cities, ask for directions to a landmark eight minutes away, record the answer verbatim, and only then, after a full debrief, ask whether the participant owns a telescope. Response rates are excellent and a fourth city is being added. Telescope owners, in particular, are delighted to be asked.',
+        'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors. Assistants approach strangers in three cities, ask for directions to a landmark eight minutes away, record the answer verbatim, and only then, after a full debrief, ask whether the participant owns a telescope. Response rates are, to our genuine surprise, excellent, and a fourth city is being added. Telescope owners, in particular, are delighted to be asked.',
       treatmentLabel: 'Owns a backyard telescope',
       headline: 'Telescope Owners Give Directions {effect}% More Efficient Than the App',
       outcomeLabels: [
@@ -376,7 +376,7 @@ export const content: LocaleContent = {
       id: 'browser-tabs-side-projects',
       question: 'Do people who never close browser tabs ship more side projects?',
       coverStory:
-        'Attention research treats the open tab as a cost. We wondered whether it might be an inventory. Developers install an extension that records a daily tab count and nothing else, a limitation we accepted for recruitment reasons, and self-report every side project shipped over the following year, with a working public link required as evidence. The link requirement has cost us more participants than the extension did.',
+        'Attention research treats the open tab as a cost. We wondered whether it might be an inventory. Developers install an extension that records a daily tab count and nothing else (a limitation we accepted for recruitment reasons) and self-report every side project shipped over the following year, with a working public link required as evidence. The link requirement has cost us more participants than the extension did.',
       treatmentLabel: 'Keeps 40+ tabs open',
       headline: 'Developers With the Most Open Tabs Ship {effect}× More Side Projects',
       outcomeLabels: [
@@ -412,7 +412,7 @@ export const content: LocaleContent = {
     "I've drafted the press release and communications loved it. Two outlets have asked for the embargo date. All that is missing is the study.",
     'The industrial partners visit Thursday. They funded a discovery. Please have discovered something.',
     'The postdoc line depends on this year’s output. I mention it as context, not pressure. It is also pressure.',
-    'The sabbatical committee meets in June. A finding by May would be, and I want to be precise about this word, decisive.',
+    'The sabbatical committee meets in June. A finding by May would be decisive. I want to be precise about that word.',
     "The provost has started saying 'research portfolio review'. Nobody will tell me what it means. I know that it means us.",
     'Grant year three of three. I don\'t want to alarm you, but I want to alarm you a little.',
     'Please stop sending me the confidence interval. Send me the point estimate. The point estimate has never let anybody down.',
@@ -455,9 +455,9 @@ export const content: LocaleContent = {
     },
     { text: 'SCIENCE CONFIRMS: THE THING YOU DO IS WHY EVERYTHING IS HAPPENING', outlet: 'Nightly Chyron Network', tier: 3 },
     { text: 'ONE NUMBER CHANGES EVERYTHING. THE NUMBER IS 0.049.', outlet: 'Nightly Chyron Network', tier: 3 },
-    { text: 'STATISTICALLY SIGNIFICANT: WHAT IT MEANS FOR YOUR FAMILY', outlet: 'Channel 9 Nightly', tier: 3 },
+    { text: 'STATISTICALLY SIGNIFICANT — WHAT IT MEANS FOR YOUR FAMILY', outlet: 'Channel 9 Nightly', tier: 3 },
     { text: 'NEW RESEARCH: ARE YOU DOING IT WRONG? (YES)', outlet: 'Channel 9 Nightly', tier: 3 },
-    { text: 'P LESS THAN POINT OH FIVE. WE EXPLAIN AFTER THE BREAK.', outlet: 'Nightside Live', tier: 3 },
+    { text: 'P LESS THAN POINT OH FIVE — WE EXPLAIN AFTER THE BREAK', outlet: 'Nightside Live', tier: 3 },
     { text: "EXCLUSIVE: THE ONE HABIT THE MARKET DOESN'T WANT YOU TO KEEP", outlet: 'Nightside Live', tier: 3 },
   ],
 
@@ -532,7 +532,7 @@ export const content: LocaleContent = {
     },
     {
       term: 'Specification curve',
-      def: 'A plot of the estimate (or p-value) produced by every reasonable analytical specification, sorted, so the whole space of decisions is visible at once rather than only the published one.',
+      def: 'A plot of the estimate (or p-value) produced by every reasonable analytical specification, sorted, so the full space of decisions (not only the published one) is visible at once.',
     },
     {
       term: 'HARKing',

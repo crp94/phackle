@@ -490,6 +490,14 @@ export const copy: Record<CopyKey, string> = {
   // named the real-world referent instead of the thing being counted; a plain
   // count of online mentions says the same and needs no footnote. The
   // percentile line below already landed and is unchanged.
+  //
+  // TWO NOTES FOR T19/T20. (1) PLURAL SAFETY: {n} is altmetricScore(), whose
+  // lowest possible value is the tier-1 floor of 40 (src/game/published.ts's
+  // ALTMETRIC_SCORE_RANGE_BY_TIER), so the English plural is unconditionally
+  // safe here. A locale whose number agreement differs must still check that
+  // floor rather than assume it. (2) ONE TOKEN ONLY: t() and the tests
+  // substitute {n} with String.replace, which rewrites the FIRST occurrence
+  // only — a translation that repeats {n} would render the second one raw.
   'published.altmetricScore': 'Mentioned {n} times online already',
   'published.altmetricPercentile': 'Top {n}% of all research outputs, all time',
 
@@ -627,7 +635,7 @@ export const copy: Record<CopyKey, string> = {
 
   'about.title': 'About P-hackle',
   'about.intro':
-    'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is real: outcome switching, subgroup shopping, optional stopping. These are the same researcher degrees of freedom that turn up, accidentally or otherwise, in published research.',
+    'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is real: outcome switching, subgroup shopping, optional stopping. These are the same researcher degrees of freedom used, accidentally or otherwise, in real published research.',
   'about.mechanism':
     "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty.",
   'about.frozenFork':
@@ -642,9 +650,9 @@ export const copy: Record<CopyKey, string> = {
   'about.priorArtFiveThirtyEight':
     'Aschwanden & King (2015), "Hack Your Way to Scientific Glory," FiveThirtyEight. The interactive that owns this idea. It uses real data and offers no ground truth; P-hackle adds a known data-generating process, a daily seed, and the real-or-noise call.',
   'about.priorArtSpecCurve':
-    'Simonsohn, Simmons & Nelson, specification curve analysis. The chart in the reveal is, essentially, their figure.',
+    'Simonsohn, Simmons & Nelson. Specification curve analysis: the chart in the reveal is, essentially, their figure.',
   'about.priorArtForkingPaths':
-    'Gelman & Loken, the garden of forking paths. No fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
+    'Gelman & Loken. The garden of forking paths: no fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
   'about.priorArtFalsePositive':
     'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology." The inventory of researcher degrees of freedom that this toolbox implements, one button at a time.',
   'about.priorArtOptionalStopping':

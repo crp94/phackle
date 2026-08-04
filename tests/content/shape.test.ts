@@ -58,18 +58,31 @@ export const HARM_LEXICON = ['vaccine', 'drug', 'cancer', 'diet', 'cure', 'thera
  *
  *   1. PER STRING: at most one. A sentence with a pair of them is a parenthesis
  *      wearing a costume; write the parenthesis, or write two sentences.
- *   2. CORPUS-WIDE: at most one per 400 characters across every user-facing
- *      value in the locale (scenarios, banks, achievements, glossary AND the
- *      copy catalog). The per-string cap alone would happily pass a corpus that
- *      dashes once in every line.
+ *   2. CORPUS-WIDE: at least MIN_CHARS_PER_EM_DASH characters per em dash,
+ *      across every user-facing value in the locale (scenarios, banks,
+ *      achievements, glossary AND the copy catalog). The per-string cap alone
+ *      would happily pass a corpus that dashes once in every line.
  *
- * Both live in validateLocaleContent so the IT/ES transcreations (T19/T20)
- * inherit the budget without opting in. The counted character is U+2014 only:
- * the en dash in "1–10 scale" is a range, not a rhetorical move.
+ * WHY 2500, AND NOT THE 400 THIS TEST WAS FIRST WRITTEN WITH. Measured against
+ * the corpus the owner was complaining about, the density was already 1 per
+ * 635.6 characters (48 dashes in 30,508) — so a 400-character floor would have
+ * passed, unchanged, the exact prose that prompted "reads too AI". A budget
+ * that green-lights the thing it was written to catch is decoration. The floor
+ * is therefore set at the state the scrub actually achieved rather than at a
+ * number the problem could clear: the corpus now runs 3 dashes in 30,929
+ * characters (1 per 10,310), of which one is the Stats no-data glyph and two
+ * are deliberate TV-chyron punctuation. 2500 locks that in with roughly 4x
+ * headroom, which is the room IT/ES need for a language whose typography leans
+ * on the dash harder than English does — and it still fails instantly on a
+ * corpus that reaches for the dash as a habit.
+ *
+ * Both caps live in validateLocaleContent so the IT/ES transcreations
+ * (T19/T20) inherit the budget without opting in. The counted character is
+ * U+2014 only: the en dash in "1–10 scale" is a range, not a rhetorical move.
  */
 const EM_DASH = '—';
 const MAX_EM_DASHES_PER_STRING = 1;
-const MIN_CHARS_PER_EM_DASH = 400;
+const MIN_CHARS_PER_EM_DASH = 2500;
 
 /** Every user-facing value in a locale, flattened. Keys are never included. */
 function localeProse(content: LocaleContent): { where: string; text: string }[] {
@@ -446,9 +459,16 @@ describe('em-dash budget (owner directive: "too many em dashes, reads too AI")',
     expect(findEmDashProblems(enContent).filter((p) => p.includes('em dashes'))).toEqual([]);
   });
 
-  it('keeps the whole English corpus under one em dash per 400 characters', () => {
+  it('keeps the whole English corpus above the corpus-wide characters-per-dash floor', () => {
     const { charsPerDash } = emDashDensity(enContent);
     expect(charsPerDash).toBeGreaterThanOrEqual(MIN_CHARS_PER_EM_DASH);
+  });
+
+  // The floor's own regression guard: the pre-T32 corpus (the one the owner
+  // called "too AI") measured 1 per 635.6 characters, so any floor at or below
+  // that would have passed it. See MIN_CHARS_PER_EM_DASH's comment.
+  it('sets the floor high enough to have failed the corpus that prompted the directive', () => {
+    expect(MIN_CHARS_PER_EM_DASH).toBeGreaterThan(636);
   });
 
   it('catches a string that pairs em dashes around an aside', () => {
