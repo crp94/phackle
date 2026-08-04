@@ -15,6 +15,7 @@ import type { PathResult } from '../../src/engine/types';
 import { content as enContent } from '../../src/content/en';
 import { JOURNALS } from '../../src/content/journals';
 import { isoFromPuzzleNumber } from '../../src/game/puzzleDate';
+import { saveSettings } from '../../src/game/storage';
 import { altmetricPercentile, altmetricScore, pickJournal, pickPress, substituteEffect, fakeDoi } from '../../src/game/published';
 import { SCORING } from '../../src/game/tuning';
 import { Published, loadCallScreenFromRegistry, type LazyScreenComponent } from '../../src/ui/screens/Published';
@@ -96,12 +97,17 @@ function renderPublished(overrides: Partial<GameStore> = {}, loadCallScreen?: ()
 
 beforeEach(() => {
   installMatchMedia({ '(prefers-reduced-motion: reduce)': true }); // skip canvas/RAF noise unless a test overrides it
+  // T33: one test below stores an Italian locale choice, which is now the only
+  // way to run the app in anything but English. Cleared here rather than reset
+  // in afterEach, so it cannot leak into a test that has not asked for it
+  // whatever order the file runs in. (This replaced a navigator.language
+  // override, which detectLocale no longer reads at all.)
+  window.localStorage.clear();
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  Object.defineProperty(window.navigator, 'language', { value: 'en-US', configurable: true });
 });
 
 // --------------------------------------------------------------------------
@@ -158,7 +164,14 @@ describe('Published: journal cover wiring', () => {
   });
 
   it('picks the journal from the tag-filtered pool via pickJournal(tags, iso) -- English, regardless of the active locale', async () => {
-    Object.defineProperty(window.navigator, 'language', { value: 'it', configurable: true });
+    // T33: the app runs in Italian because a STORED choice says so. This used
+    // to set `navigator.language = 'it'`, which stopped selecting anything the
+    // moment the owner's round-5 directive made English the unconditional
+    // default (src/i18n/locale.ts) — a stored setting is now the only thing
+    // that moves the interface off English, and it is what a real Italian
+    // player has. The assertion itself is untouched: the masthead stays
+    // English while the app genuinely runs in Italian.
+    saveSettings({ locale: 'it' });
     const iso = isoFromPuzzleNumber(1);
     const expectedJournal = pickJournal(enContent.scenarios[0].journalTags, iso).name;
     expect(JOURNALS.some((j) => j.name === expectedJournal)).toBe(true);
