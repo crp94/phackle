@@ -30,6 +30,7 @@ import { Reveal } from '../../src/ui/screens/Reveal';
 import { Published } from '../../src/ui/screens/Published';
 import type { LazyScreenComponent } from '../../src/ui/screens/Published';
 import { Stats } from '../../src/ui/screens/Stats';
+import { LEGEND_ENTRIES } from '../../src/ui/screens/Legend';
 import { Summary } from '../../src/ui/screens/Summary';
 import { PValueDial } from '../../src/ui/components/PValueDial';
 import { ForkTrail } from '../../src/ui/components/ForkTrail';
@@ -417,7 +418,12 @@ describe('R6.7 — the fork-trail key is a disclosure, not a tooltip wearing one
     const panel = screen.getByTestId('fork-trail-popover');
     expect(panel.getAttribute('role')).toBe('list');
     const items = within(panel).getAllByRole('listitem');
-    expect(items.length).toBeGreaterThan(1);
+    // Against LEGEND_ENTRIES rather than a magic number: the popover and the
+    // Legend page are built from the same deduped list by design (T29), so
+    // this is the invariant that matters — they can never disagree about how
+    // many rows the vocabulary has. (Seven today, after the four spec-change
+    // kinds collapsed onto one glyph; verified in the rendered popover.)
+    expect(items).toHaveLength(LEGEND_ENTRIES.length);
     expect(items[0].textContent).not.toBe('');
   });
 
@@ -573,19 +579,54 @@ describe('the Call overlay is a modal you can leave (WCAG 2.1.2)', () => {
     );
   }
 
-  it('closes on Escape and hands focus back to the button that opened it', async () => {
-    renderPublished();
+  // FIX ROUND 1 (review I1). This test used to assert only the OUTCOME —
+  // `document.activeElement === cta` — and that assertion is permanently
+  // vacuous here: jsdom does not implement `inert`'s focus blocking, so it
+  // passed against an implementation that focused the CTA while the cover was
+  // still inert, which in a real browser is a silent no-op (measured: focus
+  // stayed on <body>). What jsdom CAN see is the ORDERING, so that is what is
+  // asserted now: at the moment `focus()` is called, the cover must already
+  // have shed its `inert` attribute — i.e. the restore ran after React's
+  // commit, not before it. Reverting the fix (focusing synchronously inside
+  // closeCall) fails this on the inert assertion, checked by doing exactly
+  // that before committing.
+  it('closes on Escape and restores focus only AFTER the cover has stopped being inert', async () => {
+    const { container } = renderPublished();
     await waitFor(() => expect(screen.getByText(copy['published.faceTruth'])).toBeTruthy());
-    const cta = screen.getByText(copy['published.faceTruth']);
+    const cta = screen.getByText(copy['published.faceTruth']) as HTMLButtonElement;
+    const cover = () => container.querySelector('.ph-published__cover') as HTMLElement;
+
+    // Record the DOM's inert state at the instant focus() is invoked, then
+    // call through so the outcome below still means something.
+    let inertWhenFocused: boolean | null = null;
+    const realFocus = HTMLElement.prototype.focus.bind(cta);
+    const focusSpy = vi.spyOn(cta, 'focus').mockImplementation(() => {
+      inertWhenFocused = cover().hasAttribute('inert');
+      realFocus();
+    });
 
     fireEvent.click(cta);
     await waitFor(() => expect(screen.getByText('Real')).toBeTruthy());
     expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(cover().hasAttribute('inert')).toBe(true);
 
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
 
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(focusSpy, 'the CTA must be re-focused exactly once on dismissal').toHaveBeenCalledTimes(1);
+    expect(
+      inertWhenFocused,
+      'focus() ran while the cover was still inert — in a real browser that is a no-op and focus is lost to <body>'
+    ).toBe(false);
     expect(document.activeElement).toBe(cta);
+  });
+
+  it('does not steal focus on mount, only on a genuine open -> closed edge', async () => {
+    renderPublished();
+    await waitFor(() => expect(screen.getByText(copy['published.faceTruth'])).toBeTruthy());
+    // `callOpen` starts false, so the restore effect runs once at mount with
+    // nothing to restore. It must do nothing at all.
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('restores the cover to the accessibility tree on the way out', async () => {

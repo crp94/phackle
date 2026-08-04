@@ -68,8 +68,10 @@ function buildLiveTrail(log: PlayerAction[], prereg: boolean): string {
  * description of the control it hangs off — flattened to a single string,
  * exposed through aria-describedby, and never a thing that "expands". A
  * disclosure is a control that shows and hides a piece of CONTENT, which is
- * exactly what this is: a ten-row key, toggled by click on touch, with its own
- * Escape.
+ * exactly what this is: a seven-row key, toggled by click on touch, with its
+ * own Escape. (Seven, not ten: LEGEND_ENTRIES dedupes DECLARED_ENTRIES by
+ * glyph, and T29 collapsed the four spec-change fork kinds onto a single 🍴 —
+ * see Legend.tsx. Counted in the rendered popover, not inferred.)
  *
  * Resolved to the disclosure, because the content decides. The key is a LIST
  * of glyph/meaning pairs; a tooltip's accessible description would collapse it
