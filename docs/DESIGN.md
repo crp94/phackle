@@ -5,7 +5,7 @@
 
 The game about academic publishing looks like academic publishing — paper, ink,
 hairlines, figure captions, tabular numerals — executed with hard restraint. One
-loud colour. Eight registered motion sites on one duration scale. No boxes.
+loud colour. Nine registered motion sites on one duration scale. No boxes.
 The tension between warm-paper academia and cold accounting is the Act I /
 Act II split made visual.
 
@@ -42,7 +42,7 @@ in `tokens.css` and in this table.
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
 | §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) steps `--muted` → `--dial-step-1` → `-2` → `-3` → `--assist-green` as p crosses .5/.2/.1/.05, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for the final, solid-green step; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all. A continuous opacity ramp toward the same two tokens was tried first and rejected: on a light-on-paper token, reducing opacity alpha-composites toward `--paper` and collapses contrast (1.60:1 at p=1.0 light, 1.70:1 dark) — see the T14 fix-round report for the exact numbers. Discrete, contrast-verified steps are what actually keeps R1.8's own "stays ≥4.5:1" claim true |
 | §7.3 "two-pane above, stacked below" — which R3.4 restated as `flex-direction: row-reverse` | The Lab's ≥768px layout is a **two-column grid**: question across row 1, dial (row 2) and results (row 3) in column 2, controls in column 1 spanning rows 2–3 (R3.4). Below 768px it is still one stacked column in DOM order, and the **dial block alone** is `position: sticky; top: 0` (R8.1) | T31 removed the mobile stickiness on measured evidence: the whole results pane grew to 998px on a 360×640 phone, and a sticky element taller than the viewport slides to the end of its containing block and paints over its sibling — the six knobs were unreachable. The cost was §2.4's live-dial mechanic. Restoring it needs the *dial alone* to be sticky as a direct child of `.ph-lab`, so its containing block spans the controls; `row-reverse` cannot then keep the dial and the results in one column with the controls spanning both rows, and a grid can. One breakpoint still, no new tokens, no fill |
-| §7.5 "Motion budget: confetti, stamp slam, p-value tick, scroll fades — **nothing else**" | A registered motion **system** (§5): one duration scale (`--dur-quick`/`--dur-scene`/`--dur-stagger`), one easing, and **eight** sanctioned sites — §7.5's four, plus the screen transition, the reveal-block stagger, the press-clipping entrance and the copy confirmation. The list is still exhaustive, still compiled (`tests/ui/motion.test.ts`), and §7.5's own reduced-motion sentence is strengthened rather than relaxed: R5.6 makes "collapses all to opacity/instant" a parity guarantee with a no-content-behind-motion clause | Owner directive, third play-test round: "the UX/UI should be more animated, it reads a bit plain right now". §7.5's four-item list was written as a budget, and a budget can only be held by refusing — which is precisely how the product ended up with **no** beat on its single biggest state change, the screen swap, with R5.5 naming "page transitions" as forbidden. Replacing the enumeration with a scale keeps the restraint (a site is added by amending R5.2's table, and must still clear "a beat that tells the player something happened") while letting the moments that carry meaning actually carry it. Nothing was relaxed: raw durations, raw easings and layout-property animation are all newly **banned** by R5.1/R5.3, none of which §7.5 said anything about |
+| §7.5 "Motion budget: confetti, stamp slam, p-value tick, scroll fades — **nothing else**" | A registered motion **system** (§5): one duration scale (`--dur-quick`/`--dur-scene`/`--dur-stagger`), one easing, and **nine** sanctioned sites — §7.5's four, plus the screen transition, the reveal-block stagger, the press-clipping entrance, the copy confirmation and (T38) the achievement-unlock lines. The list is still exhaustive, still compiled (`tests/ui/motion.test.ts`), and §7.5's own reduced-motion sentence is strengthened rather than relaxed: R5.6 makes "collapses all to opacity/instant" a parity guarantee with a no-content-behind-motion clause | Owner directive, third play-test round: "the UX/UI should be more animated, it reads a bit plain right now". §7.5's four-item list was written as a budget, and a budget can only be held by refusing — which is precisely how the product ended up with **no** beat on its single biggest state change, the screen swap, with R5.5 naming "page transitions" as forbidden. Replacing the enumeration with a scale keeps the restraint (a site is added by amending R5.2's table, and must still clear "a beat that tells the player something happened") while letting the moments that carry meaning actually carry it. Nothing was relaxed: raw durations, raw easings and layout-property animation are all newly **banned** by R5.1/R5.3, none of which §7.5 said anything about |
 | §7.4's three figure radii, read as the complete set | A **fourth** figure radius exists, `--dot-cut` (2px), declared in `tokens.css` and used only for the DataCut's analysed sample | §7.4's `--dot-all` (1.5px) is sized for the SpecCurve, where 1,792 points share one plate and the cloud is a texture. The DataCut draws ~200 points as the figure's entire subject in a 122×88px column; at 1.5px they read as haze, and at `--dot-explored` (4px) as a solid slab. 2px is the only value between them, and it is registered here rather than typed inline so R2.2/R3.1's "no raw px" grep stays true and the figure and its legend swatch can never drift |
 | §7.2 fixes **seven** colours | Exactly **six** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), `--scrim` (`color-mix` of `--ink` at 60%, R4.2's Call-modal backdrop), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any seventh derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, R4.2's "separate the Call modal from the cover" backdrop forces the third, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
@@ -351,6 +351,7 @@ how many its file is supposed to have.
 | 6 | Fork-trail key popover | `src/ui/components/ForkTrail.css` | `ph-popover-enter` | the key opens (hover / focus / tap) | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | The only feedback that the control did anything. Closing stays instant — an exit carries no information | 
 | 7 | Share "copied" / "failed" line | `src/ui/screens/Summary.css` | `ph-toast-enter` | a clipboard write resolves or rejects | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | A clipboard write is invisible; this line is the entire confirmation that it happened | 
 | 8 | Confetti | `src/ui/components/ConfettiLayer.tsx` | — (canvas) | Published mounts, once per puzzle | canvas particles | `--dur-confetti` | — | canvas is never created (R5.6's JS half) | §2.5's sincere celebration; unchanged by T35 | 
+| 9 | Achievement unlock lines, staggered (T38) | `src/ui/screens/Summary.css` | `ph-unlock-enter` | each unlocked line enters the viewport (`useEnterOnce`, one-way) | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `.ph-summary__unlock-item--in` holds the line visible | §2.11's award ceremony, and the day's best beat. The summary computed it, persisted it and rendered nothing; a citation already sitting beside the invoice is a table row, one that arrives is an award | 
 
 Two files hold `@keyframes` that they do not themselves fire, and both are
 deliberate: `src/ui/components/Stamp.css` describes the slam while site 4 in
@@ -399,9 +400,16 @@ Every timing token collapses inside `tokens.css`'s
 becomes a single imperceptible frame with an identical end state. Two rules
 follow from that and are not optional. **No content may appear only as the
 result of an animation:** every animated element is either already visible in
-its own right (sites 5, 6, 7 declare no base `opacity: 0`) or is held visible
-by a class that the animation merely decorates (`.ph-fade--in`'s own
-`opacity: 1`, sites 3 and 4). And **any JS-driven motion must consult
+its own right (sites 1, 2, 6 and 7 declare no base `opacity: 0`) or is held
+visible by a class that the animation merely decorates — `.ph-fade--in`'s own
+`opacity: 1` (sites 3 and 4), `.ph-clipping--in`'s (site 5),
+`.ph-summary__unlock-item--in`'s (site 9). `motion.test.ts` decides which of
+the two a rule is: a base rule that hides content must be answered by a
+restoring modifier **associated with that rule** — sharing one of its classes,
+or paired with one in the same `className` the component writes — so a
+restorer elsewhere in the file no longer vouches for a rule it has nothing to
+do with (T38 tightened this; the per-file version was probe-broken). And
+**any JS-driven motion must consult
 `matchMedia('(prefers-reduced-motion: reduce)')` itself** — via
 `src/ui/hooks/useReducedMotion.ts`, which is the single place that decision is
 made — because a token cannot reach a canvas or a `setTimeout`.
@@ -419,10 +427,10 @@ made — because a token cannot reach a canvas or a `setTimeout`.
 
 **R5.7 — An entrance is triggered by the viewport, staggered by an indexed
 delay, and capped.** All three parts live in one module,
-`src/ui/hooks/useEnterOnce.ts`, and both entrance sites (3 and 5) use it: a
-one-way IntersectionObserver that fires once and disconnects, `staggerStyle()`
-for the inline `--ph-stagger-index` (the only inline style motion may set),
-and `MAX_STAGGER_STEPS = 2`.
+`src/ui/hooks/useEnterOnce.ts`, and all three entrance sites (3, 5 and 9) use
+it: a one-way IntersectionObserver that fires once and disconnects,
+`staggerStyle()` for the inline `--ph-stagger-index` (the only inline style
+motion may set), and `MAX_STAGGER_STEPS = 2`.
 
 **An entrance may not be triggered by mount.** Mount is only ever the right
 trigger for something guaranteed on screen at mount, and below the first fold
@@ -439,7 +447,12 @@ arrives alone, purely for sitting further down the document.
 - Don't: write `.item:nth-child(3) { animation-delay: 180ms; }` — that is a
   raw duration (R5.1) and a fourth site pretending to be one.
 - Don't: stagger more than one group per screen. Two cascades in one arrival
-  is the "busy" this document exists to prevent.
+  is the "busy" this document exists to prevent. **The budget is now spent on
+  all three screens that have one:** Reveal on its blocks (site 3), Published
+  on its clippings (site 5), and — from T38 — Summary on its unlock lines
+  (site 9). Summary's other row, the copy confirmation (site 7), is a single
+  element with no index and is not a group; a fourth site on any of these
+  three screens may not be staggered at all.
 
 ---
 
@@ -487,7 +500,7 @@ one dark block in `tokens.css`.
   copies drift.
 
 **R7.2 — Every rule in this document applies unchanged in dark.** Same single loud
-colour, same eight motion sites, same hairlines, same 2px radius.
+colour, same nine motion sites, same hairlines, same 2px radius.
 - Do: rely on the tokens flipping.
 - Don't: add a dark-only shadow, glow, or elevated surface to "separate" panels.
 
@@ -651,7 +664,12 @@ any animation actually uses must appear collapsed inside `tokens.css`'s
 `@media (prefers-reduced-motion: reduce)` block, which is what turns "guarded"
 from a per-file promise into a property of the scale itself; and every base
 rule that hides content with `opacity: 0` must have a modifier class restoring
-it without an animation. What it cannot see: whether a moment *deserved* a row
+it without an animation — one *associated* with that rule, either extending
+one of its classes by name or written beside one of them in the component's
+own `className` (T38: the earlier version counted restorers per file, so a
+stylesheet that restored anything vouched for every `opacity: 0` in it, which
+a probe against `Reveal.css` walked straight through). What it cannot see:
+whether a moment *deserved* a row
 (tier E) and whether the movement looks right (a human, at 360 and 1088).
 
 **Tier C — these four must print nothing:**

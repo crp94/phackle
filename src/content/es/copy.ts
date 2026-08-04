@@ -314,6 +314,13 @@ export const copy: Record<CopyKey, string> = {
   'summary.invoiceTitle': 'Factura',
   'summary.preregUpsell': 'El preregistro está desbloqueado: comprométete con un análisis antes de ver los datos.',
   'summary.shareFailed': 'No se ha podido compartir este resultado.',
+  // T38 — the heading over what today unlocked. NOMINAL (rule 5), not
+  // participial: "Desbloqueados hoy" is a bare masculine plural participle
+  // with nothing on screen to agree with, the same defect T37 fixed in
+  // lab.subgroupUrban/Rural. "Logros" is also the term stats.achievementsTitle
+  // already fixed (rule 6), so the honours wall and this block name the same
+  // thing. Sentence case (rule 4), no raya (rule 9), no token.
+  'summary.unlockedToday': 'Logros de hoy',
 
   'prereg.title': 'Preregistro',
   // Manuscript register, sincere and bureaucratic. The form itself is the

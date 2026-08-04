@@ -33,7 +33,9 @@ import { describe, expect, it } from 'vitest';
  *   R5.6  every duration token an animation actually uses collapses under
  *         prefers-reduced-motion, which is what makes parity a property of the
  *         scale rather than a per-file promise; and nothing is visible only
- *         because an animation ran.
+ *         because an animation ran — each hidden base rule answered by a
+ *         restorer ASSOCIATED with it, never merely by one that shares its
+ *         file (T38's precision fix; the per-file count was probe-broken).
  *   R5.7  an entrance is gated on the VIEWPORT (never on mount — fix round 1),
  *         and its delay is calc(index * --dur-stagger) with the index capped.
  *
@@ -277,9 +279,9 @@ describe('R5.2 — DESIGN.md\'s motion register and the stylesheets agree', () =
     expect(actualSites()).toEqual(declaredSites());
   });
 
-  it('registers eight sites, seven in CSS plus the canvas', () => {
+  it('registers nine sites, eight in CSS plus the canvas', () => {
     const section = design.slice(design.indexOf('**R5.2 —'), design.indexOf('**R5.3 —'));
-    expect([...section.matchAll(/^\|\s*(\d+)\s*\|/gm)].map(([, n]) => Number(n))).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect([...section.matchAll(/^\|\s*(\d+)\s*\|/gm)].map(([, n]) => Number(n))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
   it('fires every @keyframes it defines, and defines every one it fires', () => {
@@ -426,23 +428,193 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
   it('holds every animated element visible by something other than its animation', () => {
     // R5.6's no-content-behind-motion clause. `opacity: 0` in a base rule is
     // the one way an entrance can strand content, so each such rule must be
-    // accompanied by a MODIFIER class that restores it — a class the
-    // component adds, never the animation itself. The modifier need not
-    // share the base's prefix: Published's clippings are hidden by
-    // `.ph-press-card, .ph-chyron` and restored by the shared
-    // `.ph-clipping--in`, which is one restoring class for one group.
-    const offenders: string[] = [];
-    for (const { file, code } of uiCss) {
-      const restorers = [...code.matchAll(/([^{}]*--[\w-]+[^{}]*)\{[^{}]*opacity\s*:\s*1\s*[;}]/g)].length;
-      for (const [, selector] of code.matchAll(/([^{}]+)\{[^{}]*opacity\s*:\s*0\s*[;}]/g)) {
-        const base = selector.trim();
-        if (base.startsWith('@') || /\d+%|\bfrom\b|\bto\b/.test(base)) continue; // a keyframe stop, not a rule
-        if (restorers === 0) offenders.push(`${file}: ${base} has no restoring modifier`);
-      }
-    }
+    // answered by a MODIFIER class that restores it — a class the component
+    // adds, never the animation itself.
+    const offenders = uiCss.flatMap(({ file, code }) => unguardedHiddenRules(code, COMPONENT_CLASS_PAIRS).map((r) => `${file}: ${r}`));
     expect(offenders).toEqual([]);
   });
+
+  /* ---------------------------------------------------------------- T38 --
+   * FIX ROUND (T38, R5.6 precision). The check above used to COUNT restoring
+   * rules per FILE — `restorers === 0` — which answers "does this stylesheet
+   * restore anything at all", not "is THIS hidden rule restored". Any file
+   * that already had one entrance therefore vouched for every later
+   * `opacity: 0` written into it, whatever it hid: verified exploitable
+   * against the real Reveal.css below, and it would have covered for T38's
+   * own new Summary rules just as blindly. `unguardedHiddenRules` now
+   * demands an ASSOCIATION between the hidden rule and its restorer —
+   * either the modifier extends one of the hidden classes by name
+   * (`.ph-fade` / `.ph-fade--in`) or the component writes the two onto the
+   * same element (`'ph-press-card ph-clipping--in'`), which is the only
+   * other way one class can actually reach the other's elements.
+   */
+  const summaryCss = uiCss.find(({ file }) => file.endsWith('screens/Summary.css'))?.code ?? '';
+  const revealCss = uiCss.find(({ file }) => file.endsWith('screens/Reveal.css'))?.code ?? '';
+
+  it('sees a hidden rule in both entrance stylesheets at all (the scan is not vacuous)', () => {
+    expect(revealCss).toMatch(/\.ph-fade\s*\{[^{}]*opacity:\s*0/);
+    expect(summaryCss).toMatch(/\.ph-summary__unlock-item\s*\{[^{}]*opacity:\s*0/);
+    expect(summaryCss).toMatch(/\.ph-summary__unlock-item--in\s*\{[^{}]*opacity:\s*1/);
+  });
+
+  it('now catches the unrestored rule the per-file count let through (mutation: the probe that beat the old check)', () => {
+    // The exact exploit: a stylesheet that ALREADY restores something else,
+    // plus one orphaned hidden rule. Old check: green (the file's restorer
+    // count is 1). New check: red, and it names the orphan.
+    const probe = `${revealCss}\n.ph-orphan-block { opacity: 0; }\n`;
+    expect(legacyRestorerCount(probe)).toBeGreaterThan(0); // ...which is all the old check asked
+    expect(unguardedHiddenRules(probe, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-orphan-block has no restoring modifier']);
+    // ...and the same file WITHOUT the orphan is still clean, so the probe is
+    // measuring the orphan and not some pre-existing failure.
+    expect(unguardedHiddenRules(revealCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
+  });
+
+  it('catches a restorer that stops restoring T38\'s own unlock lines (mutation: this site is really guarded)', () => {
+    expect(unguardedHiddenRules(summaryCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
+    const noRestore = summaryCss.replace(/(\.ph-summary__unlock-item--in\s*\{)\s*opacity:\s*1;/, '$1');
+    expect(noRestore).not.toBe(summaryCss);
+    expect(unguardedHiddenRules(noRestore, COMPONENT_CLASS_PAIRS)).toEqual([
+      '.ph-summary__unlock-item has no restoring modifier',
+    ]);
+  });
+
+  it('rejects a restorer that has nothing to do with the rule it is supposed to guard', () => {
+    // An UNASSOCIATED modifier: same file, restores opacity, but neither
+    // extends `.ph-thing` by name nor is ever written beside it by a
+    // component. This is what the per-file count could not tell apart from a
+    // real one.
+    const unrelated = '.ph-thing { opacity: 0; }\n.ph-other--in { opacity: 1; }';
+    expect(unguardedHiddenRules(unrelated, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-thing has no restoring modifier']);
+    // The two ASSOCIATIONS that do count, in isolation: by name...
+    expect(unguardedHiddenRules('.ph-thing { opacity: 0; }\n.ph-thing--in { opacity: 1; }', COMPONENT_CLASS_PAIRS)).toEqual([]);
+    // ...and by the className a component actually writes.
+    expect(
+      unguardedHiddenRules(
+        '.ph-thing { opacity: 0; }\n.ph-other--in { opacity: 1; }',
+        new Set([pairKey('ph-thing', 'ph-other--in')])
+      )
+    ).toEqual([]);
+  });
+
+  it('reads the real component pairings, so the association is evidence and not an allowlist', () => {
+    // Published's group is the case that forces the second association form.
+    expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-press-card', 'ph-clipping--in'))).toBe(true);
+    expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-chyron', 'ph-clipping--in'))).toBe(true);
+    expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-press-card', 'ph-fade--in'))).toBe(false);
+  });
+
+  it('checks each comma-separated selector on its own, not the group as a whole', () => {
+    // `.a, .b { opacity: 0 }` with a restorer for `.a` only must still fail
+    // for `.b` — Published's real rule hides two different components at once.
+    const half = '.ph-thing, .ph-second { opacity: 0; }\n.ph-thing--in { opacity: 1; }';
+    expect(unguardedHiddenRules(half, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-second has no restoring modifier']);
+  });
 });
+
+/* ---------------------------------- R5.6's no-content-behind-motion clause */
+
+/** Every `@keyframes … { … }` block removed, braces balanced: what is left is
+ * real rules only, so a keyframe stop's `opacity: 0` (a from-state, not
+ * hidden content) can never be mistaken for one. */
+function stripKeyframeBlocks(code: string): string {
+  const re = /@keyframes\s+[\w-]+\s*\{/g;
+  let out = '';
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(code)) !== null) {
+    out += code.slice(cursor, match.index);
+    let depth = 1;
+    let i = match.index + match[0].length;
+    while (i < code.length && depth > 0) {
+      if (code[i] === '{') depth++;
+      else if (code[i] === '}') depth--;
+      i++;
+    }
+    cursor = i;
+    re.lastIndex = i;
+  }
+  return out + code.slice(cursor);
+}
+
+/** `selector { body }` pairs. An `@media` wrapper never matches as a rule of
+ * its own (its body contains braces, which `[^{}]*` cannot span); the rules
+ * nested inside it match individually, which is what we want. */
+function styleRules(code: string): { selector: string; body: string }[] {
+  return [...stripKeyframeBlocks(code).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
+    selector: selector.trim(),
+    body,
+  }));
+}
+
+const classesOf = (selector: string): string[] => [...selector.matchAll(/\.([\w-]+)/g)].map(([, name]) => name);
+
+/** Order-free key for "these two class names were written onto one element". */
+function pairKey(a: string, b: string): string {
+  return [a, b].sort().join('::');
+}
+
+/**
+ * Every pair of `ph-` classes that some component writes into the SAME string
+ * literal — i.e. onto the same element. This is the evidence that lets a
+ * restorer with an unrelated name vouch for a base rule: `.ph-press-card` is
+ * restored by `.ph-clipping--in` because `Published.tsx` writes
+ * `'ph-press-card ph-clipping--in'`, and no other class can claim that
+ * relationship by accident.
+ */
+const COMPONENT_CLASS_PAIRS: Set<string> = (() => {
+  const pairs = new Set<string>();
+  for (const { file, code } of uiCode) {
+    if (!file.endsWith('.tsx')) continue;
+    for (const [, , literal] of code.matchAll(/(['"`])([^'"`\n]*)\1/g)) {
+      const names = literal.split(/\s+/).filter((token) => /^ph-[\w-]+$/.test(token));
+      for (let i = 0; i < names.length; i++) {
+        for (let j = i + 1; j < names.length; j++) pairs.add(pairKey(names[i], names[j]));
+      }
+    }
+  }
+  return pairs;
+})();
+
+/**
+ * The R5.6 check itself: which hidden base selectors in this stylesheet have
+ * NO restoring modifier associated with them. Each comma-separated selector
+ * is judged on its own — `.ph-press-card, .ph-chyron` is two rules wearing
+ * one head — and a restorer qualifies only if it carries a modifier class
+ * (`--`) that either extends one of the hidden classes by name or is written
+ * beside one of them by a component. A restorer that merely lives in the
+ * same file proves nothing about a rule it cannot reach.
+ */
+function unguardedHiddenRules(code: string, pairs: Set<string>): string[] {
+  const rules = styleRules(code);
+  const restorerClassSets = rules
+    .filter(({ body }) => /opacity\s*:\s*1(?:\s*;|\s*$)/.test(body))
+    .map(({ selector }) => classesOf(selector));
+  const offenders: string[] = [];
+  for (const { selector, body } of rules) {
+    if (!/opacity\s*:\s*0(?:\s*;|\s*$)/.test(body)) continue;
+    for (const compound of selector.split(',').map((part) => part.trim())) {
+      if (compound === '' || compound.startsWith('@')) continue;
+      const hidden = classesOf(compound);
+      const guarded = restorerClassSets.some((restorer) =>
+        restorer.some(
+          (modifier) =>
+            modifier.includes('--') &&
+            !hidden.includes(modifier) &&
+            hidden.some((base) => modifier.startsWith(base) || pairs.has(pairKey(base, modifier)))
+        )
+      );
+      if (!guarded) offenders.push(`${compound} has no restoring modifier`);
+    }
+  }
+  return offenders;
+}
+
+/** The RETIRED per-file test, kept only so the mutation probe above can show
+ * what it used to answer: how many restoring rules a file has, which is a
+ * number and not an association. */
+function legacyRestorerCount(code: string): number {
+  return [...code.matchAll(/([^{}]*--[\w-]+[^{}]*)\{[^{}]*opacity\s*:\s*1\s*[;}]/g)].length;
+}
 
 /* ===================================================== R5.7 staggered delays */
 
@@ -476,13 +648,16 @@ describe('R5.2 site 1 — the screen transition is actually triggered', () => {
 describe('R5.7 — an entrance is viewport-triggered, staggered and capped', () => {
   const hook = readFileSync(join(ROOT, 'src/ui/hooks/useEnterOnce.ts'), 'utf8');
 
-  it('gates both entrance sites on the viewport, never on mount', () => {
+  it('gates every entrance site on the viewport, never on mount', () => {
     // FIX ROUND 1 (I1). A mount-triggered entrance plays to an empty room
     // for anything below the fold — measured on Published at 360, which is
-    // what forced this. Both sites now consume the same one-way observer.
+    // what forced this. Every site consumes the same one-way observer; T38's
+    // Summary block is the third (R5.2 site 9) and sits below four other
+    // blocks on a phone, so it would have been the next one to reproduce the
+    // defect had it written its own gate.
     expect(hook).toMatch(/new IntersectionObserver/);
     expect(hook).toMatch(/observer\.disconnect\(\)/);
-    for (const rel of ['src/ui/screens/Reveal.tsx', 'src/ui/screens/Published.tsx']) {
+    for (const rel of ['src/ui/screens/Reveal.tsx', 'src/ui/screens/Published.tsx', 'src/ui/screens/Summary.tsx']) {
       expect(readFileSync(join(ROOT, rel), 'utf8'), `${rel} must use the shared gate`).toMatch(/useEnterOnce/);
     }
   });
@@ -497,7 +672,7 @@ describe('R5.7 — a stagger is an indexed delay, capped by the component', () =
     const delays = uiCss.flatMap(({ file, code }) =>
       [...code.matchAll(/animation-delay\s*:\s*([^;{}]+)/g)].map(([, value]) => `${file}: ${value.trim()}`)
     );
-    expect(delays.length, 'no staggered site found — R5.2 lists two').toBeGreaterThan(0);
+    expect(delays.length, 'no staggered site found — R5.2 lists three').toBeGreaterThan(0);
     for (const delay of delays) {
       expect(delay).toMatch(/calc\(\s*var\(--ph-stagger-index,\s*0\)\s*\*\s*var\(--dur-stagger\)\s*\)/);
     }

@@ -10,15 +10,20 @@
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import SummaryScreen, { Summary, persistAndComputeSummary } from '../../src/ui/screens/Summary';
+import SummaryScreen, { Summary, persistAndComputeSummary, type UnlockedAchievement } from '../../src/ui/screens/Summary';
 import { scoreDay } from '../../src/game/scoring';
 import { copy as enCopy } from '../../src/content/en/copy';
+// T38: the achievement NAMES and CITATIONS are content, not chrome — they
+// live in each locale's bank, and the unlock block renders them from there.
+import { content as enContent } from '../../src/content/en';
+import { MAX_STAGGER_STEPS } from '../../src/ui/hooks/useEnterOnce';
 import { t as translate } from '../../src/i18n/t';
 import type { PersistedState } from '../../src/game/storage';
 import { DEFAULT_SPEC, useGameStore } from '../../src/game/store';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { localIsoDate } from '../../src/game/daily';
 import type { EngineClient } from '../../src/engine/protocol';
+import type { PathResult, PlayerAction } from '../../src/engine/types';
 
 const t = (key: Parameters<typeof translate>[1], params?: Record<string, string | number>) =>
   translate(enCopy, key, params);
@@ -800,5 +805,334 @@ describe('SummaryScreen — achievement evaluation wired into the one persist mo
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(saved.achievements ?? {}).toEqual({});
     expect(screen.queryByText(t('summary.preregUpsell'))).toBeNull();
+  });
+});
+
+// --- T38: the unlock block — the day's award ceremony ----------------------
+//
+// T35's motion review found the gap this closes: persistAndComputeSummary
+// computed `unlockedToday`, persisted it via saveAchievements, and DISCARDED
+// it, so a player who had just earned "The One-Tailed Bandit" was told
+// nothing at all on the screen that had just decided it. The block renders
+// each award's NAME and CITATION straight out of the active locale's content
+// bank (never re-stated in copy.ts), behind DESIGN.md R5.2 site 9's staggered
+// entrance.
+
+/** Two awards, in a fixed order, resolved exactly as SummaryScreen resolves
+ * them: ids -> the English bank's own name/citation. */
+const TWO_AWARDS: UnlockedAchievement[] = (['one_tailed_bandit', 'harking'] as const).map((id) => ({
+  id,
+  ...enContent.achievements[id],
+}));
+
+function renderWithUnlocks(unlocked: UnlockedAchievement[]) {
+  return render(
+    <Summary
+      t={t}
+      breakdown={[['summary.breakdownCallCorrect', 100]]}
+      score={100}
+      streak={1}
+      now={new Date(2026, 7, 10, 20, 0, 0, 0)}
+      shareText="x"
+      preregUnlocked={false}
+      unlocked={unlocked}
+    />
+  );
+}
+
+describe('Summary — the unlock block renders iff something was unlocked today', () => {
+  it('names every award and prints its citation, in the order they were earned', () => {
+    renderWithUnlocks(TWO_AWARDS);
+
+    expect(screen.getByText(t('summary.unlockedToday'))).toBeTruthy();
+    const items = screen.getAllByTestId('unlock-item');
+    expect(items.map((el) => el.textContent)).toEqual([
+      `${enContent.achievements.one_tailed_bandit.name}${enContent.achievements.one_tailed_bandit.citation}`,
+      `${enContent.achievements.harking.name}${enContent.achievements.harking.citation}`,
+    ]);
+    // The strings are the CONTENT BANK's, not a rewrite living in copy.ts.
+    expect(screen.getByText(enContent.achievements.one_tailed_bandit.citation)).toBeTruthy();
+    expect(screen.getByText(enContent.achievements.harking.name)).toBeTruthy();
+  });
+
+  it('renders NOTHING on a day that unlocked nothing — no heading, no empty-state line', () => {
+    renderWithUnlocks([]);
+    expect(screen.queryByText(t('summary.unlockedToday'))).toBeNull();
+    expect(screen.queryAllByTestId('unlock-item')).toEqual([]);
+  });
+
+  it('omits the block entirely when the prop is omitted (the default is "nothing happened")', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 10, 20, 0, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+      />
+    );
+    expect(screen.queryByText(t('summary.unlockedToday'))).toBeNull();
+  });
+
+  it('sits between the invoice and the share button (the ceremony precedes the bragging)', () => {
+    const { container } = renderWithUnlocks(TWO_AWARDS);
+    const order = [...container.querySelectorAll('.ph-summary__invoice, .ph-summary__unlock, .ph-summary__share')].map(
+      (el) => el.className
+    );
+    expect(order).toEqual(['ph-summary__invoice', 'ph-summary__unlock', 'ph-summary__share']);
+  });
+});
+
+describe('Summary — R5.2 site 9: one staggered group, capped, and never hiding content', () => {
+  /** An observer that mounts and NEVER fires, so `entered` can only be true
+   * because something other than the viewport made it true. jsdom ships no
+   * IntersectionObserver at all, and without this stub `useEnterOnce` fails
+   * open on that alone — which would make every assertion below vacuous. */
+  function installSilentObserver() {
+    class SilentObserver {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = SilentObserver;
+    return () => {
+      delete (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver;
+    };
+  }
+
+  /** jsdom has no matchMedia; useReducedMotion reads exactly this query. */
+  function installReducedMotion(reduce: boolean) {
+    window.matchMedia = vi.fn((query: string) => ({
+      media: query,
+      matches: query.includes('prefers-reduced-motion') ? reduce : false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => true,
+      onchange: null,
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  it('indexes the group in DOM order and caps it at MAX_STAGGER_STEPS (R5.7)', () => {
+    const four: UnlockedAchievement[] = (['first_blood', 'harking', 'garden', 'well_actually'] as const).map((id) => ({
+      id,
+      ...enContent.achievements[id],
+    }));
+    renderWithUnlocks(four);
+    const indices = screen.getAllByTestId('unlock-item').map((el) => el.style.getPropertyValue('--ph-stagger-index'));
+    // 0, 1, 2, then capped — the 4th award must not wait 4 steps for arriving
+    // alone at the bottom of the page.
+    expect(indices).toEqual(['0', '1', '2', `${MAX_STAGGER_STEPS}`]);
+  });
+
+  it('is the screen\'s ONLY staggered group: the share toast carries no index (R5.7\'s one-group budget)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    (navigator as unknown as { clipboard: { writeText: typeof writeText } }).clipboard = { writeText };
+    const { container } = renderWithUnlocks(TWO_AWARDS);
+    fireEvent.click(screen.getByRole('button', { name: t('summary.share') }));
+    const toast = await screen.findByRole('status');
+
+    expect(toast.style.getPropertyValue('--ph-stagger-index')).toBe('');
+    expect(container.querySelectorAll('[style*="--ph-stagger-index"]')).toHaveLength(TWO_AWARDS.length);
+    delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+  });
+
+  it('is visible FROM MOUNT under reduced motion, with an observer that never fires (R5.6 parity)', () => {
+    const restore = installSilentObserver();
+    installReducedMotion(true);
+    try {
+      renderWithUnlocks(TWO_AWARDS);
+      // The restoring class is present on the very first render: the citation
+      // is held visible by the CLASS, and no movement is waited on.
+      for (const item of screen.getAllByTestId('unlock-item')) {
+        expect(item.className).toContain('ph-summary__unlock-item--in');
+      }
+      // ...and the text is in the document regardless of any animation.
+      expect(screen.getByText(enContent.achievements.harking.citation)).toBeTruthy();
+    } finally {
+      restore();
+    }
+  });
+
+  it('the reduced-motion assertion is not vacuous: with full motion the same observer withholds the class', () => {
+    const restore = installSilentObserver();
+    installReducedMotion(false);
+    try {
+      renderWithUnlocks(TWO_AWARDS);
+      for (const item of screen.getAllByTestId('unlock-item')) {
+        expect(item.className).toBe('ph-summary__unlock-item');
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it('fails OPEN where there is no IntersectionObserver at all (jsdom\'s own case)', () => {
+    expect(typeof (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver).toBe('undefined');
+    renderWithUnlocks(TWO_AWARDS);
+    for (const item of screen.getAllByTestId('unlock-item')) {
+      expect(item.className).toContain('ph-summary__unlock-item--in');
+    }
+  });
+});
+
+/** The committed spec's own N=400 result on a prereg day (store.preregResult):
+ * valid and significant, which is what T18 made the real prereg signal. */
+const PREREG_RESULT: PathResult = {
+  spec: DEFAULT_SPEC,
+  n: 400,
+  beta: 0.2,
+  se: 0.05,
+  t: 4,
+  p: 0.01,
+  ci: [0.1, 0.3],
+  excludedCount: 0,
+  valid: true,
+};
+
+describe('persistAndComputeSummary — unlockedToday is returned from the SAME computation it persists', () => {
+  const submitLog = (spec: typeof DEFAULT_SPEC): PlayerAction[] => [{ t: 'SUBMIT', spec, p: 0.01, at: 0 }];
+
+  it('returns exactly what saveAchievements just wrote, and returns it once', () => {
+    const fields = {
+      mode: 'hack' as const,
+      practice: false,
+      puzzleNumber: 1,
+      forks: 0,
+      published: true,
+      call: 'real' as const,
+      dayType: 'effect' as const,
+      stamp: 'REPLICATED' as const,
+      log: submitLog({ ...DEFAULT_SPEC, exclusion: 'z2' as const }),
+      copy: enCopy,
+      puzzleIso: '2026-08-10',
+      resultLog: [],
+    };
+
+    const first = persistAndComputeSummary(fields);
+    expect(first.unlockedToday).toEqual(['first_blood', 'outlier_surgeon']);
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(Object.keys(saved.achievements).sort()).toEqual([...first.unlockedToday].sort());
+    for (const id of first.unlockedToday) expect(saved.achievements[id]).toBe('2026-08-10');
+
+    // A re-visit (the nav path) re-derives nothing and claims nothing: the
+    // ceremony belongs to the day it happened, and the persistence block that
+    // produced it is skipped wholesale by `alreadySaved`.
+    const second = persistAndComputeSummary(fields);
+    expect(second.unlockedToday).toEqual([]);
+    expect(second.breakdown).toEqual(first.breakdown); // ...everything else is unchanged
+    expect(JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}').achievements).toEqual(saved.achievements);
+  });
+
+  it('claims nothing on a practice day (the persistence moment never runs)', () => {
+    const result = persistAndComputeSummary({
+      mode: 'hack',
+      practice: true,
+      puzzleNumber: 1,
+      forks: 0,
+      published: true,
+      call: 'real',
+      dayType: 'effect',
+      stamp: 'REPLICATED',
+      log: submitLog({ ...DEFAULT_SPEC, exclusion: 'z2' }),
+      copy: enCopy,
+      puzzleIso: '2026-08-10',
+      resultLog: [],
+    });
+    expect(result.unlockedToday).toEqual([]);
+  });
+
+  it('carries a PREREG day\'s unlocks identically — the block is blind to the mode', () => {
+    const result = persistAndComputeSummary({
+      mode: 'prereg',
+      practice: false,
+      puzzleNumber: 1,
+      forks: 0,
+      published: true,
+      call: null,
+      dayType: 'effect',
+      stamp: 'REPLICATED',
+      log: submitLog({ ...DEFAULT_SPEC, exclusion: 'z2' }),
+      copy: enCopy,
+      puzzleIso: '2026-08-10',
+      resultLog: [],
+      preregResult: PREREG_RESULT,
+    });
+    expect(result.unlockedToday).toEqual(['first_blood', 'outlier_surgeon']);
+    // Same shape the hack-mode day returns, so the same block renders: the
+    // presentational half never receives `mode` at all.
+    renderWithUnlocks(result.unlockedToday.map((id) => ({ id, ...enContent.achievements[id] })));
+    expect(screen.getByText(t('summary.unlockedToday'))).toBeTruthy();
+    expect(screen.getAllByTestId('unlock-item')).toHaveLength(2);
+  });
+});
+
+describe('SummaryScreen — the day that earns an award shows it, and only that day (T38, end to end)', () => {
+  it('renders the real names and citations of everything the finished day unlocked', async () => {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+
+    // The harness publishes (p = 0.02) into a RETRACTED reveal: first ever
+    // publication AND first ever retraction, in evaluateAchievements' order.
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(Object.keys(saved.achievements).sort()).toEqual(['first_blood', 'first_retraction']);
+
+    expect(screen.getByText(t('summary.unlockedToday'))).toBeTruthy();
+    expect(screen.getAllByTestId('unlock-item').map((el) => el.textContent)).toEqual([
+      `${enContent.achievements.first_blood.name}${enContent.achievements.first_blood.citation}`,
+      `${enContent.achievements.first_retraction.name}${enContent.achievements.first_retraction.citation}`,
+    ]);
+  });
+
+  it('shows nothing on a later re-visit of the same day, while the upsell it earned stays (nav path)', async () => {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+
+    const first = render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    expect(screen.getAllByTestId('unlock-item')).toHaveLength(2);
+    first.unmount(); // <- "click Stats"
+
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    expect(screen.queryAllByTestId('unlock-item')).toEqual([]);
+    expect(screen.queryByText(t('summary.unlockedToday'))).toBeNull();
+    // The achievement itself is untouched — only the CEREMONY is once.
+    expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(saved.achievements.first_retraction).toBe('2026-08-10');
   });
 });
