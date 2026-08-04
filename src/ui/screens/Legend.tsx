@@ -21,6 +21,7 @@ import {
   PREREG_PREFIX,
   SUBMIT_EMOJI,
 } from '../../game/share';
+import { GlyphMark } from '../components/GlyphMark';
 import './Legend.css';
 
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
@@ -83,7 +84,7 @@ export function Legend({ t, onClose }: LegendProps) {
       <ul className="ph-legend__list">
         {LEGEND_ENTRIES.map((entry) => (
           <li className="ph-legend__row" key={entry.labelKey}>
-            <span className="ph-legend__glyph">{entry.glyph}</span>
+            <GlyphMark glyph={entry.glyph} className="ph-legend__glyph" />
             <span className="ph-legend__label">{t(entry.labelKey)}</span>
           </li>
         ))}

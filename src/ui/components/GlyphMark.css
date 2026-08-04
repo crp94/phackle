@@ -1,0 +1,12 @@
+/* T34 — see GlyphMark.tsx's doc comment. Reuses --tracking-label (DESIGN.md's
+   closed token set, R2.7) — the SAME token ForkTrail.css's own live glyph
+   run already applies for exactly this reason (T29 pin 11-NEW-b: "so the two
+   remaining glyphs are legible instead of a compressed string"). No new
+   token, no magic number: this is that same idiom, applied everywhere a
+   share.ts glyph renders next to a label, so a compound sequence like
+   CALL_CORRECT ('⚖️✅') always carries visible air between its two component
+   glyphs — independent of whatever the surrounding font's own emoji advance
+   widths happen to be. */
+.ph-glyph-mark {
+  letter-spacing: var(--tracking-label);
+}

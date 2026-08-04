@@ -1177,4 +1177,19 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     const glyphs = [...rows].map((r) => r.querySelector('.ph-fork-trail__popover-glyph')?.textContent);
     expect(new Set(glyphs).size).toBe(glyphs.length);
   });
+
+  // T34 (owner play-test finding — see Legend.test.tsx's own T34 case for
+  // the full context): the popover's glyph column, same as the Legend
+  // page's, routes every glyph through GlyphMark rather than a bare text
+  // node, so the CALL_CORRECT/CALL_INCORRECT compound sequence (⚖️✅/⚖️❌)
+  // always carries letter-spacing independent of the row's own flex `gap`.
+  it('renders every popover glyph through GlyphMark (ph-glyph-mark)', async () => {
+    const { container } = renderTrail();
+    fireEvent.click(await screen.findByTestId('fork-trail-key'));
+    const glyphSpans = container.querySelectorAll('.ph-fork-trail__popover-glyph');
+    expect(glyphSpans).toHaveLength(LEGEND_ENTRIES.length);
+    glyphSpans.forEach((span) => {
+      expect(span.classList.contains('ph-glyph-mark')).toBe(true);
+    });
+  });
 });
