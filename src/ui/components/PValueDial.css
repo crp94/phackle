@@ -68,3 +68,15 @@
   font-size: var(--text-13);
   color: var(--muted);
 }
+
+/* T31: the dial's plain-words explainer — the app's most load-bearing
+   sentence, and still a caption: --muted, 13px, inside --measure (R1.2,
+   R2.2, R2.8). It explains the signature without becoming one (R8.3). */
+.ph-dial__caption {
+  max-width: var(--measure);
+  margin: var(--space-8) auto 0 auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}

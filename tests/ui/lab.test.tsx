@@ -16,7 +16,9 @@ import { PValueDial } from '../../src/ui/components/PValueDial';
 import { CoefPlot } from '../../src/ui/components/CoefPlot';
 import { ForkTrail } from '../../src/ui/components/ForkTrail';
 import { Lab } from '../../src/ui/screens/Lab';
+import { coefCssPixelsPerUnit } from '../../src/ui/components/CoefPlot';
 import { gameStore, DEFAULT_SPEC } from '../../src/game/store';
+import { loadState, saveSettings } from '../../src/game/storage';
 import { DEBOUNCE_MS, EPOCH, N_SCHEDULE } from '../../src/game/tuning';
 import type { EngineClient, ExtendInfo, InitInfo, RevealPayload } from '../../src/engine/protocol';
 import type { PathResult, PlayerAction, Spec } from '../../src/engine/types';
@@ -591,5 +593,308 @@ describe('Lab', () => {
     const controlsIdx = children.findIndex((c) => c.querySelector('[role="radiogroup"]'));
     expect(resultsIdx).toBeGreaterThanOrEqual(0);
     expect(controlsIdx).toBeGreaterThan(resultsIdx);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T31: the explanations half of the play-test round ("the UX/UI needs graphs
+// at least; and explanations; it feels too barebone"). Six methods notes, a
+// first-run intro that persists its own dismissal, and a CoefPlot that reads
+// as a labelled figure rather than an unlabelled line.
+// ---------------------------------------------------------------------------
+
+describe('SpecControls methods notes (T31)', () => {
+  const NOTE_KEYS = [
+    'lab.explain.outcome',
+    'lab.explain.subgroup',
+    'lab.explain.covariates',
+    'lab.explain.exclusion',
+    'lab.explain.transform',
+    'lab.explain.tails',
+  ] as const;
+
+  it('renders one note under each of the six groups, from the copy catalog', async () => {
+    render(
+      <LocaleProvider>
+        <SpecControls spec={DEFAULT_SPEC} onChange={vi.fn()} scenario={scenario} disabled={false} />
+      </LocaleProvider>
+    );
+    await screen.findAllByRole('radiogroup');
+    for (const key of NOTE_KEYS) {
+      expect(screen.getByText(enCopy[key]), `missing note for ${key}`).toBeTruthy();
+    }
+    expect(screen.getAllByTestId('spec-group-note')).toHaveLength(6);
+  });
+
+  it('associates each note with its own radiogroup via aria-describedby', async () => {
+    const { container } = render(
+      <LocaleProvider>
+        <SpecControls spec={DEFAULT_SPEC} onChange={vi.fn()} scenario={scenario} disabled={false} />
+      </LocaleProvider>
+    );
+    const groups = await screen.findAllByRole('radiogroup');
+    expect(groups).toHaveLength(6);
+    for (const group of groups) {
+      const id = group.getAttribute('aria-describedby');
+      expect(id, 'every radiogroup must point at its note').toBeTruthy();
+      const note = container.querySelector(`#${id}`);
+      expect(note, `no note element with id ${id}`).toBeTruthy();
+      expect(note?.getAttribute('data-testid')).toBe('spec-group-note');
+      expect(note?.textContent).not.toBe('');
+    }
+  });
+
+  it('keeps every note in the Act-I sincere register: no note calls the choice into question', () => {
+    // The reveal owns the indictment (and lab.peekFootnoteArmitage is the one
+    // sanctioned Act-I wink). A note that hedged would spoil the turn.
+    const suspicious =
+      /\b(cheat|cheating|naughty|suspicious|dubious|questionable|p-hack|fish|nudge|convenient|trick|bias(?:ed)?)\b/i;
+    for (const key of NOTE_KEYS) {
+      expect(enCopy[key], `${key} breaks the sincere register`).not.toMatch(suspicious);
+    }
+  });
+});
+
+describe('PValueDial caption (T31) — the app\'s single most important explanation', () => {
+  // The play-test said the UI is "beautiful but hard to fully grasp". This
+  // line is the answer: whatever state the dial is in, it must say what the
+  // number means and what makes it publishable — including BEFORE the first
+  // result, which is the very moment a first-timer is most lost.
+  it.each([
+    ['a real result', makeResult({ p: 0.4 })],
+    ['an invalid result', makeResult({ valid: false })],
+    ['no result yet', null],
+  ] as const)('renders under the dial with %s', async (_label, result) => {
+    render(
+      <LocaleProvider>
+        <PValueDial result={result} pending={false} />
+      </LocaleProvider>
+    );
+    expect(await screen.findByText(enCopy['lab.dialCaption'])).toBeTruthy();
+  });
+
+  it('sits inside the dial block, so it reads as that number\'s caption and not as loose prose', async () => {
+    const { container } = render(
+      <LocaleProvider>
+        <PValueDial result={makeResult()} pending={false} />
+      </LocaleProvider>
+    );
+    await screen.findByText(enCopy['lab.dialCaption']);
+    const dial = container.querySelector('[data-testid="pvalue-dial"]');
+    expect(dial?.querySelector('.ph-dial__caption')?.textContent).toBe(enCopy['lab.dialCaption']);
+  });
+
+  it('names 0.05 in plain words, with no statistics vocabulary a first-timer would have to look up', () => {
+    const jargon = /\b(null hypothesis|significance|significant|alpha|type i|two-tailed|distribution|estimator)\b/i;
+    expect(enCopy['lab.dialCaption']).toMatch(/0\.05/);
+    expect(enCopy['lab.dialCaption']).not.toMatch(jargon);
+  });
+});
+
+describe('CoefPlot figure labels (T31)', () => {
+  it('labels the axis with the outcome unit', async () => {
+    render(
+      <LocaleProvider>
+        <CoefPlot result={makeResult()} unit="%" />
+      </LocaleProvider>
+    );
+    expect(await screen.findByText(enCopy['lab.coefPlotAxis'].replace('{unit}', '%'))).toBeTruthy();
+  });
+
+  it('labels the zero reference line', async () => {
+    render(
+      <LocaleProvider>
+        <CoefPlot result={makeResult()} unit="%" />
+      </LocaleProvider>
+    );
+    expect(await screen.findByText(enCopy['lab.coefPlotZero'])).toBeTruthy();
+  });
+
+  it('labels the zero line even with no result yet, so the empty figure still reads', async () => {
+    render(
+      <LocaleProvider>
+        <CoefPlot result={null} unit="%" />
+      </LocaleProvider>
+    );
+    expect(await screen.findByText(enCopy['lab.coefPlotZero'])).toBeTruthy();
+  });
+
+  it('tracks its container so one viewBox unit is one CSS pixel at every width', () => {
+    for (const width of [320, 660, 1088, 272, 520]) {
+      expect(coefCssPixelsPerUnit(width)).toBe(1);
+    }
+  });
+});
+
+describe('Lab first-run intro (T31)', () => {
+  const intro = () => screen.queryByTestId('lab-intro');
+
+  it('shows on a first visit, collapsible, with the title and all four steps in order', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    const el = await screen.findByTestId('lab-intro');
+    expect(el.tagName.toLowerCase()).toBe('details'); // collapsible, no JS, no animation (R5.5)
+    expect(within(el).getByText(enCopy['lab.howThisWorks.title'])).toBeTruthy();
+
+    const steps = within(el).getAllByTestId('lab-intro-step');
+    expect(steps.map((s) => s.textContent)).toEqual([
+      enCopy['lab.howThisWorks.step1'],
+      enCopy['lab.howThisWorks.step2'],
+      enCopy['lab.howThisWorks.step3'],
+      enCopy['lab.howThisWorks.step4'],
+    ]);
+  });
+
+  it('numbers the steps as a real ordered list, so the sequence survives a screen reader', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    const el = await screen.findByTestId('lab-intro');
+    expect(el.querySelector('ol')).toBeTruthy();
+  });
+
+  it('starts expanded: a first-timer must not have to discover the instructions', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    const el = (await screen.findByTestId('lab-intro')) as HTMLDetailsElement;
+    expect(el.open).toBe(true);
+  });
+
+  it('dismissing it persists settings.introSeen and removes it from the screen', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-intro');
+
+    fireEvent.click(screen.getByRole('button', { name: enCopy['lab.howThisWorks.dismiss'] }));
+    await waitFor(() => expect(intro()).toBeNull());
+    expect(loadState().settings.introSeen).toBe(true);
+  });
+
+  it('never renders again once introSeen is persisted', async () => {
+    saveSettings({ introSeen: true });
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    expect(intro()).toBeNull();
+  });
+
+  it('leaves the rest of the persisted settings alone when it writes', async () => {
+    saveSettings({ locale: 'en', theme: 'dark' });
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-intro');
+    fireEvent.click(screen.getByRole('button', { name: enCopy['lab.howThisWorks.dismiss'] }));
+    await waitFor(() => expect(loadState().settings.introSeen).toBe(true));
+    expect(loadState().settings.theme).toBe('dark');
+    expect(loadState().settings.locale).toBe('en');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T31 FIX ROUND — finding 4 ("RESTORED REQUIREMENT — Legend pointer"): the
+// live fork trail's own emoji carry no explanation anywhere in the Lab; this
+// pins the quiet --muted line next to it, and that it actually points at the
+// Legend page by name.
+// ---------------------------------------------------------------------------
+
+describe('Lab fork trail Legend pointer (T31 fix round, finding 4)', () => {
+  it('renders a muted hint next to the fork trail, from the copy catalog', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    expect(await screen.findByText(enCopy['lab.forkTrailHint'])).toBeTruthy();
+    expect(enCopy['lab.forkTrailHint']).toMatch(/Legend/i);
+  });
+
+  it('sits after the fork trail in the DOM, not before it', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const results = container.querySelector('.ph-lab__results') as HTMLElement;
+    const children = Array.from(results.children);
+    const trailIdx = children.findIndex((c) => c.querySelector('.ph-fork-trail') || c.classList.contains('ph-fork-trail'));
+    const hintIdx = children.findIndex((c) => c.getAttribute('data-testid') === 'lab-fork-trail-hint');
+    expect(trailIdx).toBeGreaterThanOrEqual(0);
+    expect(hintIdx).toBeGreaterThan(trailIdx);
+  });
+});
+
+describe('Lab data figure (T31)', () => {
+  it("renders the DataCut from the current result's cut", async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(
+      makeResult({ cut: { control: [1, 2, 3], treated: [4, 5, 6], excludedControl: [], excludedTreated: [99] } })
+    );
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    await waitFor(() => expect(container.querySelectorAll('[data-role="cut-dot"]')).toHaveLength(6));
+    expect(container.querySelectorAll('[data-role="cut-excluded"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-role="cut-mean"]')).toHaveLength(2);
+  });
+
+  it("names the treated column with the day's own treatment label", async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    expect(await screen.findByText(scenario.treatmentLabel)).toBeTruthy();
+  });
+
+  it('still renders the figure frame before the first result lands', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    expect(container.querySelector('.ph-datacut')).toBeTruthy();
   });
 });

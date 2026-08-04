@@ -3,12 +3,15 @@
 // and the estimate (CoefPlot) update, with a live ForkTrail and the two exit
 // actions — SUBMIT TO JOURNAL (gated on a settled, valid, significant
 // result) and "Report a null result" (always available).
+import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
+import { loadState, saveSettings } from '../../game/storage';
 import { N_SCHEDULE } from '../../game/tuning';
 import { SpecControls } from '../components/SpecControls';
 import { PValueDial } from '../components/PValueDial';
 import { CoefPlot } from '../components/CoefPlot';
+import { DataCut } from '../components/DataCut';
 import { ForkTrail } from '../components/ForkTrail';
 import type { PlayerAction } from '../../engine/types';
 import './Lab.css';
@@ -16,6 +19,13 @@ import './Lab.css';
 function countPeeks(log: PlayerAction[]): number {
   return log.filter((a) => a.t === 'PEEK_AND_EXTEND').length;
 }
+
+const HOW_TO_PLAY_STEPS = [
+  'lab.howThisWorks.step1',
+  'lab.howThisWorks.step2',
+  'lab.howThisWorks.step3',
+  'lab.howThisWorks.step4',
+] as const;
 
 // N_SCHEDULE's step is constant (200/250/300/350/400 -> always +50) but
 // derived here rather than hardcoded, so a future re-tuning of the schedule
@@ -37,6 +47,20 @@ export function Lab() {
   const submit = useGameStore((s) => s.submit);
   const abandon = useGameStore((s) => s.abandon);
 
+  // T31: the first-run "How to play" panel. Read ONCE, in a lazy initializer,
+  // so dismissing it does not race a re-read, and so the panel's presence is
+  // decided before the first paint rather than flickering in. `introSeen` is
+  // a settings-schema extension (see storage.ts) — absent means never
+  // dismissed, which is the right default for both a fresh install and a
+  // state written before the field existed. Declared above the `scenario`
+  // early return: hooks may not sit behind a conditional.
+  const [introSeen, setIntroSeen] = useState(() => loadState().settings.introSeen === true);
+
+  function dismissIntro() {
+    saveSettings({ introSeen: true }); // merges: never clobbers theme/locale
+    setIntroSeen(true);
+  }
+
   // Guarded for the type checker only: App's own loading gate guarantees
   // `content` (and therefore a real scenario) is already loaded by the time
   // ScreenRouter can ever mount the Lab.
@@ -51,8 +75,31 @@ export function Lab() {
   return (
     <section className="ph-lab" data-testid="lab-screen">
       <div className="ph-lab__results">
+        {/* Native <details>: collapsible with no JavaScript and no animation
+            (R5.5's budget is exhaustive and accordion slides are named in it
+            as forbidden). Open by default — a first-timer must not have to
+            discover the instructions — and gone for good once dismissed. */}
+        {introSeen ? null : (
+          <details className="ph-lab__intro" data-testid="lab-intro" open>
+            <summary className="ph-lab__intro-title">{t('lab.howThisWorks.title')}</summary>
+            <ol className="ph-lab__intro-steps">
+              {HOW_TO_PLAY_STEPS.map((key) => (
+                <li key={key} className="ph-lab__intro-step" data-testid="lab-intro-step">
+                  {t(key)}
+                </li>
+              ))}
+            </ol>
+            <button type="button" className="ph-lab__intro-dismiss" onClick={dismissIntro}>
+              {t('lab.howThisWorks.dismiss')}
+            </button>
+          </details>
+        )}
         <PValueDial result={result} pending={pending} />
         <CoefPlot result={result} unit={scenario.outcomeUnits[spec.outcome]} />
+        {/* Master spec §2.4's "tiny scatter/box visual of the current cut" —
+            the sample the two figures above are built from, with the excluded
+            points still drawn. */}
+        <DataCut cut={result?.cut ?? null} treatmentLabel={scenario.treatmentLabel} />
         <button
           type="button"
           className="ph-lab__collect"
@@ -66,6 +113,14 @@ export function Lab() {
           <p className="ph-lab__footnote ph-lab__footnote--armitage">{t('lab.peekFootnoteArmitage')}</p>
         ) : null}
         <ForkTrail log={log} mode={mode} />
+        {/* T31 fix round (review finding 4, "RESTORED REQUIREMENT"): the
+            trail's own emoji are otherwise unexplained anywhere in the Lab —
+            this quiet --muted line points at the Legend page, which owns the
+            actual key. Reuses .ph-lab__footnote's existing styling rather
+            than adding a new rule (R8.3: it must not compete with the dial). */}
+        <p className="ph-lab__footnote" data-testid="lab-fork-trail-hint">
+          {t('lab.forkTrailHint')}
+        </p>
         <div className="ph-lab__actions">
           <button type="button" className="ph-lab__submit" disabled={!canSubmit} onClick={() => void submit()}>
             {t('lab.submit')}

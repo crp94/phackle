@@ -17,6 +17,7 @@ import { useStore as zustandUseStore } from 'zustand/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { createGameStore, type GameStore } from '../../src/game/store';
 import { content as enContent } from '../../src/content/en';
+import { copy as enCopy } from '../../src/content/en/copy';
 import { isoFromPuzzleNumber } from '../../src/game/puzzleDate';
 import { pickGrantwellEmail } from '../../src/game/briefing';
 import { Briefing } from '../../src/ui/screens/Briefing';
@@ -90,6 +91,30 @@ describe('Briefing', () => {
     fireEvent.click(screen.getByText('Open Data'));
 
     expect(openDataSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // T31 (second play-test round: "the UX/UI is hard to understand, it
+  // requires more explanation"). The briefing now states the task outright,
+  // before the cover story's fiction gets a chance to bury it.
+  it('states the goal in one line, directly under the title card', async () => {
+    const { container } = renderBriefing();
+    await waitFor(() => expect(screen.getByText(enCopy['briefing.goal'])).toBeTruthy());
+
+    const goal = container.querySelector('[data-testid="briefing-goal"]');
+    expect(goal?.textContent).toBe(enCopy['briefing.goal']);
+
+    // "Under the title card" = after the question + corresponding-author
+    // line, and before the cover story — the first thing read after the title.
+    const order = Array.from(container.querySelectorAll('h1, [data-testid="briefing-goal"], .ph-briefing__cover-story'));
+    expect(order.map((el) => el.tagName.toLowerCase() === 'h1' ? 'title' : el.getAttribute('data-testid') ?? 'cover')).toEqual([
+      'title',
+      'briefing-goal',
+      'cover',
+    ]);
+  });
+
+  it('names the target explicitly, so nobody has to infer what "significant" means here', () => {
+    expect(enCopy['briefing.goal']).toMatch(/0\.05/);
   });
 
   it('renders nothing before content has loaded (behind the app-level gate)', () => {

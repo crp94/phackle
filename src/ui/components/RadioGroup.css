@@ -53,3 +53,16 @@
 .ph-radio--selected {
   border-block-end: 2px solid var(--ink);
 }
+
+/* T31: the methods note under a group's options. Caption register (R1.2's
+   --muted, R2.2's 13px, R2.8's measure) — deliberately quieter than the
+   options it explains, and quieter than the uppercase legend above them, so
+   the control still reads first and R8.3 stays true. */
+.ph-spec-group__note {
+  margin: var(--space-8) 0 0 0;
+  max-width: var(--measure);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}

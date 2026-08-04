@@ -1,0 +1,110 @@
+/* DataCut — master spec §2.4's figure of the current cut.
+   DESIGN.md R1.2 (ink and muted, nothing else), R1.4 (the baseline is a
+   hairline), R4.1 (no fill anywhere: the product's one filled area is the
+   reveal's significance band), R8.3 (quiet — the dial is Act I's only
+   signature). Radii come from the --dot-* tokens (§9 "Figures") and are never
+   retyped: `r` is a CSS geometry property, so the tokens apply to the circles
+   directly, exactly as in SpecCurve.css.
+
+   MARK SIZES, and why they are what they are. The included cloud takes
+   --dot-all, the same 1.5px SpecCurve gives its own base cloud, for the same
+   reason: at the largest window a column holds 200 points in roughly
+   122 x 72 px, and --dot-explored (4px) would cover 114% of that box — a
+   solid slab, not a distribution. At --dot-all the same column reads as ~16%
+   ink and the shape of the data survives.
+
+   The EXCLUDED marks take --dot-explored (4px) instead, hollow, crossed, in
+   --muted. They are rarer and they are the point of the figure, so they are
+   the larger mark: the eye finds the people who left. */
+
+.ph-datacut {
+  margin: var(--space-16) 0 0 0;
+}
+
+.ph-datacut__plot {
+  position: relative;
+}
+
+.ph-datacut__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ph-datacut__axis {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+/* The analysed sample. */
+.ph-datacut__dot {
+  r: var(--dot-all);
+  fill: var(--ink);
+}
+
+/* Removed from the fit, still on the page. */
+.ph-datacut__excluded-ring {
+  r: var(--dot-explored);
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.ph-datacut__excluded-arm {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+/* What the regression actually averages. Weight 2, matching CoefPlot's
+   estimate interval — these two figures read as one pair. */
+.ph-datacut__mean {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* The same --space-8 inline padding and --space-12 gap DataCut.tsx's geometry
+   is built from, so each label sits exactly under the column it names. */
+.ph-datacut__labels {
+  display: flex;
+  gap: var(--space-12);
+  padding-inline: var(--space-8);
+  margin-block-start: var(--space-4);
+}
+
+.ph-datacut__label {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+/* R3.6: a wrapped row of key items, not a grid of chips. */
+.ph-datacut__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-16);
+  margin-block-start: var(--space-8);
+}
+
+.ph-datacut__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+.ph-datacut__swatch {
+  display: block;
+  flex: none;
+  width: var(--space-12);
+  height: var(--space-12);
+  overflow: visible;
+}

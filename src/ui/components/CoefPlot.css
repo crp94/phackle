@@ -7,10 +7,15 @@
   margin: var(--space-16) 0 0 0;
 }
 
+.ph-coef-plot__plot {
+  position: relative;
+}
+
 .ph-coef-plot svg {
   display: block;
   width: 100%;
   height: auto;
+  overflow: visible;
 }
 
 .ph-coef-plot__zero {
@@ -27,10 +32,29 @@
   fill: var(--ink);
 }
 
+/* T31: the zero line's own label, in the figure. --muted caption register
+   (R1.2), UI face because it is words rather than a numeral (R2.1/R2.4). */
+.ph-coef-plot__zero-label {
+  fill: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+}
+
+/* T31: what the axis measures. Sits under the plot, above the numeric
+   caption — the figure now says what it is before it says what it found. */
+.ph-coef-plot__axis {
+  margin-block-start: var(--space-4);
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
 .ph-coef-plot__caption {
-  margin-block-start: var(--space-8);
+  margin: var(--space-4) 0 0 0;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-13);
+  line-height: var(--leading-ui);
   color: var(--muted);
 }

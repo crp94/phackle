@@ -31,6 +31,9 @@ export type CopyKey =
   // "From:"/"Subject:" LABELS EmailCard renders itself — see EmailCard.tsx).
   | 'briefing.emailFrom'
   | 'briefing.emailSubject'
+  // T31 (second play-test round): the goal strip. The one line that tells a
+  // first-timer, before anything else, what they are being asked to do.
+  | 'briefing.goal'
   | 'email.from'
   | 'email.subject'
   | 'lab.outcome'
@@ -78,6 +81,54 @@ export type CopyKey =
   | 'lab.dfLabel'
   | 'lab.coefPlotCaption'
   | 'lab.forkTrailLabel'
+  // T31 additions (play-test round: "the UX/UI needs graphs at least; and
+  // explanations; it feels too barebone"). Three groups, all Act-I SINCERE —
+  // a helpful colleague describing what a control does, never a hint that it
+  // is questionable. The reveal owns the indictment, and lab.peekFootnote-
+  // Armitage above stays the only wink in Act I.
+  //
+  // 1. One methods note per SpecControls group. Written the way a methods
+  //    section states a choice: what the knob does to the sample or the
+  //    model, one line, no judgement.
+  | 'lab.explain.outcome'
+  | 'lab.explain.subgroup'
+  | 'lab.explain.covariates'
+  | 'lab.explain.exclusion'
+  | 'lab.explain.transform'
+  | 'lab.explain.tails'
+  // 2. The first-run intro (collapsible, dismissed once, persisted as
+  //    settings.introSeen). Upgraded by the SECOND play-test ("the UX/UI is
+  //    hard to understand, it requires more explanation... beautiful but hard
+  //    to fully grasp") from a three-sentence paragraph to an explicit
+  //    four-step how-to-play: read · adjust · publish · face the truth. One
+  //    short sentence each.
+  | 'lab.howThisWorks.title'
+  | 'lab.howThisWorks.step1'
+  | 'lab.howThisWorks.step2'
+  | 'lab.howThisWorks.step3'
+  | 'lab.howThisWorks.step4'
+  | 'lab.howThisWorks.dismiss'
+  // 2b. The dial's own explainer — the single most important sentence in the
+  //     app: a first-timer has to understand the big number without reading
+  //     anything else. Plain words, no statistics vocabulary.
+  | 'lab.dialCaption'
+  // 3. Figure furniture. CoefPlot gains an axis label and a zero-line label;
+  //    DataCut (the strip plot of the current cut, §2.4) names its comparison
+  //    column here — no scenario carries a "not-treated" label, and the
+  //    treated column takes Scenario.treatmentLabel — and keys its three
+  //    marks. {n} in the two counting keys is a sample size, consistent with
+  //    lab.nLabel/lab.collectMore.
+  | 'lab.coefPlotAxis'
+  | 'lab.coefPlotZero'
+  | 'lab.cutControl'
+  | 'lab.cutLegendIncluded'
+  | 'lab.cutLegendExcluded'
+  | 'lab.cutLegendMean'
+  // T31 FIX ROUND (review finding 4, "RESTORED REQUIREMENT — Legend
+  // pointer"): the live fork trail carries no explanation of its own emoji —
+  // this one quiet line, next to it, says where to find one. Sincere
+  // register, --muted, never louder than the trail itself.
+  | 'lab.forkTrailHint'
   | 'published.faceTruth'
   | 'published.simulatedPress'
   | 'published.editorsPick'
@@ -261,6 +312,7 @@ export type CopyKey =
   | 'errors.storageOff'
   | 'a11y.localeToggle'
   | 'a11y.specCurveChart'
+  | 'a11y.dataCut'
   | 'a11y.shareButton'
   | 'a11y.closeDialog'
   | 'a11y.loading';
@@ -287,6 +339,9 @@ export const copy: Record<CopyKey, string> = {
   'briefing.vol': 'Vol. {volume}, No. {issue}',
   'briefing.emailFrom': 'Prof. R. Grantwell',
   'briefing.emailSubject': 'Re: the deadline',
+  // T31: the goal strip, directly under the title card. Sincere and literal —
+  // this is genuinely the task Act I is setting.
+  'briefing.goal': 'Your task: find a statistically significant effect (p < 0.05) and publish it.',
 
   'email.from': 'From:',
   'email.subject': 'Subject:',
@@ -344,6 +399,55 @@ export const copy: Record<CopyKey, string> = {
   'lab.dfLabel': 'df = {df}',
   'lab.coefPlotCaption': 'Estimate {beta} {unit} (95% CI {lo} to {hi})',
   'lab.forkTrailLabel': 'Forks so far',
+
+  // T31 — the six methods notes, one under each SpecControls group. Act-I
+  // SINCERE: this is a colleague explaining a control, in the register a
+  // methods section uses. Not one of them may hint that the choice is
+  // convenient, or that making it after seeing the result is the problem —
+  // the reveal earns that, and earns it harder if Act I never nudged.
+  // T31 FIX ROUND (subsumed-welcome rewrites, done opportunistically while
+  // already in this block for findings 2/4): plainer wording for two of the
+  // six notes, still Act-I sincere, still no judgement of the choice.
+  'lab.explain.outcome': 'Which of the four things you measured this analysis tries to explain.',
+  'lab.explain.subgroup': 'Restrict the sample to one group of participants before fitting.',
+  'lab.explain.covariates': 'Also account for background differences between people when comparing the two groups.',
+  'lab.explain.exclusion': 'Remove statistical outliers from the current sample before fitting.',
+  'lab.explain.transform': 'Fit the outcome on its own scale, or on a log scale.',
+  'lab.explain.tails': 'Test for an effect in either direction, or only in the predicted one.',
+
+  // T31 — the first-run intro: four steps, one short sentence each,
+  // welcoming, no jargon beyond the game's own 0.05. Shown until dismissed,
+  // then never again (settings.introSeen). Step 4 reuses published.faceTruth's
+  // existing wording on purpose — it is the same beat, named the same way.
+  'lab.howThisWorks.title': 'How to play',
+  'lab.howThisWorks.step1': "Read the brief: today's question, and the data you have been given.",
+  'lab.howThisWorks.step2': 'Adjust the analysis until the big number drops below 0.05.',
+  'lab.howThisWorks.step3': 'Submit your finding for publication.',
+  'lab.howThisWorks.step4': 'Face the truth about what you found.',
+  'lab.howThisWorks.dismiss': 'Got it',
+
+  // T31 — the dial's explainer. Plain words: what the number means, and what
+  // makes it publishable. No "null hypothesis", no "significance", no Greek.
+  // FIX ROUND (finding 2): the original wording had the number's direction
+  // backwards ("how surprising your result would be if nothing were really
+  // going on" reads as if a LARGE number is the alarming one; it is the
+  // opposite — a small p is what makes a result hard to shrug off as luck).
+  'lab.dialCaption':
+    'This number is how often plain luck alone would produce a result like yours. The smaller it is, the harder your result is to dismiss as luck — below 0.05 and you can publish.',
+
+  // T31 — figure furniture. CoefPlot's axis and zero-line labels; DataCut's
+  // comparison-column name and its three mark keys.
+  'lab.coefPlotAxis': 'Estimated effect ({unit})',
+  'lab.coefPlotZero': 'no effect',
+  'lab.cutControl': 'Comparison group',
+  'lab.cutLegendIncluded': 'Analysed: {n}',
+  'lab.cutLegendExcluded': 'Excluded: {n}',
+  'lab.cutLegendMean': 'Group mean',
+
+  // T31 FIX ROUND — finding 4, "RESTORED REQUIREMENT — Legend pointer".
+  // One quiet line next to the live ForkTrail: the trail's own emoji are
+  // otherwise unexplained anywhere in the Lab.
+  'lab.forkTrailHint': 'Each symbol is a move you made — the Legend page has the key.',
 
   'published.faceTruth': 'Face the truth',
   'published.simulatedPress': 'SIMULATED PRESS',
@@ -532,6 +636,8 @@ export const copy: Record<CopyKey, string> = {
   'a11y.localeToggle': 'Change language',
   'a11y.specCurveChart':
     "Chart of every possible specification's p-value, sorted, with your published specification highlighted.",
+  'a11y.dataCut':
+    'Strip plot of the current sample: the comparison group and the treated group, with each excluded point drawn as a crossed mark.',
   'a11y.shareButton': 'Copy share result to clipboard',
   'a11y.closeDialog': 'Close dialog',
   'a11y.loading': "Loading today's puzzle",

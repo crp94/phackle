@@ -440,3 +440,152 @@ describe('runSpec — CI property (50 specs over generateDataset(seed 7), no eff
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// T31: PathResult.cut — the Lab's DataCut figure payload (§2.4's "tiny
+// scatter/box visual of the current cut"). A §6 extend-not-contradict
+// addition: the TRANSFORMED outcome values of the CURRENT filtered window,
+// split control/treated, with the excluded points kept separate rather than
+// dropped — the figure's whole point is that outlier surgery is VISIBLE.
+//
+// Hand-computed fixture (`cutMicro`), 10 rows, so every number below is
+// checkable by hand rather than by re-running the implementation:
+//
+//   y0 = [0,0,0,0,0, 0,0,0,0,10]   x = [0,0,0,0,0, 1,1,1,1,1]
+//   mean = 1;  ss = 9*1 + 81 = 90;  sd = sqrt(90/9) = sqrt(10)   (stats.ts
+//   uses the n-1 denominator)
+//   z(0)  = (0-1)/sqrt(10)  = -1/sqrt(10) ≈ -0.3162
+//   z(10) = (10-1)/sqrt(10) =  9/sqrt(10) ≈  2.8460
+//
+// so the single high value sits OUTSIDE |z|>2 and |z|>2.5 but INSIDE |z|>3 —
+// one dataset that exercises both sides of the exclusion knob exactly.
+describe('runSpec cut (T31: the DataCut figure payload)', () => {
+  const CUT_Y0 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 10];
+  const CUT_X = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1];
+  // Five under 40 (rows 0-2 control, 5-6 treated) so a subgroup filter cuts
+  // BOTH columns and the 10-outlier (row 9) drops out of the window entirely.
+  const CUT_AGE = [30, 30, 30, 50, 50, 30, 30, 50, 50, 50];
+
+  const cutMicro = buildDataset({
+    age: CUT_AGE,
+    urban: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    experience: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    income: [100, 110, 120, 130, 140, 150, 160, 170, 180, 190],
+    risk: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    x: CUT_X,
+    y0: CUT_Y0,
+  });
+
+  const baseSpec: Spec = {
+    outcome: 0,
+    subgroup: 'all',
+    covariates: { income: false, risk: false },
+    exclusion: 'none',
+    transform: 'raw',
+    tails: 'two',
+  };
+
+  const cut = (spec: Partial<Spec>) => runSpec(cutMicro, { ...baseSpec, ...spec }, asWindow(10)).cut;
+
+  it('splits the window by treatment, with every value present and nothing excluded, at exclusion=none', () => {
+    expect(cut({})).toEqual({
+      control: [0, 0, 0, 0, 0],
+      treated: [0, 0, 0, 0, 10],
+      excludedControl: [],
+      excludedTreated: [],
+    });
+  });
+
+  it('moves the |z| = 9/sqrt(10) ≈ 2.85 point into excludedTreated at |z|>2.5, leaving the control column untouched', () => {
+    expect(cut({ exclusion: 'z2_5' })).toEqual({
+      control: [0, 0, 0, 0, 0],
+      treated: [0, 0, 0, 0],
+      excludedControl: [],
+      excludedTreated: [10],
+    });
+  });
+
+  it('excludes the same point at |z|>2', () => {
+    expect(cut({ exclusion: 'z2' })).toEqual({
+      control: [0, 0, 0, 0, 0],
+      treated: [0, 0, 0, 0],
+      excludedControl: [],
+      excludedTreated: [10],
+    });
+  });
+
+  it('keeps it at |z|>3 (2.846 <= 3): the knob really is the boundary, not a blanket "drop the max"', () => {
+    expect(cut({ exclusion: 'z3' })).toEqual({
+      control: [0, 0, 0, 0, 0],
+      treated: [0, 0, 0, 0, 10],
+      excludedControl: [],
+      excludedTreated: [],
+    });
+  });
+
+  it('carries TRANSFORMED values, not raw ones: log1p turns the 10 into log(11)', () => {
+    const c = cut({ transform: 'log1p' });
+    expect(c?.control).toEqual([0, 0, 0, 0, 0]);
+    expect(c?.treated).toEqual([0, 0, 0, 0, Math.log(11)]);
+  });
+
+  it('re-splits under log1p: the transformed column has its own z-scores, so |z|>2 no longer bites', () => {
+    // log1p compresses the outlier: values are nine 0s and one log(11) ≈
+    // 2.3979, mean = 0.23979, sd = sqrt((9*0.23979^2 + (2.3979-0.23979)^2)/9)
+    // = sqrt(10)/10 * 2.3979 ≈ 0.7583, so z(log 11) = 9/sqrt(10) ≈ 2.846 —
+    // the SAME z, because log1p here is a monotone relabelling of a two-point
+    // distribution. Exclusion therefore still bites at 2.5 and not at 3.
+    expect(cut({ transform: 'log1p', exclusion: 'z2_5' })?.excludedTreated).toEqual([Math.log(11)]);
+    expect(cut({ transform: 'log1p', exclusion: 'z3' })?.excludedTreated).toEqual([]);
+  });
+
+  it('is scoped to the subgroup-filtered window: age<40 keeps 3 control + 2 treated and drops the outlier row', () => {
+    expect(cut({ subgroup: 'age_lt40' })).toEqual({
+      control: [0, 0, 0],
+      treated: [0, 0],
+      excludedControl: [],
+      excludedTreated: [],
+    });
+  });
+
+  it('is still assembled when the fit is invalid (n < MIN_CELL) — the figure shows the data the dial cannot analyse', () => {
+    const result = runSpec(cutMicro, baseSpec, asWindow(10));
+    expect(result.valid).toBe(false);
+    expect(result.cut).toBeDefined();
+    expect((result.cut?.control.length ?? 0) + (result.cut?.treated.length ?? 0)).toBe(10);
+  });
+
+  it('accounts for every windowed row exactly once, and agrees with excludedCount, across the real DGP at every window', () => {
+    const dataset = generateDataset(11, null);
+    for (const n of [200, 400] as WindowN[]) {
+      for (const exclusion of ['none', 'z3', 'z2_5', 'z2'] as Spec['exclusion'][]) {
+        const result = runSpec(dataset, { ...baseSpec, exclusion }, n);
+        const c = result.cut;
+        expect(c).toBeDefined();
+        const kept = (c?.control.length ?? 0) + (c?.treated.length ?? 0);
+        const dropped = (c?.excludedControl.length ?? 0) + (c?.excludedTreated.length ?? 0);
+        expect(kept).toBe(result.n);
+        expect(dropped).toBe(result.excludedCount);
+        expect(kept + dropped).toBe(n); // subgroup 'all' -> the whole window
+        expect(kept + dropped).toBeLessThanOrEqual(400); // the pinned cap
+      }
+    }
+  });
+
+  it('never exceeds 400 values in total, for any subgroup, at the largest window', () => {
+    const dataset = generateDataset(12, null);
+    const subgroups: Spec['subgroup'][] = ['all', 'age_lt40', 'age_ge40', 'exp_high', 'exp_low', 'urban', 'rural'];
+    for (const subgroup of subgroups) {
+      const c = runSpec(dataset, { ...baseSpec, subgroup, exclusion: 'z2' }, 400).cut;
+      const total =
+        (c?.control.length ?? 0) + (c?.treated.length ?? 0) + (c?.excludedControl.length ?? 0) + (c?.excludedTreated.length ?? 0);
+      expect(total).toBeLessThanOrEqual(400);
+    }
+  });
+
+  it('is a pure function of its inputs: two runs of the same spec produce identical arrays', () => {
+    const dataset = generateDataset(13, null);
+    const spec: Spec = { ...baseSpec, subgroup: 'urban', exclusion: 'z2', transform: 'log1p' };
+    expect(runSpec(dataset, spec, 250).cut).toEqual(runSpec(dataset, spec, 250).cut);
+  });
+});

@@ -41,6 +41,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<Outcome>
         name="outcome"
         legend={t('lab.outcome')}
+        note={t('lab.explain.outcome')}
         value={spec.outcome}
         disabled={disabled}
         onChange={(outcome) => onChange({ ...spec, outcome })}
@@ -49,6 +50,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<Spec['subgroup']>
         name="subgroup"
         legend={t('lab.subgroup')}
+        note={t('lab.explain.subgroup')}
         value={spec.subgroup}
         disabled={disabled}
         onChange={(subgroup) => onChange({ ...spec, subgroup })}
@@ -65,6 +67,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<CovariateChoice>
         name="covariates"
         legend={t('lab.covariates')}
+        note={t('lab.explain.covariates')}
         value={covariateChoice(spec.covariates)}
         disabled={disabled}
         onChange={(choice) => onChange({ ...spec, covariates: covariatesFromChoice(choice) })}
@@ -84,6 +87,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<Spec['exclusion']>
         name="exclusion"
         legend={t('lab.exclusion')}
+        note={t('lab.explain.exclusion')}
         value={spec.exclusion}
         disabled={disabled}
         onChange={(exclusion) => onChange({ ...spec, exclusion })}
@@ -97,6 +101,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<Spec['transform']>
         name="transform"
         legend={t('lab.transform')}
+        note={t('lab.explain.transform')}
         value={spec.transform}
         disabled={disabled}
         onChange={(transform) => onChange({ ...spec, transform })}
@@ -108,6 +113,7 @@ export function SpecControls({ spec, onChange, scenario, disabled }: SpecControl
       <RadioGroup<Spec['tails']>
         name="tails"
         legend={t('lab.tails')}
+        note={t('lab.explain.tails')}
         value={spec.tails}
         disabled={disabled}
         onChange={(tails) => onChange({ ...spec, tails })}

@@ -20,6 +20,13 @@ export interface RadioGroupProps<T extends string | number> {
   value: T;
   onChange: (v: T) => void;
   disabled: boolean;
+  /** T31: one quiet line under the options saying what this control does
+   * (the play-test's "and explanations"). Rendered BELOW the options and
+   * wired to the radiogroup with aria-describedby, so a screen reader reads
+   * the legend, then the note, then the choices — the same order a sighted
+   * player reads them in. Optional: a group with nothing to explain simply
+   * omits it and no empty element is emitted. */
+  note?: string;
 }
 
 export function RadioGroup<T extends string | number>({
@@ -29,8 +36,10 @@ export function RadioGroup<T extends string | number>({
   value,
   onChange,
   disabled,
+  note,
 }: RadioGroupProps<T>) {
   const legendId = `ph-spec-${name}-legend`;
+  const noteId = `ph-spec-${name}-note`;
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     const idx = options.findIndex((o) => o.value === value);
@@ -49,7 +58,13 @@ export function RadioGroup<T extends string | number>({
       <p className="ph-spec-group__legend" id={legendId}>
         {legend}
       </p>
-      <div className="ph-spec-group__options" role="radiogroup" aria-labelledby={legendId} onKeyDown={handleKeyDown}>
+      <div
+        className="ph-spec-group__options"
+        role="radiogroup"
+        aria-labelledby={legendId}
+        aria-describedby={note === undefined ? undefined : noteId}
+        onKeyDown={handleKeyDown}
+      >
         {options.map((opt) => {
           const selected = opt.value === value;
           return (
@@ -68,6 +83,11 @@ export function RadioGroup<T extends string | number>({
           );
         })}
       </div>
+      {note === undefined ? null : (
+        <p className="ph-spec-group__note" id={noteId} data-testid="spec-group-note">
+          {note}
+        </p>
+      )}
     </div>
   );
 }
