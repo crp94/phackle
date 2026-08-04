@@ -170,6 +170,10 @@ export function Reveal() {
   // mode-agnostic by construction (it reads only `payload`/`published`/
   // `call`, never `mode` itself).
   const mode = useGameStore((s) => s.mode);
+  // T33: the reveal -> summary transition. A plain action dispatch, no local
+  // state of its own — pressing it twice is a no-op the second time, because
+  // the store is already on 'summary' and this screen has been unmounted.
+  const finishReveal = useGameStore((s) => s.finishReveal);
   const reducedMotion = useReducedMotion();
 
   // The curve arrives from the worker as RevealMetricsFull entries -- §6's
@@ -329,6 +333,19 @@ export function Reveal() {
           <SpecCurve points={points} grouped outcomeLabels={scenario.outcomeLabels} copy={copy} />
         </Figure>
       </Block>
+
+      {/* T33 — the day's primary continue action, and (until this task) the
+          missing one: store.finishReveal() had NO caller anywhere in src/ui,
+          so the Summary screen — the invoice, the share string and the app's
+          one persistence moment — was simply unreachable in the real app and
+          the reveal ended at Fig. 2. Deliberately OUTSIDE the last Block: a
+          Block is a scroll-fade section of the argument (R5.3), and an action
+          that can be hidden by an IntersectionObserver that never fires is an
+          action that can strand the player. Full width, after everything, so
+          it cannot be mistaken for one more caption. */}
+      <button type="button" className="ph-reveal__cta" data-role="to-summary" onClick={finishReveal}>
+        {t('reveal.toSummary')}
+      </button>
     </div>
   );
 }

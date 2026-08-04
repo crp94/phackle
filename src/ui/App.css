@@ -44,6 +44,32 @@ body {
   line-height: var(--leading-ui);
 }
 
+/* T33: the masthead is a control now, and must look like exactly what it
+   looked like before — a button reset down to inherited type, with the tap
+   target bought back in vertical padding from the §3 scale (R6.4), not in a
+   bigger font. The padding costs the header nothing: the .ph-seg controls
+   opposite already set the row's height with the same var(--space-12). */
+.ph-header__home {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border-style: none;
+  padding: var(--space-12) 0;
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. R6.2's
+   underline sits on the wordmark itself, not on the padded box. */
+.ph-header__home:hover .ph-header__wordmark {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ph-header__home:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
 .ph-header__wordmark {
   font-weight: var(--weight-medium);
 }
@@ -60,28 +86,73 @@ body {
   margin-inline-end: var(--space-8);
 }
 
+/* T33: `flex-wrap` is the fix for the GR4a finding — a 2px horizontal
+   overflow of this row at 360w, measured before this task added a fourth
+   nav item and a second theme option to it. A row that cannot wrap can only
+   overflow; one that can, cannot. `justify-content: flex-end` keeps the
+   wrapped rows aligned to the same edge the unwrapped row sat on. */
 .ph-header__controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-16);
 }
 
+.ph-theme-toggle,
 .ph-locale-toggle {
   display: flex;
   gap: var(--space-4);
 }
 
+/* T33 (owner: "the dark/paper color selection should be more clear"). In the
+   two two-option state selectors, the option that is NOT active drops to
+   --muted, so which side is live is legible at a glance and from across the
+   room. Registered text tokens only, and scoped to these two groups on
+   purpose: the stats/legend/about nav answers "where am I", where all-three-
+   inactive is the normal resting state and muting them all would read as
+   disabled rather than as unselected. R6.3 is satisfied without this rule
+   anyway (aria-pressed plus R4.6's underline); the colour is the third,
+   redundant channel, never the only one. */
+.ph-theme-toggle .ph-seg[aria-pressed='false'],
+.ph-locale-toggle .ph-seg[aria-pressed='false'] {
+  color: var(--muted);
+}
+
+/* Flag plus code on one line (see LocaleToggle's own comment for why both).
+   The gap is explicit rather than a space character: emoji advance widths
+   vary wildly across the fallback fonts a flag lands in, and a layout gap
+   is the one spacing that does not depend on the glyph that shows up. */
+.ph-seg--locale {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
 /* T17: the header's stats/legend/about nav — same flex-row idiom as
    .ph-locale-toggle, reusing .ph-seg's existing styling (no new CSS needed
-   for the buttons themselves). */
+   for the buttons themselves).
+
+   T33 fix round 1: this row wraps TOO, and that is not decoration. A nested
+   flex row that cannot wrap is a single unbreakable flex item to its parent,
+   so `flex-wrap` on .ph-header__controls alone bought nothing the moment
+   this task added a fourth item (Play) to this group: measured at 360w with
+   Play showing, Italian overflowed the document by 68px and pushed the ES
+   locale button entirely off-screen — an Italian player could not reach
+   Spanish. Every nested row in this header wraps, or the header overflows
+   at the first label longer than English's. */
 .ph-header__nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--space-4);
 }
 
 /* R6.4: >=44x44 tap target via scale padding, not a bigger font.
-   R4.6: the selected option is a 2px --ink underline, never a filled pill. */
-.ph-toggle,
+   R4.6: the selected option is a 2px --ink underline, never a filled pill.
+   T33 retired the second selector that used to sit here, `.ph-toggle`: the
+   theme control it dressed was the header's one bespoke widget, and it is
+   now the same .ph-seg group as everything else beside it. */
 .ph-seg {
   font-family: var(--font-ui);
   font-size: var(--text-15);
@@ -95,12 +166,10 @@ body {
 }
 
 /* R5.5: hover is an instant state change, never a transition. */
-.ph-toggle:hover,
 .ph-seg:hover {
   text-decoration: underline;
 }
 
-.ph-toggle:focus-visible,
 .ph-seg:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
@@ -108,4 +177,20 @@ body {
 
 .ph-seg[aria-pressed='true'] {
   border-block-end: 2px solid var(--ink);
+}
+
+/* T33: the Play item is an ACTION sitting in a row of page tabs, and carries
+   no aria-pressed to distinguish it (there is no state it could report).
+
+   Fix round 1: --weight-medium alone was a distinction only a diff could
+   see — 400 vs 500 at --text-15 is imperceptible next to three siblings, and
+   CSS must not claim a difference the eye does not get. This is now the
+   product's OWN registered idiom for "this is the action, not a label":
+   R2.7's uppercase label with --tracking-label, exactly the treatment
+   .ph-briefing__cta / .ph-published__cta / .ph-reveal__cta already wear. No
+   new token, no new colour, and a distinction that reads at a glance. */
+.ph-seg--action {
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
 }

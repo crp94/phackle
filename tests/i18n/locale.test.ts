@@ -3,29 +3,28 @@ import { detectLocale } from '../../src/i18n/locale';
 import { t } from '../../src/i18n/t';
 import { copy, type CopyKey } from '../../src/content/en/copy';
 
+// T33 (owner directive, round 5): the interface DEFAULTS TO ENGLISH. Browser
+// auto-detection is gone — not merely deprioritised: the prefix-matching code
+// path is deleted, and these tests pin its absence rather than its behaviour.
+// The stored choice (the locale toggle in the header) is now the ONLY thing
+// that can move the app off English.
 describe('detectLocale', () => {
-  it('detects Italian from a navigator.language prefix', () => {
-    expect(detectLocale('it-IT', null)).toBe('it');
+  it('returns the stored choice when there is one', () => {
+    expect(detectLocale(undefined, 'it')).toBe('it');
+    expect(detectLocale(undefined, 'es')).toBe('es');
+    expect(detectLocale(undefined, 'en')).toBe('en');
   });
 
-  it('detects Spanish from a navigator.language prefix', () => {
-    expect(detectLocale('es-MX', null)).toBe('es');
-  });
-
-  it('falls back to English for an unsupported language', () => {
-    expect(detectLocale('fr-FR', null)).toBe('en');
-  });
-
-  it('falls back to English when navLang is undefined', () => {
-    expect(detectLocale(undefined, null)).toBe('en');
-  });
-
-  it('prefers a stored locale over the navigator language', () => {
+  it('prefers the stored choice over any navigator language, agreeing or not', () => {
     expect(detectLocale('it-IT', 'es')).toBe('es');
+    expect(detectLocale('fr-FR', 'it')).toBe('it');
+    expect(detectLocale('es-MX', 'en')).toBe('en');
   });
 
-  it('prefers a stored locale even when it agrees with an unrelated navLang', () => {
-    expect(detectLocale('fr-FR', 'it')).toBe('it');
+  it('defaults to English with nothing stored, whatever the navigator says', () => {
+    for (const navLang of ['it-IT', 'it', 'es-MX', 'es', 'fr-FR', 'en-GB', '', undefined]) {
+      expect(detectLocale(navLang, null), String(navLang)).toBe('en');
+    }
   });
 });
 

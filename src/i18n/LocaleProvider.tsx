@@ -86,6 +86,11 @@ interface LocaleContextValue {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
+  // T33: `navigator.language` is still HANDED to detectLocale and still
+  // ignored by it — the browser can no longer choose the game's language (see
+  // that function's own doc comment). The argument stays wired up on purpose:
+  // it keeps "any navigator language still resolves to English" a live,
+  // testable assertion rather than a fact about a call that no longer exists.
   const [locale, setLocaleState] = useState<Locale>(() =>
     detectLocale(typeof navigator === 'undefined' ? undefined : navigator.language, readStoredLocale())
   );

@@ -151,3 +151,44 @@
   width: 60%;
   pointer-events: none;
 }
+
+/* T33 — the day's continue action, into the invoice (§2.8).
+ *
+ * Full width and after everything, because it is the ONE thing left to do on
+ * this screen and the reveal is long enough to scroll past a modest inline
+ * link. Otherwise the Published/Briefing CTA treatment exactly: R6.4's tap
+ * target bought in scale padding, R2.7's uppercase label with
+ * --tracking-label, and R4.5's single hairline underline rather than a
+ * four-side border or a filled pill. --space-40 above it is the same block
+ * rhythm .ph-fade + .ph-fade sets, so it reads as the sequence's last beat
+ * rather than as furniture bolted on underneath. Nothing transitions (R5.5).
+ */
+.ph-reveal__cta {
+  display: block;
+  inline-size: 100%;
+  max-width: var(--measure);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  text-align: start;
+  background: none;
+  border-style: none;
+  border-block-end: var(--hairline);
+  padding: var(--space-12) 0;
+  margin-block-start: var(--space-40);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-reveal__cta:hover {
+  text-decoration: underline;
+}
+
+.ph-reveal__cta:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

@@ -11,15 +11,18 @@ import type { Locale } from '../engine/types';
 export const AVAILABLE_LOCALES: Locale[] = ['en', 'it', 'es'];
 
 /**
- * A stored (persisted) locale choice always wins. Otherwise, prefix-match
- * `navLang` (e.g. `navigator.language`) against the two-letter locale codes;
- * anything else (including no navLang at all) falls back to English.
+ * A stored (persisted) locale choice always wins. With nothing stored, the
+ * interface is ENGLISH — always, whatever the browser reports.
+ *
+ * T33 (owner directive, feedback round 5) supersedes the delta spec's §2
+ * auto-detection: the prefix-match against `navigator.language` is DELETED,
+ * not merely deprioritised, so there is no path by which a browser setting
+ * can pick the game's language. `navLang` is kept in the signature (and
+ * still passed by LocaleProvider) purely so the removal is a one-line
+ * decision recorded here rather than a change rippling through every call
+ * site; it is deliberately unread. The header's own locale toggle writes a
+ * stored choice, which is now the only thing that moves the app off English.
  */
-export function detectLocale(navLang: string | undefined, stored: Locale | null): Locale {
-  if (stored) return stored;
-
-  const prefix = navLang?.slice(0, 2).toLowerCase();
-  if (prefix === 'it') return 'it';
-  if (prefix === 'es') return 'es';
-  return 'en';
+export function detectLocale(_navLang: string | undefined, stored: Locale | null): Locale {
+  return stored ?? 'en';
 }
