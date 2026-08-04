@@ -87,8 +87,17 @@ export function Lab() {
           Deliberately NOT part of .ph-lab__dial: that block is the mobile
           sticky element and every pixel added to it is a pixel of the
           controls it can cover (see Lab.css). */}
+      {/* T22: <h1>, not <h2>. The Lab is a screen of a single-page app whose
+          <main> is torn down and rebuilt on every swap, so each screen is its
+          own document as far as assistive technology is concerned — and the
+          screen's own title is its level-one heading. The question is the
+          Lab's title (it is the same h1 the Briefing gave it), and it was the
+          only heading on the screen, which left the Lab starting at level 2
+          with no level 1 anywhere. Purely semantic: .ph-lab__question-text
+          carries every type declaration, so nothing about the rendering
+          changes. */}
       <header className="ph-lab__question" data-testid="lab-question">
-        <h2 className="ph-lab__question-text">{scenario.question}</h2>
+        <h1 className="ph-lab__question-text">{scenario.question}</h1>
       </header>
 
       {/* T29 pin 1 (controller ruling, dial-alone-sticky): the DIAL BLOCK —

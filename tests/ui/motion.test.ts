@@ -635,9 +635,23 @@ describe('R5.2 site 1 — the screen transition is actually triggered', () => {
     expect(main, 'App.tsx must render a <main>').not.toBe('');
     expect(main).toContain('className="ph-screen"');
     expect(main, '<main> must be keyed, or the entrance never replays').toMatch(/\bkey=\{/);
-    const key = /\bkey=\{([^}]*\}?[^}]*)\}/.exec(main)?.[1] ?? '';
-    expect(key, 'the key must vary with the header nav page').toMatch(/\bpage\b/);
-    expect(key, 'the key must vary with the game screen').toMatch(/[Ss]creen\b/);
+    // T22 hoisted the expression into a `const` (App.tsx focuses <main> on the
+    // same change, so the value is needed twice and must not be typed twice).
+    // Follow the identifier one hop rather than demanding a literal here: the
+    // rule this test exists for is that the key varies with BOTH machines, and
+    // that is just as checkable at the declaration as it was inline. A bare
+    // identifier is matched FIRST, because the inline-expression pattern below
+    // tolerates one `}` (for a `${...}` template hole) and would otherwise
+    // swallow the following attribute.
+    const identifier = /\bkey=\{([A-Za-z_$][\w$]*)\}/.exec(main)?.[1];
+    const key = identifier ?? (/\bkey=\{([^}]*\}?[^}]*)\}/.exec(main)?.[1] ?? '');
+    const resolved =
+      identifier === undefined
+        ? key
+        : (new RegExp(String.raw`\bconst ${identifier} = ([^;]+);`).exec(appTsx)?.[1] ?? '');
+    expect(resolved, `App.tsx must declare the <main> key (${key})`).not.toBe('');
+    expect(resolved, 'the key must vary with the header nav page').toMatch(/\bpage\b/);
+    expect(resolved, 'the key must vary with the game screen').toMatch(/[Ss]creen\b/);
   });
 
   it('reads the game screen for that key and nothing else', () => {

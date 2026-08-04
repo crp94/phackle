@@ -11,6 +11,7 @@
 // asserts 6, not 7). This page does not reproduce that sample caption at
 // all, verbatim or otherwise — see tests/ui/legend.test.tsx's regression
 // guard.
+import { useId } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
 import {
@@ -77,9 +78,13 @@ export interface LegendProps {
 }
 
 export function Legend({ t, onClose }: LegendProps) {
+  const titleId = useId();
   return (
-    <section className="ph-legend">
-      <h2 className="ph-legend__title">{t('legend.title')}</h2>
+    // T22: a named region with its own <h1> — see Stats.tsx's identical note.
+    <section className="ph-legend" aria-labelledby={titleId}>
+      <h1 className="ph-legend__title" id={titleId}>
+        {t('legend.title')}
+      </h1>
       <p className="ph-legend__intro">{t('legend.intro')}</p>
       <ul className="ph-legend__list">
         {LEGEND_ENTRIES.map((entry) => (
@@ -89,8 +94,9 @@ export function Legend({ t, onClose }: LegendProps) {
           </li>
         ))}
       </ul>
+      {/* T22: no aria-label — not a dialog. See Stats.tsx's note. */}
       {onClose && (
-        <button type="button" className="ph-legend__close" onClick={onClose} aria-label={t('a11y.closeDialog')}>
+        <button type="button" className="ph-legend__close" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

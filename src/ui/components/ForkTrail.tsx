@@ -62,6 +62,28 @@ function buildLiveTrail(log: PlayerAction[], prereg: boolean): string {
  * on focus (keyboard) and on click/tap (touch); closes on pointer-leave, on
  * blur out of the whole control, and on Escape.
  *
+ * T22 (T29 review M3) — IT IS A DISCLOSURE, and now says so. This shipped as
+ * `role="tooltip"` on the popover PLUS `aria-expanded`/`aria-controls` on the
+ * trigger: two patterns at once, and the two disagree. A tooltip is a
+ * description of the control it hangs off — flattened to a single string,
+ * exposed through aria-describedby, and never a thing that "expands". A
+ * disclosure is a control that shows and hides a piece of CONTENT, which is
+ * exactly what this is: a ten-row key, toggled by click on touch, with its own
+ * Escape.
+ *
+ * Resolved to the disclosure, because the content decides. The key is a LIST
+ * of glyph/meaning pairs; a tooltip's accessible description would collapse it
+ * into one unpunctuated run ("Fork 🍴 Peek ➕ …") with no way to step through
+ * the rows, whereas a disclosure keeps it as a list a screen reader can
+ * navigate item by item — hence the explicit role="list"/"listitem" below, on
+ * spans that CSS needs to stay spans (the popover is an inline element inside
+ * a <p>, so real <ul>/<li> would be invalid markup here).
+ *
+ * `aria-controls` stays conditional on `open`: the popover is not rendered
+ * while closed, and an aria-controls pointing at an id that does not exist is
+ * itself an error. Every behaviour T29 pinned — hover, tap, focus, blur,
+ * Escape — is untouched.
+ *
  * The original note here said touch "fires no hover". It does — see the
  * fix-round comment inside the component for the compatibility-event
  * sequence a first tap really produces, and the two guards that handle it.
@@ -157,9 +179,9 @@ function TrailKey() {
         {t('nav.legend')}
       </button>
       {open ? (
-        <span className="ph-fork-trail__popover" id={popoverId} role="tooltip" data-testid="fork-trail-popover">
+        <span className="ph-fork-trail__popover" id={popoverId} role="list" data-testid="fork-trail-popover">
           {LEGEND_ENTRIES.map((entry) => (
-            <span className="ph-fork-trail__popover-row" key={entry.labelKey}>
+            <span className="ph-fork-trail__popover-row" role="listitem" key={entry.labelKey}>
               <GlyphMark glyph={entry.glyph} className="ph-fork-trail__popover-glyph" />
               <span className="ph-fork-trail__popover-label">{t(entry.labelKey)}</span>
             </span>

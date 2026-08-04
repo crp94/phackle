@@ -200,6 +200,9 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
   const [callOpen, setCallOpen] = useState(false);
   const [CallScreen, setCallScreen] = useState<LazyScreenComponent | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  // T22: where focus goes back to when the overlay is dismissed — the button
+  // that opened it, which is the only place a returning player is not lost.
+  const ctaRef = useRef<HTMLButtonElement | null>(null);
 
   // Moves focus into the overlay the moment it opens, and again once the
   // lazily-loaded call screen actually populates it with its own focusable
@@ -266,7 +269,29 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
     void loadCallScreen().then((component) => setCallScreen(() => component));
   }
 
+  /** T22 — WCAG 2.1.2. The overlay traps Tab between the two call cards (see
+   * below), and until this task it had no keyboard exit at all: a keyboard
+   * player who opened "Face the truth" to look could not get back out to the
+   * cover, the header, the theme toggle or anything else without committing
+   * to a verdict. Reproduced in real Chrome — Escape did nothing and the
+   * overlay stayed up. A trap with no exit is a trap.
+   *
+   * Closing is a pure UI retreat: `callOpen` is this component's own state,
+   * the store is untouched (store.makeCall is still the only thing that ever
+   * asks the worker for the truth — see Call.tsx's spoiler-safety note), and
+   * the cover behind is a legitimate place to stand. Focus goes back to the
+   * button that opened it, as a dismissed modal must. */
+  function closeCall() {
+    setCallOpen(false);
+    ctaRef.current?.focus();
+  }
+
   function handleOverlayKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      closeCall();
+      return;
+    }
     if (e.key !== 'Tab') return;
     const container = overlayRef.current;
     if (!container) return;
@@ -318,7 +343,7 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
           <PressCard blurb={card2} t={t} index={1} />
         </ul>
         {chyron && <ChyronBar blurb={chyron} t={t} index={2} />}
-        <button type="button" className="ph-published__cta" onClick={handleFaceTruth}>
+        <button type="button" className="ph-published__cta" ref={ctaRef} onClick={handleFaceTruth}>
           {t('published.faceTruth')}
         </button>
       </div>

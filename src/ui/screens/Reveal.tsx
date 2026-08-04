@@ -239,6 +239,22 @@ export function Reveal() {
 
   return (
     <div className="ph-reveal">
+      {/* T22 — the reveal's TITLE, and the one place in this pass that puts
+          text on the page that is not on the page.
+          Act II is deliberately heading-free by design: it is a manuscript's
+          results section, read straight through, and R8.3 spends its whole
+          attention budget on the stamp. That design is untouched — but it
+          left this screen with no heading of any level, so a screen-reader
+          player arriving here (App.tsx now moves focus to <main> on the
+          call -> reveal swap) was told nothing about what page they were on,
+          and had no landmark or heading to orient by. The manuscript's own
+          question is the reveal's subject, is already the Briefing's h1, and
+          is already echoed further down this screen on the cover card — so it
+          is the title, and it costs no new copy. Visually hidden rather than
+          styled away: DESIGN.md R6.6's utility keeps it in the accessibility
+          tree, which `display: none` would not. */}
+      <h1 className="ph-visually-hidden">{scenario.question}</h1>
+
       <Block name="truth" index={0}>
         <p className="ph-reveal__truth">{truth}</p>
       </Block>

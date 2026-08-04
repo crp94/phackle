@@ -421,8 +421,11 @@ export const copy: Record<CopyKey, string> = {
   // conversation; the setting is "cambiar tema".
   'a11y.themeToggle': 'Cambiar tema',
   'a11y.backToGame': 'P-hackle: volver al puzle de hoy',
-  'a11y.specCurveChart':
-    'Gráfico del p-valor de todas las especificaciones posibles, ordenadas, con tu especificación publicada resaltada.',
+  // T22 (value change): dropped the published-highlight clause — false on the
+  // abandon path. See en/copy.ts for the full reasoning.
+  'a11y.specCurveChart': 'Gráfico del p-valor de todas las especificaciones posibles, ordenadas de menor a mayor.',
+  // T22: fig. 2's own plate (§2.7.6), which is agrupado, not ordenado.
+  'a11y.specCurveGrouped': 'Gráfico del p-valor de todas las especificaciones posibles, en una columna por cada resultado medido.',
   'a11y.dataCut':
     'Diagrama de puntos de la muestra actual: el grupo de comparación y el grupo tratado, con cada punto excluido dibujado como una marca tachada.',
   'a11y.shareButton': 'Copiar el resultado al portapapeles',

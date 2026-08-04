@@ -128,7 +128,12 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
 
   return (
     <section className="ph-summary">
-      <h2 className="ph-summary__title">{t('summary.invoiceTitle')}</h2>
+      {/* T22: <h1>. Each screen of this single-page app is its own document to
+          assistive technology (App.tsx rebuilds <main> on every swap), so the
+          screen's own title is its level-one heading and the unlock/prereg
+          blocks below stay at level 2. Semantics only — .ph-summary__title
+          declares every type value itself. */}
+      <h1 className="ph-summary__title">{t('summary.invoiceTitle')}</h1>
 
       <table className="ph-summary__invoice">
         <tbody>
@@ -157,9 +162,23 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
           button, so the ceremony happens before you are invited to brag about
           it. Nothing at all on a day that unlocked nothing — an "achievements
           unlocked: none" line would be the opposite of a ceremony. */}
+      {/* T22 (booked item d) — NO LIVE REGION HERE, and the assumption that
+          makes that correct, pinned so a later change cannot quietly break it:
+          this block is present in the screen's FIRST rendered output, not
+          inserted into a screen the player is already reading. `unlocked` is
+          computed once, in SummaryScreen's own mount effect, before this
+          component renders anything but its aria-busy placeholder; nothing
+          afterwards can add to it. App.tsx moves focus to <main> on the
+          reveal -> summary swap, so a screen reader reads this screen from the
+          top and reaches the ceremony in document order, between the invoice
+          and the share button, exactly as a sighted player does. A live region
+          would announce it a SECOND time, out of order, on top of that read.
+          If a future task ever unlocks an achievement while this screen is
+          already on screen, that is the change that needs role="status" —
+          nothing before it does. */}
       {unlocked.length > 0 && (
         <div className="ph-summary__unlock">
-          <h3 className="ph-summary__unlock-title">{t('summary.unlockedToday')}</h3>
+          <h2 className="ph-summary__unlock-title">{t('summary.unlockedToday')}</h2>
           <ul className="ph-summary__unlock-list">
             {unlocked.map((award, i) => (
               <UnlockLine key={award.id} award={award} index={i} />
@@ -198,7 +217,7 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
 
       {preregUnlocked && (
         <div className="ph-summary__prereg">
-          <h3 className="ph-summary__prereg-title">{t('prereg.title')}</h3>
+          <h2 className="ph-summary__prereg-title">{t('prereg.title')}</h2>
           <p className="ph-summary__prereg-body">{t('summary.preregUpsell')}</p>
           {/* T18 wires the actual mode switch (boot(client, iso, {mode:
               'prereg'})); this affordance is intentionally disabled-for-now —
