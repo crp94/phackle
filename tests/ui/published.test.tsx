@@ -169,6 +169,15 @@ describe('Published: journal cover wiring', () => {
   });
 });
 
+// T32 (copy punch-up): the two lines are asserted through the copy catalog
+// rather than as English literals. The wording of published.altmetricScore is
+// owned by the content pass -- the third play-test moved it off "Attention
+// score" and onto a plainly countable line -- and a UI test that hard-codes a
+// value re-breaks every time that value is edited.
+const altmetricScoreLine = (n: number) => enContent.copy['published.altmetricScore'].replace('{n}', String(n));
+const altmetricPercentileLine = (n: number) =>
+  enContent.copy['published.altmetricPercentile'].replace('{n}', String(n));
+
 describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th celebration element, static/tier-scaled, never animated)', () => {
   it('shows the tier-scaled attention score and percentile line, computed the same way Published itself does', async () => {
     const iso = isoFromPuzzleNumber(1);
@@ -178,30 +187,30 @@ describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th c
 
     renderPublished({ forks: 5 });
 
-    await waitFor(() => expect(screen.getByText(`Attention score: ${expectedScore}`)).toBeTruthy());
-    expect(screen.getByText(`Top ${expectedPercentile}% of all research outputs, all time`)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(altmetricScoreLine(expectedScore))).toBeTruthy());
+    expect(screen.getByText(altmetricPercentileLine(expectedPercentile))).toBeTruthy();
   });
 
   it('scales up with egregiousness tier -- a tier-3 (forks>=10) score is always bigger than a tier-1 (forks<=3) score, same day', async () => {
     const iso = isoFromPuzzleNumber(1);
 
-    const tier1 = renderPublished({ forks: 1 });
-    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
     const tier1Score = altmetricScore(iso, 1);
-    expect(screen.getByText(`Attention score: ${tier1Score}`)).toBeTruthy();
+    const tier1 = renderPublished({ forks: 1 });
+    await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier1Score))).toBeTruthy());
     tier1.unmount();
 
-    const tier3 = renderPublished({ forks: 12 });
-    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
     const tier3Score = altmetricScore(iso, 3);
-    expect(screen.getByText(`Attention score: ${tier3Score}`)).toBeTruthy();
+    const tier3 = renderPublished({ forks: 12 });
+    await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier3Score))).toBeTruthy());
     expect(tier3Score).toBeGreaterThan(tier1Score);
     tier3.unmount();
   });
 
   it('renders no animation/transition class on the altmetric block (§2.5\'s "spinning up" would be a 5th, un-budgeted motion)', async () => {
     const { container } = renderPublished({ forks: 1 });
-    await waitFor(() => expect(screen.getByText(/Attention score:/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByText(altmetricScoreLine(altmetricScore(isoFromPuzzleNumber(1), 1)))).toBeTruthy()
+    );
 
     const block = container.querySelector('.ph-altmetric');
     expect(block).toBeTruthy();

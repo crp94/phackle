@@ -367,7 +367,7 @@ export const copy: Record<CopyKey, string> = {
 
   // T18 additions — the mode chooser (§2.2), shown only once Prereg Mode is
   // unlocked and today's preregistration has not been filed yet.
-  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today — one attempt per mode.',
+  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today. One attempt per mode.',
   'briefing.playHacking': 'Play Hacking Mode',
   'briefing.playPrereg': 'Play Prereg Mode',
   'briefing.alreadyPlayedToday': 'Already played today',
@@ -395,7 +395,7 @@ export const copy: Record<CopyKey, string> = {
   'lab.peekFootnote': 'Collecting more data is what a careful lab does. Every batch is logged for the methods section.',
   'lab.peekFootnoteArmitage':
     'Fun fact: peeking five times at α = .05 inflates your false-positive rate to ~14% (Armitage, 1969).',
-  'lab.insufficient': 'n < 30 — not enough data to analyze.',
+  'lab.insufficient': 'n < 30. Not enough data to analyze.',
 
   // Subgroup radiogroup options (master spec §2.4's own table wording).
   'lab.subgroupAll': 'All participants',
@@ -462,7 +462,7 @@ export const copy: Record<CopyKey, string> = {
   // going on" reads as if a LARGE number is the alarming one; it is the
   // opposite — a small p is what makes a result hard to shrug off as luck).
   'lab.dialCaption':
-    'This number is how often plain luck alone would produce a result like yours. The smaller it is, the harder your result is to dismiss as luck — below 0.05 and you can publish.',
+    'This number is how often plain luck alone would produce a result like yours. The smaller it is, the harder your result is to dismiss as luck. Below 0.05, you can publish.',
 
   // T31 — figure furniture. CoefPlot's axis and zero-line labels; DataCut's
   // comparison-column name and its three mark keys.
@@ -476,7 +476,7 @@ export const copy: Record<CopyKey, string> = {
   // T31 FIX ROUND — finding 4, "RESTORED REQUIREMENT — Legend pointer".
   // One quiet line next to the live ForkTrail: the trail's own emoji are
   // otherwise unexplained anywhere in the Lab.
-  'lab.forkTrailHint': 'Each symbol is a move you made — the Legend page has the key.',
+  'lab.forkTrailHint': 'Each symbol is a move you made. The Legend page has the key.',
 
   'published.faceTruth': 'Face the truth',
   'published.simulatedPress': 'SIMULATED PRESS',
@@ -484,7 +484,13 @@ export const copy: Record<CopyKey, string> = {
   'published.doiPrefix': 'DOI:',
   'published.authors': 'You, et al.',
   'published.careerPoints': '+{n} career points',
-  'published.altmetricScore': 'Attention score: {n}',
+  // T32 (third play-test: "What's the attention score? I don't understand"):
+  // the badge parodies an altmetric counter, and the parody only lands if the
+  // number is legible WITHOUT knowing what an altmetric is. "Attention score"
+  // named the real-world referent instead of the thing being counted; a plain
+  // count of online mentions says the same and needs no footnote. The
+  // percentile line below already landed and is unchanged.
+  'published.altmetricScore': 'Mentioned {n} times online already',
   'published.altmetricPercentile': 'Top {n}% of all research outputs, all time',
 
   // §2.6 verbatim: the call is conspiratorial, not accusatory — Act I's last
@@ -505,7 +511,7 @@ export const copy: Record<CopyKey, string> = {
   // standardized d), which is why {unit} qualifies the outcome rather than
   // trailing the number: "on Self-assessed profundity (1–10 scale): β = 0.37"
   // reads; "β = 0.37 1–10 scale" does not.
-  'reveal.truthEffect': 'True effect on {outcome} ({unit}): β = {beta} — and only that outcome.',
+  'reveal.truthEffect': 'True effect on {outcome} ({unit}): β = {beta}. On every other outcome, nothing.',
   'reveal.fig1': 'Fig. 1',
   'reveal.fig2': 'Fig. 2',
   'reveal.curveCaption': 'Every specification you could have run, sorted by p-value. Yours is highlighted.',
@@ -593,12 +599,12 @@ export const copy: Record<CopyKey, string> = {
   // manuscript register, sincere-bureaucratic, no wink. The player sets every
   // knob below with no data in front of them at all.
   'prereg.intro':
-    'Declare your full analysis before you see a single number. Every choice below is final the moment you submit — there is no reveal to peek at first, and no second attempt today.',
+    'Declare your full analysis before you see a single number. Every choice below is final the moment you submit. There is no reveal to peek at first, and no second attempt today.',
   // §7.3's own pinned wording ("I solemnly commit") — the checkbox label,
   // played completely straight.
   'prereg.commit': 'I solemnly commit to running and reporting this exact specification, whatever it shows.',
   'prereg.submit': 'Submit preregistration',
-  'prereg.locked': 'Locked in — no more changes until the reveal.',
+  'prereg.locked': 'Locked in. No more changes until the reveal.',
 
   'stats.title': 'Your stats',
   'stats.played': 'Played',
@@ -621,28 +627,28 @@ export const copy: Record<CopyKey, string> = {
 
   'about.title': 'About P-hackle',
   'about.intro':
-    'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is the real one — outcome switching, subgroup shopping, optional stopping — the same researcher degrees of freedom used, accidentally or otherwise, in real published research.',
+    'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is real: outcome switching, subgroup shopping, optional stopping. These are the same researcher degrees of freedom that turn up, accidentally or otherwise, in published research.',
   'about.mechanism':
-    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process — eight correlated latent variables, a treatment confounded with age and income, four outcome families — seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice; it is enumerated, not sampled and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty.",
+    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty.",
   'about.frozenFork':
     'One analytical choice is frozen rather than offered: outlier z-scores are computed on the transformed outcome, within the filtered subsample. That is itself a fork, and freezing it is itself a decision. It is disclosed here because the forks you cannot see are the ones that do the damage.',
   'about.syntheticDisclaimer':
-    'Nothing in this game is a finding. The participants do not exist, the data is generated in your browser, and the journals, DOIs, press outlets, headlines and quotes are all invented — which is why the press cards carry a SIMULATED PRESS watermark. The scenarios are deliberately absurd and deliberately harmless: no medical, nutritional or public-health claim appears anywhere in them, because a screenshot travels further than its caption.',
+    'Nothing in this game is a finding. The participants do not exist, the data is generated in your browser, and the journals, DOIs, press outlets, headlines and quotes are all invented. That is why the press cards carry a SIMULATED PRESS watermark. The scenarios are deliberately absurd and deliberately harmless: no medical, nutritional or public-health claim appears anywhere in them, because a screenshot travels further than its caption.',
   'about.decimalNote': 'Statistical notation always uses a decimal point (p = 0.049), in every language.',
   'about.dataDisclosure':
-    'Analytics are anonymous, cookieless page counts (Vercel Web Analytics) — no cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser\'s local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.',
+    "Analytics are anonymous, cookieless page counts (Vercel Web Analytics). No cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser's local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.",
   'about.priorArt':
     'P-hackle is a small game standing on a large literature. It borrows its central demonstration, and most of its methods, from work worth reading directly:',
   'about.priorArtFiveThirtyEight':
-    'Aschwanden & King (2015), "Hack Your Way to Scientific Glory," FiveThirtyEight — the interactive that owns this idea. It uses real data and offers no ground truth; P-hackle adds a known data-generating process, a daily seed, and the real-or-noise call.',
+    'Aschwanden & King (2015), "Hack Your Way to Scientific Glory," FiveThirtyEight. The interactive that owns this idea. It uses real data and offers no ground truth; P-hackle adds a known data-generating process, a daily seed, and the real-or-noise call.',
   'about.priorArtSpecCurve':
-    'Simonsohn, Simmons & Nelson — specification curve analysis. The chart in the reveal is, essentially, their figure.',
+    'Simonsohn, Simmons & Nelson, specification curve analysis. The chart in the reveal is, essentially, their figure.',
   'about.priorArtForkingPaths':
-    'Gelman & Loken — the garden of forking paths: no fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
+    'Gelman & Loken, the garden of forking paths. No fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
   'about.priorArtFalsePositive':
-    'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology" — the inventory of researcher degrees of freedom that this toolbox implements, one button at a time.',
+    'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology." The inventory of researcher degrees of freedom that this toolbox implements, one button at a time.',
   'about.priorArtOptionalStopping':
-    'Armitage, McPherson & Rowe (1969) — testing repeatedly as data accumulates inflates the false-positive rate on its own, which is why every extra batch you collect is counted against you at the reveal.',
+    'Armitage, McPherson & Rowe (1969). Testing repeatedly as data accumulates inflates the false-positive rate on its own, which is why every extra batch you collect is counted against you at the reveal.',
   'about.glossaryTitle': 'Glossary',
   'about.contact': 'Questions or bug reports welcome.',
 
