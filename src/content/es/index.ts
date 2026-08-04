@@ -458,64 +458,66 @@ export const content: LocaleContent = {
       outlet: 'El Boletín Oficioso',
       tier: 1,
     },
-    // ==== T39a: TRANSCREATION PENDING (T39b) ====================================
-    // The 24 scenario-bound blurbs T39a added to the English bank. Structural
-    // parity is a law (tests/content/es.shape.test.ts asserts identical counts,
-    // tiers and scenarioIds index by index), so the entries exist NOW; only the
-    // `text` is still English. The outlets are NOT placeholders — they are this
-    // locale's own established cabeceras, mapped from the English outlet each
-    // blurb was written for, so T39b has one job per entry and not two.
+    // ==== T39a's scenario-bound blurbs, transcreated in T39b ====================
+    // TRANSCREATED off the SPANISH scenarios, not translated off the English
+    // ones: these cabeceras are supposed to have read the Spanish abstract, so
+    // the poetry chyron names the endecasílabo and the jurado de Filología the
+    // cover story already pays in pizza, the peer-review chyron ends beside a
+    // napolitana de chocolate rather than beside an unnamed pastry, and the
+    // stairs blurb says fichaje and sesión informativa final because that is
+    // what this locale's method section says. The outlets were mapped in T39a
+    // and are untouched.
     //
-    // The debt is mechanically visible, not a comment anyone can forget:
-    // es.shape.test.ts's PENDING_T39B_PRESS test lists exactly these indices and
-    // fails the moment the set of English-aliased blurbs stops matching it — in
-    // EITHER direction. Translating one without shortening that list fails; a
-    // 25th alias sneaking in fails too.
+    // THE SPOILER LAW, restated because it is what makes these hard: the
+    // Published screen renders on BOTH day types, so a blurb may riff on the
+    // question, on the method and on the cover story's own furniture, and may
+    // never say whether the finding is true, false, replicated or withdrawn.
+    // Scanned in SPANISH by es.shape.test.ts's ES_PRESS_SPOILER_LEXICON.
     {
-      // T39b: transcreation pending
-      text: 'Two coders scored the sock photographs separately and agreed almost every time. The authors call the agreement reassuring.',
+      text: 'Dos personas codificaron las fotografías de los calcetines por separado y coincidieron casi siempre. Los autores califican la coincidencia de tranquilizadora.',
       outlet: 'El Boletín Oficioso',
       tier: 1,
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      text: 'Doce plantas de datos de fichaje y una encuesta de compenetración. A los participantes se les habló de la encuesta; de las tarjetas, en la sesión informativa final.',
       outlet: 'El Balance Semanal',
       tier: 1,
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Severity was scored by former editors, every one of whom has been reviewed in a café. The authors present this as domain expertise.',
+      // Fix round 1 [Minor 2]: the cover story's own "ninguno lo ha olvidado"
+      // was recycled here AND the domain-expertise line stacked on top of it,
+      // so the joke was told twice. English traded them; so does this now.
+      text: 'La severidad la puntuó un panel de exeditores, todos ellos revisados alguna vez desde una cafetería. Los autores lo presentan como conocimiento del terreno.',
       outlet: 'El Boletín Oficioso',
       tier: 1,
       scenarioIds: ['cafe-peer-review'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The hardest part was recruitment: first find the people who read the agreement, then ask them to read the consent form.',
+      text: 'Lo más difícil fue el reclutamiento: primero localizar a quien se lee el contrato entero y después pedirle que se lea también el consentimiento informado.',
       outlet: 'El Suplemento Dominical',
       tier: 1,
       scenarioIds: ['terms-and-conditions-service'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The question about the telescope came last, after the directions and a full debrief. Telescope owners, the authors record, were delighted to be asked.',
+      // Fix round 1 [Minor 3]: "de explicarlo todo" was vague where the joke
+      // needs the ethics-board jargon the method actually used. "Sesión
+      // informativa" is this locale's own term for the debrief, and press[7]
+      // already says it.
+      text: 'La pregunta por el telescopio se dejaba para el final, después de las indicaciones y de una sesión informativa completa. Quienes tienen telescopio, anotan los autores, estaban encantados de que se lo preguntaran.',
       outlet: 'El Balance Semanal',
       tier: 1,
       scenarioIds: ['telescope-directions'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Eighteen months of calendar records joined to a lunar ephemeris. The hypothesis came from the calendar administrator, proudly credited.',
+      text: 'Dieciocho meses de registros de calendario cruzados con una efeméride lunar. La hipótesis la propuso quien administra el calendario, a quien los autores citan con orgullo.',
       outlet: 'El Boletín Oficioso',
       tier: 1,
       scenarioIds: ['full-moon-meetings'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Jigsaw solvers had their suitcases measured at a departure gate, on a folding table. Nobody there, the authors note, had anywhere else to be.',
+      text: 'Las maletas de quienes hacen puzles se midieron en una puerta de embarque, sobre una mesa plegable. Allí, observan los autores, nadie tenía otro sitio donde estar.',
       outlet: 'El Suplemento Dominical',
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
@@ -547,66 +549,73 @@ export const content: LocaleContent = {
       outlet: 'Clicbienestar',
       tier: 2,
     },
-    // T39a tier-2 additions — see the TRANSCREATION PENDING note above.
+    // T39a's tier-2 additions, transcreated in T39b. Midmarket voice: the
+    // outlet has read the abstract and made it about the reader, so every one
+    // of these turns on the second person, and on TÚ (the locale's register
+    // rule, ./copy.ts item 3 of the convention contract), never usted.
     {
-      // T39b: transcreation pending
-      text: 'What your starter says about your finish line. The flour co-op is still sending people, and we asked them why.',
+      // Fix round 1 [Minor 1]: "tu tiempo final" was both punless and off this
+      // scenario's own vocabulary (its outcome is the "Mejora sobre la marca
+      // personal"). The two verbs do the work instead, in the right
+      // directions: the starter rises, the mark drops, and a dropping marca is
+      // exactly the good news this paper is selling.
+      //
+      // "baja" is on NEGATIVE_DIRECTION_LEXICON_ES and that is fine here:
+      // findNegativeDirectionTerms walks `scenarios[].outcomeLabels` and
+      // nothing else, so the one-tailed direction contract never reads press
+      // text. Verified against the scan, not assumed (see the report).
+      text: 'Tu masa madre sube; tu marca, baja. La cooperativa harinera sigue mandando gente al estudio, y hemos ido a preguntarles por qué.',
       outlet: 'Clicbienestar',
       tier: 2,
       scenarioIds: ['sourdough-marathon'],
     },
     {
-      // T39b: transcreation pending
-      text: "Your shower temperature is in your outbox. Six weeks of sent mail were scored, and 'per my last email' flagged itself.",
+      text: 'La temperatura de tu ducha está en tu bandeja de salida. Se analizaron seis semanas de correo enviado, y "como ya indiqué en mi anterior correo" se marcó sola.',
       outlet: 'El Scroll Diario',
       tier: 2,
       scenarioIds: ['cold-shower-emails'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Is your star sign finding the space? The logger runs from street entry to engine off, so your worst circuit of the block is in the dataset.',
+      text: '¿Te está buscando sitio tu signo? El registrador empieza cuando entras en la calle y para cuando apagas el motor, así que tu peor vuelta a la manzana también está en los datos.',
       outlet: 'Ruido & Rotativa',
       tier: 2,
       scenarioIds: ['horoscope-parking'],
     },
     {
-      // T39b: transcreation pending
-      text: 'They asked one screening question: do you own a label maker? What happened to those inboxes is now peer-reviewed.',
+      text: 'Una sola pregunta de cribado: ¿tienes etiquetadora? Lo que pasó después en esas bandejas de entrada ya está en una revista con revisión por pares.',
       outlet: 'Clicbienestar',
       tier: 2,
       scenarioIds: ['label-maker-inbox'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Forty tabs open is not a problem, say researchers who now call it inventory. Every project had to come with a public link.',
+      text: 'Cuarenta pestañas abiertas no son un problema: los investigadores ahora lo llaman inventario. Cada proyecto tenía que llegar con un enlace público que funcionara, el tuyo incluido.',
       outlet: 'El Scroll Diario',
       tier: 2,
       scenarioIds: ['browser-tabs-side-projects'],
     },
     {
-      // T39b: transcreation pending
-      text: 'There was a researcher at that dinner party, introduced as a colleague from work. Your departure time is now data.',
+      text: 'En aquella cena había un investigador, presentado a los demás como un compañero del trabajo. La hora a la que te fuiste ya es un dato.',
       outlet: 'Ruido & Rotativa',
       tier: 2,
       scenarioIds: ['vinyl-dinner-party'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones, and about what is in yours.',
+      text: 'A los analistas les dijeron que el estudio iba sobre la iluminación. Iba sobre las 340 horas de hard bop de sus auriculares, y sobre lo que suena en los tuyos.',
       outlet: 'Clicbienestar',
       tier: 2,
       scenarioIds: ['jazz-spreadsheets'],
     },
     {
-      // T39b: transcreation pending
-      text: 'What your feelings about the number 13 say about your mortgage. The broker who supplied the terms sends regards.',
+      // 13 and triscaidecafobia: unlike Italian, this locale kept the English
+      // number, because a Spanish reader recognises el martes 13 too. The word
+      // is the one the Spanish cover story already coined.
+      text: 'Lo que tu puntuación de triscaidecafobia dice de tu hipoteca. El intermediario que le pasó las condiciones al estudio manda recuerdos.',
       outlet: 'Ruido & Rotativa',
       tier: 2,
       scenarioIds: ['thirteen-mortgage'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science, and so, probably, are you.',
+      text: 'Dos participantes se pasaron a algo más silencioso y hubo que descartarlos. Los demás siguen tecleando fuerte por la ciencia, y tú probablemente también.',
       outlet: 'El Scroll Diario',
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
@@ -636,59 +645,57 @@ export const content: LocaleContent = {
     // out on live television. The clash is the joke.
     { text: 'P MENOR QUE CERO COMA CERO CINCO: SE LO EXPLICAMOS TRAS LA PAUSA', outlet: 'Directo Madrugada', tier: 3 },
     { text: 'EXCLUSIVA: EL HÁBITO QUE EL MERCADO NO QUIERE QUE MANTENGAS', outlet: 'Directo Madrugada', tier: 3 },
-    // T39a tier-3 additions — see the TRANSCREATION PENDING note above.
+    // T39a's tier-3 additions, transcreated in T39b. The rótulo shouts (the
+    // voice law counts capitals, so this is mechanical) and shouts the way a
+    // 24h channel does: present tense, one clause, no subordination a lower
+    // third could not hold. Accented capitals (Ó, Á, É) sit outside the ASCII
+    // class upperCaseRatio counts and cost nothing.
     {
-      // T39b: transcreation pending
-      text: 'STUDY: DESK GOES UP, SONNET COMES OUT',
+      text: 'ESTUDIO: SUBE EL ESCRITORIO, SALE EL ENDECASÍLABO',
       outlet: 'Cadena Rótulo 24H',
       tier: 3,
       scenarioIds: ['standing-desk-poetry'],
     },
     {
-      // T39b: transcreation pending
-      text: "IS YOUR DOG'S NAME A PORTFOLIO STRATEGY? WE ASKED A DOG CALLED HAYEK",
+      text: '¿EL NOMBRE DE TU PERRO ES UNA ESTRATEGIA DE CARTERA? SE LO HEMOS PREGUNTADO A UN PERRO LLAMADO HAYEK',
       outlet: 'Canal 9 Noticias Noche',
       tier: 3,
       scenarioIds: ['dog-economist-stocks'],
     },
     {
-      // T39b: transcreation pending
-      text: 'ALERT: THE CAT HAS JOINED THE INVESTMENT COMMITTEE',
+      text: 'ALERTA: EL GATO ENTRA EN EL COMITÉ DE INVERSIONES',
       outlet: 'Cadena Rótulo 24H',
       tier: 3,
       scenarioIds: ['cat-crypto'],
     },
     {
-      // T39b: transcreation pending
-      text: "THE MOON IS FULL AND YOUR FOUR O'CLOCK IS NOT OVER",
+      text: 'HAY LUNA LLENA Y TU REUNIÓN DE LAS CUATRO NO HA TERMINADO',
       outlet: 'Directo Madrugada',
       tier: 3,
       scenarioIds: ['full-moon-meetings'],
     },
     {
-      // T39b: transcreation pending
-      text: 'EXCLUSIVE: THE HARSHEST REVIEW OF YOUR LIFE WAS WRITTEN NEXT TO A PASTRY',
+      // Not "a pastry": a Spanish referee in a cafetería is sitting next to a
+      // napolitana, and the scenario is built on that cafetería.
+      text: 'EXCLUSIVA: EL INFORME MÁS DURO DE TU VIDA SE ESCRIBIÓ AL LADO DE UNA NAPOLITANA DE CHOCOLATE',
       outlet: 'Canal 9 Noticias Noche',
       tier: 3,
       scenarioIds: ['cafe-peer-review'],
     },
     {
-      // T39b: transcreation pending
-      text: 'THE SOCK DRAWER KNOWS WHAT TIME YOU GET UP',
+      text: 'EL CAJÓN DE LOS CALCETINES SABE A QUÉ HORA TE LEVANTAS',
       outlet: 'Canal 9 Noticias Noche',
       tier: 3,
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      // T39b: transcreation pending
-      text: 'BREAKING: THE PEOPLE ON THE STAIRS ARE TALKING ABOUT YOU',
+      text: 'ÚLTIMA HORA: LOS DE LAS ESCALERAS ESTÁN HABLANDO DE TI',
       outlet: 'Directo Madrugada',
       tier: 3,
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      // T39b: transcreation pending
-      text: 'FORTY TABS IS NOT CHAOS. FORTY TABS IS A PIPELINE.',
+      text: 'CUARENTA PESTAÑAS NO SON UN CAOS. CUARENTA PESTAÑAS SON UN INVENTARIO.',
       outlet: 'Cadena Rótulo 24H',
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],

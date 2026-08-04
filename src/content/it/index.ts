@@ -476,64 +476,63 @@ export const content: LocaleContent = {
       outlet: 'Il Bollettino Civico',
       tier: 1,
     },
-    // ==== T39a: TRANSCREATION PENDING (T39b) ====================================
-    // The 24 scenario-bound blurbs T39a added to the English bank. Structural
-    // parity is a law (tests/content/it.shape.test.ts asserts identical counts,
-    // tiers and scenarioIds index by index), so the entries exist NOW; only the
-    // `text` is still English. The outlets are NOT placeholders — they are this
-    // locale's own established mastheads, mapped from the English outlet each
-    // blurb was written for, so T39b has one job per entry and not two.
+    // ==== T39a's scenario-bound blurbs, transcreated in T39b ====================
+    // TRANSCREATED, not translated, and specifically not translated from the
+    // ENGLISH scenario: each line is rebuilt on the ITALIAN scenario's own
+    // furniture, because these outlets are supposed to have read the Italian
+    // abstract. So the mortgage blurb counts to 17 and says eptacaidecafobia
+    // (this locale's superstition, the English one's is 13), the peer-review
+    // chyron ends at a cornetto rather than at an unnamed pastry, the poetry
+    // chyron reaches for the endecasillabo the cover story already promised,
+    // and the full-moon line credits l'addetta al calendario, who is a woman
+    // here. The outlets were mapped in T39a and are untouched.
     //
-    // The debt is mechanically visible, not a comment anyone can forget:
-    // it.shape.test.ts's PENDING_T39B_PRESS test lists exactly these indices and
-    // fails the moment the set of English-aliased blurbs stops matching it — in
-    // EITHER direction. Translating one without shortening that list fails; a
-    // 25th alias sneaking in fails too.
+    // THE SPOILER LAW, restated because it is what makes these hard: the
+    // Published screen renders on BOTH day types, so a blurb may riff on the
+    // question, on the method and on the cover story's own furniture, and may
+    // never say whether the finding is true, false, replicated or withdrawn.
+    // Scanned in ITALIAN by it.shape.test.ts's IT_PRESS_SPOILER_LEXICON.
     {
-      // T39b: transcreation pending
-      text: 'Two coders scored the sock photographs separately and agreed almost every time. The authors call the agreement reassuring.',
+      text: "Due codificatori hanno classificato le fotografie dei calzini separatamente e si sono trovati d'accordo quasi sempre. Gli autori definiscono l'intesa rassicurante.",
       outlet: 'Il Bollettino Civico',
       tier: 1,
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      text: 'Dodici piani di dati dei badge e un questionario di sintonia. Ai partecipanti è stato detto del questionario; dei badge, al debriefing.',
       outlet: 'La Gazzetta di Provincia',
       tier: 1,
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Severity was scored by former editors, every one of whom has been reviewed in a café. The authors present this as domain expertise.',
+      // Fix round 1 [Minor 2]: the cover story's own "non se l'è dimenticato"
+      // was recycled here AND the domain-expertise line stacked on top of it,
+      // so the joke was told twice. English traded them; so does this now.
+      text: 'La severità è stata valutata da un collegio di ex direttori, ognuno dei quali è stato recensito al bar. Gli autori lo presentano come competenza specifica.',
       outlet: 'Il Bollettino Civico',
       tier: 1,
       scenarioIds: ['cafe-peer-review'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The hardest part was recruitment: first find the people who read the agreement, then ask them to read the consent form.',
+      text: 'La parte più difficile è stata il reclutamento: prima trovare chi legge il contratto per intero, poi chiedergli di leggere anche il modulo di consenso.',
       outlet: "L'Inserto della Domenica",
       tier: 1,
       scenarioIds: ['terms-and-conditions-service'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The question about the telescope came last, after the directions and a full debrief. Telescope owners, the authors record, were delighted to be asked.',
+      text: 'La domanda sul telescopio arrivava per ultima, dopo le indicazioni e un debriefing completo. Chi ha un telescopio, annotano gli autori, era felicissimo che glielo si chiedesse.',
       outlet: 'La Gazzetta di Provincia',
       tier: 1,
       scenarioIds: ['telescope-directions'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Eighteen months of calendar records joined to a lunar ephemeris. The hypothesis came from the calendar administrator, proudly credited.',
+      text: "Diciotto mesi di registri di calendario uniti a un'effemeride lunare. L'ipotesi è dell'addetta al calendario, che gli autori citano con orgoglio.",
       outlet: 'Il Bollettino Civico',
       tier: 1,
       scenarioIds: ['full-moon-meetings'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Jigsaw solvers had their suitcases measured at a departure gate, on a folding table. Nobody there, the authors note, had anywhere else to be.',
+      text: 'Le valigie di chi fa i puzzle sono state misurate a un gate di partenza, su un tavolino pieghevole. Lì, osservano gli autori, nessuno aveva altro da fare.',
       outlet: "L'Inserto della Domenica",
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
@@ -565,66 +564,71 @@ export const content: LocaleContent = {
       outlet: 'Clickeria',
       tier: 2,
     },
-    // T39a tier-2 additions — see the TRANSCREATION PENDING note above.
+    // T39a's tier-2 additions, transcreated in T39b. Midmarket voice: the
+    // outlet has read the abstract and made it about the reader, so every one
+    // of these turns on the second person, and on TU rather than Lei (the
+    // locale's register rule, ./copy.ts item 2 of the convention contract).
     {
-      // T39b: transcreation pending
-      text: 'What your starter says about your finish line. The flour co-op is still sending people, and we asked them why.',
+      // Fix round 1 [Minor 1]: "il tuo tempo finale" was both punless and off
+      // this scenario's own vocabulary (its outcome is the "Guadagno sul
+      // primato personale"). `lievitare` is the transcreated pun: it is what
+      // dough does and what a quantity does when it grows. Note the DIRECTION
+      // it is pointed in. Applied to a TIME ("quanto lievita il tuo tempo"),
+      // lievitare means the time BALLOONED, i.e. the runner got slower, which
+      // is the opposite of what this paper claims and would make the outlet
+      // sceptical on a screen where Act I outlets are credulous. Pointed at
+      // the primato instead, the rise is the good news the paper is selling.
+      text: "A lievitare non è solo il pane: c'è anche il tuo primato personale. Il molino cooperativo continua a mandare gente allo studio, e noi siamo andati a chiedere perché.",
       outlet: 'Clickeria',
       tier: 2,
       scenarioIds: ['sourdough-marathon'],
     },
     {
-      // T39b: transcreation pending
-      text: "Your shower temperature is in your outbox. Six weeks of sent mail were scored, and 'per my last email' flagged itself.",
+      text: 'La temperatura della tua doccia è nella tua posta in uscita. Sei settimane di email inviate sono state analizzate, e "come da mia precedente email" si è segnalata da sola.',
       outlet: 'Lo Scroll Quotidiano',
       tier: 2,
       scenarioIds: ['cold-shower-emails'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Is your star sign finding the space? The logger runs from street entry to engine off, so your worst circuit of the block is in the dataset.',
+      text: "È il tuo segno a trovarti il posto? Il registratore parte dall'ingresso in strada e si ferma allo spegnimento del motore, quindi anche il tuo giro peggiore dell'isolato finisce nei dati.",
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['horoscope-parking'],
     },
     {
-      // T39b: transcreation pending
-      text: 'They asked one screening question: do you own a label maker? What happened to those inboxes is now peer-reviewed.',
+      text: "Una sola domanda di selezione: possiedi un'etichettatrice? Quello che è successo dopo a quelle caselle di posta è ora su una rivista con revisione tra pari.",
       outlet: 'Clickeria',
       tier: 2,
       scenarioIds: ['label-maker-inbox'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Forty tabs open is not a problem, say researchers who now call it inventory. Every project had to come with a public link.',
+      text: 'Quaranta schede aperte non sono un problema: i ricercatori adesso le chiamano magazzino. Ogni progetto doveva arrivare con un link pubblico funzionante, il tuo compreso.',
       outlet: 'Lo Scroll Quotidiano',
       tier: 2,
       scenarioIds: ['browser-tabs-side-projects'],
     },
     {
-      // T39b: transcreation pending
-      text: 'There was a researcher at that dinner party, introduced as a colleague from work. Your departure time is now data.',
+      text: "A quella cena c'era un ricercatore, presentato agli altri come un collega di lavoro. L'ora in cui te ne sei andato adesso è un dato.",
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['vinyl-dinner-party'],
     },
     {
-      // T39b: transcreation pending
-      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones, and about what is in yours.',
+      text: "Agli analisti avevano detto che lo studio riguardava l'illuminazione. Riguardava le 340 ore di hard bop nelle loro cuffie, e quello che c'è nelle tue.",
       outlet: 'Clickeria',
       tier: 2,
       scenarioIds: ['jazz-spreadsheets'],
     },
     {
-      // T39b: transcreation pending
-      text: 'What your feelings about the number 13 say about your mortgage. The broker who supplied the terms sends regards.',
+      // 17, and eptacaidecafobia: this locale's scenario relocated the
+      // superstition, so its press counts the way its readers do.
+      text: 'Che cosa dice del tuo mutuo il tuo punteggio di eptacaidecafobia. Il broker che ha passato le condizioni allo studio manda i suoi saluti.',
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['thirteen-mortgage'],
     },
     {
-      // T39b: transcreation pending
-      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science, and so, probably, are you.',
+      text: 'Due partecipanti sono passati a qualcosa di più silenzioso e sono stati esclusi. Tutti gli altri battono ancora forte per la scienza, e probabilmente anche tu.',
       outlet: 'Lo Scroll Quotidiano',
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
@@ -658,59 +662,59 @@ export const content: LocaleContent = {
       outlet: 'Diretta Notte',
       tier: 3,
     },
-    // T39a tier-3 additions — see the TRANSCREATION PENDING note above.
+    // T39a's tier-3 additions, transcreated in T39b. The chyron shouts (the
+    // voice law counts capitals, so this is mechanical), and it shouts in
+    // sottopancia Italian: short, present tense, no subordinate clause that a
+    // lower third could not hold. Accented capitals (È, PIÙ) are outside the
+    // ASCII class upperCaseRatio counts and cost nothing.
     {
-      // T39b: transcreation pending
-      text: 'STUDY: DESK GOES UP, SONNET COMES OUT',
+      text: "STUDIO: SALE LA SCRIVANIA, ESCE L'ENDECASILLABO",
       outlet: 'Rete Sottopancia',
       tier: 3,
       scenarioIds: ['standing-desk-poetry'],
     },
     {
-      // T39b: transcreation pending
-      text: "IS YOUR DOG'S NAME A PORTFOLIO STRATEGY? WE ASKED A DOG CALLED HAYEK",
+      text: 'IL NOME DEL TUO CANE È UNA STRATEGIA DI PORTAFOGLIO? LO ABBIAMO CHIESTO A UN CANE DI NOME HAYEK',
       outlet: 'TG Canale 9',
       tier: 3,
       scenarioIds: ['dog-economist-stocks'],
     },
     {
-      // T39b: transcreation pending
-      text: 'ALERT: THE CAT HAS JOINED THE INVESTMENT COMMITTEE',
+      // Fix round 1 [Minor 4]: present tense, per this block's own rule (and
+      // per the Spanish twin, which already read ENTRA).
+      text: 'ALLARME: IL GATTO ENTRA NEL COMITATO INVESTIMENTI',
       outlet: 'Rete Sottopancia',
       tier: 3,
       scenarioIds: ['cat-crypto'],
     },
     {
-      // T39b: transcreation pending
-      text: "THE MOON IS FULL AND YOUR FOUR O'CLOCK IS NOT OVER",
+      text: 'LA LUNA È PIENA E LA TUA RIUNIONE DELLE QUATTRO NON È ANCORA FINITA',
       outlet: 'Diretta Notte',
       tier: 3,
       scenarioIds: ['full-moon-meetings'],
     },
     {
-      // T39b: transcreation pending
-      text: 'EXCLUSIVE: THE HARSHEST REVIEW OF YOUR LIFE WAS WRITTEN NEXT TO A PASTRY',
+      // Not "a pastry": an Italian referee at the bar is sitting next to a
+      // cornetto, and the whole scenario is built on that bar.
+      text: 'ESCLUSIVO: IL REFERAGGIO PIÙ DURO DELLA TUA VITA È STATO SCRITTO ACCANTO A UN CORNETTO',
       outlet: 'TG Canale 9',
       tier: 3,
       scenarioIds: ['cafe-peer-review'],
     },
     {
-      // T39b: transcreation pending
-      text: 'THE SOCK DRAWER KNOWS WHAT TIME YOU GET UP',
+      text: 'IL CASSETTO DEI CALZINI SA A CHE ORA TI ALZI',
       outlet: 'TG Canale 9',
       tier: 3,
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      // T39b: transcreation pending
-      text: 'BREAKING: THE PEOPLE ON THE STAIRS ARE TALKING ABOUT YOU',
+      text: "ULTIM'ORA: QUELLI CHE PRENDONO LE SCALE STANNO PARLANDO DI TE",
       outlet: 'Diretta Notte',
       tier: 3,
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      // T39b: transcreation pending
-      text: 'FORTY TABS IS NOT CHAOS. FORTY TABS IS A PIPELINE.',
+      text: 'QUARANTA SCHEDE NON SONO CAOS. QUARANTA SCHEDE SONO UN MAGAZZINO.',
       outlet: 'Rete Sottopancia',
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],

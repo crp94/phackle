@@ -403,6 +403,48 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
     expect(secondCards.size).toBeGreaterThan(1);
   });
 
+  /**
+   * [T39b] The re-review's reachability nit, promoted from a number quoted in
+   * the T39a report ("all 45 of 45 blurbs remain reachable") to an assertion.
+   *
+   * The slot rotation buys distinctness at a stated cost: on a day where all
+   * three slots draw from one pool they are three CONSECUTIVE entries, not
+   * three independent ones. That trade is only sound if the rotation still
+   * WALKS the pool over time — an index scheme that reached, say, only the even
+   * entries would satisfy every distinctness test in this file while quietly
+   * stranding half the bank, and the failure would be invisible on any single
+   * day. The variety test above cannot see it either: `size > 1` passes on a
+   * rotation that only ever reaches two of seven.
+   *
+   * So: every blurb in the bank, generic AND bound, must be reachable, and each
+   * tier's generic pool must be reached IN FULL. 112 dates is roughly a season
+   * of daily play (four months of 28, generated arithmetically so this test
+   * needs no calendar), which is well inside the horizon a returning player
+   * would notice a hole in.
+   */
+  it('walks the whole bank across a season of dates: the rotation strands no blurb', () => {
+    const isos = ['01', '02', '03', '04'].flatMap((month) =>
+      Array.from({ length: 28 }, (_, d) => `2026-${month}-${String(d + 1).padStart(2, '0')}`)
+    );
+    const seen = new Set<string>();
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of isos) {
+          for (const blurb of pressForDay(enContent.press, tier, scenario.id, iso)) seen.add(blurb.text);
+        }
+      }
+    }
+    // Per tier first, so a failure names the pool that has a hole in it.
+    for (const tier of TIERS) {
+      const generic = enContent.press.filter((p) => p.tier === tier && !p.scenarioIds?.length);
+      const unreached = generic.filter((p) => !seen.has(p.text)).map((p) => p.text);
+      expect(unreached, `tier ${tier} generic blurbs never picked in ${isos.length} days`).toEqual([]);
+    }
+    const stranded = enContent.press.filter((p) => !seen.has(p.text)).map((p) => p.text);
+    expect(stranded, 'blurbs no (scenario, tier, date) combination can reach').toEqual([]);
+    expect(seen.size).toBe(enContent.press.length);
+  });
+
   it('falls back to the bound pool for a follow-up if a tier ever loses its generic blurbs', () => {
     // The preference is a preference on BOTH sides. A synthetic bank with no
     // generic tier-1 entry must still answer a salted call rather than crash.
