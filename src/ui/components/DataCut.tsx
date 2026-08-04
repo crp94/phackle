@@ -71,7 +71,12 @@ export interface CutGeometry {
   columnGap: number;
   /** Horizontal band each column's jitter is allowed to use, centred on the
    * column. Narrower than `columnWidth` by `markInset` on each side so no
-   * mark can overhang into the gap. */
+   * mark can overhang into the gap. Capped at 64px (REVIEW FIX, finding 3):
+   * beyond that, a wider column just spreads the cloud into more empty
+   * paper without helping legibility, and it visually dilutes the two group
+   * means (a fixed-width bar) into an ever-larger, ever-emptier-looking
+   * band. The pixels the cap gives up are spent on CUT_PLOT_HEIGHT instead
+   * — vertical room is what actually separates two group means. */
   jitterSpread: number;
   /** Keeps a mark's own radius off the plot's edges, vertically and
    * horizontally. Sized for the largest mark in the figure (the excluded
@@ -104,8 +109,15 @@ const CUT_COLUMN_GAP = 12;
  * anything competing with the dial, whose numeral tops out at --text-dial's
  * 96px — so the drawn area is held strictly below that, and the whole figure
  * (plot + labels + legend) stays comfortably under the dial block's height.
+ *
+ * REVIEW FIX (finding 3): raised from 72 toward that same 96px ceiling
+ * (padTop=4 keeps the SVG's own height at 92, still under 96). The jitter
+ * cap above gives up horizontal spread once a column is wide; this spends
+ * part of that budget on the vertical axis instead, where it actually
+ * separates the two group means — confirmed by re-screenshotting the Lab at
+ * a 660px container (task-T31-shots/lab-660-fix.png).
  */
-const CUT_PLOT_HEIGHT = 72;
+const CUT_PLOT_HEIGHT = 88;
 const CUT_MARK_INSET = 6;
 const CUT_EXCLUDED_ARM = 4;
 /** See CutGeometry.meanBarWidth. 0.8 leaves visible air on both sides of each
@@ -128,7 +140,7 @@ export function cutGeometryFor(containerWidth: number): CutGeometry {
     padTop: CUT_PAD_TOP,
     columnWidth,
     columnGap: CUT_COLUMN_GAP,
-    jitterSpread: Math.max(1, columnWidth - CUT_MARK_INSET * 2),
+    jitterSpread: Math.min(Math.max(1, columnWidth - CUT_MARK_INSET * 2), 64),
     markInset: CUT_MARK_INSET,
     excludedArm: CUT_EXCLUDED_ARM,
     meanBarWidth: columnWidth * CUT_MEAN_BAR_FRACTION,
@@ -152,10 +164,11 @@ export function columnCentre(column: 0 | 1, geom: CutGeometry): number {
 /**
  * Deterministic horizontal jitter, as a unit fraction in [0, 1).
  *
- * Seeded from the DATUM, via fnv1a32 of its fixed-precision decimal string —
- * NOT from its index in the array it currently sits in, and never from
- * Math.random (§3.1's determinism, extended to pixels: two players looking at
- * the same cut see the same picture).
+ * Seeded from the DATUM — fnv1a32 of its fixed-precision decimal string, plus
+ * an `occurrence` tiebreaker for same-valued points (see below) — NOT from
+ * its index in the array it currently sits in, and never from Math.random
+ * (§3.1's determinism, extended to pixels: two players looking at the same
+ * cut see the same picture).
  *
  * Keying on the value rather than the index is what makes the figure's
  * mechanic work. A point's array membership CHANGES when the exclusion knob
@@ -163,12 +176,28 @@ export function columnCentre(column: 0 | 1, geom: CutGeometry): number {
  * would reshuffle the whole column on every knob turn, and "watch these
  * specific people leave your analysis" would read as a reshuffle instead. Key
  * on the value and the mark stays exactly where it was and simply changes
- * shape, which is the thing the player is supposed to see. (Two points that
- * share a value share an x, and overplot: honest, and unavoidable in a strip
- * plot anyway.)
+ * shape, which is the thing the player is supposed to see.
+ *
+ * REVIEW FIX (finding 1, tie-collapsed jitter): value-only seeding is exactly
+ * right for a continuous outcome, where two points essentially never
+ * literally tie. It breaks down for the count and 1-10-scale outcomes
+ * (engine outcomes 2/3), whose entire range is 8-10 distinct integers — at
+ * n=200 that can be ~20+ points sharing one value, and value-only seeding
+ * paints every one of them at the exact same (x, y): a column of 200 renders
+ * as a handful of visually distinct dots while the legend still (correctly)
+ * says 200. `occurrence` disambiguates ties without reintroducing the
+ * reshuffle problem: see `placeCut`'s `nextOccurrence`, which counts prior
+ * marks sharing this exact (column, value) pair in the figure's own fixed
+ * paint order. That count is stable across an exclusion-knob turn for the
+ * same reason value-keying itself is — two points with the same transformed
+ * value have the same z-score, so an exclusion threshold always keeps or
+ * drops an entire tied group together, never splits it, so a surviving
+ * member's occurrence index never shifts. A continuous outcome never ties, so
+ * `occurrence` is always 0 there and this is a strict extension of the prior
+ * behaviour (pinned by the "KEEPS A POINT'S X" test below, unchanged).
  */
-export function jitterUnit(value: number): number {
-  return fnv1a32(value.toFixed(6)) / 0x100000000;
+export function jitterUnit(value: number, occurrence = 0): number {
+  return fnv1a32(`${value.toFixed(6)}#${occurrence}`) / 0x100000000;
 }
 
 /* ------------------------------------------------------------------- scaling */
@@ -224,10 +253,17 @@ interface Mark {
 
 const GROUP_NAME = ['control', 'treated'] as const;
 
-function markFor(value: number, column: 0 | 1, excluded: boolean, domain: [number, number], geom: CutGeometry): Mark {
+function markFor(
+  value: number,
+  column: 0 | 1,
+  excluded: boolean,
+  occurrence: number,
+  domain: [number, number],
+  geom: CutGeometry
+): Mark {
   const centre = columnCentre(column, geom);
   return {
-    x: centre - geom.jitterSpread / 2 + jitterUnit(value) * geom.jitterSpread,
+    x: centre - geom.jitterSpread / 2 + jitterUnit(value, occurrence) * geom.jitterSpread,
     y: cutValueY(value, domain, geom),
     column,
     excluded,
@@ -235,14 +271,27 @@ function markFor(value: number, column: 0 | 1, excluded: boolean, domain: [numbe
 }
 
 /** Every mark in the figure, in paint order: included first, so the (larger,
- * rarer) excluded marks are never buried under the cloud. */
+ * rarer) excluded marks are never buried under the cloud. This order is also
+ * what `nextOccurrence` counts against below — see jitterUnit's doc comment
+ * for why that makes the tiebreaker stable across an exclusion-knob turn. */
 export function placeCut(cut: DataCutValues, geom: CutGeometry): Mark[] {
   const domain = cutDomain(cut);
+  // Same-value tiebreaker, scoped per column: the Nth mark sharing a
+  // (column, value) pair, in paint order. Keyed on the identical
+  // fixed-precision string jitterUnit hashes, so float noise in the key
+  // itself can never desync a value's occurrence count from its seed.
+  const occurrenceCounts = new Map<string, number>();
+  const nextOccurrence = (column: 0 | 1, value: number): number => {
+    const key = `${column}|${value.toFixed(6)}`;
+    const k = occurrenceCounts.get(key) ?? 0;
+    occurrenceCounts.set(key, k + 1);
+    return k;
+  };
   return [
-    ...cut.control.map((v) => markFor(v, 0, false, domain, geom)),
-    ...cut.treated.map((v) => markFor(v, 1, false, domain, geom)),
-    ...cut.excludedControl.map((v) => markFor(v, 0, true, domain, geom)),
-    ...cut.excludedTreated.map((v) => markFor(v, 1, true, domain, geom)),
+    ...cut.control.map((v) => markFor(v, 0, false, nextOccurrence(0, v), domain, geom)),
+    ...cut.treated.map((v) => markFor(v, 1, false, nextOccurrence(1, v), domain, geom)),
+    ...cut.excludedControl.map((v) => markFor(v, 0, true, nextOccurrence(0, v), domain, geom)),
+    ...cut.excludedTreated.map((v) => markFor(v, 1, true, nextOccurrence(1, v), domain, geom)),
   ];
 }
 

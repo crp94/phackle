@@ -124,6 +124,11 @@ export type CopyKey =
   | 'lab.cutLegendIncluded'
   | 'lab.cutLegendExcluded'
   | 'lab.cutLegendMean'
+  // T31 FIX ROUND (review finding 4, "RESTORED REQUIREMENT — Legend
+  // pointer"): the live fork trail carries no explanation of its own emoji —
+  // this one quiet line, next to it, says where to find one. Sincere
+  // register, --muted, never louder than the trail itself.
+  | 'lab.forkTrailHint'
   | 'published.faceTruth'
   | 'published.simulatedPress'
   | 'published.editorsPick'
@@ -400,9 +405,12 @@ export const copy: Record<CopyKey, string> = {
   // methods section uses. Not one of them may hint that the choice is
   // convenient, or that making it after seeing the result is the problem —
   // the reveal earns that, and earns it harder if Act I never nudged.
-  'lab.explain.outcome': 'Which measured outcome this analysis treats as the dependent variable.',
+  // T31 FIX ROUND (subsumed-welcome rewrites, done opportunistically while
+  // already in this block for findings 2/4): plainer wording for two of the
+  // six notes, still Act-I sincere, still no judgement of the choice.
+  'lab.explain.outcome': 'Which of the four things you measured this analysis tries to explain.',
   'lab.explain.subgroup': 'Restrict the sample to one group of participants before fitting.',
-  'lab.explain.covariates': 'Add control variables to the regression alongside the treatment.',
+  'lab.explain.covariates': 'Also account for background differences between people when comparing the two groups.',
   'lab.explain.exclusion': 'Remove statistical outliers from the current sample before fitting.',
   'lab.explain.transform': 'Fit the outcome on its own scale, or on a log scale.',
   'lab.explain.tails': 'Test for an effect in either direction, or only in the predicted one.',
@@ -420,8 +428,12 @@ export const copy: Record<CopyKey, string> = {
 
   // T31 — the dial's explainer. Plain words: what the number means, and what
   // makes it publishable. No "null hypothesis", no "significance", no Greek.
+  // FIX ROUND (finding 2): the original wording had the number's direction
+  // backwards ("how surprising your result would be if nothing were really
+  // going on" reads as if a LARGE number is the alarming one; it is the
+  // opposite — a small p is what makes a result hard to shrug off as luck).
   'lab.dialCaption':
-    'This number is how surprising your result would be if nothing were really going on. Get it below 0.05 and you can publish.',
+    'This number is how often plain luck alone would produce a result like yours. The smaller it is, the harder your result is to dismiss as luck — below 0.05 and you can publish.',
 
   // T31 — figure furniture. CoefPlot's axis and zero-line labels; DataCut's
   // comparison-column name and its three mark keys.
@@ -431,6 +443,11 @@ export const copy: Record<CopyKey, string> = {
   'lab.cutLegendIncluded': 'Analysed: {n}',
   'lab.cutLegendExcluded': 'Excluded: {n}',
   'lab.cutLegendMean': 'Group mean',
+
+  // T31 FIX ROUND — finding 4, "RESTORED REQUIREMENT — Legend pointer".
+  // One quiet line next to the live ForkTrail: the trail's own emoji are
+  // otherwise unexplained anywhere in the Lab.
+  'lab.forkTrailHint': 'Each symbol is a move you made — the Legend page has the key.',
 
   'published.faceTruth': 'Face the truth',
   'published.simulatedPress': 'SIMULATED PRESS',

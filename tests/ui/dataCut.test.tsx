@@ -33,6 +33,7 @@ import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { copy as enCopy } from '../../src/content/en/copy';
 import {
   CUT_DEFAULT_WIDTH,
+  CUT_MAX_WIDTH,
   CUT_MIN_WIDTH,
   DataCut,
   columnCentre,
@@ -43,7 +44,9 @@ import {
   cutValueY,
   jitterUnit,
 } from '../../src/ui/components/DataCut';
-import type { DataCut as DataCutValues } from '../../src/engine/types';
+import { runSpec } from '../../src/engine/analyze';
+import { generateDataset } from '../../src/engine/dgp';
+import type { DataCut as DataCutValues, Spec } from '../../src/engine/types';
 
 afterEach(cleanup);
 
@@ -122,6 +125,70 @@ describe('DataCut jitter is deterministic (never Math.random)', () => {
     const b = renderCut(sampleCut());
     const xsB = dots(b.container as HTMLElement).map(cx);
     expect(xsA).toEqual(xsB);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T31 FIX ROUND — finding 1 (CRITICAL): tie-collapsed jitter.
+//
+// jitterUnit used to be seeded on the value alone. Outcomes 2 (count) and 3
+// (1-10 scale) carry only 8-10 distinct values across a 200+-point column, so
+// every point sharing a value painted at the exact same (x, y) — ~200
+// analysed points rendering as ~9 visually distinct dots while the legend
+// still (correctly) said 200. The fix adds a same-value occurrence
+// tiebreaker (see jitterUnit's and placeCut's doc comments in DataCut.tsx);
+// this is the regression test for it, run against the REAL DGP (not a hand-
+// built fixture) so it actually exercises outcomes 2/3's small support.
+// ---------------------------------------------------------------------------
+
+const FIX_ROUND_BASE_SPEC: Spec = {
+  outcome: 0,
+  subgroup: 'all',
+  covariates: { income: false, risk: false },
+  exclusion: 'none',
+  transform: 'raw',
+  tails: 'two',
+};
+
+describe('DataCut tie-collapsed jitter regression (T31 fix round, finding 1)', () => {
+  it.each([
+    [2, 20260804], // count outcome
+    [3, 20260805], // 1-10 bounded-discrete outcome
+  ] as const)('renders one visually distinguishable mark per analysed point for outcome %i (real DGP)', (outcome, seed) => {
+    const dataset = generateDataset(seed, null);
+    const spec: Spec = { ...FIX_ROUND_BASE_SPEC, outcome };
+    const result = runSpec(dataset, spec, 400);
+    expect(result.cut).toBeDefined();
+    const cut = result.cut!;
+    const analysedCount = cut.control.length + cut.treated.length;
+    // Sanity: this really is exercising the many-ties case the bug lived in,
+    // not a fluke of a particular seed landing on an all-unique sample.
+    expect(analysedCount).toBeGreaterThan(50);
+
+    const { container } = renderCut(cut);
+    const included = dots(container as HTMLElement);
+
+    // The literal ask: rendered mark count === analysed count.
+    expect(included).toHaveLength(analysedCount);
+
+    // THE REGRESSION ITSELF: before the fix, tied values collapsed onto the
+    // same (cx, cy) exactly, so distinct rendered POSITIONS undercounted the
+    // analysed total. After the fix every mark is distinguishable.
+    const positions = new Set(included.map((m) => `${m.getAttribute('cx')},${m.getAttribute('cy')}`));
+    expect(positions.size).toBe(analysedCount);
+  });
+
+  it('leaves the continuous-outcome stable-x guarantee untouched (occurrence is always 0 there)', () => {
+    // Same case tests/ui/dataCut.test.tsx already pinned pre-fix: a point
+    // keeps its x when the exclusion knob moves it from included to
+    // excluded. Restated here to document that the fix is additive.
+    const before = renderCut({ control: [1, 2], treated: [3, 5], excludedControl: [], excludedTreated: [] });
+    const includedX = dots(before.container as HTMLElement).filter((m) => group(m) === 'treated').map(cx);
+    cleanup();
+    const after = renderCut({ control: [1, 2], treated: [3], excludedControl: [], excludedTreated: [5] });
+    const excludedX = excluded(after.container as HTMLElement).map(cx);
+    expect(excludedX).toHaveLength(1);
+    expect(includedX).toContain(excludedX[0]);
   });
 });
 
@@ -312,6 +379,21 @@ describe('DataCut scale invariance', () => {
     // --text-dial tops out at 96px and the dial carries n/df beneath it, so
     // the whole figure's drawn area is held below the dial numeral itself.
     expect(cutGeometryFor(CUT_DEFAULT_WIDTH).height).toBeLessThanOrEqual(96);
+  });
+
+  // T31 FIX ROUND — finding 3: figure pixels were being spent on the
+  // informationless jitter axis instead of the axis that actually separates
+  // the two group means.
+  it('caps the jitter band at 64px, however wide the container gets', () => {
+    for (const width of [660, 1088, 1600, CUT_MAX_WIDTH]) {
+      expect(cutGeometryFor(width).jitterSpread).toBeLessThanOrEqual(64);
+    }
+  });
+
+  it('gives the plot more vertical room than the pre-fix 72px, while staying under the dial', () => {
+    const geom = cutGeometryFor(CUT_DEFAULT_WIDTH);
+    expect(geom.plotHeight).toBeGreaterThan(72);
+    expect(geom.height).toBeLessThanOrEqual(96);
   });
 });
 

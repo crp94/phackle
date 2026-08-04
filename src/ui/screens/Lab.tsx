@@ -113,6 +113,14 @@ export function Lab() {
           <p className="ph-lab__footnote ph-lab__footnote--armitage">{t('lab.peekFootnoteArmitage')}</p>
         ) : null}
         <ForkTrail log={log} mode={mode} />
+        {/* T31 fix round (review finding 4, "RESTORED REQUIREMENT"): the
+            trail's own emoji are otherwise unexplained anywhere in the Lab —
+            this quiet --muted line points at the Legend page, which owns the
+            actual key. Reuses .ph-lab__footnote's existing styling rather
+            than adding a new rule (R8.3: it must not compete with the dial). */}
+        <p className="ph-lab__footnote" data-testid="lab-fork-trail-hint">
+          {t('lab.forkTrailHint')}
+        </p>
         <div className="ph-lab__actions">
           <button type="button" className="ph-lab__submit" disabled={!canSubmit} onClick={() => void submit()}>
             {t('lab.submit')}

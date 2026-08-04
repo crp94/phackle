@@ -819,6 +819,44 @@ describe('Lab first-run intro (T31)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// T31 FIX ROUND — finding 4 ("RESTORED REQUIREMENT — Legend pointer"): the
+// live fork trail's own emoji carry no explanation anywhere in the Lab; this
+// pins the quiet --muted line next to it, and that it actually points at the
+// Legend page by name.
+// ---------------------------------------------------------------------------
+
+describe('Lab fork trail Legend pointer (T31 fix round, finding 4)', () => {
+  it('renders a muted hint next to the fork trail, from the copy catalog', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    expect(await screen.findByText(enCopy['lab.forkTrailHint'])).toBeTruthy();
+    expect(enCopy['lab.forkTrailHint']).toMatch(/Legend/i);
+  });
+
+  it('sits after the fork trail in the DOM, not before it', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const results = container.querySelector('.ph-lab__results') as HTMLElement;
+    const children = Array.from(results.children);
+    const trailIdx = children.findIndex((c) => c.querySelector('.ph-fork-trail') || c.classList.contains('ph-fork-trail'));
+    const hintIdx = children.findIndex((c) => c.getAttribute('data-testid') === 'lab-fork-trail-hint');
+    expect(trailIdx).toBeGreaterThanOrEqual(0);
+    expect(hintIdx).toBeGreaterThan(trailIdx);
+  });
+});
+
 describe('Lab data figure (T31)', () => {
   it("renders the DataCut from the current result's cut", async () => {
     const client = makeFakeClient();
