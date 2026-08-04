@@ -9,6 +9,7 @@ import { Call } from './Call';
 import { Reveal } from './Reveal';
 import { Briefing } from './Briefing';
 import { Published } from './Published';
+import { Prereg } from './Prereg';
 import SummaryScreen from './Summary';
 
 export const SCREENS: Record<Screen, ComponentType> = {
@@ -18,4 +19,7 @@ export const SCREENS: Record<Screen, ComponentType> = {
   call: Call,
   reveal: Reveal,
   summary: SummaryScreen,
+  // T18: Prereg Mode's own screen, reached from 'briefing' via
+  // chooseMode('prereg') rather than openData()'s 'lab' — see store.ts.
+  prereg: Prereg,
 };

@@ -17,7 +17,7 @@ import type { ResultLogEntry } from '../../game/store';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
 import type { AchievementId } from '../../content/types';
-import type { DayType, PlayerAction, RevealMetrics } from '../../engine/types';
+import type { DayType, PathResult, PlayerAction, RevealMetrics } from '../../engine/types';
 import { callIsCorrect, scoreDay } from '../../game/scoring';
 import { loadState, saveAchievements, saveDay, streakAfter } from '../../game/storage';
 import { unlockAchievements } from '../../game/dayComplete';
@@ -187,6 +187,15 @@ export interface FinishedGameFields {
    * computeDecisiveTails via unlockAchievements, inside this same
    * function's one persistence moment (see below). */
   resultLog: ResultLogEntry[];
+  /** T18: the committed spec's own N=400 result (store.ts's `preregResult`,
+   * set exactly once by preregCommit()) — the REAL prereg significance
+   * signal, replacing T17's documented `stamp !== 'NULL_REPORTED'`
+   * approximation (see persistAndComputeSummary's own doc comment below).
+   * Optional and ignored outside `mode === 'prereg'`: a hack-mode caller may
+   * omit it (existing call sites do), and SummaryScreen passes the store's
+   * `result` through unconditionally regardless of mode — harmless, since
+   * it is only ever consulted below the mode guard. */
+  preregResult?: PathResult | null;
 }
 
 export interface ComputedSummary {
@@ -244,13 +253,18 @@ export interface ComputedSummary {
  * Prereg Mode's own flow (commit-before-data, no significance gate on
  * submit — unlike Hacking Mode, where store.submit() only ever fires once
  * p < .05, which is exactly why verdictStamp's RETRACTED/REPLICATED pair is
- * a safe read of "was published" for hack records) isn't wired yet (T18).
- * `verdictStamp` has no notion of "committed but non-significant," so
- * `preregSig` is approximated here as "stamp !== NULL_REPORTED" until a real
- * prereg RevealPayload contract exists — see the T17 report's concerns
- * section. This only affects a mode nothing can reach yet (no UI sets
- * mode: 'prereg' before T18 lands a chooser), so the approximation's blast
- * radius today is zero.
+ * a safe read of "was published" for hack records) is wired by T18:
+ * `preregSig` is now the REAL signal — `preregResult.valid &&
+ * preregResult.p < 0.05`, read off the committed spec's own N=400
+ * PathResult (store.ts's `preregResult`, set exactly once by
+ * preregCommit()) — not derived from `stamp` at all. (T17's prior
+ * approximation, "stamp !== NULL_REPORTED", is no longer even equivalent by
+ * accident: store.ts's preregCommit() ALSO corrects `stamp` itself before
+ * it ever reaches here, downgrading it to NULL_REPORTED whenever the
+ * commit was non-significant — see that action's own doc comment — so the
+ * two signals agree by construction today, but `preregSig` is computed
+ * independently on purpose: a bug in one must not silently corrupt the
+ * other.)
  *
  * Co-located with the `Summary` component (same tradeoff LocaleProvider.tsx
  * makes for its useLocale hook) so the persistence logic and the screen that
@@ -258,10 +272,11 @@ export interface ComputedSummary {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSummary {
-  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, puzzleIso, resultLog } = fields;
+  const { mode, practice, puzzleNumber, forks, published, call, dayType, stamp, log, copy, puzzleIso, resultLog, preregResult } =
+    fields;
 
   const callCorrect = call !== null ? callIsCorrect(call, dayType) : null;
-  const preregSig = mode === 'prereg' ? stamp !== 'NULL_REPORTED' : undefined;
+  const preregSig = mode === 'prereg' ? Boolean(preregResult && preregResult.valid && preregResult.p < 0.05) : undefined;
   const scoreResult = scoreDay({ mode, dayType, published, callCorrect, forks, stamp, preregSig });
 
   const state = loadState();
@@ -288,7 +303,13 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
       };
   const { streak } = streakAfter(historyForStreak, puzzleIso);
 
-  const shareText = shareString({ puzzleNumber, log, mode, callCorrect: callCorrect ?? false, streak, copy });
+  // Post-review fix: `callCorrect` is passed through AS-IS (never `?? false`)
+  // — share.ts's own ShareStringInput.callCorrect is `boolean | null` exactly
+  // so a real `null` (no call was ever made — every Prereg Mode day, since
+  // §2.8 has no CALL step at all) reaches shareString and suppresses the
+  // "→ ⚖️…" suffix entirely, rather than being coerced into a false "wrong
+  // call" reading that every single prereg day previously got by construction.
+  const shareText = shareString({ puzzleNumber, log, mode, callCorrect, streak, copy });
 
   // T30: achievements newly unlocked TODAY — stays empty unless the block
   // below actually runs. Folded into `preregUnlocked` regardless (see the
@@ -358,6 +379,11 @@ export default function SummaryScreen() {
   const reveal = useGameStore((s) => s.reveal);
   const log = useGameStore((s) => s.log);
   const resultLog = useGameStore((s) => s.resultLog);
+  // T18: the committed spec's own result, on prereg days — see
+  // FinishedGameFields.preregResult's own doc comment for why this is passed
+  // through unconditionally (it is a no-op on hack days: persistAndComputeSummary
+  // never reads it outside mode === 'prereg').
+  const preregResult = useGameStore((s) => s.preregResult);
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -389,6 +415,7 @@ export default function SummaryScreen() {
         // wall-clock read is the T17 review round-2 bug).
         puzzleIso: iso,
         resultLog,
+        preregResult,
       })
     );
     // Deliberately NOT re-running on every store field change: this fires

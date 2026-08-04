@@ -34,6 +34,13 @@ export type CopyKey =
   // T31 (second play-test round): the goal strip. The one line that tells a
   // first-timer, before anything else, what they are being asked to do.
   | 'briefing.goal'
+  // T18 additions: the briefing's mode chooser (§2.2 "prereg unlocked: choose
+  // mode first"), visible only once achievements.first_retraction exists —
+  // see Briefing.tsx.
+  | 'briefing.modeChooserIntro'
+  | 'briefing.playHacking'
+  | 'briefing.playPrereg'
+  | 'briefing.alreadyPlayedToday'
   | 'email.from'
   | 'email.subject'
   | 'lab.outcome'
@@ -214,6 +221,14 @@ export type CopyKey =
   | 'reveal.nullReported'
   | 'reveal.callCorrect'
   | 'reveal.callIncorrect'
+  // T18 addition: §2.8's own parenthetical for the prereg sig+null row ("a
+  // real 5% false positive — teachable") — the one-line explanation the
+  // reveal owes a player who preregistered honestly and still landed on
+  // RETRACTED (§2.7.4's stamp logic has no other way to say "this was not a
+  // mistake"). Rendered only for mode:'prereg', dayType:'null', stamp:
+  // 'RETRACTED' — the exact, newly-possible combination T18 introduces (a
+  // RETRACTED day with no CALL step at all).
+  | 'reveal.preregFalsePositive'
   | 'share.forksWord'
   | 'share.streakWord'
   | 'summary.score'
@@ -247,7 +262,14 @@ export type CopyKey =
   // caller can surface an error"; this is that surface.
   | 'summary.shareFailed'
   | 'prereg.title'
+  // T18 addition: the preregistration form's own manuscript-register preamble
+  // (§7.3) — one sentence, sincere-bureaucratic, played straight (the form
+  // itself is the joke; nothing about its own copy may wink).
+  | 'prereg.intro'
   | 'prereg.commit'
+  // T18 addition: the form's single submit CTA, enabled only once the commit
+  // checkbox is ticked (Prereg.tsx).
+  | 'prereg.submit'
   | 'prereg.locked'
   | 'stats.title'
   | 'stats.played'
@@ -342,6 +364,13 @@ export const copy: Record<CopyKey, string> = {
   // T31: the goal strip, directly under the title card. Sincere and literal —
   // this is genuinely the task Act I is setting.
   'briefing.goal': 'Your task: find a statistically significant effect (p < 0.05) and publish it.',
+
+  // T18 additions — the mode chooser (§2.2), shown only once Prereg Mode is
+  // unlocked and today's preregistration has not been filed yet.
+  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today — one attempt per mode.',
+  'briefing.playHacking': 'Play Hacking Mode',
+  'briefing.playPrereg': 'Play Prereg Mode',
+  'briefing.alreadyPlayedToday': 'Already played today',
 
   'email.from': 'From:',
   'email.subject': 'Subject:',
@@ -524,6 +553,11 @@ export const copy: Record<CopyKey, string> = {
   'reveal.nullReported': 'NULL REPORTED',
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
+  // T18 addition: §2.8's own parenthetical, spelled out — a preregistered
+  // analysis, run exactly once, is still expected to land here about one time
+  // in twenty. Clinical register (Act II), not an apology.
+  'reveal.preregFalsePositive':
+    'This is not a mistake: a preregistered analysis, run exactly once, still finds a false positive about 5% of the time. Today was one of those days.',
 
   // §2.9 share-string human words (the emoji grid, puzzle number and URL stay
   // identical across locales — only these two words are ever localized).
@@ -555,7 +589,15 @@ export const copy: Record<CopyKey, string> = {
   'summary.shareFailed': "Couldn't share this result.",
 
   'prereg.title': 'Preregistration',
-  'prereg.commit': 'Commit to this spec',
+  // §7.3: "the same SpecControls but rendered as a preregistration form" —
+  // manuscript register, sincere-bureaucratic, no wink. The player sets every
+  // knob below with no data in front of them at all.
+  'prereg.intro':
+    'Declare your full analysis before you see a single number. Every choice below is final the moment you submit — there is no reveal to peek at first, and no second attempt today.',
+  // §7.3's own pinned wording ("I solemnly commit") — the checkbox label,
+  // played completely straight.
+  'prereg.commit': 'I solemnly commit to running and reporting this exact specification, whatever it shows.',
+  'prereg.submit': 'Submit preregistration',
   'prereg.locked': 'Locked in — no more changes until the reveal.',
 
   'stats.title': 'Your stats',

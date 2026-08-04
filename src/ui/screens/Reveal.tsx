@@ -164,6 +164,11 @@ export function Reveal() {
   const published = useGameStore((s) => s.published);
   const scenarioIndex = useGameStore((s) => s.scenarioIndex);
   const puzzleNumber = useGameStore((s) => s.puzzleNumber);
+  // T18: only consulted below for the prereg false-positive one-liner (see
+  // block "stamp") — every other block on this screen is already
+  // mode-agnostic by construction (it reads only `payload`/`published`/
+  // `call`, never `mode` itself).
+  const mode = useGameStore((s) => s.mode);
   const reducedMotion = useReducedMotion();
 
   // The curve arrives from the worker as RevealMetricsFull entries -- §6's
@@ -283,9 +288,25 @@ export function Reveal() {
             />
           </div>
         </div>
+        {/* T18 (§2.8's own parenthetical: "a real 5% false positive —
+            teachable"): a preregistered commit that lands on RETRACTED on a
+            NULL day did nothing wrong — this is exactly what a 5% false-
+            positive rate looks like from the inside, not a mistake to
+            explain away. Gated on the exact, newly-possible combination T18
+            introduces (RETRACTED with no CALL step at all): every OTHER
+            RETRACTED case (Hacking Mode, or a prereg commit on an effect day
+            that hit the wrong outcome, §2.7.4) keeps the plain stamp with no
+            added line, unchanged from before this task. */}
+        {mode === 'prereg' && payload.dayType === 'null' && payload.stamp === 'RETRACTED' ? (
+          <p className="ph-reveal__statement">{t('reveal.preregFalsePositive')}</p>
+        ) : null}
       </Block>
 
       <Block name="call">
+        {/* Prereg Mode never visits the CALL screen (§2.8: the prereg score
+            rows replace it entirely) — `call` stays null for the whole day,
+            so this block already renders nothing on a prereg reveal, with no
+            mode check needed: it was already gated on the right thing. */}
         {call === null ? null : (
           <p className="ph-reveal__statement">
             {t(callIsCorrect(call, payload.dayType) ? 'reveal.callCorrect' : 'reveal.callIncorrect')}

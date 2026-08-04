@@ -41,10 +41,28 @@ export const CALL_INCORRECT = '⚖️❌';
  * The emoji trail: 🧾 prefix iff prereg, then one glyph per counted fork (via
  * classifyChange, using the SAME "first VIEW_SPEC is free, later ones count
  * iff seen" rule as forkLog.ts's countForks — so the trail's marker count and
- * line 3's `{forks}` figure are always in lockstep by construction), then
- * the terminal 📄 (published) or 🏳️ (abandoned). CALL entries contribute
- * nothing: the trail shows whether the call was right, never what it was
- * (that's line 2's trailing " → ⚖️✅|⚖️❌", appended by the caller below).
+ * line 3's `{forks}` figure are always in lockstep by construction), then a
+ * terminal marker. CALL entries contribute nothing: the trail shows whether
+ * the call was right, never what it was (that's line 2's trailing
+ * " → ⚖️✅|⚖️❌", appended by the caller below, and omitted entirely when
+ * there was no call at all — see shareString).
+ *
+ * The terminal marker itself is MODE-DECIDED, not log-content-decided, for
+ * Prereg Mode (post-review fix): store.ts's preregCommit() never logs a
+ * SUBMIT or ABANDON action at all (a preregistered commit is always run and
+ * reported — there is no abandon path in Prereg Mode, §2.6/§7.3), so a
+ * log-driven SUBMIT/ABANDON case would silently emit no terminal for every
+ * REAL prereg day. `prereg` therefore forces a single, FIXED, outcome-
+ * independent 📄 at the end, unconditionally — reusing the existing glyph
+ * (no new emoji, no legend change), and any literal SUBMIT/ABANDON entry
+ * that might still appear in a hand-built log (e.g. a generic-contract unit
+ * test) is deliberately ignored for prereg, so the terminal can never be
+ * doubled and can never vary with what a test happens to put in the log.
+ * Critically, this glyph must NEVER be derived from preregSig/significance:
+ * doing so would let a viewer infer the day's dayType from the glyph alone
+ * (a sig+null RETRACTED "5% false positive" day would look identical to a
+ * REPLICATED day either way, by design) — see the spoiler-safety property
+ * test in tests/game/share.test.ts, extended to assert exactly this.
  */
 function buildTrail(log: PlayerAction[], prereg: boolean): string {
   let trail = prereg ? PREREG_PREFIX : '';
@@ -66,15 +84,16 @@ function buildTrail(log: PlayerAction[], prereg: boolean): string {
         trail += FORK_EMOJI.peek;
         break;
       case 'SUBMIT':
-        trail += SUBMIT_EMOJI;
+        if (!prereg) trail += SUBMIT_EMOJI;
         break;
       case 'ABANDON':
-        trail += ABANDON_EMOJI;
+        if (!prereg) trail += ABANDON_EMOJI;
         break;
       case 'CALL':
         break; // represented only by the trailing ⚖️ marker, never inline
     }
   }
+  if (prereg) trail += SUBMIT_EMOJI; // always run & reported — see doc comment above
   return trail;
 }
 
@@ -82,7 +101,14 @@ export interface ShareStringInput {
   puzzleNumber: number;
   log: PlayerAction[];
   mode: 'hack' | 'prereg';
-  callCorrect: boolean;
+  /** null iff no call was ever made (Prereg Mode has no CALL step at all,
+   * §2.8) — line 2 carries no "→ ⚖️…" suffix in that case (post-review fix:
+   * Summary.tsx previously collapsed this to `callCorrect ?? false`, which
+   * made every prereg day read as an unconditional wrong call). A boolean
+   * here means a real call was made and resolved correct/incorrect
+   * (Hacking Mode always supplies one — see scoring.ts's own doc comment on
+   * why abandoners still call). */
+  callCorrect: boolean | null;
   streak: number;
   copy: Record<CopyKey, string>;
 }
@@ -92,7 +118,9 @@ export interface ShareStringInput {
  *   1. "P-hackle #{n}" — the brand name is a deliberate non-translation
  *      (delta spec i18n §6: journal-style proper nouns stay invariant), so
  *      it is a literal here, not pulled from the copy catalog.
- *   2. the emoji trail (see buildTrail) + " → ⚖️✅" or " → ⚖️❌".
+ *   2. the emoji trail (see buildTrail), plus " → ⚖️✅"/" → ⚖️❌" iff a call
+ *      was actually made (callCorrect !== null) — omitted entirely for
+ *      Prereg Mode, which never calls.
  *   3. "{forks} {forksWord} · {streakWord} {streak}" — the only localized
  *      human words; forks is derived from the SAME log via countForks, never
  *      passed in separately, so it can never drift from the trail above.
@@ -101,10 +129,10 @@ export interface ShareStringInput {
 export function shareString(i: ShareStringInput): string {
   const forks = countForks(i.log);
   const trail = buildTrail(i.log, i.mode === 'prereg');
-  const verdict = i.callCorrect ? CALL_CORRECT : CALL_INCORRECT;
+  const suffix = i.callCorrect === null ? '' : ` → ${i.callCorrect ? CALL_CORRECT : CALL_INCORRECT}`;
 
   const line1 = `P-hackle #${i.puzzleNumber}`;
-  const line2 = `${trail} → ${verdict}`;
+  const line2 = `${trail}${suffix}`;
   const line3 = `${forks} ${i.copy['share.forksWord']} · ${i.copy['share.streakWord']} ${i.streak}`;
   const line4 = SITE_URL;
 

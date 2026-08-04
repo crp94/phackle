@@ -12,6 +12,7 @@ import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore, type GameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { pickGrantwellEmail } from '../../game/briefing';
+import { loadState } from '../../game/storage';
 import { EmailCard } from '../components/EmailCard';
 import './Briefing.css';
 
@@ -29,6 +30,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const scenarioIndex = useStore((s) => s.scenarioIndex);
   const puzzleNumberValue = useStore((s) => s.puzzleNumber);
   const openData = useStore((s) => s.openData);
+  const chooseMode = useStore((s) => s.chooseMode);
 
   // Behind the app-level loading gate (src/ui/App.tsx never mounts a screen
   // until content resolves) -- this narrows the type and is a safety net,
@@ -38,6 +40,27 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const scenario = content.scenarios[scenarioIndex];
   const iso = isoFromPuzzleNumber(puzzleNumberValue);
   const grantwellBody = pickGrantwellEmail(content.grantwell, iso);
+
+  // T18: the mode chooser (§2.2 "prereg unlocked: choose mode first"). A
+  // plain synchronous read (loadState() touches localStorage, not a promise —
+  // same convention Summary.tsx's persistAndComputeSummary already uses),
+  // computed fresh on every render: nothing else can change achievements/
+  // history WHILE the player is looking at this screen, so there is no
+  // staleness window worth guarding with an effect. `unlocked` gates the
+  // chooser's very existence; `preregPlayedToday`/`hackPlayedToday` are the
+  // PER-OPTION "already played" belt-and-suspenders disablement the
+  // controller asked for on top of the persist-layer guard
+  // (Summary.tsx's own `alreadySaved`) that already blocks a double SCORE —
+  // this is the separate UI-layer guard against double ENTRY.
+  const state = loadState();
+  const unlocked = state.achievements.first_retraction !== undefined;
+  const today = state.history[iso];
+  const hackPlayedToday = today?.hack !== undefined;
+  const preregPlayedToday = today?.prereg !== undefined;
+  // The chooser itself only makes sense while there is still a choice left
+  // to make today: once prereg is filed, "Open Data" (below) is the only
+  // thing left to do, exactly the pre-unlock experience.
+  const showChooser = unlocked && !preregPlayedToday;
 
   return (
     <article className="ph-briefing">
@@ -55,11 +78,39 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
       </p>
       <p className="ph-briefing__cover-story">{scenario.coverStory}</p>
       <EmailCard from={t('briefing.emailFrom')} subject={t('briefing.emailSubject')} body={grantwellBody} />
-      {/* T18: the Prereg Mode chooser (checkbox: "I solemnly commit") renders
-          here once unlocked -- nothing renders for it yet. */}
-      <button type="button" className="ph-briefing__cta" onClick={openData}>
-        {t('briefing.openData')}
-      </button>
+
+      {showChooser ? (
+        <div className="ph-briefing__chooser" data-testid="mode-chooser">
+          <p className="ph-briefing__chooser-intro">{t('briefing.modeChooserIntro')}</p>
+          <div className="ph-briefing__chooser-options">
+            <div className="ph-briefing__chooser-option">
+              <button type="button" className="ph-briefing__cta" disabled={hackPlayedToday} onClick={openData}>
+                {t('briefing.playHacking')}
+              </button>
+              {hackPlayedToday ? (
+                <p className="ph-briefing__chooser-status">{t('briefing.alreadyPlayedToday')}</p>
+              ) : null}
+            </div>
+            <div className="ph-briefing__chooser-option">
+              <button
+                type="button"
+                className="ph-briefing__cta"
+                disabled={preregPlayedToday}
+                onClick={() => chooseMode('prereg')}
+              >
+                {t('briefing.playPrereg')}
+              </button>
+              {preregPlayedToday ? (
+                <p className="ph-briefing__chooser-status">{t('briefing.alreadyPlayedToday')}</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="ph-briefing__cta" onClick={openData}>
+          {t('briefing.openData')}
+        </button>
+      )}
     </article>
   );
 }
