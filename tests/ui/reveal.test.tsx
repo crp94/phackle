@@ -403,3 +403,62 @@ describe('review I5 — the published recipe exists as real text', () => {
     expect(container.querySelector('[data-role="published-recipe"]')).toBeNull();
   });
 });
+
+// --- T18: prereg days — no CALL step, plus the sig+null one-liner -----------
+
+/** Drives the real store through the prereg path (boot -> chooseMode ->
+ * preregCommit), reusing the same fakeClient the hack-mode harness above
+ * uses — its default runSpec (p=0.01, valid) is significant, so
+ * preregCommit's own stamp correction keeps whatever `over.stamp` says. */
+async function mountRevealPrereg(over: Partial<RevealPayload> = {}, spec: Spec = SPEC) {
+  const p = payload(over);
+  const view = render(
+    <LocaleProvider>
+      <Capture />
+      <Reveal />
+    </LocaleProvider>
+  );
+  await act(async () => {
+    await live().boot(fakeClient(p), ISO, { practice: false, mode: 'hack', scenarioCount: 20 });
+  });
+  act(() => live().chooseMode('prereg'));
+  await act(async () => {
+    await live().preregCommit(spec);
+  });
+  await waitFor(() => expect(view.container.querySelector('[data-block="truth"]')).not.toBeNull());
+  return view;
+}
+
+describe('T18 — prereg days: no CALL block, and the sig+null false-positive one-liner', () => {
+  it('renders the same six blocks in order, with the call block genuinely EMPTY (call is always null in prereg)', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
+    expect(blocks(container)).toEqual(['truth', 'fig1', 'accounting', 'stamp', 'call', 'fig2']);
+    expect(blockText(container, 'call')).toBe('');
+  });
+
+  it('shows reveal.preregFalsePositive on a prereg sig+null RETRACTED day (§2.8\'s "real 5% false positive")', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
+    expect(blockText(container, 'stamp')).toContain(copy['reveal.preregFalsePositive']);
+  });
+
+  it('does NOT show the one-liner on a hack-mode RETRACTED day (existing behavior unchanged)', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED', dayType: 'null' });
+    expect(blockText(container, 'stamp')).not.toContain(copy['reveal.preregFalsePositive']);
+  });
+
+  it('does NOT show the one-liner on a prereg REPLICATED day', async () => {
+    const { container } = await mountRevealPrereg(
+      { stamp: 'REPLICATED', dayType: 'effect', trueOutcome: SPEC.outcome as Outcome },
+      SPEC
+    );
+    expect(blockText(container, 'stamp')).not.toContain(copy['reveal.preregFalsePositive']);
+  });
+
+  it('does NOT show the one-liner on a prereg RETRACTED day caused by the wrong outcome on an effect day (§2.7.4)', async () => {
+    const { container } = await mountRevealPrereg(
+      { stamp: 'RETRACTED', dayType: 'effect', trueOutcome: 2 as Outcome },
+      SPEC // SPEC.outcome === 0, so this is the "wrong outcome" case, not the null-day case
+    );
+    expect(blockText(container, 'stamp')).not.toContain(copy['reveal.preregFalsePositive']);
+  });
+});

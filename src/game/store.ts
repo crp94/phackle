@@ -11,7 +11,11 @@ import { countForks, distinctExplored } from './forkLog';
 import { practiceSeed, puzzleNumber } from './daily';
 import { DEBOUNCE_MS, N_SCHEDULE } from './tuning';
 
-export type Screen = 'briefing' | 'lab' | 'published' | 'call' | 'reveal' | 'summary';
+// T18 addition (additive, not contradicting the brief's original six):
+// 'prereg' is Prereg Mode's own screen — the preregistration form (§7.3).
+// Reached from 'briefing' via chooseMode('prereg') instead of openData()'s
+// 'lab'; see chooseMode/preregCommit below and src/ui/screens/Prereg.tsx.
+export type Screen = 'briefing' | 'lab' | 'published' | 'call' | 'reveal' | 'summary' | 'prereg';
 
 /** The free, un-hacked starting point (master spec §2.4 defaults). */
 export const DEFAULT_SPEC: Spec = {
@@ -71,6 +75,18 @@ export interface GameStore {
   call: 'real' | 'noise' | null;
   reveal: RevealPayload | null;
   error: string | null;
+  /** T18: the committed spec's OWN N=400 PathResult, set exactly once, by
+   * preregCommit() below — never by anything Hacking Mode touches (`result`
+   * above stays the field Lab reads/writes; this is deliberately a SEPARATE
+   * field rather than a reuse of `result`, so a prereg day's significance
+   * signal can never be confused with whatever Lab last happened to leave in
+   * `result`, even though in practice Lab never mounts on a prereg day at
+   * all — see Prereg.tsx). Reset to null by every boot() (a fresh puzzle
+   * day), same as `log`/`forks`/`resultLog`. Summary.tsx's
+   * persistAndComputeSummary reads this directly to compute the REAL
+   * `preregSig` signal (`preregResult.valid && preregResult.p < 0.05`),
+   * replacing T17's documented `stamp !== 'NULL_REPORTED'` approximation. */
+  preregResult: PathResult | null;
 
   /** Initializes the engine for `iso`'s puzzle and prefetches the default
    * spec's result, but stays on 'briefing' (§2.3: "Open the data" is a player
@@ -100,11 +116,45 @@ export interface GameStore {
   /** The call modal's verdict — valid once published or abandoned. */
   makeCall(v: 'real' | 'noise'): Promise<void>;
   finishReveal(): void;
+  /** T18: the briefing's mode chooser (§2.2 "prereg unlocked: choose mode
+   * first"), visible only once achievements.first_retraction exists.
+   * Guarded to only fire from 'briefing' (mirrors openData's own guard).
+   * 'prereg' is the only value the real UI ever passes (Prereg.tsx's screen
+   * is reached ONLY this way, never via openData) — the Briefing chooser's
+   * OWN "hacking mode" option calls the existing, already-tested openData()
+   * instead, since mode is already 'hack' by construction (boot()'s opts);
+   * 'hack' is accepted here too, for a symmetric, fully general primitive,
+   * and is exactly equivalent to openData() (mode was already 'hack'). */
+  chooseMode(mode: 'hack' | 'prereg'): void;
+  /** T18 (§2.6/§7.3/§2.8) — Prereg Mode's one irreversible action. Guarded to
+   * screen==='prereg' && mode==='prereg' && !pending (the last conjunct
+   * closes the reentrancy window a bare screen-guard would leave open: screen
+   * does not flip to 'reveal' until this whole async sequence finishes, so a
+   * second call while the first is still in flight would otherwise pass —
+   * exactly peekAndExtend's own `s.pending` reentrancy guard, reused here for
+   * the same reason). `spec` has never had a result shown for it (Prereg.tsx
+   * manages it as pure local component state, never store.spec/changeSpec,
+   * which is itself guarded to 'lab' only). Runs it EXACTLY once, at N=400 —
+   * see the implementation's own doc comment for why four extend() calls,
+   * not a protocol change, get there — then fetches the reveal (published =
+   * spec, explored = [spec], per the controller's own pin) and lands on
+   * 'reveal'. No CALL screen is ever visited in this path (§2.8: the prereg
+   * score rows replace the call entirely). */
+  preregCommit(spec: Spec): Promise<void>;
 }
 
 function initialState(): Omit<
   GameStore,
-  'boot' | 'openData' | 'changeSpec' | 'peekAndExtend' | 'submit' | 'abandon' | 'makeCall' | 'finishReveal'
+  | 'boot'
+  | 'openData'
+  | 'changeSpec'
+  | 'peekAndExtend'
+  | 'submit'
+  | 'abandon'
+  | 'makeCall'
+  | 'finishReveal'
+  | 'chooseMode'
+  | 'preregCommit'
 > {
   return {
     screen: 'briefing',
@@ -124,6 +174,7 @@ function initialState(): Omit<
     call: null,
     reveal: null,
     error: null,
+    preregResult: null,
   };
 }
 
@@ -265,6 +316,91 @@ export function createGameStore() {
 
     finishReveal() {
       set({ screen: 'summary' });
+    },
+
+    chooseMode(mode) {
+      if (get().screen !== 'briefing') throw new Error('can only choose a mode from the briefing');
+      set({ mode, screen: mode === 'prereg' ? 'prereg' : 'lab' });
+    },
+
+    async preregCommit(spec) {
+      if (!client) throw new Error('not booted');
+      const s = get();
+      if (s.screen !== 'prereg' || s.mode !== 'prereg' || s.pending) {
+        throw new Error('can only commit a preregistration once, from the prereg screen, in prereg mode');
+      }
+      clearDebounce();
+      const myReq = ++requestSeq;
+      set({ pending: true });
+
+      // §3.8's window schedule only ever moves one N_SCHEDULE step per
+      // extend() (engine/protocol.ts's handleRequest 'extend' branch) — there
+      // is no "jump straight to N=400" op, and adding one is outside this
+      // task's ownership (protocol.ts/worker.ts). So the full window is
+      // reached with exactly N_SCHEDULE.length - 1 extend() calls, and
+      // deliberately NO runSpec dispatched in between (unlike peekAndExtend,
+      // which re-runs the CURRENT spec after every extend to show a live
+      // update): the whole point of a preregistered commitment is that
+      // NOTHING is ever run, let alone shown, before this one call.
+      let n: WindowN = s.n;
+      for (let i = 1; i < N_SCHEDULE.length; i++) {
+        const info = await client.extend();
+        if (myReq !== requestSeq) return; // superseded (e.g. a fresh boot) mid-sequence
+        n = info.n;
+      }
+
+      const result = await client.runSpec(spec);
+      if (myReq !== requestSeq) return;
+
+      const payload = await client.reveal(spec, [spec]);
+      if (myReq !== requestSeq) return;
+
+      // The engine's own verdictStamp (src/engine/reveal.ts) assumes
+      // "published !== null" already implies "was significant" — true for
+      // Hacking Mode, where submit() is guarded to only ever fire at p<.05,
+      // but NOT true here: a preregistered commit is unconditional. A
+      // non-significant commit must read NULL_REPORTED regardless of what
+      // the engine's stamp says (it has no way to know); a significant one
+      // keeps the engine's own REPLICATED/RETRACTED call verbatim — it
+      // already encodes "did this land on the true outcome" (§2.7.4), which
+      // does not need re-deriving here.
+      const sig = result.valid && result.p < 0.05;
+      const corrected: RevealPayload = {
+        ...payload,
+        stamp: sig ? payload.stamp : 'NULL_REPORTED',
+        // The N_SCHEDULE.length - 1 extends above bumped the worker's
+        // internal peek counter as a mechanical side effect of reaching full
+        // power in one shot — never player "peeking" (there is nothing to
+        // peek AT: no result is ever shown before commit). Left as the
+        // engine reported it, Reveal's peekSurcharge line would accuse the
+        // player of exactly the behavior preregistration exists to prevent.
+        peeks: 0,
+      };
+
+      const at = Date.now();
+      set((st) => {
+        // The committed spec's own viewing, logged for completeness (§2.10's
+        // "initial default spec is free" rule already covers boot's own
+        // entry above this one) — `seen: false` because nothing was ever
+        // seen: no result renders anywhere in the prereg screen (Prereg.tsx
+        // shows no PValueDial/CoefPlot), so this NEVER counts as a fork,
+        // matching the fact that preregistration has no forks by
+        // construction (there is nothing to change your mind in response
+        // to).
+        const log: PlayerAction[] = [...st.log, { t: 'VIEW_SPEC', spec, seen: false, at }];
+        return {
+          spec,
+          n,
+          result,
+          preregResult: result,
+          pending: false,
+          log,
+          forks: countForks(log),
+          published: spec,
+          reveal: corrected,
+          screen: 'reveal' as Screen,
+        };
+      });
     },
   }));
 
