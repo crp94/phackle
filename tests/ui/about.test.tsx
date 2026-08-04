@@ -81,10 +81,12 @@ describe('About — full mechanism disclosure, prior art, glossary', () => {
     expect(link.getAttribute('href')).toBe(SITE_URL);
   });
 
+  // T22: named by its own visible label, not by a11y.closeDialog — a nav page
+  // is not a dialog. See tests/ui/legend.test.tsx for the full note.
   it('calls onClose when the close button is activated', () => {
     const onClose = vi.fn();
     render(<About t={t} glossary={glossary} onClose={onClose} />);
-    fireEvent.click(screen.getByRole('button', { name: t('a11y.closeDialog') }));
+    fireEvent.click(screen.getByRole('button', { name: t('stats.close') }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

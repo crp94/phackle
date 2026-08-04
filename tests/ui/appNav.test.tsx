@@ -76,7 +76,7 @@ describe('App header nav — stats/legend/about, a local page-state (not the gam
     fireEvent.click(screen.getByRole('button', { name: 'Stats' }));
     expect(screen.queryByTestId('game-child')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.getByTestId('game-child')).toBeTruthy();
     expect(screen.queryByText('Your stats')).toBeNull();
   });
@@ -94,7 +94,7 @@ describe('App header nav — stats/legend/about, a local page-state (not the gam
   it('the theme and locale toggles keep working once the nav has been used (still "live", per the T17 brief)', async () => {
     await renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Stats' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Close dialog' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');

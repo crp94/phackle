@@ -55,6 +55,42 @@ body {
   animation: ph-screen-enter var(--dur-scene) var(--ease-out);
 }
 
+/* T22 (DESIGN.md R6.6) — the screen container is the SPA route change's focus
+   target (App.tsx moves focus here on every screen/page swap), so it is
+   programmatically focusable and Chrome matches :focus-visible on it whenever
+   the swap was keyboard-driven. Left undeclared it would paint the user
+   agent's own `outline: auto` ring instead of the product's, which is the one
+   focus indicator in the app that would not be R6.1's token.
+
+   The offset is NEGATED, not dropped: <main> is full-bleed, so a ring drawn
+   2px OUTSIDE it sits in the viewport gutter (and at 200% zoom, where the
+   column is flush with the window, in nothing at all). The same token, drawn
+   just inside the same edge. Nothing transitions (R5.5) — a focus indicator
+   that fades in is a focus indicator that is briefly absent. */
+.ph-screen:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: calc(-1 * var(--focus-offset));
+}
+
+/* T22 (DESIGN.md R6.6) — the only sanctioned way to put text in the
+   accessibility tree without putting it on the page. Used where a screen's
+   own design has no visible title element to promote (Reveal.tsx's h1). The
+   clip/1px idiom rather than `display: none` or `visibility: hidden`, both of
+   which remove the text from the accessibility tree too, which is the exact
+   opposite of the point. The 1px values are the idiom's own, registered in
+   DESIGN.md §6 alongside R4.4's hairline. */
+.ph-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-style: none;
+}
+
 /* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */
 .ph-header {
   display: flex;

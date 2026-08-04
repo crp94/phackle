@@ -69,9 +69,16 @@ export function Call() {
   return (
     <section className="ph-call" role="dialog" aria-labelledby={promptId}>
       <p className="ph-call__eyebrow">{t('call.title')}</p>
-      <h2 className="ph-call__prompt" id={promptId}>
+      {/* T22: <h1>. The prompt is this screen's title in both of the two
+          containers it is rendered in. As the standalone 'call' screen (the
+          abandon path) it is the only heading on the page. As Published's
+          overlay child it is the only heading in the accessibility tree at
+          all, because Published marks its whole cover — including the journal
+          cover's own h1 — aria-hidden + inert while the overlay is up. Purely
+          semantic: .ph-call__prompt owns every type declaration. */}
+      <h1 className="ph-call__prompt" id={promptId}>
         {t('call.prompt')}
-      </h2>
+      </h1>
       {/* R6.5's radiogroup pattern is for the forks, which are a persistent
           selection; these two commit immediately, so they are buttons -- Enter
           and Space work natively, and the arrow keys move between them. */}

@@ -495,7 +495,20 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           className="ph-speccurve__svg"
           viewBox={`0 0 ${geom.width} ${height}`}
           role="img"
-          aria-label={copy['a11y.specCurveChart']}
+          // T22 — the two figures are DIFFERENT PICTURES and now say so. Both
+          // plates shipped with the same aria-label, so a screen reader met
+          // fig. 1 and fig. 2 as one repeated sentence about a "sorted" curve
+          // — which is a description of the first plate and a plain
+          // misstatement of the second, whose whole subject is the four
+          // outcome bands (§2.7.6). The old string also claimed "with your
+          // published specification highlighted" unconditionally, which is
+          // false on the abandon path, where nothing is published and the
+          // legend below correctly drops its own published row. Both strings
+          // now describe the PLATE and stop; what is in it is the
+          // figcaption's job (reveal.curveCaption / curveCaptionAbandoned /
+          // groupedCaption, all already read), and the published path's
+          // recipe is spelled out as real text by reveal.publishedRecipe.
+          aria-label={copy[grouped ? 'a11y.specCurveGrouped' : 'a11y.specCurveChart']}
         >
           {/* The one filled area in the whole product (R4.1): p < .05. */}
           <rect

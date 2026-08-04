@@ -360,6 +360,14 @@ export type CopyKey =
   | 'a11y.themeToggle'
   | 'a11y.backToGame'
   | 'a11y.specCurveChart'
+  // T22: the SpecCurve renders two different plates from one component — the
+  // sorted curve (fig. 1) and §2.7.6's grouped-by-outcome view (fig. 2) — and
+  // both carried a11y.specCurveChart, so a screen reader was told fig. 2 was
+  // "sorted". One string per plate, each describing the PICTURE and nothing
+  // else: what the picture shows is the figcaption's job, and both captions
+  // are already read (reveal.curveCaption / curveCaptionAbandoned /
+  // groupedCaption). Figures speak one sentence (T36 audit convention).
+  | 'a11y.specCurveGrouped'
   | 'a11y.dataCut'
   | 'a11y.shareButton'
   | 'a11y.closeDialog'
@@ -849,8 +857,13 @@ export const copy: Record<CopyKey, string> = {
   'a11y.localeToggle': 'Language',
   'a11y.themeToggle': 'Change theme',
   'a11y.backToGame': "P-hackle: back to today's puzzle",
-  'a11y.specCurveChart':
-    "Chart of every possible specification's p-value, sorted, with your published specification highlighted.",
+  // T22 (value change): dropped "with your published specification
+  // highlighted". It was false on the abandon path — nothing is published
+  // there, and the chart's own legend already omits its published row to say
+  // so — and it duplicated reveal.publishedRecipe, which states the recipe as
+  // real text. The label now describes the plate and stops.
+  'a11y.specCurveChart': "Chart of every possible specification's p-value, sorted from smallest to largest.",
+  'a11y.specCurveGrouped': "Chart of every possible specification's p-value, in one column per outcome measured.",
   'a11y.dataCut':
     'Strip plot of the current sample: the comparison group and the treated group, with each excluded point drawn as a crossed mark.',
   'a11y.shareButton': 'Copy share result to clipboard',

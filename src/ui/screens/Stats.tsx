@@ -3,7 +3,7 @@
 // visible (ALWAYS both panels, even at zero prereg days — the juxtaposition
 // IS the lesson), a fork histogram as plain CSS bars (no chart lib), and the
 // achievement wall (locked = an embossed blind stamp that leaks no name).
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
 import type { AchievementId } from '../../content/types';
@@ -33,6 +33,7 @@ export interface StatsProps {
 }
 
 export function Stats({ t, stats, history, achievements, achievementDefs, onClose }: StatsProps) {
+  const titleId = useId();
   const played = stats.hackDays + stats.preregDays;
   const allTimeAccuracy = stats.callsTotal === 0 ? null : stats.callsCorrect / stats.callsTotal;
   const rolling = rollingCallAccuracy(history, ROLLING_WINDOW);
@@ -45,8 +46,17 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
   const achievementIds = Object.keys(achievementDefs) as AchievementId[];
 
   return (
-    <section className="ph-stats">
-      <h2 className="ph-stats__title">{t('stats.title')}</h2>
+    // T22: a NAMED region, and an <h1> to name it with. The three nav pages
+    // replace <main>'s whole content, so each is its own document to
+    // assistive technology and each needs its own level-one heading (they all
+    // started at level 2 with no level 1 on the page). Naming the <section>
+    // from that heading additionally exposes it as a landmark, which is what
+    // gives the plain "Close" button below the context its old aria-label was
+    // faking.
+    <section className="ph-stats" aria-labelledby={titleId}>
+      <h1 className="ph-stats__title" id={titleId}>
+        {t('stats.title')}
+      </h1>
 
       <dl className="ph-stats__summary">
         <div className="ph-stats__stat">
@@ -71,7 +81,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
         </div>
       </dl>
 
-      <h3 className="ph-stats__subtitle">{t('stats.successRateTitle')}</h3>
+      <h2 className="ph-stats__subtitle">{t('stats.successRateTitle')}</h2>
       {/* ALWAYS both panels, even with zero prereg days: the juxtaposition
           IS the α lesson (§2.8) — an empty mode is an em-dash, never a
           hidden panel. */}
@@ -86,7 +96,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
         </div>
       </div>
 
-      <h3 className="ph-stats__subtitle">{t('stats.forkHistogramTitle')}</h3>
+      <h2 className="ph-stats__subtitle">{t('stats.forkHistogramTitle')}</h2>
       {stats.forkHistogram.length === 0 ? (
         <p className="ph-stats__empty" data-testid="fork-histogram-empty">
           {t('stats.noData')}
@@ -100,9 +110,18 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
                   "bar" is a 2px --ink border (the same sanctioned stroke
                   weight R4.6 uses for a selected segment), never a filled
                   rectangle, so this never competes with SpecCurve's single
-                  registered --sig-band fill. */}
+                  registered --sig-band fill.
+
+                  T22: role="img". A bare <span> maps to `generic`, a role
+                  that PROHIBITS an accessible name, so this aria-label was
+                  silently dropped by the accessibility tree (axe
+                  `aria-prohibited-attr`, serious) — and the label is the only
+                  place the bar's meaning exists, since the count beside it is
+                  aria-hidden. role="img" is what the element actually is: a
+                  graphic whose whole content is its text alternative. */}
               <span
                 className="ph-stats__hist-bar"
+                role="img"
                 style={{ width: `${(count / maxForkCount) * 100}%` }}
                 aria-label={t('stats.forkHistogramBar', { forks, count })}
               />
@@ -114,7 +133,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
         </ul>
       )}
 
-      <h3 className="ph-stats__subtitle">{t('stats.achievementsTitle')}</h3>
+      <h2 className="ph-stats__subtitle">{t('stats.achievementsTitle')}</h2>
       <ul className="ph-stats__achievements" role="list">
         {achievementIds.map((id) => {
           const unlocked = achievements[id] !== undefined;
@@ -138,7 +157,14 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
                 // Embossed blind stamp: NEITHER the id's name NOR its
                 // citation appears anywhere here — only the generic
                 // stats.locked aria text and a decorative glyph.
-                <span className="ph-stats__ach-locked" aria-label={t('stats.locked')}>
+                //
+                // T22: role="img", for the same reason as the histogram bar
+                // above — aria-label on a role-less <span> is prohibited and
+                // was being discarded, which left every locked row announcing
+                // nothing at all (its only other content is aria-hidden). The
+                // blind stamp IS an image; saying so is what makes its one
+                // sanctioned, name-free text alternative reach a reader.
+                <span className="ph-stats__ach-locked" role="img" aria-label={t('stats.locked')}>
                   <span aria-hidden="true">▦▦▦</span>
                 </span>
               )}
@@ -147,8 +173,15 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
         })}
       </ul>
 
+      {/* T22: no aria-label. This carried a11y.closeDialog ("Close dialog"),
+          and this is not a dialog — it is a nav page that replaces <main>'s
+          content, with no modality, no focus trap and nothing for Escape to
+          do. Telling a screen-reader user otherwise promises behaviour that
+          does not exist. The visible "Close" is an accurate accessible name
+          on its own, and the labelled region above supplies the context the
+          false label was standing in for. */}
       {onClose && (
-        <button type="button" className="ph-stats__close" onClick={onClose} aria-label={t('a11y.closeDialog')}>
+        <button type="button" className="ph-stats__close" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

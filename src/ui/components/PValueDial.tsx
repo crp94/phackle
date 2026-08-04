@@ -98,6 +98,36 @@ function readDurQuickMs(): number {
  * not pin, it slides to the end of its containing block and paints over its
  * siblings (T31's measured bug, written up in Lab.css). The caption roughly
  * triples this block's height, so it cannot be inside it.
+ *
+ * T22 — THE DIAL IS A LIVE REGION, and this is the single biggest thing the
+ * accessibility pass changed about how the game plays. Measured in real
+ * Chrome before this task: turning a knob with the arrow keys moved the
+ * p-value from 0.087 to 0.570 and the page announced NOTHING — the entire
+ * §2.4 loop (turn a knob, watch the number) was inaudible, because focus
+ * stays on the radio while the number that answers it lives elsewhere in the
+ * DOM. `role="status"` (implicitly aria-live="polite", aria-atomic="true")
+ * re-reads this whole block — the numeral AND its n/df line — whenever its
+ * text changes, and only then: a re-render that produces identical text (the
+ * settle-class toggle below, a parent's state change) mutates nothing and
+ * announces nothing, so this fires once per genuinely new result rather than
+ * on every render.
+ *
+ * `aria-busy` is what makes "only when it has settled" true rather than
+ * merely likely: a live region marked busy holds its announcement until the
+ * flag clears, so the in-flight state of a debounced spec change is never
+ * read out as a result. It was already here for its own reasons; pairing it
+ * with the live role is what turns it into the settle gate.
+ *
+ * WHAT IS NOT ANNOUNCED, and why: the colour BAND (R1.8's five steps). The
+ * band is a redundant encoding of the number that is already being read —
+ * `p = 0.043` IS the significant state, and `lab.dialCaption`, which renders
+ * directly beneath this block in every state and is read like any other
+ * prose, is the sentence that states the rule ("Below 0.05, you can
+ * publish"). Announcing a band name on top of the number would be the same
+ * fact twice, and would need a vocabulary the copy catalog does not have.
+ * The second channel a sighted player gets — SUBMIT TO JOURNAL becoming
+ * enabled — is a native disabled-state change on a real button, which every
+ * screen reader reports on arrival.
  */
 function DialShell({
   className,
@@ -109,7 +139,7 @@ function DialShell({
   children: ReactNode;
 }) {
   return (
-    <div className={className} data-testid="pvalue-dial" aria-busy={pending}>
+    <div className={className} data-testid="pvalue-dial" role="status" aria-busy={pending}>
       {children}
     </div>
   );

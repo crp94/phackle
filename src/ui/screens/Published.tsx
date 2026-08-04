@@ -200,6 +200,9 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
   const [callOpen, setCallOpen] = useState(false);
   const [CallScreen, setCallScreen] = useState<LazyScreenComponent | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  // T22: where focus goes back to when the overlay is dismissed — the button
+  // that opened it, which is the only place a returning player is not lost.
+  const ctaRef = useRef<HTMLButtonElement | null>(null);
 
   // Moves focus into the overlay the moment it opens, and again once the
   // lazily-loaded call screen actually populates it with its own focusable
@@ -213,6 +216,40 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
     const focusable = getFocusableElements(container);
     (focusable[0] ?? container).focus();
   }, [callOpen, CallScreen]);
+
+  // T22 FIX ROUND 1 (review I1) -- RESTORING focus has to wait for the commit,
+  // and the first version of this did not.
+  //
+  // THE BUG. `closeCall` used to call `ctaRef.current.focus()` on the line
+  // after `setCallOpen(false)`. React had not committed yet at that point, so
+  // the cover still carried `inert` -- and an element inside an inert subtree
+  // cannot take focus at all. The call was a silent no-op. Measured in real
+  // Chrome: after Escape, document.activeElement was <body> at +0ms AND at
+  // +1200ms; the next Tab went to the browser's own chrome and the one after
+  // that to the header's first stop, so a keyboard player who looked at the
+  // call and backed out had to walk all nine header stops to get back to the
+  // button they had just left. Control experiment, same page: focus() on the
+  // CTA while the cover was inert -> did not become activeElement; the same
+  // call with the attribute removed first -> did. My own jsdom test could not
+  // see any of it, because jsdom does not implement inert's focus blocking, so
+  // an outcome assertion there passes whether the ordering is right or wrong.
+  //
+  // THE FIX. Restore from an effect keyed on `callOpen`, which React runs
+  // AFTER the commit that removes `inert` from the cover -- so the element is
+  // focusable by the time anything tries to focus it. `wasOpenRef` is what
+  // keeps this from being an on-mount focus steal: it only fires on a genuine
+  // open -> closed edge, never on the first render (where callOpen is already
+  // false) and never on a re-render that did not close anything.
+  const wasCallOpenRef = useRef(false);
+  useEffect(() => {
+    if (callOpen) {
+      wasCallOpenRef.current = true;
+      return;
+    }
+    if (!wasCallOpenRef.current) return;
+    wasCallOpenRef.current = false;
+    ctaRef.current?.focus();
+  }, [callOpen]);
 
   // Behind the app-level loading gate (src/ui/App.tsx never mounts a screen
   // until content resolves) -- this narrows the type and is a safety net,
@@ -266,7 +303,33 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
     void loadCallScreen().then((component) => setCallScreen(() => component));
   }
 
+  /** T22 — WCAG 2.1.2. The overlay traps Tab between the two call cards (see
+   * below), and until this task it had no keyboard exit at all: a keyboard
+   * player who opened "Face the truth" to look could not get back out to the
+   * cover, the header, the theme toggle or anything else without committing
+   * to a verdict. Reproduced in real Chrome — Escape did nothing and the
+   * overlay stayed up. A trap with no exit is a trap.
+   *
+   * Closing is a pure UI retreat: `callOpen` is this component's own state,
+   * the store is untouched (store.makeCall is still the only thing that ever
+   * asks the worker for the truth — see Call.tsx's spoiler-safety note), and
+   * the cover behind is a legitimate place to stand.
+   *
+   * Focus goes back to the button that opened it, as a dismissed modal must —
+   * but NOT from here. Restoring focus synchronously on this line is exactly
+   * the review-I1 bug: the cover is still `inert` until React commits, and
+   * nothing inside an inert subtree can be focused. The restore lives in the
+   * `callOpen` effect above, which runs after that commit. */
+  function closeCall() {
+    setCallOpen(false);
+  }
+
   function handleOverlayKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      closeCall();
+      return;
+    }
     if (e.key !== 'Tab') return;
     const container = overlayRef.current;
     if (!container) return;
@@ -318,7 +381,7 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
           <PressCard blurb={card2} t={t} index={1} />
         </ul>
         {chyron && <ChyronBar blurb={chyron} t={t} index={2} />}
-        <button type="button" className="ph-published__cta" onClick={handleFaceTruth}>
+        <button type="button" className="ph-published__cta" ref={ctaRef} onClick={handleFaceTruth}>
           {t('published.faceTruth')}
         </button>
       </div>

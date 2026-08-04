@@ -487,6 +487,31 @@ visible tap), fully arrow-key navigable, with a visible label per option.
 - Do: `role="radiogroup"` with `role="radio"` children and roving tabindex.
 - Don't: `<select>` — a dropdown hides the garden, which is the entire lesson.
 
+**R6.6 — A screen change moves focus, and a screen without a visible title gets
+an invisible one** (T22). `<main class="ph-screen">` is keyed, so React rebuilds it
+on every screen/game-page swap and the focused element goes with it; `App.tsx`
+therefore focuses the new `<main>` (`tabindex="-1"`) on every change except the
+first mount. Two consequences this section owns:
+- The container is a focus target, so it declares R6.1's ring like anything else —
+  at a **negated** `--focus-offset`, because `<main>` is full-bleed and a ring drawn
+  outside it lands in the gutter, or at 200% zoom in nothing at all.
+- Every screen carries exactly one `<h1>`, its own title. Where a screen's design
+  has no title element to promote — Act II's Reveal, which is deliberately
+  heading-free prose — the heading is set in `.ph-visually-hidden`: the clip/`1px`
+  idiom, never `display: none` or `visibility: hidden`, both of which would take
+  the text out of the accessibility tree as well as off the page.
+- Do: `outline-offset: calc(-1 * var(--focus-offset));` on the screen container.
+- Don't: `outline: none` on it (R6.1), or a screen whose first heading is an `<h2>`.
+
+**R6.7 — A pop-up is a disclosure or a tooltip, never both** (T22, resolving the
+ForkTrail key). A tooltip *describes* the control it hangs off: `aria-describedby`,
+one flat string, no expanded state. A disclosure *shows content*: a trigger with
+`aria-expanded` and `aria-controls`, and no `tooltip` role anywhere. The content
+decides which — a list of rows is content.
+- Do: `aria-expanded` + `aria-controls` (set only while the panel is rendered),
+  with `role="list"`/`role="listitem"` on the panel when spans have to stay spans.
+- Don't: `role="tooltip"` on a panel whose trigger reports `aria-expanded`.
+
 ---
 
 ## §7 Dark theme
@@ -607,7 +632,7 @@ retypes their values.
 
 ## §10 Review checklist
 
-Each of the 49 rules is decided exactly one way. The table below is the single
+Each of the 51 rules is decided exactly one way. The table below is the single
 statement of that — no rule appears in two tiers.
 
 T35 moved the whole of §5 from tier B/C up to tier A: the motion system is now
@@ -618,7 +643,7 @@ the only part of §5 a command cannot answer.
 
 | Tier | How it is decided | Rules |
 |---|---|---|
-| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts` fails the build | R1.3a, R1.7, R4.2, R4.3, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R7.3 |
+| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts tests/ui/a11y.test.tsx` fails the build | R1.3a, R1.7, R4.2, R4.3, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R6.6, R6.7, R7.3 |
 | **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R1.8, R2.1, R2.3, R2.5, R5.4, R7.4 |
 | **B+C — compiled where it is *defined*, grepped where it is *used*** | the test closes the scale inside `tokens.css`; the raw-px grep below catches a value typed anywhere else | R2.2, R3.1 |
 | **C — grep** | one of the commands below | R1.3, R3.4, R4.5, R4.7, R6.5 |
@@ -639,6 +664,16 @@ its deliberate absence from the dark block are both pinned. The test cannot see
 an element that never declares `:focus-visible` at all; that is a *missing* focus
 style rather than a *suppressed* one, and it is caught by tabbing through the
 screen — the one thing §6 asks a reviewer to actually do.
+
+**Tier A scope, §6's other half (`tests/ui/a11y.test.tsx`).** R6.6 is compiled on
+both of its clauses: the screen container is focused on every swap and not on the
+first mount (driven through the real `App` + `ScreenRouter`, not a stub), and every
+screen renders exactly one `<h1>` — including the Reveal's visually-hidden one,
+whose utility class is asserted to keep the text in the accessibility tree. R6.7 is
+compiled as an exclusion: no `role="tooltip"` may coexist with an `aria-expanded`
+trigger. What the file cannot see: whether a *screen reader* actually announces the
+result the live region carries (a human, with one running), and whether the heading
+*text* is the right title (tier D).
 
 **Tier A scope, §5's half (`tests/ui/motion.test.ts`).** Five checks, and
 between them they close the system. (1) **Tokens only**: every timing
@@ -691,7 +726,9 @@ grep -rnE ':\s*[0-9]+px' src/ui --exclude=tokens.css                          # 
 1. Every hit of the first is one of R1.3's four places, or `--sig-band` (R1.3a).
 2. The only legal raw pixel values are the strokes this document names by hand:
    the 1px hairline (R4.4), the 2px selection underline (R4.6), the 2px underline
-   offset (R6.2), and R5.3's two pinned travel distances (6px scene, 2px quick).
+   offset (R6.2), R5.3's two pinned travel distances (6px scene, 2px quick), and
+   the `1px` box of R6.6's `.ph-visually-hidden` (a clipped box, not a size —
+   the idiom's own value, and the only place in `src/ui` it may appear).
    Anything else is a size or a space that belongs on a scale. Note this grep
    does not reach a transform argument (`translateY(6px)` has no digit straight
    after the colon); R5.3's two-distance rule is what closes that gap, and

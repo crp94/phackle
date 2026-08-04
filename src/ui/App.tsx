@@ -65,6 +65,42 @@ export default function App({ puzzleNumber, children }: AppProps) {
   const didBootRef = useRef(false);
   const [page, setPage] = useState<NavPage>('game');
 
+  // T22 — FOCUS MANAGEMENT ACROSS THE ONE ROUTE CHANGE THIS APP HAS.
+  //
+  // `<main>` below is keyed, so React tears the old element down and builds a
+  // new one on every screen/page swap (T35's transition, R5.2 site 1). The
+  // element the player had focused — an "Open the data", a "Face the truth",
+  // a "See the invoice" — goes with it, and the browser is left with a
+  // sequential-navigation starting point in a node that no longer exists.
+  // Measured in real Chrome against this build before this task:
+  // document.activeElement was <body> after EVERY transition (briefing->lab,
+  // lab->published, call->reveal, reveal->summary, nav page->game), and the
+  // first Tab afterwards resumed roughly where the removed button had been —
+  // so the running header was silently skipped, and a screen reader was left
+  // with no announcement that the page had changed at all.
+  //
+  // The standard fix, and the smallest one: move focus to the new <main>
+  // itself (tabIndex={-1} makes it programmatically focusable without adding
+  // a tab stop). A screen reader announces the new screen's landmark and
+  // reads from its top; Tab from there enters the new content in document
+  // order; Shift+Tab reaches the header. Nothing about the transition
+  // animation changes — the focus call is instant and paints no motion of its
+  // own (App.css declares the ring with no transition, R5.5), and the
+  // entrance keyframe runs on the same element either way.
+  //
+  // NOT on the first mount: focus starts at the top of the document on load,
+  // which is exactly where it should be. `screenKey` is compared against the
+  // previous render's, so the effect fires only on a genuine change.
+  const screenKey = page === 'game' ? `game:${gameScreen}` : page;
+  const mainRef = useRef<HTMLElement | null>(null);
+  const prevScreenKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = prevScreenKeyRef.current;
+    prevScreenKeyRef.current = screenKey;
+    if (previous === null || previous === screenKey) return;
+    mainRef.current?.focus();
+  }, [screenKey]);
+
   // Guarded by a ref (not only the dependency array): `content`'s reference
   // never actually changes mid-session in any of today's flows (locale
   // never switches after first load), but the ref is cheap insurance against
@@ -121,7 +157,12 @@ export default function App({ puzzleNumber, children }: AppProps) {
           </span>
         </p>
         <div className="ph-header__controls">
-          <div className="ph-header__nav">
+          {/* T22: a real <nav> landmark, not a bare div. This is the app's
+              only navigation region, so it needs no aria-label to be
+              unambiguous — a single navigation landmark is named by its role.
+              The theme/locale controls beside it stay role="group": they
+              choose a setting, they do not navigate anywhere. */}
+          <nav className="ph-header__nav">
             {/* The second affordance, and the explicit one: on screen for
                 exactly as long as a nav page is, so "get me back" is never a
                 thing the player has to deduce. An ACTION, not a page — hence
@@ -140,7 +181,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
             <button type="button" className="ph-seg" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
               {t('nav.about')}
             </button>
-          </div>
+          </nav>
           <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
           <LocaleToggle locales={AVAILABLE_LOCALES} locale={locale} setLocale={setLocale} t={t} />
         </div>
@@ -156,7 +197,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
           introduced for it: the landmark <main> already had to be here.
           Nothing else about the element changes; a screen swap that used to
           teleport now lands. */}
-      <main className="ph-screen" key={page === 'game' ? `game:${gameScreen}` : page}>
+      <main className="ph-screen" key={screenKey} ref={mainRef} tabIndex={-1}>
         {page === 'game' && children}
         {page === 'stats' && <StatsScreen onClose={backToGame} />}
         {page === 'legend' && <LegendScreen onClose={backToGame} />}

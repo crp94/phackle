@@ -3,6 +3,7 @@
 // data disclaimer, link to source"). Every disclosure paragraph already
 // exists as a T6 copy key (about.*) — this screen's own job is layout, the
 // deploy-injected version string, and the two outbound links.
+import { useId } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
 import { SITE_URL } from '../../game/share';
@@ -31,11 +32,15 @@ export interface AboutProps {
 }
 
 export function About({ t, version, glossary, onClose }: AboutProps) {
+  const titleId = useId();
   const displayVersion = version ?? 'dev';
 
   return (
-    <section className="ph-about">
-      <h2 className="ph-about__title">{t('about.title')}</h2>
+    // T22: a named region with its own <h1> — see Stats.tsx's identical note.
+    <section className="ph-about" aria-labelledby={titleId}>
+      <h1 className="ph-about__title" id={titleId}>
+        {t('about.title')}
+      </h1>
 
       <p className="ph-about__prose">{t('about.intro')}</p>
       <p className="ph-about__prose">{t('about.mechanism')}</p>
@@ -53,7 +58,7 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
         <li>{t('about.priorArtOptionalStopping')}</li>
       </ul>
 
-      <h3 className="ph-about__subtitle">{t('about.glossaryTitle')}</h3>
+      <h2 className="ph-about__subtitle">{t('about.glossaryTitle')}</h2>
       <dl className="ph-about__glossary">
         {glossary.map((entry) => (
           <div className="ph-about__glossary-row" key={entry.term}>
@@ -75,8 +80,9 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
         </a>
       </p>
 
+      {/* T22: no aria-label — not a dialog. See Stats.tsx's note. */}
       {onClose && (
-        <button type="button" className="ph-about__close" onClick={onClose} aria-label={t('a11y.closeDialog')}>
+        <button type="button" className="ph-about__close" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

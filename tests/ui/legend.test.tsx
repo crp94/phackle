@@ -102,12 +102,25 @@ describe('Legend component — renders the mapping + copy keys only', () => {
     });
   });
 
-  it('calls onClose when the close button is activated, and labels it via a11y.closeDialog', () => {
+  // T22: the close button used to be named a11y.closeDialog ("Close dialog"),
+  // which promised a dialog — modality, a focus trap, an Escape key. This is a
+  // nav page that replaces <main>'s content and has none of those. Its visible
+  // label is now its accessible name, and the context that label used to fake
+  // comes from the region the section actually declares.
+  it('calls onClose when the close button is activated, named by its own visible label', () => {
     const onClose = vi.fn();
     render(<Legend t={t} onClose={onClose} />);
-    const button = screen.getByRole('button', { name: t('a11y.closeDialog') });
+    const button = screen.getByRole('button', { name: t('stats.close') });
     fireEvent.click(button);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('names its region from its own heading, so "Close" is never heard bare', () => {
+    const { container } = render(<Legend t={t} onClose={() => {}} />);
+    const region = container.querySelector('.ph-legend') as HTMLElement;
+    const heading = screen.getByRole('heading', { level: 1, name: t('legend.title') });
+    expect(region.getAttribute('aria-labelledby')).toBe(heading.id);
+    expect(heading.id).not.toBe('');
   });
 
   it('renders no close button when onClose is not supplied', () => {

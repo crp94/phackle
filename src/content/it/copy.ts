@@ -440,9 +440,13 @@ export const copy: Record<CopyKey, string> = {
   'a11y.backToGame': 'P-hackle: torna al rompicapo di oggi',
   // T37: "ordinato" agreed with "Grafico", so the sentence said the CHART was
   // sorted; English says the specifications are. Also said "specificazione"
-  // twice in one breath.
-  'a11y.specCurveChart':
-    'Grafico dei p-value di tutte le specificazioni possibili, ordinate, con evidenziata quella che hai pubblicato.',
+  // twice in one breath. T37's agreement fix is kept: "ordinate" still agrees
+  // with "specificazioni".
+  // T22 (value change): dropped the published-highlight clause — false on the
+  // abandon path. See en/copy.ts for the full reasoning.
+  'a11y.specCurveChart': 'Grafico dei p-value di tutte le specificazioni possibili, ordinate dal più piccolo al più grande.',
+  // T22: fig. 2's own plate (§2.7.6), which is grouped, not sorted.
+  'a11y.specCurveGrouped': 'Grafico dei p-value di tutte le specificazioni possibili, in una colonna per ogni esito misurato.',
   'a11y.dataCut':
     'Grafico a punti del campione attuale: il gruppo di confronto e il gruppo trattato, con ogni punto escluso disegnato come segno barrato.',
   'a11y.shareButton': 'Copia il risultato negli appunti',
