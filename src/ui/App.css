@@ -131,9 +131,20 @@ body {
 
 /* T17: the header's stats/legend/about nav — same flex-row idiom as
    .ph-locale-toggle, reusing .ph-seg's existing styling (no new CSS needed
-   for the buttons themselves). */
+   for the buttons themselves).
+
+   T33 fix round 1: this row wraps TOO, and that is not decoration. A nested
+   flex row that cannot wrap is a single unbreakable flex item to its parent,
+   so `flex-wrap` on .ph-header__controls alone bought nothing the moment
+   this task added a fourth item (Play) to this group: measured at 360w with
+   Play showing, Italian overflowed the document by 68px and pushed the ES
+   locale button entirely off-screen — an Italian player could not reach
+   Spanish. Every nested row in this header wraps, or the header overflows
+   at the first label longer than English's. */
 .ph-header__nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--space-4);
 }
 
@@ -169,8 +180,17 @@ body {
 }
 
 /* T33: the Play item is an ACTION sitting in a row of page tabs, and carries
-   no aria-pressed to distinguish it (there is no state it could report), so
-   the medium weight does that job instead. */
+   no aria-pressed to distinguish it (there is no state it could report).
+
+   Fix round 1: --weight-medium alone was a distinction only a diff could
+   see — 400 vs 500 at --text-15 is imperceptible next to three siblings, and
+   CSS must not claim a difference the eye does not get. This is now the
+   product's OWN registered idiom for "this is the action, not a label":
+   R2.7's uppercase label with --tracking-label, exactly the treatment
+   .ph-briefing__cta / .ph-published__cta / .ph-reveal__cta already wear. No
+   new token, no new colour, and a distinction that reads at a glance. */
 .ph-seg--action {
   font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
 }

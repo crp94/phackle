@@ -6,6 +6,8 @@
 // suite, re-run green above). Same no-jest-dom convention as the rest of
 // tests/ui/*.
 import { useEffect } from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
@@ -218,5 +220,56 @@ describe('App header — a nav detour never restarts the day', () => {
     expect(live().screen).toBe('lab');
     expect(live().log.length).toBe(logBefore);
     expect(live().result).not.toBeNull();
+  });
+});
+
+/* ================================================================
+   T33 fix round 1 — the header's nested rows must all wrap.
+
+   THE INCIDENT this pins. T33 added a fourth item (Play) to
+   .ph-header__nav and a second option to the theme control, then "fixed"
+   the header's known horizontal overflow by putting `flex-wrap: wrap` on
+   the PARENT row (.ph-header__controls) only. That bought nothing: a
+   nested flex row that cannot wrap is a single unbreakable flex item to
+   its parent, so the four nav buttons stayed one rigid block. Measured
+   against the production build at 360w with Play showing — the exact
+   configuration the original measurement never visited — Italian
+   overflowed the document by 68px and pushed the ES locale button
+   entirely off-screen: an Italian player could not reach Spanish. English
+   on the game screen, the one cell that WAS measured, is also the one
+   cell where Play does not exist and the labels are shortest.
+
+   WHY THIS IS A SOURCE-TEXT CHECK. jsdom implements no layout: every
+   width in it is 0, so a real overflow assertion is impossible here at
+   any price. This is the cheapest HONEST guard available in this suite —
+   it cannot see an overflow, only the absence of the property whose
+   absence caused one. The real pin is a locale-aware layout check at 360
+   with Play showing, which belongs to T23's E2E scope and is booked
+   there. Same regex-over-source-text idiom as tests/ui/tokens.test.ts.
+   ================================================================ */
+
+// Resolved from the vitest root, NOT from `import.meta.url`: this file runs
+// under @vitest-environment jsdom, where import.meta.url is an http:// URL
+// and fileURLToPath rejects it ("The URL must be of scheme file").
+// tests/ui/tokens.test.ts can use the import.meta idiom because it has no
+// environment pragma and therefore runs in node.
+const APP_CSS = readFileSync(resolve(process.cwd(), 'src/ui/App.css'), 'utf8');
+
+/** The declaration block of one selector, comments already stripped. */
+function ruleBody(selector: string): string {
+  const css = APP_CSS.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const match = new RegExp(`(^|[},])\\s*${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`, 'm').exec(css);
+  if (!match) throw new Error(`no rule found for ${selector}`);
+  return match[2];
+}
+
+describe('App header — every nested row wraps (360w overflow regression)', () => {
+  it.each(['.ph-header__controls', '.ph-header__nav'])('%s declares flex-wrap: wrap', (selector) => {
+    expect(ruleBody(selector)).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('still finds the rules it claims to be checking (guards the guard)', () => {
+    expect(ruleBody('.ph-header__nav')).toMatch(/display:\s*flex/);
+    expect(() => ruleBody('.ph-header__nonexistent')).toThrow(/no rule found/);
   });
 });

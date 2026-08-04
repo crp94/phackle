@@ -331,7 +331,9 @@ export const copy: Record<CopyKey, string> = {
     'Tu navegador está bloqueando el almacenamiento local, así que el progreso no se guardará entre visitas.',
 
   'a11y.localeToggle': 'Cambiar de idioma',
-  'a11y.themeToggle': 'Cambiar de tema',
+  // "Cambiar DE tema" is the fixed idiom for changing the SUBJECT of a
+  // conversation; the setting is "cambiar tema".
+  'a11y.themeToggle': 'Cambiar tema',
   'a11y.backToGame': 'P-hackle: volver al puzle de hoy',
   'a11y.specCurveChart':
     'Gráfico del p-valor de todas las especificaciones posibles, ordenadas, con tu especificación publicada resaltada.',
