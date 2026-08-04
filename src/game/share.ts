@@ -23,10 +23,28 @@ export const SITE_URL = 'https://phackle.carlosrodriguezpardo.es';
 // below, so the in-game Legend page can render the §2.9 emoji table FROM this
 // map rather than retyping the glyphs — single source of truth. Nothing about
 // shareString's own logic changes.
+//
+// DOCUMENTED DEVIATION FROM MASTER SPEC §2.9 (T29, owner-directed, third
+// play-test round: "the fork emojis are... questionable. they are hard to
+// read"). §2.9 tabulates ONE GLYPH PER KNOB — 🎯 subgroup, 🔪 exclusion,
+// 🌗 tails, 🍴 any other spec change. At the sizes a shared trail is actually
+// read at, four near-identical pictographs are not distinguishable, and the
+// distinction they encode is not one a reader of somebody else's score needs.
+// The owner therefore collapsed all FOUR spec-change kinds onto 🍴; ➕ (a
+// peek, i.e. more data — a categorically different move, not another fork)
+// stays distinct. In-trail vocabulary is now exactly two glyphs; the whole
+// vocabulary, counting the 🧾 prefix, the 📄/🏳️ terminals and the ⚖️✅/⚖️❌
+// call marks, is seven.
+//
+// classifyChange and every other fork-classification path are UNTOUCHED (the
+// achievements in src/game/achievements.ts read those kinds and must keep
+// seeing all four): this is a presentation mapping and nothing else. Because
+// the map stays total over ForkKind, both call sites below and the Legend
+// page keep working unchanged — the Legend simply dedupes by glyph.
 export const FORK_EMOJI: Record<ForkKind, string> = {
-  subgroup: '🎯',
-  exclusion: '🔪',
-  tails: '🌗',
+  subgroup: '🍴',
+  exclusion: '🍴',
+  tails: '🍴',
   spec: '🍴',
   peek: '➕',
 };

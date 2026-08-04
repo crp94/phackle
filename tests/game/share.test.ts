@@ -1,6 +1,15 @@
 // Master spec §2.9 — spoiler-safe share grid. Pure logic, plain node env.
 import { describe, expect, it } from 'vitest';
-import { shareString, SITE_URL } from '../../src/game/share';
+import {
+  ABANDON_EMOJI,
+  CALL_CORRECT,
+  CALL_INCORRECT,
+  FORK_EMOJI,
+  PREREG_PREFIX,
+  SITE_URL,
+  SUBMIT_EMOJI,
+  shareString,
+} from '../../src/game/share';
 import { callIsCorrect } from '../../src/game/scoring';
 import { countForks } from '../../src/game/forkLog';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
@@ -39,6 +48,9 @@ function abandon(at: number): PlayerAction {
 // Recognizes each legend glyph as a whole token (§2.9's legend, T12's ForkKind
 // map) — robust to multi-code-unit glyphs (e.g. the white-flag + VS16 pair in
 // 🏳️) that a naive Array.from/codepoint count would miscount.
+// 🎯/🔪/🌗 are retired by T29's owner ruling (all four spec-change kinds now
+// print 🍴) and are kept in this tokenizer deliberately: it must stay total
+// over any trail, including one restored from a pre-T29 saved share string.
 const EMOJI_TOKENS = ['🧾', '🎯', '🔪', '🌗', '🍴', '➕', '📄', '🏳️'];
 function tokenizeTrail(trail: string): string[] {
   const tokens: string[] = [];
@@ -206,12 +218,22 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
   // countForks()-driven line 3 actually reports for that exact trail — which
   // is 6, matching the emoji shown (not the spec prose's inconsistent "7").
   // (URL uses the real SITE_URL, not the illustrative "phackle.example".)
-  it('🍴🎯🍴🔪➕🍴📄 → ⚖️✅ / 6 forks · streak 12 / SITE_URL', () => {
+  //
+  // T29 (owner ruling, documented at share.ts's FORK_EMOJI): the four
+  // spec-change fork kinds now all render as 🍴, so the same six transitions
+  // print 🍴🍴🍴🍴➕🍴 instead of 🍴🎯🍴🔪➕🍴. The assertion below is
+  // repointed, NOT relaxed: the log is unchanged, the transitions are
+  // unchanged, classifyChange still returns spec/subgroup/spec/exclusion/spec
+  // for them (the four kinds are still four kinds — achievements read them),
+  // countForks still reports 6, the peek marker is still distinct, and the
+  // terminal + call markers are untouched. Only the glyph each fork kind maps
+  // to changed, which is exactly what this test now pins.
+  it('🍴🍴🍴🍴➕🍴📄 → ⚖️✅ / 6 forks · streak 12 / SITE_URL', () => {
     const s0 = spec();
     const s1 = spec({ outcome: 1 }); // only outcome differs from s0 -> 'spec' (🍴)
-    const s2 = spec({ outcome: 1, subgroup: 'urban' }); // only subgroup differs from s1 -> 'subgroup' (🎯)
+    const s2 = spec({ outcome: 1, subgroup: 'urban' }); // only subgroup differs from s1 -> 'subgroup' (🍴)
     const s3 = spec({ outcome: 2, subgroup: 'urban' }); // only outcome differs from s2 -> 'spec' (🍴)
-    const s4 = spec({ outcome: 2, subgroup: 'urban', exclusion: 'z2' }); // only exclusion differs -> 'exclusion' (🔪)
+    const s4 = spec({ outcome: 2, subgroup: 'urban', exclusion: 'z2' }); // only exclusion differs -> 'exclusion' (🍴)
     const s5 = spec({ outcome: 3, subgroup: 'urban', exclusion: 'z2' }); // only outcome differs from s4 -> 'spec' (🍴)
 
     const log: PlayerAction[] = [
@@ -229,8 +251,29 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
 
     const out = shareString({ puzzleNumber: 37, log, mode: 'hack', callCorrect: true, streak: 12, copy: enCopy });
     expect(out).toBe(
-      ['P-hackle #37', '🍴🎯🍴🔪➕🍴📄 → ⚖️✅', '6 forks · streak 12', SITE_URL].join('\n')
+      ['P-hackle #37', '🍴🍴🍴🍴➕🍴📄 → ⚖️✅', '6 forks · streak 12', SITE_URL].join('\n')
     );
+  });
+
+  // The owner ruling's own acceptance criterion, pinned so a future edit
+  // cannot quietly re-expand the set: in-trail vocabulary is exactly two
+  // glyphs, and the whole vocabulary is seven.
+  it('renders every fork with 🍴 and every peek with ➕ — a two-glyph in-trail vocabulary', () => {
+    expect(new Set(Object.values(FORK_EMOJI))).toEqual(new Set(['🍴', '➕']));
+    expect(FORK_EMOJI.subgroup).toBe(FORK_EMOJI.spec);
+    expect(FORK_EMOJI.exclusion).toBe(FORK_EMOJI.spec);
+    expect(FORK_EMOJI.tails).toBe(FORK_EMOJI.spec);
+    expect(FORK_EMOJI.peek).not.toBe(FORK_EMOJI.spec);
+
+    const vocabulary = new Set([
+      ...Object.values(FORK_EMOJI),
+      PREREG_PREFIX,
+      SUBMIT_EMOJI,
+      ABANDON_EMOJI,
+      CALL_CORRECT,
+      CALL_INCORRECT,
+    ]);
+    expect(vocabulary.size).toBe(7);
   });
 });
 

@@ -33,12 +33,8 @@ export interface LegendEntry {
 /** Declaration order mirrors the order a real trail can produce these
  * glyphs in (§2.9): an optional 🧾 prefix, then any of the 5 ForkKind
  * glyphs (share.ts's own FORK_EMOJI key order), then the terminal 📄/🏳️,
- * then the trailing ⚖️✅/⚖️❌ call marker.
- * Exported (alongside the component) so tests/ui/legend.test.tsx can assert
- * the legend is built from this exact mapping — same co-location tradeoff
- * LocaleProvider.tsx makes for useLocale. */
-// eslint-disable-next-line react-refresh/only-export-components
-export const LEGEND_ENTRIES: LegendEntry[] = [
+ * then the trailing ⚖️✅/⚖️❌ call marker. */
+const DECLARED_ENTRIES: LegendEntry[] = [
   { glyph: PREREG_PREFIX, labelKey: 'legend.emojiPrereg' },
   { glyph: FORK_EMOJI.spec, labelKey: 'legend.emojiSpec' },
   { glyph: FORK_EMOJI.subgroup, labelKey: 'legend.emojiSubgroup' },
@@ -50,6 +46,26 @@ export const LEGEND_ENTRIES: LegendEntry[] = [
   { glyph: CALL_CORRECT, labelKey: 'legend.emojiCallCorrect' },
   { glyph: CALL_INCORRECT, labelKey: 'legend.emojiCallIncorrect' },
 ];
+
+/**
+ * The legend, DERIVED from the mapping — one row per DISTINCT glyph, first
+ * declaration wins.
+ *
+ * T29 (owner ruling, see src/game/share.ts's FORK_EMOJI comment): the four
+ * spec-change fork kinds now all render as 🍴, so a row-per-ForkKind legend
+ * would print the same glyph four times against four different meanings —
+ * a key that contradicts itself. Deduplicating here is what "the Legend
+ * derives from the mapping" was always supposed to buy: reduce the glyph
+ * set and the key shrinks with it, with no glyph retyped anywhere.
+ *
+ * Exported (alongside the component) so tests/ui/legend.test.tsx can assert
+ * the legend is built from this exact mapping — same co-location tradeoff
+ * LocaleProvider.tsx makes for useLocale.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export const LEGEND_ENTRIES: LegendEntry[] = DECLARED_ENTRIES.filter(
+  (entry, i) => DECLARED_ENTRIES.findIndex((other) => other.glyph === entry.glyph) === i
+);
 
 export interface LegendProps {
   t: TFunction;

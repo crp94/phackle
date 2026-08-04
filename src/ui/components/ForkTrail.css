@@ -1,4 +1,13 @@
+/* The Lab's live fork trail, and the key that sits next to it.
+   DESIGN.md R1.2 (ink/muted only), R2.2 (the closed size scale), R3.1 (the
+   closed spacing scale), R4.1/R4.2/R4.4 (no fill, no shadow, hairlines),
+   R4.7 (the stacking ladder), R5.5 (state changes instantly), R6.1/R6.4. */
+
 .ph-fork-trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
   margin: var(--space-16) 0 0 0;
   font-family: var(--font-ui);
   font-size: var(--text-15);
@@ -7,8 +16,91 @@
 }
 
 .ph-fork-trail__label {
-  margin-inline-end: var(--space-8);
   font-size: var(--text-13);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+}
+
+/* T29: the glyph run itself, set large enough to actually read (the owner's
+   "hard to read"). --text-22 is on R2.2's scale; --tracking-label gives the
+   two remaining glyphs real air instead of a compressed pictograph string.
+   The SHARE string is a separate, deliberately compact clipboard format and
+   is untouched (src/game/share.ts). */
+.ph-fork-trail__glyphs {
+  font-size: var(--text-22);
+  line-height: var(--leading-ui);
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-fork-trail__key {
+  position: relative;
+  display: inline-flex;
+}
+
+/* R6.4: >=44x44 via the space scale, and the same "instant hover, 2px
+   transparent underline reserve" idiom App.css's .ph-seg established.
+   R6.2's underline is persistent so this reads as an action, never a
+   caption. */
+.ph-fork-trail__key-button {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+.ph-fork-trail__key-button:hover {
+  color: var(--ink);
+}
+
+.ph-fork-trail__key-button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* Exactly the SpecCurve tooltip's surface (SpecCurve.css): --paper, a
+   hairline above and below, no fill of its own, no shadow, no radius. R4.7's
+   ladder rather than a raw z-index. It appears and disappears instantly —
+   §5's four animations are exhaustive and a popover fade is not one. */
+.ph-fork-trail__popover {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: max-content;
+  max-width: var(--measure);
+  padding: var(--space-12);
+  background: var(--paper);
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
+}
+
+.ph-fork-trail__popover-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-12);
+}
+
+.ph-fork-trail__popover-glyph {
+  flex: none;
+  min-width: 2ch;
+  font-size: var(--text-15);
+}
+
+.ph-fork-trail__popover-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--ink);
 }
