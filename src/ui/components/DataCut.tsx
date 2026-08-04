@@ -95,15 +95,25 @@ export interface CutGeometry {
 }
 
 /**
- * `padLeft`/`padRight` are --space-8 and `columnGap` is --space-12, retyped
- * here as plain numbers because SVG geometry cannot read a custom property.
- * They are not free choices: DataCut.css lays the column LABELS out as an
- * HTML flex row using those same two tokens, so the labels sit exactly under
- * the columns they name. Change one, change the other.
+ * `padLeft` is --space-40, `padRight` --space-8, `columnGap` --space-12,
+ * retyped here as plain numbers because SVG geometry cannot read a custom
+ * property. They are not free choices: DataCut.css lays the column LABELS out
+ * as an HTML flex row using those same tokens, so the labels sit exactly
+ * under the columns they name. Change one, change the other.
+ *
+ * T29 pin 9: `padLeft` grew 8 -> 40 (both on R3.1's closed scale) to make
+ * room for the y-axis tick labels this figure now carries, matching
+ * SpecCurve's own padLeft of 40 — the axis-furniture precedent this figure is
+ * told to follow. A mono `--text-13` tick label runs ~31px at four
+ * characters, which is exactly what 40 minus the 8px tick gap leaves.
  */
-const CUT_PAD_X = 8;
+const CUT_PAD_LEFT = 40;
+const CUT_PAD_RIGHT = 8;
 const CUT_PAD_TOP = 4;
 const CUT_COLUMN_GAP = 12;
+/** Gap between a tick label's right edge and the plot's left edge — the same
+ * 8 SpecCurve uses for its own ticks. */
+const CUT_TICK_GAP = 8;
 /**
  * The plot's own height. §2.4 asks for a *tiny* visual and R8.3 forbids
  * anything competing with the dial, whose numeral tops out at --text-dial's
@@ -124,19 +134,24 @@ const CUT_EXCLUDED_ARM = 4;
  * bar without shortening it so far that the two columns' averages stop being
  * comparable at a glance. */
 const CUT_MEAN_BAR_FRACTION = 0.8;
+/** Separator between a column's mean and its n. Notation, identical in every
+ * language — the same ' · ' PValueDial's own n/df line uses, and a constant
+ * here rather than a copy key for exactly the reason SpecCurve's RECIPE_SEP
+ * is one. */
+const STAT_SEP = ' · ';
 
 export function cutGeometryFor(containerWidth: number): CutGeometry {
   const measured = Math.round(containerWidth) || CUT_DEFAULT_WIDTH;
   const width = Math.min(Math.max(measured, CUT_MIN_WIDTH), CUT_MAX_WIDTH);
-  const plotWidth = width - CUT_PAD_X * 2;
+  const plotWidth = width - CUT_PAD_LEFT - CUT_PAD_RIGHT;
   const columnWidth = (plotWidth - CUT_COLUMN_GAP) / 2;
   return {
     width,
     height: CUT_PAD_TOP + CUT_PLOT_HEIGHT,
     plotWidth,
     plotHeight: CUT_PLOT_HEIGHT,
-    padLeft: CUT_PAD_X,
-    padRight: CUT_PAD_X,
+    padLeft: CUT_PAD_LEFT,
+    padRight: CUT_PAD_RIGHT,
     padTop: CUT_PAD_TOP,
     columnWidth,
     columnGap: CUT_COLUMN_GAP,
@@ -242,6 +257,37 @@ export function cutValueY(value: number, domain: [number, number], geom: CutGeom
   return top + (1 - (value - lo) / (hi - lo)) * usable;
 }
 
+/* --------------------------------------------------------------- instrument */
+
+/**
+ * T29 pin 9 (owner: "data points could look a bit more clear, perhaps hinting
+ * towards a data analysis UI"). Two number formatters and one tick helper —
+ * every one of them emits DIGITS ONLY, so this pin adds no copy value
+ * anywhere (a sibling task owns the catalog this wave). The per-column sample
+ * sizes reuse the existing `lab.nLabel` key ("n = {n}") and its existing
+ * `{n}` token.
+ */
+
+/** A cut value at figure precision: three significant figures, always in
+ * positional notation, never a locale separator (about.decimalNote) — the
+ * same contract Reveal.tsx's own formatSigFigs states, restated here rather
+ * than imported so a figure never depends on a screen. */
+export function formatCutValue(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  if (value === 0) return '0.00';
+  const rounded = Number(value.toPrecision(3));
+  const magnitude = Math.floor(Math.log10(Math.abs(rounded)));
+  return rounded.toFixed(Math.max(0, 2 - magnitude));
+}
+
+/** The y-axis ticks: the domain's floor, midpoint and ceiling. Three is what
+ * SpecCurve's own axis carries, and three is what an 88px plot has room for
+ * at --text-13 without the labels touching. */
+export function cutTicks(domain: [number, number]): number[] {
+  const [lo, hi] = domain;
+  return [lo, (lo + hi) / 2, hi];
+}
+
 /* ------------------------------------------------------------------- marking */
 
 interface Mark {
@@ -328,7 +374,7 @@ export function DataCut({ cut, treatmentLabel }: DataCutProps) {
           role="img"
           aria-label={t('a11y.dataCut')}
         >
-          {/* The floor the columns stand on, and the only rule in the figure. */}
+          {/* The floor the columns stand on. */}
           <line
             className="ph-datacut__axis"
             x1={geom.padLeft}
@@ -336,6 +382,36 @@ export function DataCut({ cut, treatmentLabel }: DataCutProps) {
             x2={geom.padLeft + geom.plotWidth}
             y2={baselineY}
           />
+
+          {/* T29 pin 9: the y-axis, on SpecCurve's own axis-furniture
+              precedent — a short --rule tick and a --muted mono label at each
+              of three domain stops. This is the single change that turns the
+              figure from a decorative cloud into a plot: until now nothing on
+              screen said what the vertical axis MEANT, so two group means at
+              different heights were a shape rather than a measurement. */}
+          {cutTicks(domain).map((value) => {
+            const y = cutValueY(value, domain, geom);
+            return (
+              <g key={value} data-role="cut-tick" data-value={value}>
+                <line
+                  className="ph-datacut__axis"
+                  x1={geom.padLeft - CUT_TICK_GAP / 2}
+                  y1={y}
+                  x2={geom.padLeft}
+                  y2={y}
+                />
+                <text
+                  className="ph-datacut__tick"
+                  x={geom.padLeft - CUT_TICK_GAP}
+                  y={y}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                >
+                  {formatCutValue(value)}
+                </text>
+              </g>
+            );
+          })}
 
           {marks.map((mark, i) =>
             mark.excluded ? null : (
@@ -403,12 +479,52 @@ export function DataCut({ cut, treatmentLabel }: DataCutProps) {
       {/* The column labels are HTML, not SVG text: real text wraps, SVG text
           does not, and a shipped treatmentLabel that needed two lines would
           otherwise have to be ellipsized — a figure that lies about its own
-          axis. The flex row below uses the same --space-8 padding and
-          --space-12 gap the geometry above is built from, so each label sits
-          exactly under its column. */}
+          axis. The flex row below uses the same padding and --space-12 gap
+          the geometry above is built from, so each label sits exactly under
+          its column.
+
+          T29 pin 9: each column now also states, directly beneath its name,
+          the two numbers an analyst would read off it — the value of its mean
+          bar and the n that mean was computed from — as one mono line, the
+          way stats software prints a group summary under a strip chart.
+
+          WHY HERE AND NOT AT THE BAR. The first cut of this pin drew the mean
+          as an SVG label right-aligned to the end of its own bar. The
+          arithmetic said that end clears the jitter band (the band is capped
+          at 64px while the bar is 0.8 x columnWidth), and it does — but the
+          LABEL is ~39px wide at --text-13 mono and extends back INTO the
+          band, so at 360 it printed straight across the cloud. Visible in
+          task-T29-shots/lab-intro-360-paper-after.png, which is why that shot
+          is kept. The caption band has room, no marks to collide with, and
+          reads as an instrument rather than as an annotation.
+
+          Both numbers are digits only, so no copy value is added: the n
+          reuses `lab.nLabel` ("n = {n}") verbatim — an existing key with an
+          existing token — and the separator is the same ' · ' notation
+          PValueDial's own n/df line uses. */}
       <div className="ph-datacut__labels">
-        <span className="ph-datacut__label">{t('lab.cutControl')}</span>
-        <span className="ph-datacut__label">{treatmentLabel}</span>
+        {([0, 1] as const).map((column) => {
+          const included = column === 0 ? values.control : values.treated;
+          const mean = columnMean(included);
+          return (
+            <span className="ph-datacut__label" key={column} data-group={GROUP_NAME[column]}>
+              <span className="ph-datacut__label-name">
+                {column === 0 ? t('lab.cutControl') : treatmentLabel}
+              </span>
+              <span className="ph-datacut__label-stats">
+                {mean === null ? null : (
+                  <>
+                    <span className="ph-datacut__label-mean" data-role="cut-column-mean">
+                      {formatCutValue(mean)}
+                    </span>
+                    {STAT_SEP}
+                  </>
+                )}
+                <span data-role="cut-column-n">{t('lab.nLabel', { n: included.length })}</span>
+              </span>
+            </span>
+          );
+        })}
       </div>
 
       <figcaption className="ph-datacut__legend">

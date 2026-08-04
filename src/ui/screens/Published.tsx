@@ -36,31 +36,35 @@ import './Published.css';
 export type UseGameStore = <T>(selector: (state: GameStore) => T) => T;
 export type LazyScreenComponent = ComponentType<Record<string, never>>;
 
-// Held in a variable, never inlined as a string literal into import(...): a
-// literal specifier makes both `tsc --noEmit` (TS2307, resolved and verified
-// empirically against this exact tsconfig) and a Vite build try to resolve
-// the target NOW, which fails while src/ui/screens/registry.ts is absent. A
-// non-literal specifier is untyped (Promise<any>) and unresolved by design --
-// confirmed empirically (see task report) that both gates stay green with the
-// file absent, and it resolves exactly like any other lazy import once the
-// controller's merge makes the module real. `/* @vite-ignore */` additionally
-// silences Vite's (harmless, but noisy) "cannot analyze this dynamic import"
-// build warning.
-const REGISTRY_MODULE_PATH = './registry';
-
 /** Real default loader: reaches into the shared screen registry (T14) for
- * `SCREENS.call`, so Published never imports T16's Call.tsx directly (it
- * doesn't exist in this tree either). Safe today, where the module is
- * genuinely absent -- resolves to `null` rather than throwing, so a stray
- * "Face the truth" click before the controller's merge just opens an empty,
- * still-dimmed, still-focus-trapped overlay instead of crashing the screen.
+ * `SCREENS.call`, so Published never imports T16's Call.tsx directly.
+ *
+ * SHIPPING BUG, FOUND AND FIXED BY T29's screenshot pass. This used to hold
+ * './registry' in a `const` and pass it through a vite-ignore annotation — a
+ * deliberately NON-analyzable specifier, written when src/ui/screens/
+ * registry.ts did not yet exist in this worktree and a literal would have
+ * failed `tsc --noEmit` and the Vite build outright. That workaround became
+ * wrong the moment the controller's merge made the module real: an
+ * unanalyzable specifier is not rewritten to the built chunk's hashed URL,
+ * so in a PRODUCTION build the request resolved to `/assets/registry`, 404'd,
+ * hit the `catch`, and returned `null`. Reproduced in the real built app over
+ * CDP: clicking "Face the truth" opened the dimmed, focus-trapped overlay
+ * with NOTHING in it — the whole Act I -> Act II hand-off, dead in the
+ * shipped artifact and invisible to a jsdom suite that injects its own
+ * loader. A literal specifier resolves and is rewritten correctly; the
+ * Published -> registry -> Published import cycle is harmless because this
+ * one is dynamic (registry is only evaluated after Published already is).
+ *
+ * The `catch` stays: a chunk that genuinely fails to load should leave the
+ * player on a dimmed overlay, not crash the screen.
+ *
  * Co-located with Published (its only real consumer) rather than split into
  * its own module -- the same justified, non-accidental mixed export
  * src/i18n/LocaleProvider.tsx's own useLocale() sets precedent for. */
 // eslint-disable-next-line react-refresh/only-export-components
 export async function loadCallScreenFromRegistry(): Promise<LazyScreenComponent | null> {
   try {
-    const mod = (await import(/* @vite-ignore */ REGISTRY_MODULE_PATH)) as {
+    const mod = (await import('./registry')) as {
       SCREENS?: Partial<Record<string, LazyScreenComponent>>;
     };
     return mod.SCREENS?.call ?? null;
@@ -101,25 +105,55 @@ interface BlurbCardProps {
   t: (key: CopyKey, params?: Record<string, string | number>) => string;
 }
 
-/* R3.6: a hairline-separated list item, not a bordered card-in-a-grid. */
+/* R3.6: a hairline-separated list item, not a bordered card-in-a-grid.
+ *
+ * T29 pin 8 (owner: "the press blurbs read as generic blocks; make them read
+ * as press"). Same three strings, same no-fill/no-shadow law — reordered and
+ * re-typeset into a press CLIPPING's anatomy, which is a typographic
+ * problem, not a decorative one:
+ *   1. the outlet as a masthead line — caps, tracked, --ink, on top, where a
+ *      clipping's paper always names itself;
+ *   2. a dateline rule under it (the hairline that used to close the block
+ *      now opens the quote, exactly as a newspaper rules under its masthead);
+ *   3. the blurb as a display-serif pull-quote — unchanged type, but now the
+ *      thing the rule points at instead of a paragraph floating under a
+ *      label;
+ *   4. the SIMULATED PRESS watermark last, hairline-topped and set as a
+ *      compliance stamp at the foot of the clipping (§4.4 requires it on
+ *      every fake-press asset; it should look like the legal line it is,
+ *      not like the item's title, which is where it used to sit). */
 function PressCard({ blurb, t }: BlurbCardProps) {
   return (
     <li className="ph-press-card">
-      <p className="ph-press-card__watermark">{t('published.simulatedPress')}</p>
-      <p className="ph-press-card__text">{blurb.text}</p>
       <p className="ph-press-card__outlet">{blurb.outlet}</p>
+      <p className="ph-press-card__text">{blurb.text}</p>
+      <p className="ph-press-card__watermark">{t('published.simulatedPress')}</p>
     </li>
   );
 }
 
-/* Tier 3 only: master spec §4.4's TV-chyron mock, plus the editors-pick copy. */
+/* Tier 3 only: master spec §4.4's TV-chyron mock, plus the editors-pick copy.
+ *
+ * T29 pin 8: read as a broadcast LOWER THIRD. R4 sanctions no new treatment
+ * for this and none is invented — no fill (R4.1 spends the product's one
+ * filled area on the SpecCurve band), no shadow (R4.2), no radius beyond
+ * R4.3's 2px. What makes a lower third a lower third without a fill is its
+ * ANATOMY: a full-column band, ruled top and bottom, with the badge in its
+ * own left-hand channel separated by a vertical hairline, the headline in
+ * display serif beside it, and the outlet + SIMULATED stamp as the strap
+ * underneath. Every rule here is `--hairline`; `border-inline-start` is a
+ * single edge, which is what R4.4/R4.5 permit (R4.5 bars four sides and the
+ * `border` shorthand). No §0 registration is required because nothing new is
+ * derived: no colour, no fill, no token. */
 function ChyronBar({ blurb, t }: BlurbCardProps) {
   return (
     <div className="ph-chyron">
       <p className="ph-chyron__badge">{t('published.editorsPick')}</p>
       <p className="ph-chyron__text">{blurb.text}</p>
-      <p className="ph-chyron__outlet">{blurb.outlet}</p>
-      <p className="ph-chyron__watermark">{t('published.simulatedPress')}</p>
+      <p className="ph-chyron__strap">
+        <span className="ph-chyron__outlet">{blurb.outlet}</span>
+        <span className="ph-chyron__watermark">{t('published.simulatedPress')}</span>
+      </p>
     </div>
   );
 }

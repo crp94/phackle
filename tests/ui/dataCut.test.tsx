@@ -41,7 +41,9 @@ import {
   cutCssPixelsPerUnit,
   cutDomain,
   cutGeometryFor,
+  cutTicks,
   cutValueY,
+  formatCutValue,
   jitterUnit,
 } from '../../src/ui/components/DataCut';
 import { runSpec } from '../../src/engine/analyze';
@@ -428,5 +430,109 @@ describe('DataCut empty states', () => {
     const { container } = renderCut(sampleCut());
     await screen.findByText(enCopy['lab.cutControl']); // the locale content has landed
     expect(container.querySelector('svg')?.getAttribute('aria-label')).toBe(enCopy['a11y.dataCut']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T29 pin 9 — "data points could look a bit more clear, perhaps hinting
+// towards a data analysis UI". Axis furniture, labelled means, per-column n.
+// ---------------------------------------------------------------------------
+
+describe('DataCut as an instrument (T29 pin 9)', () => {
+  it('draws a y-axis of three ticks — floor, midpoint, ceiling of the domain', () => {
+    const cut: DataCutValues = { control: [0, 10], treated: [2, 8], excludedControl: [], excludedTreated: [] };
+    expect(cutTicks(cutDomain(cut))).toEqual([0, 5, 10]);
+    const { container } = renderCut(cut);
+    const ticks = [...container.querySelectorAll('[data-role="cut-tick"]')];
+    expect(ticks).toHaveLength(3);
+    expect(ticks.map((n) => Number(n.getAttribute('data-value')))).toEqual(cutTicks(cutDomain(cut)));
+  });
+
+  it('puts each tick label at that value\'s own y, so the axis cannot lie', () => {
+    const cut: DataCutValues = { control: [0, 10], treated: [2, 8], excludedControl: [], excludedTreated: [] };
+    const { container } = renderCut(cut);
+    const geom = cutGeometryFor(CUT_DEFAULT_WIDTH);
+    const domain = cutDomain(cut);
+    for (const tick of container.querySelectorAll('[data-role="cut-tick"]')) {
+      const value = Number(tick.getAttribute('data-value'));
+      const label = tick.querySelector('text') as SVGTextElement;
+      expect(Number(label.getAttribute('y'))).toBeCloseTo(cutValueY(value, domain, geom), 6);
+      expect(label.textContent).toBe(formatCutValue(value));
+    }
+  });
+
+  it('reserves the tick labels a gutter, on the spacing scale, matching SpecCurve', () => {
+    const geom = cutGeometryFor(CUT_DEFAULT_WIDTH);
+    expect(geom.padLeft).toBe(40); // --space-40, and SpecCurve's own padLeft
+    expect(geom.padRight).toBe(8); // --space-8
+    expect(geom.plotWidth).toBe(CUT_DEFAULT_WIDTH - geom.padLeft - geom.padRight);
+  });
+
+  it('states each column\'s mean and n underneath it, as a mono summary line', async () => {
+    const cut: DataCutValues = { control: [0, 2], treated: [8, 10], excludedControl: [], excludedTreated: [] };
+    const { container } = renderCut(cut);
+    await screen.findByText(enCopy['lab.cutControl']);
+    const means = [...container.querySelectorAll('[data-role="cut-column-mean"]')];
+    expect(means.map((n) => n.textContent)).toEqual([formatCutValue(1), formatCutValue(9)]);
+    // ...and each sits under its own column, in the same order the plot
+    // draws them.
+    const labels = [...container.querySelectorAll('.ph-datacut__label')];
+    expect(labels.map((l) => l.getAttribute('data-group'))).toEqual(['control', 'treated']);
+    expect(labels[0].contains(means[0])).toBe(true);
+    expect(labels[1].contains(means[1])).toBe(true);
+  });
+
+  it('keeps the mean label out of the plot entirely, so it can never print across the cloud', () => {
+    const cut: DataCutValues = { control: [0, 2], treated: [8, 10], excludedControl: [], excludedTreated: [] };
+    const { container } = renderCut(cut);
+    // The first cut of this pin drew it inside the SVG, right-aligned to the
+    // bar's end; the label is ~39px wide and ran back into the 64px jitter
+    // band. Nothing but marks and axis furniture lives in the SVG now.
+    expect(container.querySelector('svg [data-role="cut-column-mean"]')).toBeNull();
+    expect(container.querySelector('[data-role="cut-mean-label"]')).toBeNull();
+  });
+
+  it('omits the mean for an empty column, and still states its n', async () => {
+    const cut: DataCutValues = { control: [], treated: [4, 5], excludedControl: [], excludedTreated: [] };
+    const { container } = renderCut(cut);
+    await screen.findByText(enCopy['lab.cutControl']);
+    expect(container.querySelectorAll('[data-role="cut-column-mean"]')).toHaveLength(1);
+    expect([...container.querySelectorAll('[data-role="cut-column-n"]')].map((n) => n.textContent)).toEqual([
+      'n = 0',
+      'n = 2',
+    ]);
+  });
+
+  it('states each column\'s own n underneath it, reusing lab.nLabel (no new copy value)', async () => {
+    const cut: DataCutValues = {
+      control: [1, 2, 3],
+      treated: [4, 5],
+      excludedControl: [99],
+      excludedTreated: [],
+    };
+    const { container } = renderCut(cut);
+    await screen.findByText(enCopy['lab.cutControl']);
+    const ns = [...container.querySelectorAll('[data-role="cut-column-n"]')];
+    expect(ns).toHaveLength(2);
+    // The ANALYSED count per column — the number its mean was computed from,
+    // excluded points not included.
+    expect(ns.map((n) => n.textContent)).toEqual(['n = 3', 'n = 2']);
+  });
+
+  it('formats every number it prints with digits only — this pin adds no copy', () => {
+    expect(formatCutValue(0)).toBe('0.00');
+    expect(formatCutValue(1.23456)).toBe('1.23');
+    expect(formatCutValue(-0.0004567)).toBe('-0.000457');
+    expect(formatCutValue(1423)).toBe('1420'); // positional at every magnitude
+    expect(formatCutValue(1423)).not.toContain('e');
+  });
+
+  it('draws the analysed sample at --dot-cut, the registered figure radius', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/DataCut.css'), 'utf8');
+    expect(css).toMatch(/\.ph-datacut__dot\s*\{[^}]*r:\s*var\(--dot-cut\)/);
+    const tokens = readFileSync(join(process.cwd(), 'src/ui/theme/tokens.css'), 'utf8');
+    expect(tokens).toMatch(/--dot-cut:\s*2px/);
+    const design = readFileSync(join(process.cwd(), 'docs/DESIGN.md'), 'utf8');
+    expect(design).toContain('`--dot-cut` (2px)');
   });
 });

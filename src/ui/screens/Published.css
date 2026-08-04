@@ -65,12 +65,45 @@
   max-width: var(--measure);
 }
 
-/* R4.5: a hairline below each item, never a 4-side border. */
+/* A PRESS CLIPPING (T29 pin 8), built entirely out of type and hairlines:
+   masthead -> dateline rule -> pull-quote -> compliance stamp. R4.5 still
+   binds — every rule below is a single edge, never a box. */
 .ph-press-card {
   border-block-end: var(--hairline);
-  padding-block: var(--space-16);
+  padding-block: var(--space-16) var(--space-8);
 }
 
+/* 1. The masthead. R2.7's uppercase label treatment, but --ink and
+   --weight-medium rather than the --muted caption it used to be at the foot
+   of the block: on a clipping, the paper names itself first and loudest of
+   the small type. */
+.ph-press-card__outlet {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0;
+}
+
+/* 2. The dateline rule + 3. the pull-quote. Same display serif at the same
+   --text-22 as before; what changed is that a hairline now separates it from
+   the masthead, which is what makes the two read as one clipping rather than
+   as a label and a paragraph. */
+.ph-press-card__text {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  color: var(--ink);
+  border-block-start: var(--hairline);
+  margin: var(--space-8) 0 0;
+  padding-block-start: var(--space-12);
+}
+
+/* 4. The compliance stamp (S4.4: every fake-press asset carries it). A
+   caption at the foot of the clipping, not a title over it. */
 .ph-press-card__watermark,
 .ph-chyron__watermark {
   font-family: var(--font-ui);
@@ -79,30 +112,20 @@
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  margin: 0 0 var(--space-8);
+  margin: var(--space-12) 0 0;
 }
 
-.ph-press-card__text {
-  font-family: var(--font-display);
-  font-size: var(--text-22);
-  line-height: var(--leading-prose);
-  color: var(--ink);
-  margin: 0 0 var(--space-8);
-}
-
-.ph-press-card__outlet,
-.ph-chyron__outlet {
-  font-family: var(--font-ui);
-  font-size: var(--text-13);
-  line-height: var(--leading-ui);
-  color: var(--muted);
-  margin: 0;
-}
-
-/* Tier 3 only: master spec S4.4's TV-chyron mock. Hairline-topped-and-tailed
-   block (R4.5), never a filled banner (R4.1 reserves the one filled area for
-   the SpecCurve significance band). */
+/* Tier 3 only: master spec S4.4's TV-chyron mock, read as a broadcast LOWER
+   THIRD (T29 pin 8). Hairline-topped-and-tailed band (R4.5), never a filled
+   banner (R4.1 reserves the one filled area for the SpecCurve significance
+   band) — the "band" is the full column width plus the badge's own left
+   channel, not a fill. Full-column: unlike the press list above it, this is
+   not capped at --measure, because a lower third that stops two thirds of
+   the way across is a caption. */
 .ph-chyron {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: var(--space-8);
   border-block-start: var(--hairline);
   border-block-end: var(--hairline);
   padding-block: var(--space-16);
@@ -117,7 +140,41 @@
   color: var(--ink);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  margin: 0 0 var(--space-8);
+  margin: 0;
+}
+
+/* R3.4's one breakpoint. Above it the badge moves into its own left-hand
+   channel, closed by a vertical hairline — a single edge, which R4.4/R4.5
+   permit (R4.5 bars four sides and the `border` shorthand) — and the band
+   reads as a broadcast lower third.
+   BELOW it the badge stacks ABOVE the headline instead. Measured at 360
+   (task-T29-shots/published-tier3-360-paper-after.png, kept as the evidence):
+   the channel costs ~94px of a 312px column, which pushed a shipped
+   all-caps chyron line to seven --text-28 lines in a ~180px gutter. A lower
+   third that narrow is not a lower third. */
+@media (min-width: 768px) {
+  .ph-chyron {
+    grid-template-columns: auto 1fr;
+    column-gap: var(--space-16);
+  }
+
+  .ph-chyron__badge {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    border-inline-end: var(--hairline);
+    padding-inline-end: var(--space-16);
+  }
+
+  .ph-chyron__text {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .ph-chyron__strap {
+    grid-column: 2;
+    grid-row: 2;
+  }
 }
 
 /* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
@@ -129,7 +186,31 @@
   font-size: var(--text-28);
   line-height: var(--leading-display);
   color: var(--ink);
-  margin: 0 0 var(--space-8);
+  margin: 0;
+}
+
+/* The strap under the headline: attribution left, compliance stamp right —
+   the two things a real lower third carries in its bottom bar. */
+.ph-chyron__strap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-16);
+  margin: 0;
+}
+
+.ph-chyron__outlet {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.ph-chyron__watermark {
+  margin: 0;
 }
 
 /* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
@@ -173,6 +254,11 @@
    translucent scrim is not that). Centring/focus-trap shell only; any
    modal-card background or hairline of its own belongs to whatever the
    registry's `call` screen (T16) renders inside, not duplicated here. */
+/* T29 matrix pass: the inline padding moved to .ph-call itself (which needs
+   a gutter of its own as a full page too — see Call.css), so it is not
+   applied twice here; and `overflow-y: auto` because a centred flex child
+   taller than the viewport is clipped at BOTH ends with no way to reach
+   either — the failure mode a longer locale would hit first. */
 .ph-call-overlay {
   position: fixed;
   inset: 0;
@@ -180,7 +266,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-24);
+  overflow-y: auto;
   background: var(--scrim);
 }
 
