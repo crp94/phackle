@@ -12,7 +12,7 @@ export async function getContent(locale: Locale): Promise<LocaleContent> {
     case 'it':
       return (await import('./en')).content; // Replaced by T19
     case 'es':
-      return (await import('./en')).content; // Replaced by T20
+      return (await import('./es')).content;
     default: {
       // Exhaustiveness guard: a new Locale member without a case here is a compile error.
       const exhaustive: never = locale;

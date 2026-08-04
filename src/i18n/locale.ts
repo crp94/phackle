@@ -7,8 +7,8 @@ import type { Locale } from '../engine/types';
 // getContent() technically "works" for 'it'/'es' today (it aliases the English
 // module — see src/content/index.ts), but nothing has actually been translated
 // yet, so they stay off this list until T19/T20 land real content.
-export const AVAILABLE_LOCALES: Locale[] = ['en'];
-// T19 appends 'it'; T20 appends 'es' — only once real (non-aliased) content ships.
+export const AVAILABLE_LOCALES: Locale[] = ['en', 'es'];
+// T19 appends 'it'; T20 appended 'es' — only once real (non-aliased) content ships.
 
 /**
  * A stored (persisted) locale choice always wins. Otherwise, prefix-match
