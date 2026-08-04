@@ -27,6 +27,7 @@ import type { CopyKey } from '../content/en/copy';
 import { gameStore, useGameStore } from '../game/store';
 import { createEngineClient } from '../game/engineClient';
 import { isPractice, localIsoDate } from '../game/daily';
+import { isStorageOff } from '../game/storage';
 import { JOURNAL_VOLUME } from './masthead';
 import StatsScreen from './screens/Stats';
 import LegendScreen from './screens/Legend';
@@ -58,6 +59,19 @@ export default function App({ puzzleNumber, children }: AppProps) {
   const { content, copy, t, theme, setTheme, locale, setLocale } = useLocale();
   const boot = useGameStore((s) => s.boot);
   const storePuzzleNumber = useGameStore((s) => s.puzzleNumber);
+  // T40 (FINDING F2 — see store.ts's own doc comment on `booted`): the
+  // loading gate below reads this, not `content`/`copy` alone, so the shell
+  // never mounts the Briefing (or anything else) on scenario #0's
+  // placeholder data before the worker has actually assembled today's day.
+  // `storeError` covers the OTHER way the wait can end: a boot that fails
+  // outright (client.init() rejects, or the synchronous createEngineClient()
+  // throw below routes here too) never sets `booted`, and a spinner that
+  // waits forever for a day that will never arrive is worse than the ONE
+  // screen this app already knows how to show for that — ScreenRouter's own
+  // error banner, layered on whatever's underneath, exactly as it already is
+  // for every OTHER crash in this game.
+  const booted = useGameStore((s) => s.booted);
+  const storeError = useGameStore((s) => s.error);
   // T35: read ONLY to key the <main> transition below (DESIGN.md R5.2 site
   // 1). App does not route on this and never has — ScreenRouter still owns
   // which screen renders; this is the animation hook, nothing more.
@@ -129,6 +143,33 @@ export default function App({ puzzleNumber, children }: AppProps) {
     return <div className="ph-app" aria-busy="true" data-testid="app-loading" />;
   }
 
+  // T40 (FINDING F2): content loading is necessary but not sufficient. Until
+  // store.booted flips true (or boot has failed outright — see `storeError`
+  // above), `scenarioIndex`/`iso`/`puzzleNumber` are still initialState()'s
+  // placeholders, and mounting the Briefing here is exactly the bug the T23
+  // report measured: the WRONG study's question, cover story and Grantwell
+  // email, for up to ~120ms on a fast desktop and longer on a phone. Same
+  // placeholder element as the gate above (same data-testid, same
+  // aria-busy), extended rather than duplicated — but THIS phase can safely
+  // carry `t('a11y.loading')` as its accessible name, because content/copy
+  // are already loaded and t() no longer falls back to a raw key. `a11y.loading`
+  // has existed, translated in all three locales, since before this task;
+  // nothing rendered it until now. role="status" (not "alert" — this is
+  // ordinary progress, not urgent) mirrors PValueDial's own
+  // role="status"/aria-busy pairing (DESIGN.md/T22), so it is announced the
+  // same way the rest of the app announces "something is in flight."
+  if (!booted && !storeError) {
+    return (
+      <div
+        className="ph-app"
+        aria-busy="true"
+        data-testid="app-loading"
+        role="status"
+        aria-label={t('a11y.loading')}
+      />
+    );
+  }
+
   // storePuzzleNumber is 0 (initialState()'s default) until boot() resolves,
   // so this prefers the prop until then and switches over exactly once the
   // store has a real number of its own.
@@ -186,6 +227,27 @@ export default function App({ puzzleNumber, children }: AppProps) {
           <LocaleToggle locales={AVAILABLE_LOCALES} locale={locale} setLocale={setLocale} t={t} />
         </div>
       </header>
+      {/* T40 (FINDING F1): errors.storageOff was written, translated in all
+          three locales, and unit-tested via storage.ts's own isStorageOff()
+          — but nothing under src/ui/** ever rendered it, so a player whose
+          browser blocks localStorage (site data blocked, an iOS private
+          tab) played, scored and streaked an entire day into the in-memory
+          fallback and was told nothing before it all evaporated on reload.
+          Rendered in the shell, above <main>, so it is visible on every
+          screen — the Briefing included — never only some of them; reads
+          isStorageOff() directly on every render rather than caching it in
+          state, which is correct because storageOff is a ONE-WAY flag
+          (storage.ts: false -> true, never back) and this component already
+          re-renders constantly during boot/play. A quiet manuscript line,
+          not a modal: nothing about it blocks play, so there is nothing to
+          dismiss it FROM — role="status" (not "alert": this is not urgent,
+          the game is fully playable) and --muted register (R1.2: captions,
+          footnotes and this notice, never --ink) are the whole treatment. */}
+      {isStorageOff() ? (
+        <p className="ph-storage-notice" role="status">
+          {t('errors.storageOff')}
+        </p>
+      ) : null}
       {/* T35 — DESIGN.md R5.2 site 1, the product's ONE screen-transition
           site. `key` is the whole reason this exists: React tears the <main>
           element down and builds a new one whenever the key changes, which

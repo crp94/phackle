@@ -62,6 +62,22 @@ export interface GameStore {
    * finish-before-midnight / re-render-after-midnight straddle can never
    * key a save under the wrong day. */
   iso: string;
+  /** T40 (FINDING F2): true once boot() has FIXED today's day — `iso`,
+   * `scenarioIndex` and `puzzleNumber` all correct — set inside the very
+   * same `set()` call as those three, never before and never separately.
+   * False from `initialState()` and reset to false at the top of every
+   * `boot()` (via the `{ ...initialState() }` spread there), same as `iso`.
+   * This is the UI's boot gate (App.tsx): not `iso !== ''` (a byte-string
+   * whose emptiness is incidental to its type, not its meaning) and
+   * absolutely not `scenarioIndex !== 0` (scenario #0 is a real, playable
+   * scenario one day in twenty — the T23 report measured the bug this
+   * field exists to close by proving the Briefing rendered scenario #0's
+   * question, cover story and Grantwell email BEFORE the worker had
+   * finished assembling the real day, for 74-117ms on a fast desktop and
+   * longer on a phone). A crash during `client.init()` (caught below) never
+   * sets this true — the day was never actually fixed — so a booting
+   * failure is read off `error`, not off a `booted` that lied. */
+  booted: boolean;
   scenarioIndex: number;
   spec: Spec;
   result: PathResult | null;
@@ -162,6 +178,7 @@ function initialState(): Omit<
     practice: false,
     puzzleNumber: 0,
     iso: '',
+    booted: false,
     scenarioIndex: 0,
     spec: DEFAULT_SPEC,
     result: null,
@@ -208,7 +225,13 @@ export function createGameStore() {
       try {
         const seed = opts.practice ? practiceSeed() : undefined;
         const info = await client.init(iso, opts.scenarioCount, seed);
-        set({ scenarioIndex: info.scenarioIndex, n: info.n, puzzleNumber: puzzleNumber(iso), iso });
+        // `booted: true` lands in this SAME set() call, deliberately — see
+        // the field's own doc comment. It marks the exact instant the day
+        // is fixed, not some later moment (the prefetch below still has to
+        // run, but the UI's boot gate does not need to wait out a whole
+        // extra runSpec round trip once the scenario/date are already
+        // correct).
+        set({ scenarioIndex: info.scenarioIndex, n: info.n, puzzleNumber: puzzleNumber(iso), iso, booted: true });
 
         const myReq = ++requestSeq;
         set({ pending: true });

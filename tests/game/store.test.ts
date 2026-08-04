@@ -83,6 +83,7 @@ describe('boot', () => {
 
     expect(store.getState().screen).toBe('briefing');
     expect(store.getState().iso).toBe(''); // unset until boot() completes
+    expect(store.getState().booted).toBe(false); // T40: same — see GameStore['booted']
 
     await store.getState().boot(client, EPOCH, BOOT_OPTS);
 
@@ -96,6 +97,9 @@ describe('boot', () => {
     // T17 review round 2: boot() retains its own iso (the puzzle's day),
     // distinct from any later live wall-clock read — see GameStore['iso'].
     expect(s.iso).toBe(EPOCH);
+    // T40 (FINDING F2): the App.tsx boot gate's own signal — true once the
+    // day (scenarioIndex/iso/puzzleNumber) is fixed.
+    expect(s.booted).toBe(true);
     expect(s.scenarioIndex).toBe(0);
     expect(s.n).toBe(200);
     expect(s.spec).toEqual(DEFAULT_SPEC);
@@ -122,6 +126,11 @@ describe('boot', () => {
     await store.getState().boot(client, EPOCH, { practice: true, mode: 'hack', scenarioCount: 1792 });
 
     expect(store.getState().practice).toBe(true);
+    // T40: the boot gate's signal is set on this path exactly the same way
+    // as the non-practice path — App.tsx's own effect passes `practice` into
+    // boot() but boot()'s own control flow (and so `booted`) never branches
+    // on it.
+    expect(store.getState().booted).toBe(true);
     expect(client.init).toHaveBeenCalledTimes(1);
     const call = (client.init as Mock).mock.calls[0];
     expect(call[0]).toBe(EPOCH);
@@ -158,6 +167,47 @@ describe('boot', () => {
     expect(store.getState().screen).toBe('briefing');
     expect(store.getState().error).toBe('worker unavailable');
     expect(store.getState().pending).toBe(false);
+    // T40: client.init() never resolved, so the day was never fixed — a
+    // `booted` that read true here would be lying to App.tsx's boot gate,
+    // which would then mount the Briefing on initialState()'s placeholder
+    // scenario while ALSO showing the error banner. `error` is the correct
+    // (and sufficient) signal for the gate to stop waiting on this path —
+    // see App.tsx's own `!booted && !storeError` condition.
+    expect(store.getState().booted).toBe(false);
+  });
+
+  it('[FINDING F2] booted stays false while client.init() is in flight, and flips true in the SAME update that fixes scenarioIndex/iso/puzzleNumber — never before, never as a separate tick', async () => {
+    const client = makeFakeClient();
+    const init = deferred<InitInfo>();
+    (client.init as Mock).mockReturnValueOnce(init.promise);
+    const store = createGameStore();
+
+    const bootPromise = store.getState().boot(client, EPOCH, BOOT_OPTS);
+    // client.init() has been called but not yet resolved: the day is not
+    // fixed yet, and App.tsx's gate must still be showing the loading
+    // placeholder at this exact moment (this is FINDING F2's whole window).
+    expect(store.getState().booted).toBe(false);
+    expect(store.getState().scenarioIndex).toBe(0);
+    expect(store.getState().iso).toBe('');
+
+    let sawStaleUpdateBeforeBooted = false;
+    const unsubscribe = store.subscribe((s) => {
+      // Any state notification where scenarioIndex/iso are already correct
+      // but `booted` is still false would mean a consumer (App.tsx) could
+      // observe the fixed day one tick before the gate opens — exactly the
+      // flash this field exists to prevent. None should ever fire.
+      if (s.iso === EPOCH && !s.booted) sawStaleUpdateBeforeBooted = true;
+    });
+
+    init.resolve({ scenarioIndex: 3, n: 200 });
+    await bootPromise;
+    unsubscribe();
+
+    expect(sawStaleUpdateBeforeBooted).toBe(false);
+    const s = store.getState();
+    expect(s.booted).toBe(true);
+    expect(s.scenarioIndex).toBe(3);
+    expect(s.iso).toBe(EPOCH);
   });
 });
 
