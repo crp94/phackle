@@ -115,7 +115,7 @@ export const content: LocaleContent = {
       id: 'fern-negotiation',
       question: '¿Un helecho en la mesa te vuelve mejor negociador?',
       coverStory:
-        'El diseño biofílico se le vende a los responsables de instalaciones apelando solo al bienestar. Nadie ha preguntado qué hace al otro lado de una mesa. Colocamos un único helecho de Boston en el despacho de cada responsable de compras que aceptó participar, lo dejamos allí un ciclo de contratación completo y obtuvimos después las condiciones finales de todos los contratos que cerraron. Se nos dio permiso en todos los casos, en varios tras considerable insistencia.',
+        'El diseño biofílico se les vende a los responsables de instalaciones apelando solo al bienestar. Nadie ha preguntado qué hace al otro lado de una mesa. Colocamos un único helecho de Boston en el despacho de cada responsable de compras que aceptó participar, lo dejamos allí un ciclo de contratación completo y obtuvimos después las condiciones finales de todos los contratos que cerraron. Se nos dio permiso en todos los casos, en varios tras considerable insistencia.',
       treatmentLabel: 'Tiene un helecho en la mesa',
       headline: 'Tener un helecho en la mesa mejora cada contrato en {effect} mil €, según un estudio',
       outcomeLabels: [
@@ -149,7 +149,7 @@ export const content: LocaleContent = {
       id: 'horoscope-parking',
       question: '¿Quien lee el horóscopo aparca antes?',
       coverStory:
-        'La investigación en movilidad urbana modela la búsqueda de aparcamiento como un proceso racional. Nosotros nos preguntamos si no será más bien devocional. Los conductores instalan un registrador que anota cada búsqueda desde que entran en la calle hasta que apagan el motor, y declaran sus hábitos matutinos con el móvil; quienes consultan su signo antes de conducir se comparan con quienes no. A ninguno de los dos grupos se le dice qué estamos buscando. Dos lo han adivinado igualmente, y ninguno se acercó.',
+        'Los modelos de movilidad urbana tratan la búsqueda de aparcamiento como un proceso racional. Nosotros nos preguntamos si no será más bien devocional. Los conductores instalan un registrador que anota cada búsqueda desde que entran en la calle hasta que apagan el motor, y declaran sus hábitos matutinos con el móvil; quienes consultan su signo antes de conducir se comparan con quienes no. A ninguno de los dos grupos se le dice qué estamos buscando. Dos lo han adivinado igualmente, y ninguno se acercó.',
       treatmentLabel: 'Lee el horóscopo a diario',
       headline: 'Quien lee el horóscopo se ahorra {effect} minutos a la semana buscando aparcamiento',
       outcomeLabels: [
@@ -237,7 +237,7 @@ export const content: LocaleContent = {
       id: 'vinyl-dinner-party',
       question: '¿Quien colecciona vinilos da mejores cenas?',
       coverStory:
-        'La investigación en hostelería ha caracterizado el menú de forma exhaustiva y el tocadiscos en absoluto. Los anfitriones aceptan que un ayudante de investigación observe una de sus cenas, presentado a los demás invitados como "un compañero del trabajo"; siendo las cenas lo que son, el calendario de observación va meses por delante del análisis. Los ayudantes anotan las horas de llegada y de marcha, qué llevan los invitados y qué piden al salir. El vino no se analiza; el vino tampoco está ya, en honor a la verdad, disponible para su análisis.',
+        'En hostelería se ha caracterizado el menú de forma exhaustiva y el tocadiscos en absoluto. Los anfitriones aceptan que un ayudante de investigación observe una de sus cenas, presentado a los demás invitados como "un compañero del trabajo"; siendo las cenas lo que son, el calendario de observación va meses por delante del análisis. Los ayudantes anotan las horas de llegada y de marcha, qué llevan los invitados y qué piden al salir. El vino no se analiza; el vino tampoco está ya, en honor a la verdad, disponible para su análisis.',
       treatmentLabel: 'Tiene una colección de vinilos',
       headline: 'Los anfitriones con vinilos retienen a sus invitados {effect} minutos más, según un estudio',
       outcomeLabels: [
@@ -254,7 +254,7 @@ export const content: LocaleContent = {
       id: 'telescope-directions',
       question: '¿Quien tiene telescopio en casa da mejores indicaciones?',
       coverStory:
-        'La investigación sobre orientación descansa casi por entero en tareas de rotación mental hechas en laboratorio. Nosotros sacamos la pregunta a la calle. Nuestros ayudantes abordan a desconocidos en tres ciudades, preguntan cómo llegar a un sitio que está a ocho minutos andando, transcriben la respuesta literalmente y solo entonces, tras explicarles todo, preguntan si tienen telescopio. Las tasas de respuesta son, para nuestra sincera sorpresa, excelentes, y vamos a añadir una cuarta ciudad. Quienes tienen telescopio, en particular, están encantados de que se lo pregunten.',
+        'Casi todo lo que sabemos sobre orientación espacial sale de tareas de rotación mental hechas en laboratorio. Nosotros sacamos la pregunta a la calle. Nuestros ayudantes abordan a desconocidos en tres ciudades, preguntan cómo llegar a un sitio que está a ocho minutos andando, transcriben la respuesta literalmente y solo entonces, tras explicarles todo, preguntan si tienen telescopio. Las tasas de respuesta son, para nuestra sincera sorpresa, excelentes, y vamos a añadir una cuarta ciudad. Quienes tienen telescopio, en particular, están encantados de que se lo pregunten.',
       treatmentLabel: 'Tiene un telescopio en casa',
       headline: 'Quien tiene telescopio da indicaciones un {effect}% más eficientes que la app',
       outcomeLabels: [
@@ -288,7 +288,7 @@ export const content: LocaleContent = {
       id: 'terms-and-conditions-service',
       question: '¿Quien se lee los términos y condiciones recibe mejor atención al cliente?',
       coverStory:
-        'La investigación en protección del consumidor da por supuesto que nadie se lee el contrato y, por eso mismo, nunca ha estudiado a quienes sí se lo leen. Estamos reclutando clientes que declaran leerse las condiciones enteras, un colectivo que nos está costando muchísimo localizar, y transcribiendo, con su permiso, doce meses de sus conversaciones con soporte. Son las transcripciones más largas con las que ha trabajado nunca este laboratorio. Los consentimientos informados, por una vez, se leyeron enteros.',
+        'Quien estudia la protección del consumidor da por supuesto que nadie se lee el contrato y, por eso mismo, nunca ha estudiado a quienes sí se lo leen. Estamos reclutando clientes que declaran leerse las condiciones enteras, un colectivo que nos está costando muchísimo localizar, y transcribiendo, con su permiso, doce meses de sus conversaciones con soporte. Son las transcripciones más largas con las que ha trabajado nunca este laboratorio. Los consentimientos informados, por una vez, se leyeron enteros.',
       treatmentLabel: 'Se lee los términos y condiciones',
       headline: 'Quien se lee las condiciones recibe {effect} € más en compensaciones',
       outcomeLabels: [
@@ -305,7 +305,7 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: '¿Quien hace puzles prepara mejor la maleta?',
       coverStory:
-        'La investigación sobre razonamiento espacial ha producido cuatro décadas de tareas de rotación de cubos y prácticamente nada de equipaje. Nosotros llevamos la pregunta a un aeropuerto regional. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso y una mesa plegable, se mide el contenido de su equipaje contra el volumen de la maleta. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
+        'Cuatro décadas de razonamiento espacial han producido incontables tareas de rotación de cubos y prácticamente nada de equipaje. Nosotros llevamos la pregunta a un aeropuerto regional. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso y una mesa plegable, se mide el contenido de su equipaje contra el volumen de la maleta. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
       treatmentLabel: 'Hace puzles',
       headline: 'Quien hace puzles mete un {effect}% más de cosas en la misma maleta',
       outcomeLabels: [
@@ -322,7 +322,7 @@ export const content: LocaleContent = {
       id: 'stairs-small-talk',
       question: '¿Quien sube por las escaleras da mejor conversación?',
       coverStory:
-        'El diseño de un edificio determina quién se encuentra con quién, pero las conversaciones que salen de ahí casi nunca se registran. En una oficina de doce plantas anotamos la elección entre escalera y ascensor a partir de datos anonimizados de tarjeta y, por separado, pasamos una encuesta de compenetración a cada par de compañeros que llegó junto a una planta. Los participantes sabían lo de la encuesta. Los participantes se enteraron de lo de las tarjetas en la sesión informativa final, un orden que nuestro comité de ética nos pidió describir exactamente con estas palabras.',
+        'Un edificio decide quién se encuentra con quién, pero las conversaciones que salen de ahí casi nunca se registran. En una oficina de doce plantas anotamos la elección entre escalera y ascensor a partir de datos anonimizados de tarjeta y, por separado, pasamos una encuesta de compenetración a cada par de compañeros que llegó junto a una planta. Los participantes sabían lo de la encuesta. Los participantes se enteraron de lo de las tarjetas en la sesión informativa final, un orden que nuestro comité de ética nos pidió describir exactamente con estas palabras.',
       treatmentLabel: 'Sube por las escaleras',
       headline: 'Quien sube por las escaleras puntúa un {effect}% más alto en compenetración laboral',
       outcomeLabels: [
@@ -339,7 +339,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: '¿Quien dobla los calcetines llega antes?',
       coverStory:
-        'La investigación sobre uso del tiempo ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Los participantes fotografían cómo guardan los suyos (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
+        'Del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Los participantes fotografían cómo guardan los suyos (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
       treatmentLabel: 'Dobla los calcetines',
       headline: 'Quien dobla los calcetines llega {effect} minutos antes, según un estudio de seis semanas',
       outcomeLabels: [
@@ -373,7 +373,7 @@ export const content: LocaleContent = {
       id: 'browser-tabs-side-projects',
       question: '¿Quien no cierra nunca las pestañas del navegador publica más proyectos personales?',
       coverStory:
-        'La investigación sobre atención trata la pestaña abierta como un coste. Nosotros nos preguntamos si no será más bien un inventario. Los desarrolladores instalan una extensión que registra un recuento diario de pestañas y nada más (una limitación que aceptamos por motivos de reclutamiento) y declaran cada proyecto personal que publiquen durante el año siguiente, con un enlace público que funcione como prueba obligatoria. El requisito del enlace nos ha costado más participantes que la extensión.',
+        'Los estudios de atención tratan la pestaña abierta como un coste. Nosotros nos preguntamos si no será más bien un inventario. Los desarrolladores instalan una extensión que registra un recuento diario de pestañas y nada más (una limitación que aceptamos por motivos de reclutamiento) y declaran cada proyecto personal que publiquen durante el año siguiente, con un enlace público que funcione como prueba obligatoria. El requisito del enlace nos ha costado más participantes que la extensión.',
       treatmentLabel: 'Mantiene más de 40 pestañas abiertas',
       headline: 'Los desarrolladores con más pestañas abiertas publican {effect}× más proyectos personales',
       outcomeLabels: [
@@ -403,7 +403,7 @@ export const content: LocaleContent = {
     'Reviewer 2 quiere significación para el viernes. La renovación depende de ello. Confío en ti (y no tengo alternativa).',
     'A la agencia financiadora le dije que esto era "alto riesgo, alta recompensa". Cumple la segunda parte.',
     'He despejado la tarde para oír que la hipótesis se ha sostenido. No me hagas despejar también la de mañana.',
-    'Un apunte antes de tu defensa: "el efecto apuntaba en la dirección esperada" es una frase completa. Úsala.',
+    'Un consejo antes de tu defensa: "el efecto apuntaba en la dirección esperada" es una frase completa. Úsala.',
     'Esta hipótesis la eligió tu yo de la carrera. Tu comisión de acreditación no necesita saberlo.',
     'Un laboratorio rival publicó algo parecido la semana pasada. Estamos, técnicamente, compitiendo. Ellos no saben que competimos.',
     'La fecha límite del congreso se ha adelantado once días. Estadísticamente, eso no cambia nada. Ya he enviado el título.',
@@ -412,8 +412,8 @@ export const content: LocaleContent = {
     'Los socios industriales vienen el jueves. Financiaron un descubrimiento. Ten algo descubierto, por favor.',
     'La plaza de posdoc depende de la producción de este año. Lo menciono como contexto, no como presión. También es presión.',
     'La comisión de sabáticos se reúne en junio. Un hallazgo en mayo sería decisivo. Quiero ser preciso con esa palabra.',
-    'En el vicerrectorado han empezado a decir "revisión de la cartera investigadora". Nadie me explica qué significa. Yo sé que significa nosotros.',
-    'Año tres de tres de la convocatoria. No quiero alarmarte, pero quiero alarmarte un poco.',
+    'En el vicerrectorado han empezado a decir "revisión de la cartera investigadora". Nadie me explica qué significa. Yo sé lo que significa: nosotros.',
+    'Tercer año de la convocatoria, y último. No quiero alarmarte, pero quiero alarmarte un poco.',
     'Deja de mandarme el intervalo de confianza. Mándame la estimación puntual. La estimación puntual no ha defraudado a nadie jamás.',
     'Reviewer 2 ha vuelto. Reviewer 2 es la misma persona que la otra vez. Reviewer 2 se acuerda de nosotros.',
     'Anoche soñé que esto replicaba. He decidido tratarlo como un preregistro.',
@@ -445,7 +445,7 @@ export const content: LocaleContent = {
     },
     {
       text: 'El hallazgo es preliminar. Los autores dicen que precisamente por eso importa.',
-      outlet: 'Boletín Semanal',
+      outlet: 'El Boletín Oficioso',
       tier: 1,
     },
     {
@@ -455,18 +455,18 @@ export const content: LocaleContent = {
     },
     {
       text: 'Los investigadores piden más estudios, y más financiación para poder hacerlos.',
-      outlet: 'Boletín Semanal',
+      outlet: 'El Boletín Oficioso',
       tier: 1,
     },
     { text: 'El truco raro con el que los estadísticos PUBLICAN.', outlet: 'El Scroll Diario', tier: 2 },
     {
-      text: '¿Te está costando un Premio Nacional tu silla de oficina? Los expertos opinan.',
+      text: '¿Tu silla de oficina te está costando un Premio Nacional? Los expertos opinan.',
       outlet: 'Ruido & Rotativa',
       tier: 2,
     },
     { text: 'Ya lo estás haciendo. La ciencia dice que sigas.', outlet: 'El Scroll Diario', tier: 2 },
     {
-      text: 'Correlación no es causalidad, pero esta vez se nota distinto de verdad.',
+      text: 'Correlación no es causalidad, pero esta vez es distinto, en serio.',
       outlet: 'El Scroll Diario',
       tier: 2,
     },
@@ -521,7 +521,7 @@ export const content: LocaleContent = {
     'El intervalo de confianza siempre contuvo el cero. Fue muy paciente al respecto.',
     'La revista ha publicado una corrección. Esta página es la corrección.',
     'Los datos estaban bien. Los datos siempre estuvieron bien.',
-    'Se intentó una replicación. No se acercó.',
+    'Se intentó una replicación. No se acercó ni de lejos.',
     'Tres grupos intentaron reproducirlo. Uno de ellos era el tuyo.',
     'La nota de prensa sigue en línea. Es lo único que sigue.',
     'Tus coautores han pedido figurar como "consultados".',
@@ -546,7 +546,12 @@ export const content: LocaleContent = {
       citation: 'Por formular la hipótesis una vez conocidos los resultados, y saberlo.',
     },
     one_tailed_bandit: {
-      name: 'El bandido de una cola',
+      // EN's "One-Tailed Bandit" rides on "one-armed bandit", which does not
+      // exist in Spanish: the machine is la tragaperras. So the pun is rebuilt
+      // on the native word instead of translated off the English one. "La
+      // tragaperras de una cola" reads simultaneously as a slot machine and as
+      // a contraste de una cola, and keeps the plaque short.
+      name: 'La tragaperras de una cola',
       citation: 'Por decidir, en el último momento posible, que solo una dirección importó desde el principio.',
     },
     outlier_surgeon: {
@@ -592,7 +597,7 @@ export const content: LocaleContent = {
     },
     {
       term: 'Jardín de senderos que se bifurcan',
-      def: 'La idea de que un mismo conjunto de datos admite muchos análisis defendibles, de modo que «el» resultado depende de qué sendero de ese jardín se tomó.',
+      def: 'La idea de que un mismo conjunto de datos admite muchos análisis defendibles, de modo que "el" resultado depende de qué sendero de ese jardín se tomó.',
     },
     {
       term: 'Curva de especificación',

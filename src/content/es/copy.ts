@@ -150,7 +150,10 @@ export const copy: Record<CopyKey, string> = {
 
   // The call is conspiratorial, not accusatory: Act I's last beat. "Ruido que
   // disfracé" is the player's own admission to make.
-  'call.title': 'Antes de ver la verdad…',
+  // "La revelación" is this locale's established name for that screen
+  // (prereg.intro, prereg.locked, about.priorArt*). "La verdad" stays owned by
+  // published.faceTruth and lab.howThisWorks.step4, which are the same beat.
+  'call.title': 'Antes de ver la revelación…',
   'call.real': 'Un efecto real',
   'call.realSub': 'Esto replicaría.',
   'call.noise': 'Ruido que disfracé',
@@ -216,7 +219,11 @@ export const copy: Record<CopyKey, string> = {
   'summary.share': 'Compartir',
   'summary.copied': 'Copiado al portapapeles',
   'summary.nextIn': 'Próximo puzle en {hours} h {minutes} min',
-  'summary.streak': 'Racha de {n} días',
+  // Plural-safe BY CONSTRUCTION, not by luck: Summary renders this
+  // unconditionally and the streak counts today, so {n} = 1 is the common
+  // first-day case. "Racha de 1 días" would greet every new player. A
+  // label-colon-count row agrees with every value there is.
+  'summary.streak': 'Días seguidos: {n}',
   'summary.playPrereg': 'Prueba el modo Preregistro',
 
   'summary.breakdownCallCorrect': 'Veredicto correcto',

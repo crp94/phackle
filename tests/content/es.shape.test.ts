@@ -32,6 +32,13 @@ import { emDashDensity, findEmDashProblems, validateLocaleContent } from './shap
  * matcher anchors at word start only (`\bdieta` hits "dietético" but
  * `\bfármaco` would miss the unaccented "farmacológico", so both stems are
  * listed).
+ *
+ * Two stems are deliberately NOT here. 'nutri' would fire on
+ * sourdough-marathon's "conductual y no nutricional", which is the scenario
+ * DISCLAIMING a nutritional reading and therefore the opposite of the thing
+ * this guard exists to catch. 'tratamiento' is the app's own
+ * experimental-design vocabulary (Scenario.treatmentLabel, about.mechanism's
+ * "un tratamiento confundido con la edad"), not a medical claim.
  */
 export const HARM_LEXICON_ES = [
   'vacuna',
@@ -46,6 +53,12 @@ export const HARM_LEXICON_ES = [
   'terapéut',
   'suplement',
   'medicament',
+  'médic',
+  'medic',
+  'clínic',
+  'clinic',
+  'salud',
+  'adelgaz',
   'enfermedad',
   'síntoma',
   'patolog',
@@ -88,6 +101,19 @@ export const NEGATIVE_DIRECTION_LEXICON_ES = [
   'breve',
   'retraso',
   'retrasos',
+  'atraso',
+  'atrasos',
+  'escaso',
+  'escasa',
+  'escasos',
+  'escasas',
+  'nulo',
+  'nula',
+  'nulos',
+  'nulas',
+  'baja',
+  'bajas',
+  'penaliza',
 ];
 
 export const ES_LEXICONS: ContentLexicons = {

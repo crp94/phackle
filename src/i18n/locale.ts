@@ -3,12 +3,12 @@
 // src/engine/**) — locale is a presentation-layer concern only.
 import type { Locale } from '../engine/types';
 
-// Locales genuinely safe to offer in the running header's language toggle.
-// getContent() technically "works" for 'it'/'es' today (it aliases the English
-// module — see src/content/index.ts), but nothing has actually been translated
-// yet, so they stay off this list until T19/T20 land real content.
+// Locales genuinely safe to offer in the running header's language toggle: a
+// locale earns its place here only once getContent() resolves it to a real,
+// fully translated content module rather than an alias of the English one.
+// 'es' qualified in T20 (src/content/es). 'it' is still aliased to English in
+// src/content/index.ts and stays off this list until T19 lands its corpus.
 export const AVAILABLE_LOCALES: Locale[] = ['en', 'es'];
-// T19 appends 'it'; T20 appended 'es' — only once real (non-aliased) content ships.
 
 /**
  * A stored (persisted) locale choice always wins. Otherwise, prefix-match
