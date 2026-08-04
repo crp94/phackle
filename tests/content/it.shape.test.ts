@@ -46,9 +46,16 @@ import {
  *     common near-misses ("accuratezza", "sicurezza", "burocratico") all have a
  *     word character immediately before the "cura", so no boundary exists.
  *     Verified by an explicit negative case at the bottom of this file.
+ *     Residual risk accepted knowingly: "curatore"/"curare" DO start at a
+ *     boundary and would fire. Neither appears in the corpus, and the §4 policy
+ *     would rather stop an author writing "curare" than let a treatment claim
+ *     through, so the stem stays as it is.
  *
- * Wider than EN's seven, not narrower: tumore/malattia/sintomo/medicinale are
- * the terms an Italian screenshot would most plausibly be laundered into.
+ * Wider than EN's seven, not narrower. 'medic' (not 'medicinal') so the stem
+ * catches medicina/medico/medici as well as medicinale, plus salute, clinic,
+ * ospedal and guarigione: those are the words an Italian screenshot would most
+ * plausibly be laundered into. Every addition was probed against all 20
+ * scenarios' prose before being added and fires on nothing the corpus ships.
  */
 export const IT_HARM_LEXICON = [
   'vaccin',
@@ -64,7 +71,11 @@ export const IT_HARM_LEXICON = [
   'integrator',
   'malatti',
   'sintom',
-  'medicinal',
+  'medic',
+  'salute',
+  'clinic',
+  'ospedal',
+  'guarigione',
 ];
 
 /**
@@ -72,12 +83,24 @@ export const IT_HARM_LEXICON = [
  * so that MORE of the metric means MORE of the claimed effect, so a label
  * containing any of these is phrased as a decrease and fails.
  *
- * ASCII-only on purpose. JS's `\b` (this validator runs the lexicon as
- * `\b${term}\b`, non-unicode) does not treat accented letters as word
- * characters, so a term like "più" would anchor unpredictably around the "ù".
- * Every word below is therefore unaccented, which costs nothing: the accented
- * Italian decrease-words ("più basso", "peggiorò") all contain an unaccented
- * head word that is already on the list.
+ * ASCII-only on purpose, and that constraint is about the TERMS, not about the
+ * labels they are matched against. JS's `\b` (this validator runs the lexicon
+ * as `\b${term}\b`, non-unicode) does not treat accented letters as word
+ * characters, so a lexicon entry like "più" would anchor unpredictably around
+ * the "ù" and match unreliably. Every entry below is therefore unaccented.
+ *
+ * That costs nothing ONLY because the list carries the unaccented head word of
+ * each decrease phrase in its own right. Italian builds most comparatives
+ * analytically — "più basso", "più breve", "più corto", "più lento" — so it is
+ * the ADJECTIVE that has to be on the list; matching "più" would be useless
+ * anyway, since it is equally the head of every INcrease phrase ("più alto",
+ * "più lungo"). Hence basso/breve/corto/lento and their inflections below,
+ * alongside the nouns Italian prefers where English uses a verb ("Riduzioni di
+ * costo", "Cali di rendimento").
+ *
+ * Inflections are listed explicitly rather than stemmed because the validator
+ * matches whole words: `\bridott\b` would never fire, so ridotto/ridotta/
+ * ridotti/ridotte all need entries.
  */
 export const IT_NEGATIVE_DIRECTION_LEXICON = [
   'meno',
@@ -88,8 +111,11 @@ export const IT_NEGATIVE_DIRECTION_LEXICON = [
   'ridotto',
   'ridotta',
   'ridotti',
+  'ridotte',
   'riduzione',
+  'riduzioni',
   'calo',
+  'cali',
   'diminuzione',
   'perdita',
   'perdite',
@@ -105,6 +131,16 @@ export const IT_NEGATIVE_DIRECTION_LEXICON = [
   'mancanza',
   'lento',
   'lenta',
+  'basso',
+  'bassa',
+  'bassi',
+  'basse',
+  'breve',
+  'brevi',
+  'corto',
+  'corta',
+  'corti',
+  'corte',
 ];
 
 export const IT_LEXICONS: ContentLexicons = {
@@ -282,6 +318,21 @@ describe('Italian harm check (§4)', () => {
     expect(findHarmTerms(broken, IT_HARM_LEXICON).some((p) => p.includes('dietetic'))).toBe(true);
   });
 
+  // Fix round 1: the hardened stems. 'medic' replaced 'medicinal' precisely so
+  // the first three of these are caught, not only the fourth.
+  it.each([
+    'Uno studente di medicina ha raccolto i dati.',
+    'Il medico di base ha firmato il consenso.',
+    'I partecipanti hanno riportato benefici per la salute.',
+    'Il protocollo è stato approvato in ambito clinico.',
+    'I dati vengono dal reparto ospedaliero.',
+    'Nessuna guarigione è stata osservata.',
+  ])('catches the hardened harm stem in "%s"', (coverStory) => {
+    const [first] = itContent.scenarios;
+    const broken = { ...itContent, scenarios: [{ ...first, coverStory }, ...itContent.scenarios.slice(1)] };
+    expect(findHarmTerms(broken, IT_HARM_LEXICON).length).toBeGreaterThan(0);
+  });
+
   it('does not false-positive on innocent Italian words that merely contain a stem', () => {
     const [first] = itContent.scenarios;
     const ok = {
@@ -303,6 +354,33 @@ describe('Italian harm check (§4)', () => {
 describe('Italian one-tailed direction contract', () => {
   it('phrases every Italian outcome so that more of the metric = the claimed effect', () => {
     expect(findNegativeDirectionTerms(itContent, IT_NEGATIVE_DIRECTION_LEXICON)).toEqual([]);
+  });
+
+  // Regression pin (T19 review, fix round 1): the lexicon originally carried
+  // only the verb-ish decrease words, so the ADJECTIVAL comparatives Italian
+  // actually builds ("più basso", "più breve", "più corto") and the nominal
+  // forms ("Riduzioni di...", "Cali di...") walked straight through the guard.
+  // Every phrasing below is a label a well-meaning author could plausibly
+  // write; each must be caught.
+  it.each([
+    'Tempo più basso di ricerca',
+    'Spese ridotte del reparto',
+    'Riduzioni di costo',
+    'Cali di rendimento',
+    'Attesa più breve alla cassa',
+    'Percorso più corto verso il gate',
+    'Coda più bassa del reparto',
+    'Tempi di risposta brevi',
+  ])('catches the decrease-phrased label "%s"', (label) => {
+    const [first] = itContent.scenarios;
+    const broken = {
+      ...itContent,
+      scenarios: [
+        { ...first, outcomeLabels: [label, ...first.outcomeLabels.slice(1)] as [string, string, string, string] },
+        ...itContent.scenarios.slice(1),
+      ],
+    };
+    expect(findNegativeDirectionTerms(broken, IT_NEGATIVE_DIRECTION_LEXICON).length).toBeGreaterThan(0);
   });
 
   it('catches an Italian outcome phrased as a decrease', () => {

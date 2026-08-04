@@ -119,7 +119,7 @@ export const content: LocaleContent = {
       headline: 'Le felci in ufficio associate a contratti migliori di €{effect}mila',
       outcomeLabels: [
         "Valore strappato sopra l'offerta di partenza",
-        'Silenzio più lungo retto dopo una controproposta',
+        'Silenzio più lungo tenuto dopo una controproposta',
         'Concessioni ottenute per trattativa',
         'Durezza valutata dalla controparte',
       ],
@@ -131,7 +131,7 @@ export const content: LocaleContent = {
       id: 'cold-shower-emails',
       question: 'Le docce fredde rendono le tue email più passivo-aggressive?',
       coverStory:
-        'Alla doccia fredda del mattino vengono attribuiti concentrazione, tempra e carattere. Il suo effetto sulla posta in arrivo è del tutto inesplorato. Gli impiegati registrano ogni mattina la temperatura della doccia e acconsentono a far analizzare il tono di sei settimane di posta in uscita; le iscrizioni proseguono a ondate, per quanto lo consenta l\'impianto idraulico. I nostri codificatori sono ciechi alla condizione, e la frase "come da mia precedente email" viene segnalata in automatico, il che li risparmia parecchio.',
+        'Alla doccia fredda del mattino vengono attribuiti concentrazione, tempra e carattere. Il suo effetto sulla posta in arrivo è del tutto inesplorato. Gli impiegati registrano ogni mattina la temperatura della doccia e acconsentono a far analizzare il tono di sei settimane di posta in uscita; le iscrizioni proseguono a ondate, per quanto lo consenta l\'impianto idraulico. I nostri codificatori lavorano in cieco rispetto alla condizione, e la frase "come da mia precedente email" viene segnalata in automatico, il che li risparmia parecchio.',
       treatmentLabel: 'Fa docce fredde',
       headline: 'Docce fredde legate a un tono in posta più tagliente del {effect}%',
       outcomeLabels: [
@@ -148,7 +148,7 @@ export const content: LocaleContent = {
       id: 'horoscope-parking',
       question: "Chi legge l'oroscopo trova parcheggio più in fretta?",
       coverStory:
-        'La ricerca sulla mobilità urbana modella la ricerca del parcheggio come un processo razionale. Ci siamo chiesti se non sia invece un atto devozionale. Gli automobilisti installano un registratore che traccia ogni ricerca dall\'ingresso in strada allo spegnimento del motore e dichiarano le loro abitudini con le app del mattino; chi legge il proprio segno prima di mettersi alla guida viene confrontato con chi non lo fa. A nessuno dei due gruppi diciamo che cosa stiamo cercando. Due hanno indovinato lo stesso, e nessuno dei due era vicino.',
+        'La ricerca sulla mobilità urbana modella la ricerca del parcheggio come un processo razionale. Ci siamo chiesti se non sia invece un atto devozionale. Gli automobilisti installano un registratore che traccia ogni ricerca dall\'ingresso in strada allo spegnimento del motore e dichiarano le loro abitudini con le app del mattino; chi legge il proprio segno prima di mettersi alla guida viene confrontato con chi non lo fa. A nessuno dei due gruppi diciamo che cosa stiamo cercando. Due hanno tirato a indovinare lo stesso, e nessuno dei due c\'è andato vicino.',
       treatmentLabel: "Legge l'oroscopo ogni giorno",
       headline: "Chi legge l'oroscopo risparmia {effect} minuti a settimana per parcheggiare",
       outcomeLabels: [
@@ -219,7 +219,7 @@ export const content: LocaleContent = {
       id: 'label-maker-inbox',
       question: "Avere un'etichettatrice aiuta ad arrivare a inbox zero?",
       coverStory:
-        "La gestione delle informazioni personali è un campo ricco di tassonomie e povero di lavoro sul campo. Ai lavoratori della conoscenza facciamo una sola domanda di selezione (possiede un'etichettatrice?) e poi, con il loro consenso, strumentiamo il client di posta per un trimestre. Lo strumento conta soltanto metadati. Tre partecipanti ci hanno chiesto di confermarlo due volte; lo abbiamo confermato due volte, volentieri.",
+        "La gestione delle informazioni personali è un campo ricco di tassonomie e povero di lavoro sul campo. Ai lavoratori della conoscenza facciamo una sola domanda di selezione (possiede un'etichettatrice?) e poi, con il loro consenso, installiamo una sonda sul client di posta per un trimestre. La sonda conta soltanto metadati. Tre partecipanti ci hanno chiesto di confermarlo due volte; lo abbiamo confermato due volte, volentieri.",
       treatmentLabel: "Possiede un'etichettatrice",
       headline: "Chi ha un'etichettatrice smaltisce il {effect}% in più della posta ogni settimana",
       outcomeLabels: [
@@ -326,7 +326,7 @@ export const content: LocaleContent = {
       headline: 'Chi prende le scale ottiene il {effect}% in più di sintonia in ufficio',
       outcomeLabels: [
         "Punteggio di sintonia sopra la media dell'edificio",
-        'Scambio di chiacchiere più lungo retto',
+        'Scambio di chiacchiere più lungo sostenuto',
         'Conversazioni riprese in seguito',
         'Calore percepito dalla controparte',
       ],
@@ -361,7 +361,7 @@ export const content: LocaleContent = {
       // "eptacaidecafobia" is the real Italian word for fear of 17.
       question: 'Chi evita il numero 17 spunta mutui migliori?',
       coverStory:
-        "La finanza delle famiglie presume che chi si indebita ottimizzi e tratta la superstizione come rumore attorno a quell'ipotesi. Da mesi somministriamo a chi ha appena acceso un mutuo una batteria di preferenze numeriche quotidiane (piani saltati, date evitate, numeri civici rifiutati) e incrociamo il punteggio di eptacaidecafobia che ne esce con le condizioni che hanno davvero firmato. Il broker che quelle condizioni ce le procura ha chiesto di non essere nominato. Manda i suoi saluti.",
+        "La finanza delle famiglie presume che chi si indebita ottimizzi e tratta la superstizione come rumore attorno a quell'ipotesi. Da mesi somministriamo a chi ha appena acceso un mutuo una batteria di domande sulle preferenze numeriche di tutti i giorni (piani saltati, date evitate, numeri civici rifiutati) e incrociamo il punteggio di eptacaidecafobia che ne esce con le condizioni che hanno davvero firmato. Il broker che quelle condizioni ce le procura ha chiesto di non essere nominato. Manda i suoi saluti.",
       treatmentLabel: 'Evita il numero 17',
       headline: 'Chi evita il 17 strappa {effect} punti base sul mutuo',
       outcomeLabels: [
@@ -398,10 +398,16 @@ export const content: LocaleContent = {
   // contract (one bank rotates across all 20 scenarios), so nothing here may
   // name a cat, a fern or a marathon.
   //
-  // The satire is relocated into the Italian academy: il preside, l'agenzia di
-  // valutazione, la commissione di abilitazione, l'assegno di ricerca, and two
-  // barons who greet each other at conferences. Reviewer 2 stays Reviewer 2 —
-  // Italian academics say it in English, and the joke depends on that.
+  // The satire is relocated into the Italian academy: il preside, la domanda
+  // ERC, la commissione di abilitazione, l'assegno di ricerca, il rettore, and
+  // two barons who greet each other at conferences. Reviewer 2 stays Reviewer 2
+  // — Italian academics say it in English, and the joke depends on that.
+  //
+  // The pitch line names a FUNDER (the ERC call), never an assessment agency:
+  // ANVUR and its kin evaluate output and hand out no money, so pitching
+  // "alto rischio, alto guadagno" at one would be a joke about a body that
+  // cannot grant the wish. "Alto rischio, alto guadagno" is the ERC's own
+  // high-risk/high-gain formula, which is why Grantwell reaches for it.
   grantwell: [
     'Ricorda: un p-value di .06 è solo un p-value di .05 con una pessima gestione del tempo.',
     'Nota per l\'abstract: "preliminare" è una parola che possiamo aggiungere dopo la buona notizia, non prima.',
@@ -409,7 +415,7 @@ export const content: LocaleContent = {
     'La newsletter di dipartimento ha bisogno di una vittoria questo mese. Da stamattina alle nove, la vittoria sei tu.',
     'La dichiarazione di impatto scade prima dei risultati. Scrivila con ottimismo; i risultati li allineiamo dopo.',
     'Reviewer 2 vuole significatività entro venerdì. Il rinnovo dipende da questo. Credo in te (e non ho alternative).',
-    'All\'agenzia di valutazione ho detto che era "alto rischio, alto rendimento". Occupati della seconda parte.',
+    'Nella domanda ERC ho scritto che era "alto rischio, alto guadagno". Della seconda parte occupati tu.',
     'Ho liberato il pomeriggio per sentirmi dire che l\'ipotesi ha tenuto. Ti prego di non farmi liberare anche quello di domani.',
     'Due parole prima della tua discussione: "l\'effetto andava nella direzione attesa" è una frase compiuta. Usala.',
     'Questa ipotesi l\'ha scelta il te della triennale. La commissione di abilitazione non ha bisogno di saperlo.',
@@ -429,10 +435,15 @@ export const content: LocaleContent = {
 
   // Simulated press, watermarked STAMPA SIMULATA in the UI. Tier = egregiousness
   // of the published spec: tier 1 is credulous but sober, tier 2 is
-  // aggregator-grade, tier 3 is the chyron. The outlets are Italianised (the
-  // journals are not): "Rete Sottopancia" is named after the actual Italian TV
-  // term for a lower-third caption, and "Clickeria" puts a clickbait farm behind
-  // the same shop-sign suffix as a pizzeria.
+  // aggregator-grade, tier 3 is the chyron. The outlets are transcreated, not
+  // translated (the journals are not touched at all): "Rete Sottopancia" is
+  // named after the actual Italian TV term for a lower-third caption,
+  // "Clickeria" puts a clickbait farm behind the same shop-sign suffix as a
+  // pizzeria, and the two sober tier-1 mastheads are a provincial "Gazzetta"
+  // and a municipal "Bollettino" — the shapes Italian local print actually
+  // uses, where a "Ledger" or a "Public Record" would only have been an English
+  // naming tradition rendered word-for-word into a language that has no such
+  // papers.
   press: [
     {
       text: 'Gli scienziati lo dicono: il tuo gatto potrebbe essere il tuo miglior consulente finanziario.',
@@ -442,7 +453,7 @@ export const content: LocaleContent = {
     },
     {
       text: "I ricercatori definiscono l'effetto modesto. La parola non compare in nessun altro punto di questo articolo.",
-      outlet: 'Il Registro Settimanale',
+      outlet: 'La Gazzetta di Provincia',
       tier: 1,
     },
     {
@@ -452,17 +463,17 @@ export const content: LocaleContent = {
     },
     {
       text: 'Il risultato è preliminare. I ricercatori dicono che è esattamente per questo che conta.',
-      outlet: 'Cronaca Pubblica Settimanale',
+      outlet: 'Il Bollettino Civico',
       tier: 1,
     },
     {
       text: 'Sottoposto a revisione tra pari e pubblicato questa settimana: un legame che nessuno aveva pensato di cercare.',
-      outlet: 'Il Registro Settimanale',
+      outlet: 'La Gazzetta di Provincia',
       tier: 1,
     },
     {
       text: 'I ricercatori chiedono ulteriori studi, e ulteriori fondi per condurli.',
-      outlet: 'Cronaca Pubblica Settimanale',
+      outlet: 'Il Bollettino Civico',
       tier: 1,
     },
     { text: 'Lo strano trucco con cui gli statistici PUBBLICANO.', outlet: 'Lo Scroll Quotidiano', tier: 2 },
