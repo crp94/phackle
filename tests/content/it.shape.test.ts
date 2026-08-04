@@ -22,12 +22,12 @@ import { copy as enCopy } from '../../src/content/en/copy';
 import { getContent } from '../../src/content';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import {
-  PRESS_SPOILER_LEXICON,
   emDashDensity,
   findEmDashProblems,
   findHarmTerms,
   findMissingSpecKnobs,
   findNegativeDirectionTerms,
+  findPressSpoilerTerms,
   validateLocaleContent,
   type ContentLexicons,
 } from './shape.test';
@@ -146,29 +146,96 @@ export const IT_NEGATIVE_DIRECTION_LEXICON = [
 ];
 
 /**
- * The press spoiler law's vocabulary, Italian. **T39b MUST REPLACE THIS.**
+ * THE SPOILER LAW's vocabulary, in Italian (T39b). Replaces the English alias
+ * this file carried while the 24 T39a blurbs were still English placeholders:
+ * with real Italian in the bank, "ha replicato", "ritrattato" and "smentito"
+ * would have sailed past every English entry, and the guard would have been
+ * green by not understanding the question.
  *
- * Fix round 1 [I1] made `pressSpoilerTerms` a required field of
- * ContentLexicons and wired the press guards into the shared validator, so
- * every locale's press is now checked for verdict vocabulary rather than only
- * English's. Italian has no list of its own yet, and there is a precise reason
- * that is currently harmless: all 24 Italian T39a blurbs are still ENGLISH
- * placeholder text (see the debt tracker below), so the ENGLISH lexicon is
- * exactly the right one to run against them today.
+ * Matched at word-START by findPressSpoilerTerms, over blurb TEXT and OUTLET,
+ * case-insensitively — which is what lets a single lowercase stem also catch a
+ * shouting tier-3 chyron.
  *
- * The moment T39b writes real Italian, that stops being true — "ha replicato",
- * "ritrattato", "smentito" would sail straight past every entry here. So T39b
- * owns two jobs, not one: transcreate the 24 blurbs AND replace this alias with
- * real Italian stems, the same way IT_HARM_LEXICON is real Italian and not a
- * translation of the English list. The debt tracker below fails if the first
- * job is done without the second being possible to forget.
+ * STEMS, chosen for how Italian inflects:
+ *
+ *  - 'replic' rather than 'replicat', because Italian nominalises the verdict
+ *    ("la replica non è riuscita", "una replicazione indipendente") far more
+ *    readily than English does, and 'replicat' would miss "replicazione"
+ *    entirely (replica-Z-ione).
+ *  - 'smenti' rather than 'smentit', so it reaches the present tense
+ *    ("smentisce") as well as the participle.
+ *  - Single-word stems for confut/scredit/sbugiardat/smontat/ribaltat: the
+ *    five ways an Italian newsroom says a claim has been taken apart.
+ *
+ * PHRASES, where Italian carries the verdict analytically and no single stem
+ * would do: 'falso positivo'/'falsi positivi', 'risultato nullo'/'risultati
+ * nulli', 'effetto nullo', 'nessun effetto', 'effetto reale'/'effetto vero',
+ * 'sempre zero'. Both numbers are listed because `\b`-anchored matching is
+ * literal and Italian agreement changes the ending of every word in the noun
+ * phrase, not just the head.
+ *
+ * FOUR DELIBERATE EXCLUSIONS. The first is MEASURED: 'conferm' fires on two
+ * blurbs this bank ships today, so a lexicon carrying it would fail on approved
+ * content. The other three are prospective — nothing in the corpus trips them
+ * yet, and each is the collision the LANGUAGE invites rather than one already
+ * present, which is why each has an explicit negative case at the bottom of
+ * this file rather than a promise in a comment:
+ *
+ *  1. 'conferm' (2 hits today). The carve-out the English lexicon documents,
+ *     for the same reason: "Gli scienziati hanno finalmente confermato quello che il tuo
+ *     gruppo WhatsApp sospettava da sempre" is Act I credulity about the paper
+ *     the PLAYER just published, not a claim about the game's ground truth. A
+ *     lexicon that could not tell those apart would ban the bank's best joke to
+ *     catch nothing.
+ *  2. 'casual'/'a caso'. This is RANDOMISATION vocabulary in Italian
+ *     ("assegnati a caso", "campione casuale"), i.e. method, which the spoiler
+ *     law explicitly permits. 'fortuit' covers the fluke sense ("caso
+ *     fortuito") without colliding with it.
+ *  3. 'ha tenuto'. The obvious rendering of EN's 'held up' — and unusable,
+ *     because `tenere` is Italian's ordinary verb for KEEPING something: the
+ *     fern scenario's own treatment is "Tiene una felce sulla scrivania", so a
+ *     blurb saying a buyer "ha tenuto la felce per un intero ciclo" would trip
+ *     a verdict guard on a sentence about a plant. 'ha retto' and 'non regge'
+ *     carry the same verdict with no such collision.
+ *  4. 'ritir' (the broad stem). Narrowed to the participle 'ritirat', because
+ *     "il ritiro"/"ritirare" are what a marathon runner does — and this bank
+ *     covers a marathon. Residual risk accepted and stated: "i due partecipanti
+ *     si sono ritirati" WOULD fire. Nothing in the corpus says it, and §4's
+ *     posture is that the guard would rather stop an author writing that than
+ *     let "lo studio è stato ritirato" through.
  */
-export const IT_PRESS_SPOILER_LEXICON_PENDING_T39B = PRESS_SPOILER_LEXICON;
+export const IT_PRESS_SPOILER_LEXICON = [
+  'replic',
+  'ritratt',
+  'ritirat',
+  'smenti',
+  'confut',
+  'scredit',
+  'sbugiardat',
+  'smontat',
+  'ribaltat',
+  'bufal',
+  'frod',
+  'fake',
+  'fortuit',
+  'p-hack',
+  'falso positivo',
+  'falsi positivi',
+  'risultato nullo',
+  'risultati nulli',
+  'effetto nullo',
+  'nessun effetto',
+  'effetto reale',
+  'effetto vero',
+  'sempre zero',
+  'ha retto',
+  'non regge',
+];
 
 export const IT_LEXICONS: ContentLexicons = {
   harmTerms: IT_HARM_LEXICON,
   directionTerms: IT_NEGATIVE_DIRECTION_LEXICON,
-  pressSpoilerTerms: IT_PRESS_SPOILER_LEXICON_PENDING_T39B,
+  pressSpoilerTerms: IT_PRESS_SPOILER_LEXICON,
 };
 
 const enIds = enContent.scenarios.map((s) => s.id);
@@ -231,46 +298,49 @@ describe('Italian locale content', () => {
   });
 
   /**
-   * T39a's DECLARED TRANSCREATION DEBT, and the mechanism that keeps it from
-   * becoming permanent.
+   * T39a's DECLARED TRANSCREATION DEBT, now PAID (T39b), and the same test
+   * standing guard over the fact.
    *
-   * T39a added 24 scenario-bound blurbs to the English bank. Structural press
-   * parity is a law of this suite (identical counts, tiers and scenarioIds
-   * index by index), and a law is not something a task gets to suspend for its
-   * own convenience — so the Italian entries exist NOW, with this locale's own
-   * mastheads already mapped in, and only their `text` still English. T39b
-   * transcreates them.
+   * T39a added 24 scenario-bound blurbs to the English bank and, because
+   * structural press parity is a law of this suite (identical counts, tiers and
+   * scenarioIds index by index), shipped the Italian entries immediately with
+   * their mastheads mapped and their `text` still English. This test pinned
+   * that set of 24 indices so the debt was DATA rather than a comment anyone
+   * could forget, and it failed in BOTH directions: translate one without
+   * shortening the list -> fail; add a 25th English-aliased blurb -> fail.
    *
-   * The debt is therefore DATA, not a comment: an aliased blurb is exactly one
-   * whose Italian text is byte-identical to the English at the same index, and
-   * this test pins that set to the list below. It fails in BOTH directions,
-   * which is the property that makes it a tracker rather than a licence:
-   *
-   *   - T39b translates a blurb and forgets to shorten the list -> fail.
-   *   - Someone adds a 25th English-aliased blurb -> fail.
-   *   - T39b finishes the job -> the list is emptied and the test asserts, from
-   *     then on, that NO Italian blurb is ever left in English again.
-   *
-   * The list must only ever shrink. Note also what it proves about today: no
-   * blurb OUTSIDE it coincides with its English counterpart, so the pre-T39a
-   * bank is fully transcreated and this is the whole of the debt.
+   * T39b transcreated all 24, so the list is EMPTY, and the assertion has
+   * turned into the permanent one it was always designed to become: no Italian
+   * press blurb may ever again be byte-identical to its English counterpart.
+   * The list only ever shrank, and there is nothing left in it to shrink.
    */
-  it('declares exactly the T39a press blurbs still awaiting transcreation, and no others', () => {
-    const PENDING_T39B_PRESS = [
-      6, 7, 8, 9, 10, 11, 12, // tier 1
-      20, 21, 22, 23, 24, 25, 26, 27, 28, // tier 2
-      37, 38, 39, 40, 41, 42, 43, 44, // tier 3
-    ];
+  it('leaves no press blurb in English: every Italian text differs from its English counterpart', () => {
     const aliased = itContent.press.flatMap((blurb, i) => (blurb.text === enContent.press[i].text ? [i] : []));
-    expect(aliased).toEqual(PENDING_T39B_PRESS);
+    expect(aliased).toEqual([]);
   });
 
-  it('keeps the outlet mastheads Italian even where the blurb text is still pending', () => {
-    // The placeholders are half-done on purpose: the masthead is the part this
-    // locale had already decided, so T39b has one job per entry, not two.
+  it('keeps the outlet mastheads Italian too, not only the blurb text', () => {
     for (const [i, blurb] of itContent.press.entries()) {
       expect(blurb.outlet, `press[${i}] outlet`).not.toBe(enContent.press[i].outlet);
     }
+  });
+
+  /**
+   * T39b's own coverage check on the transcreation: a blurb that named the
+   * ENGLISH scenario's furniture would pass every mechanical guard in this file
+   * and still read as a translation. These are the three places where the
+   * Italian scenarios diverge hardest from their English sources, so they are
+   * the three the press has to follow.
+   */
+  it('reuses the ITALIAN scenarios\' furniture, not the English source\'s', () => {
+    const texts = itContent.press.map((p) => p.text).join(' ');
+    // thirteen-mortgage relocates the superstition to 17 (eptacaidecafobia).
+    expect(texts).toContain('eptacaidecafobia');
+    expect(texts).not.toMatch(/\bnumero 13\b/);
+    // standing-desk-poetry's cover story promises the endecasillabo.
+    expect(texts).toContain('ENDECASILLABO');
+    // cafe-peer-review happens at the bar, so the pastry is a cornetto.
+    expect(texts).toContain('CORNETTO');
   });
 
   it('translates every achievement, under the same ids', () => {
@@ -499,6 +569,70 @@ describe('Italian one-tailed direction contract', () => {
       ],
     };
     expect(findNegativeDirectionTerms(ok, IT_NEGATIVE_DIRECTION_LEXICON)).toEqual([]);
+  });
+});
+
+describe('Italian press spoiler law (T39a\'s law, scanned in Italian since T39b)', () => {
+  it('asserts no verdict anywhere in the Italian bank, bespoke or generic', () => {
+    expect(findPressSpoilerTerms(itContent, IT_PRESS_SPOILER_LEXICON)).toEqual([]);
+  });
+
+  // Every line below is one an Italian writer could plausibly reach for on a
+  // day the effect happens to be real, and every one of them would hand the
+  // player the verdict one screen early. Each must be caught.
+  it.each([
+    'Lo studio ha replicato in tre laboratori indipendenti.',
+    'Una replicazione indipendente è già in corso.',
+    "L'articolo è stato ritrattato ieri sera.",
+    'Lo studio è stato ritirato dalla rivista.',
+    'La tesi è stata smentita in poche ore.',
+    'I dati smentiscono gli autori.',
+    "L'ipotesi è stata confutata da un gruppo rivale.",
+    'Il risultato è stato screditato dagli esperti.',
+    'Gli autori sono stati sbugiardati dai numeri.',
+    'La tesi è stata smontata pezzo per pezzo.',
+    'Il verdetto è stato ribaltato in appello statistico.',
+    'Per gli esperti si tratta di una bufala.',
+    'Si parla apertamente di frode.',
+    'Gli esperti lo chiamano fake news.',
+    'Un caso fortuito, dicono ora i critici.',
+    'Un esempio da manuale di p-hacking.',
+    'Era un falso positivo.',
+    'Sono falsi positivi, sostengono i critici.',
+    'Un risultato nullo, alla fine.',
+    'Erano risultati nulli.',
+    'Effetto nullo, dicono gli autori.',
+    'Nessun effetto è stato osservato.',
+    "L'effetto reale era un altro.",
+    "L'effetto vero non c'era.",
+    'Era sempre zero, e lo sapevano.',
+    "L'ipotesi non ha retto alla verifica.",
+    'La conclusione non regge.',
+  ])('catches the Italian verdict in "%s"', (text) => {
+    const broken = { ...itContent, press: [{ ...itContent.press[1], text }, ...itContent.press.slice(1)] };
+    expect(findPressSpoilerTerms(broken, IT_PRESS_SPOILER_LEXICON).length).toBeGreaterThan(0);
+  });
+
+  // The four documented exclusions, asserted rather than only described. Each
+  // of these sentences is Act I credulity or plain method vocabulary, and a
+  // lexicon that fired on any of them would be banning the bank's own material.
+  it.each([
+    'Gli scienziati hanno finalmente confermato quello che sospettavi.',
+    'I partecipanti sono stati assegnati a caso ai due gruppi.',
+    'Il campione casuale copre tre città.',
+    'Ogni responsabile acquisti ha tenuto la felce per un intero ciclo di gare.',
+    'Il maratoneta si ritira sempre al trentesimo chilometro.',
+  ])('does not fire on the permitted register in "%s"', (text) => {
+    const ok = { ...itContent, press: [{ ...itContent.press[1], text }, ...itContent.press.slice(1)] };
+    expect(findPressSpoilerTerms(ok, IT_PRESS_SPOILER_LEXICON)).toEqual([]);
+  });
+
+  it('is wired into the validator through IT_LEXICONS, not only into this block', () => {
+    const broken = {
+      ...itContent,
+      press: [{ ...itContent.press[1], text: 'Lo studio è stato ritrattato.' }, ...itContent.press.slice(1)],
+    };
+    expect(validateLocaleContent(broken, IT_LEXICONS, enIds).some((p) => p.includes('asserts a verdict'))).toBe(true);
   });
 });
 

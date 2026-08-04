@@ -24,10 +24,10 @@ import { JOURNALS } from '../../src/content/journals';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import type { ContentLexicons } from './shape.test';
 import {
-  PRESS_SPOILER_LEXICON,
   emDashDensity,
   findEmDashProblems,
   findMissingSpecKnobs,
+  findPressSpoilerTerms,
   validateLocaleContent,
 } from './shape.test';
 
@@ -123,29 +123,96 @@ export const NEGATIVE_DIRECTION_LEXICON_ES = [
 ];
 
 /**
- * The press spoiler law's vocabulary, Spanish. **T39b MUST REPLACE THIS.**
+ * THE SPOILER LAW's vocabulary, in Spanish (T39b). Replaces the English alias
+ * this file carried while the 24 T39a blurbs were still English placeholders:
+ * with real Spanish in the bank, "replicó", "retractado" and "desmentido"
+ * would have sailed past every English entry, and the guard would have been
+ * green by not understanding the question.
  *
- * Fix round 1 [I1] made `pressSpoilerTerms` a required field of
- * ContentLexicons and wired the press guards into the shared validator, so
- * every locale's press is now checked for verdict vocabulary rather than only
- * English's. Spanish has no list of its own yet, and there is a precise reason
- * that is currently harmless: all 24 Spanish T39a blurbs are still ENGLISH
- * placeholder text (see the debt tracker below), so the ENGLISH lexicon is
- * exactly the right one to run against them today.
+ * Matched at word-START by findPressSpoilerTerms, over blurb TEXT and OUTLET,
+ * case-insensitively — which is what lets a single lowercase stem also catch a
+ * shouting tier-3 rótulo.
  *
- * The moment T39b writes real Spanish, that stops being true — "replicó",
- * "retractado", "desmentido" would sail straight past every entry here. So T39b
- * owns two jobs, not one: transcreate the 24 blurbs AND replace this alias with
- * real Spanish stems, the same way HARM_LEXICON_ES is real Spanish and not a
- * translation of the English list. The debt tracker below fails if the first
- * job is done without the second being possible to forget.
+ * STEMS, chosen for how Spanish inflects — and for where the ACCENT breaks the
+ * stem, which is the trap this language sets:
+ *
+ *  - 'replic' catches replicado / replicación / replicó (the final "ó" is past
+ *    the stem, so it is caught), but CANNOT catch "réplica": the accent sits
+ *    inside the stem itself and `\breplic` never matches r-é-p-l-i-c. Hence the
+ *    separate 'réplic' entry. The same logic would apply to any future stem
+ *    whose first syllable can take a tilde.
+ *  - 'desmenti' + 'desmient': Spanish is stem-changing here (desmentido vs
+ *    desmiente), so one entry cannot reach both forms. Both are listed.
+ *  - 'retract' / 'desacredit' / 'refut' / 'desmontad' / 'amañad': the five
+ *    ways a Spanish newsroom says a claim has been taken apart.
+ *
+ * PHRASES, where Spanish carries the verdict analytically: 'falso positivo'
+ * (+ plural), 'resultado nulo' (+ plural), 'efecto nulo', 'ningún efecto'
+ * (with its accent-stripped twin, since matching is literal), 'efecto real',
+ * 'siempre cero', 'se sostiene' / 'se sostuvo'.
+ *
+ * FOUR DELIBERATE EXCLUSIONS. Two are MEASURED against the bank as it ships:
+ * 'confirm' fires on two blurbs and 'verdad' on one, so a lexicon carrying
+ * either would fail on approved content. The other two are prospective —
+ * nothing trips them yet, and each is the collision the LANGUAGE invites rather
+ * than one already present, which is why each has an explicit negative case at
+ * the bottom of this file rather than a promise in a comment:
+ *
+ *  1. 'confirm' (2 hits today). The carve-out the English lexicon documents,
+ *     for the same reason: "La ciencia confirma por fin lo que tu grupo de
+ *     WhatsApp ya sospechaba" is Act I credulity about the paper the PLAYER
+ *     just published, not a claim about the game's ground truth.
+ *  2. 'verdad' (1 hit today). "El número cuatro está en una revista de verdad"
+ *     is a tier-2 joke about the JOURNAL, not a claim about the finding.
+ *  3. 'azar' / 'aleator'. RANDOMISATION vocabulary ("asignados al azar",
+ *     "muestra aleatoria"), i.e. method, which the spoiler law explicitly
+ *     permits. 'chiripa' covers the fluke sense with no such collision.
+ *  4. 'sostien'. The bare stem is Spanish's ordinary verb for MAINTAINING a
+ *     claim: the dog-economist cover story opens "El folclore de la inversión
+ *     minorista sostiene que...", so a blurb reporting what the authors
+ *     maintain would trip a verdict guard on a sentence that asserts nothing.
+ *     The reflexive 'se sostiene' / 'se sostuvo' carry the verdict and nothing
+ *     else.
+ *
+ * Residual risk accepted and stated, the same way HARM_LEXICON_ES accepts
+ * 'cura': 'retirad' would fire on "los corredores retirados en el kilómetro
+ * 30", and this bank covers a marathon. Nothing in the corpus says it, and the
+ * policy would rather stop an author writing that than let "el estudio ha sido
+ * retirado" through.
  */
-export const ES_PRESS_SPOILER_LEXICON_PENDING_T39B = PRESS_SPOILER_LEXICON;
+export const ES_PRESS_SPOILER_LEXICON = [
+  'replic',
+  'réplic',
+  'retract',
+  'retirad',
+  'desmenti',
+  'desmient',
+  'desmontad',
+  'refut',
+  'desacredit',
+  'amañad',
+  'bulo',
+  'fraud',
+  'fake',
+  'chiripa',
+  'p-hack',
+  'falso positivo',
+  'falsos positivos',
+  'resultado nulo',
+  'resultados nulos',
+  'efecto nulo',
+  'ningún efecto',
+  'ningun efecto',
+  'efecto real',
+  'siempre cero',
+  'se sostiene',
+  'se sostuvo',
+];
 
 export const ES_LEXICONS: ContentLexicons = {
   harmTerms: HARM_LEXICON_ES,
   directionTerms: NEGATIVE_DIRECTION_LEXICON_ES,
-  pressSpoilerTerms: ES_PRESS_SPOILER_LEXICON_PENDING_T39B,
+  pressSpoilerTerms: ES_PRESS_SPOILER_LEXICON,
 };
 
 const enIds = enContent.scenarios.map((s) => s.id);
@@ -181,46 +248,48 @@ describe('Spanish locale — structural parity with English', () => {
   });
 
   /**
-   * T39a's DECLARED TRANSCREATION DEBT, and the mechanism that keeps it from
-   * becoming permanent.
+   * T39a's DECLARED TRANSCREATION DEBT, now PAID (T39b), and the same test
+   * standing guard over the fact.
    *
-   * T39a added 24 scenario-bound blurbs to the English bank. Structural press
-   * parity is a law of this suite (identical counts, tiers and scenarioIds
-   * index by index), and a law is not something a task gets to suspend for its
-   * own convenience — so the Spanish entries exist NOW, with this locale's own
-   * cabeceras already mapped in, and only their `text` still English. T39b
-   * transcreates them.
+   * T39a added 24 scenario-bound blurbs to the English bank and, because
+   * structural press parity is a law of this suite (identical counts, tiers and
+   * scenarioIds index by index), shipped the Spanish entries immediately with
+   * their cabeceras mapped and their `text` still English. This test pinned
+   * that set of 24 indices so the debt was DATA rather than a comment anyone
+   * could forget, and it failed in BOTH directions: translate one without
+   * shortening the list -> fail; add a 25th English-aliased blurb -> fail.
    *
-   * The debt is therefore DATA, not a comment: an aliased blurb is exactly one
-   * whose Spanish text is byte-identical to the English at the same index, and
-   * this test pins that set to the list below. It fails in BOTH directions,
-   * which is the property that makes it a tracker rather than a licence:
-   *
-   *   - T39b translates a blurb and forgets to shorten the list -> fail.
-   *   - Someone adds a 25th English-aliased blurb -> fail.
-   *   - T39b finishes the job -> the list is emptied and the test asserts, from
-   *     then on, that NO Spanish blurb is ever left in English again.
-   *
-   * The list must only ever shrink. Note also what it proves about today: no
-   * blurb OUTSIDE it coincides with its English counterpart, so the pre-T39a
-   * bank is fully transcreated and this is the whole of the debt.
+   * T39b transcreated all 24, so the list is EMPTY, and the assertion has
+   * turned into the permanent one it was always designed to become: no Spanish
+   * press blurb may ever again be byte-identical to its English counterpart.
+   * The list only ever shrank, and there is nothing left in it to shrink.
    */
-  it('declares exactly the T39a press blurbs still awaiting transcreation, and no others', () => {
-    const PENDING_T39B_PRESS = [
-      6, 7, 8, 9, 10, 11, 12, // tier 1
-      20, 21, 22, 23, 24, 25, 26, 27, 28, // tier 2
-      37, 38, 39, 40, 41, 42, 43, 44, // tier 3
-    ];
+  it('leaves no press blurb in English: every Spanish text differs from its English counterpart', () => {
     const aliased = esContent.press.flatMap((blurb, i) => (blurb.text === enContent.press[i].text ? [i] : []));
-    expect(aliased).toEqual(PENDING_T39B_PRESS);
+    expect(aliased).toEqual([]);
   });
 
-  it('keeps the outlet cabeceras Spanish even where the blurb text is still pending', () => {
-    // The placeholders are half-done on purpose: the masthead is the part this
-    // locale had already decided, so T39b has one job per entry, not two.
+  it('keeps the outlet cabeceras Spanish too, not only the blurb text', () => {
     for (const [i, es] of esContent.press.entries()) {
       expect(es.outlet, `press[${i}] outlet`).not.toBe(enContent.press[i].outlet);
     }
+  });
+
+  /**
+   * T39b's own coverage check on the transcreation: a blurb that named the
+   * ENGLISH scenario's furniture would pass every mechanical guard in this file
+   * and still read as a translation. These are the places where the Spanish
+   * scenarios put something of their own on the table, so they are the ones the
+   * press has to pick up.
+   */
+  it('reuses the SPANISH scenarios\' furniture, not the English source\'s', () => {
+    const texts = esContent.press.map((p) => p.text).join(' ');
+    // thirteen-mortgage keeps 13 here (martes 13), under the Spanish coinage.
+    expect(texts).toContain('triscaidecafobia');
+    // standing-desk-poetry's cover story promises the endecasílabo.
+    expect(texts).toContain('ENDECASÍLABO');
+    // cafe-peer-review happens in a cafetería, so the pastry is a napolitana.
+    expect(texts).toContain('NAPOLITANA');
   });
 
   it('defines exactly the English achievement ids', () => {
@@ -318,6 +387,68 @@ describe('Spanish non-translation rules', () => {
 
   it('keeps Reviewer 2 as Reviewer 2 in the Grantwell bank', () => {
     expect(esContent.grantwell.some((g) => g.includes('Reviewer 2'))).toBe(true);
+  });
+});
+
+describe('Spanish press spoiler law (T39a\'s law, scanned in Spanish since T39b)', () => {
+  it('asserts no verdict anywhere in the Spanish bank, bespoke or generic', () => {
+    expect(findPressSpoilerTerms(esContent, ES_PRESS_SPOILER_LEXICON)).toEqual([]);
+  });
+
+  // Every line below is one a Spanish writer could plausibly reach for on a day
+  // the effect happens to be real, and every one of them would hand the player
+  // the verdict one screen early. Each must be caught.
+  it.each([
+    'El resultado se ha replicado en tres laboratorios.',
+    'La réplica independiente ya está en marcha.',
+    'El artículo fue retractado anoche.',
+    'La revista ha retirado el estudio.',
+    'La tesis quedó desmentida en unas horas.',
+    'Los datos desmienten a los autores.',
+    'El argumento queda desmontado punto por punto.',
+    'La hipótesis ha sido refutada por un grupo rival.',
+    'El hallazgo ha quedado desacreditado.',
+    'Hay quien habla de un estudio amañado.',
+    'Los expertos lo califican de bulo.',
+    'Se habla abiertamente de fraude.',
+    'Los expertos lo llaman fake news.',
+    'Pura chiripa, dicen ahora los críticos.',
+    'Un ejemplo de manual de p-hacking.',
+    'Era un falso positivo.',
+    'Son falsos positivos, sostienen los críticos.',
+    'Un resultado nulo, al final.',
+    'Eran resultados nulos.',
+    'Efecto nulo, dicen los autores.',
+    'No se observó ningún efecto.',
+    'El efecto real era otro.',
+    'Siempre cero, y lo sabían.',
+    'La hipótesis no se sostiene.',
+    'La conclusión no se sostuvo ni una semana.',
+  ])('catches the Spanish verdict in "%s"', (text) => {
+    const broken = { ...esContent, press: [{ ...esContent.press[1], text }, ...esContent.press.slice(1)] };
+    expect(findPressSpoilerTerms(broken, ES_PRESS_SPOILER_LEXICON).length).toBeGreaterThan(0);
+  });
+
+  // The four documented exclusions, asserted rather than only described. Each
+  // of these sentences is Act I credulity or plain method vocabulary, and a
+  // lexicon that fired on any of them would be banning the bank's own material.
+  it.each([
+    'La ciencia confirma por fin lo que ya sospechabas.',
+    'Los participantes fueron asignados al azar a los dos grupos.',
+    'La muestra aleatoria cubre tres ciudades.',
+    'Los autores sostienen que el efecto es modesto.',
+    'El número cuatro está en una revista de verdad.',
+  ])('does not fire on the permitted register in "%s"', (text) => {
+    const ok = { ...esContent, press: [{ ...esContent.press[1], text }, ...esContent.press.slice(1)] };
+    expect(findPressSpoilerTerms(ok, ES_PRESS_SPOILER_LEXICON)).toEqual([]);
+  });
+
+  it('is wired into the validator through ES_LEXICONS, not only into this block', () => {
+    const broken = {
+      ...esContent,
+      press: [{ ...esContent.press[1], text: 'El estudio ha sido retractado.' }, ...esContent.press.slice(1)],
+    };
+    expect(validateLocaleContent(broken, ES_LEXICONS, enIds).some((p) => p.includes('asserts a verdict'))).toBe(true);
   });
 });
 
