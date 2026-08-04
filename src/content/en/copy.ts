@@ -373,9 +373,13 @@ export const copy: Record<CopyKey, string> = {
   'nav.localeNameEn': 'English',
   'nav.localeNameIt': 'Italiano',
   'nav.localeNameEs': 'Español',
-  // T37 (audit §5.10): STATE, not action. These two label the segmented theme
-  // control (App.tsx's ThemeToggle) with the theme each option puts you in --
-  // the button shows a theme, it does not command a change.
+  // T37 (audit §5.10, corrected for T33's control): these are the two OPTIONS
+  // of a segmented theme control (App.tsx's ThemeToggle), one button each,
+  // both on screen at once with `aria-pressed` marking the live one. They name
+  // a theme, exactly as call.real/call.noise name a claim: option labels,
+  // never verbified. (The audit described the pre-T33 single flip-flop button
+  // and said "the button shows the theme you are in"; that button is gone, and
+  // the instruction that survives it is this one.)
   'nav.themePaper': 'Paper',
   'nav.themeDark': 'Dark',
 
@@ -589,9 +593,26 @@ export const copy: Record<CopyKey, string> = {
   // T37 (audit §5.3) — STANDING PLURAL-SAFETY NOTE for every counting token
   // in this catalog. `published.altmetricScore` already carried one; these
   // four keys did not, and English itself was WRONG AT 1 in all of them
-  // ("You explored 1 paths", "Your 1 data-peeks", "1 forks"). Fixed below by
-  // the two forms that agree at every value: label-colon-count, and a
-  // parenthesised count after a number-neutral noun phrase.
+  // ("You explored 1 paths", "Your 1 data-peeks", "1 forks").
+  //
+  // A string is only safe if it reads correctly at its token's FLOOR, not
+  // merely at the value you happened to test with. Three forms get there, and
+  // the fix below uses each where it fits:
+  //
+  //   a. PARTITIVE / ANAPHORIC: "{k} of them". The count quantifies a set
+  //      named elsewhere, so nothing after it has to agree. Used by
+  //      reveal.accounting2/2Abandoned/3 (see the antecedent note below).
+  //   b. SINGULAR HEAD NOUN: "Your data-peeking ({peeks}×) makes …". The
+  //      subject is a mass noun, so the verb never has to switch. Used by
+  //      reveal.peekSurcharge.
+  //   c. LABEL-COLON-COUNT: "Forks: {forks}". No grammar downstream of the
+  //      colon at all. Used by stats.forkHistogramBar and, in the locales,
+  //      summary.streak and the accounting lines.
+  //
+  // What does NOT work, and was tried: a bare parenthesised count after a
+  // plural head noun ("Your data-peeks (1) make …") keeps the plural verb and
+  // the plural noun, and "({peeks} times)" just relocates the defect to
+  // "1 times".
   //
   // The real floor of every counting token, so no locale has to guess:
   //   {k}      (accounting2/2Abandoned/3)  >= 1  -- playerExplored is
@@ -605,21 +626,36 @@ export const copy: Record<CopyKey, string> = {
   //   {n}      (published.altmetricScore)  >= 40 -- the tier-1 floor.
   //   {n}      (reveal.omittedFootnote)    >= 1  -- rendered only when > 0.
   //   {total}/{sig} (accounting1)          {sig} may legitimately be 0.
-  //   share.forksWord is pluralized by nothing at all: the share grid reads
-  //   "{n} forks", and n can be 0 or 1. Choose a number-neutral word.
+  //   share.forksWord/share.streakWord: the share grid used to read
+  //   "{n} forks", with n as low as 0 or 1 and no way to inflect the noun.
+  //   Fixed at the SITE (share.ts's line 3, form c) rather than in the word,
+  //   because the string leaves the app; see share.ts's §2.9 deviation note.
   //
   // A locale whose agreement rules differ from English must check the floor
   // above rather than assume the English form is safe.
   // ------------------------------------------------------------------
   'reveal.accounting1': 'Of {total} possible analyses, {sig} ({sigPct}%) reach p < .05 by chance alone.',
-  'reveal.accounting2': 'Paths you explored before publishing: {k}.',
-  'reveal.accounting2Abandoned': 'Paths you explored before reporting a null result: {k}.',
+  // ANAPHORA, load-bearing: "them" refers back to accounting1's "{total}
+  // possible analyses", which Reveal.tsx always renders immediately above
+  // (block "accounting", first <p>). That is what makes "{k} of them"
+  // grammatical at 1 AND at 14 -- a partitive takes no agreement with the
+  // count. Do not reorder these three statements, and do not translate this
+  // pronoun into a locale where it would have no antecedent: IT/ES restate
+  // the noun instead, which is equally correct and their own idiom.
+  'reveal.accounting2': 'You explored {k} of them before publishing.',
+  'reveal.accounting2Abandoned': 'You explored {k} of them before reporting a null result.',
   'reveal.accounting3':
-    'A researcher randomly exploring that many paths ({k}) finds at least one "significant" result about {pHitPct}% of the time.',
+    'A researcher randomly exploring {k} of them finds at least one "significant" result about {pHitPct}% of the time.',
   // §3.7's honest form: m peeks make the true number of analyses ≈ (m+1)×
   // larger. Not 5^m, and not a scolding.
+  // Plural safety by SINGULAR HEAD NOUN: "data-peeking … makes". The old
+  // "Your {peeks} data-peeks make" said "Your 1 data-peeks make" on every
+  // single-peek day, which is the commonest day this line renders at all.
+  // "({peeks} times)" would only move the defect ("1 times"); the multiplier
+  // idiom this sentence already ends on carries the count instead, and sets
+  // the two figures side by side: peeked 3×, so 4× the analyses.
   'reveal.peekSurcharge':
-    'Your data-peeks ({peeks}) make the true number of analyses roughly {mult}× larger than this curve shows.',
+    'Your data-peeking ({peeks}×) makes the true number of analyses roughly {mult}× larger than this curve shows.',
 
   // §7.4 recipe vocabulary — compact by design; see the CopyKey union above.
   'reveal.subgroupAll': 'Everyone',
@@ -654,8 +690,13 @@ export const copy: Record<CopyKey, string> = {
 
   // §2.9 share-string human words (the emoji grid, puzzle number and URL stay
   // identical across locales — only these two words are ever localized).
-  'share.forksWord': 'forks',
-  'share.streakWord': 'streak',
+  // T37 fix round 1: LABELS now, not nouns in a counted phrase. Line 3 reads
+  // "Forks: 3 · Streak: 7" (see share.ts's §2.9 deviation note for the ruling
+  // and why it was necessary). Capitalized for label position, and no longer
+  // required to survive being preceded by a bare "1" — which is what
+  // "1 forks" was, in a string that gets pasted into other people's feeds.
+  'share.forksWord': 'Forks',
+  'share.streakWord': 'Streak',
 
   'summary.score': 'Score: {score}',
   // T37 (audit §5.8): ACTION. 'Share' is a noun/verb homograph in English and

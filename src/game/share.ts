@@ -139,10 +139,31 @@ export interface ShareStringInput {
  *   2. the emoji trail (see buildTrail), plus " → ⚖️✅"/" → ⚖️❌" iff a call
  *      was actually made (callCorrect !== null) — omitted entirely for
  *      Prereg Mode, which never calls.
- *   3. "{forks} {forksWord} · {streakWord} {streak}" — the only localized
+ *   3. "{forksWord}: {forks} · {streakWord}: {streak}" — the only localized
  *      human words; forks is derived from the SAME log via countForks, never
  *      passed in separately, so it can never drift from the trail above.
  *   4. SITE_URL, identical across locales.
+ *
+ * DOCUMENTED DEVIATION FROM MASTER SPEC §2.9 (T37 fix round 1, controller
+ * ruling). §2.9 composes line 3 as "{forks} {forksWord} · {streakWord}
+ * {streak}" — a bare count in front of a bare noun. That is an English
+ * assumption about agreement, and it is wrong in English too: at one fork the
+ * line reads "1 forks", and in the shipped locales "1 biforcazioni" /
+ * "1 bifurcaciones". A one-fork day is not exotic (publishing the default
+ * specification is exactly one), and unlike every other count in the product
+ * this string LEAVES THE APP: it is pasted into other people's timelines,
+ * where nobody can see the version that would have been correct.
+ *
+ * The ruling amends the layout to the label-colon-count form, which is
+ * grammar-neutral at every value in every locale because no word downstream
+ * of the colon has to agree with the number: "Forks: 3 · Streak: 7",
+ * "Biforcazioni: 1 · Serie: 7", "Bifurcaciones: 1 · Racha: 7". The four
+ * localized words are capitalized to sit in label position.
+ *
+ * WHAT THIS DOES NOT TOUCH: the spoiler property. Line 3 still takes only
+ * `forks` (from the log) and `streak` (from the store) — no day type, no
+ * stamp, no call direction, exactly as before. The rearrangement is
+ * typographic; tests/game/share.test.ts's property test is unchanged.
  */
 export function shareString(i: ShareStringInput): string {
   const forks = countForks(i.log);
@@ -151,7 +172,7 @@ export function shareString(i: ShareStringInput): string {
 
   const line1 = `P-hackle #${i.puzzleNumber}`;
   const line2 = `${trail}${suffix}`;
-  const line3 = `${forks} ${i.copy['share.forksWord']} · ${i.copy['share.streakWord']} ${i.streak}`;
+  const line3 = `${i.copy['share.forksWord']}: ${forks} · ${i.copy['share.streakWord']}: ${i.streak}`;
   const line4 = SITE_URL;
 
   return [line1, line2, line3, line4].join('\n');

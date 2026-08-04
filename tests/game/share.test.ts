@@ -96,7 +96,7 @@ describe('shareString — §2.9 layout', () => {
     ];
     const forks = countForks(log);
     const out = shareString({ puzzleNumber: 9, log, mode: 'hack', callCorrect: true, streak: 12, copy: enCopy });
-    expect(out.split('\n')[2]).toBe(`${forks} forks · streak 12`);
+    expect(out.split('\n')[2]).toBe(`Forks: ${forks} · Streak: 12`);
   });
 
   // Generic-contract test (post-review re-scope): this hand-built log
@@ -228,7 +228,15 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
   // countForks still reports 6, the peek marker is still distinct, and the
   // terminal + call markers are untouched. Only the glyph each fork kind maps
   // to changed, which is exactly what this test now pins.
-  it('🍴🍴🍴🍴➕🍴📄 → ⚖️✅ / 6 forks · streak 12 / SITE_URL', () => {
+  //
+  // T37 fix round 1 (controller ruling, documented at share.ts's shareString):
+  // line 3's LAYOUT is amended from "{forks} {forksWord} · {streakWord}
+  // {streak}" to the label-colon-count form, because the spec's own shape
+  // prints "1 forks" (and "1 biforcazioni", "1 bifurcaciones") on a one-fork
+  // day, in the one string that leaves the app. Same two numbers, same two
+  // localized words, same absence of any day-type input: this assertion is
+  // repointed for the new punctuation and nothing else.
+  it('🍴🍴🍴🍴➕🍴📄 → ⚖️✅ / Forks: 6 · Streak: 12 / SITE_URL', () => {
     const s0 = spec();
     const s1 = spec({ outcome: 1 }); // only outcome differs from s0 -> 'spec' (🍴)
     const s2 = spec({ outcome: 1, subgroup: 'urban' }); // only subgroup differs from s1 -> 'subgroup' (🍴)
@@ -251,7 +259,7 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
 
     const out = shareString({ puzzleNumber: 37, log, mode: 'hack', callCorrect: true, streak: 12, copy: enCopy });
     expect(out).toBe(
-      ['P-hackle #37', '🍴🍴🍴🍴➕🍴📄 → ⚖️✅', '6 forks · streak 12', SITE_URL].join('\n')
+      ['P-hackle #37', '🍴🍴🍴🍴➕🍴📄 → ⚖️✅', 'Forks: 6 · Streak: 12', SITE_URL].join('\n')
     );
   });
 

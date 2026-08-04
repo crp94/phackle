@@ -27,7 +27,7 @@
 // above. Break one and the string is wrong even if the sentence is not:
 //
 //   1. ACTIONS TAKE THE INFINITIVE. Every button, link and menu command:
-//      "Abrir los datos", "Enviar a publicar", "Compartir", "Cerrar",
+//      "Abrir los datos", "Enviar a publicación", "Compartir", "Cerrar",
 //      "Afrontar la verdad". Never a noun phrase, never a tú-imperative, even
 //      when the English reads as one.
 //   2. THE TÚ-IMPERATIVE IS FOR INSTRUCTIONS, NOT CONTROLS: numbered how-to
@@ -50,8 +50,9 @@
 //   7. COUNT-BEARING LABELS MUST AGREE AT n = 1. Prefer "Etiqueta: {n}" over
 //      "{n} sustantivos"; summary.streak is the worked example, and
 //      reveal.accounting2/3 and stats.forkHistogramBar follow it.
-//   8. NOTATION IS NOT PROSE (see rule 2 above): decimal point always,
-//      "gl" for degrees of freedom, no thousands separators.
+//   8. NOTATION IS NOT PROSE (rule 2 of the TRANSCREATION list at the top of
+//      this file, not rule 2 of this one): decimal point always, "gl" for
+//      degrees of freedom, no thousands separators.
 //   9. EM-DASH BUDGET: 0. stats.noData's — is the locale's only U+2014 and is
 //      a "no data" mark, not punctuation.
 //  10. ARIA STRINGS SOUND LIKE SPEECH, not documentation: a group label names
@@ -108,7 +109,11 @@ export const copy: Record<CopyKey, string> = {
   'lab.exclusion': 'Exclusión de atípicos',
   'lab.transform': 'Transformación',
   'lab.tails': 'Colas',
-  'lab.submit': 'Enviar a publicar',
+  // T37 fix round 1 (ruling): the audit proposed "Enviar a publicar", and it
+  // is idiomatic on its own. In context it was not: it left the locale saying
+  // "publicar" here, "publicación" in legend.emojiSubmit and "a publicación"
+  // in lab.howThisWorks.step3, for one act. One phrase for one act wins.
+  'lab.submit': 'Enviar a publicación',
   'lab.reportNull': 'Informar de un resultado nulo',
   'lab.nLabel': 'n = {n}',
   'lab.collectMore': 'Recoger {n} más',
@@ -275,9 +280,15 @@ export const copy: Record<CopyKey, string> = {
   'reveal.preregFalsePositive':
     'Esto no es un fallo tuyo: un análisis preregistrado, ejecutado exactamente una vez, sigue dando un falso positivo alrededor del 5% de las veces. Hoy tocó.',
 
-  // The share grid's third line reads "{forks} bifurcaciones · racha {streak}".
-  'share.forksWord': 'bifurcaciones',
-  'share.streakWord': 'racha',
+  // The share grid's third line. T37 fix round 1 (controller ruling, see
+  // share.ts's §2.9 deviation note): it now reads
+  // "Bifurcaciones: 12 · Racha: 7" rather than "12 bifurcaciones · racha 7",
+  // because the old layout printed "1 bifurcaciones" on any one-fork day and
+  // this string gets pasted into other people's feeds. Label position, so
+  // capitalized — the one place this locale's sentence-case rule yields, and
+  // it yields to a label, not to English Title Case.
+  'share.forksWord': 'Bifurcaciones',
+  'share.streakWord': 'Racha',
 
   'summary.score': 'Puntuación: {score}',
   'summary.share': 'Compartir',
@@ -311,7 +322,7 @@ export const copy: Record<CopyKey, string> = {
     'Declara tu análisis completo antes de ver un solo número. Cada elección de aquí abajo es definitiva en el momento en que la envías. No hay ninguna revelación que espiar antes, ni un segundo intento hoy.',
   // T37: a preregistration commits you to REPORT the result, not to publish
   // it (EN says "running and reporting"), and "publicar" also collided with
-  // lab.submit's "Enviar a publicar".
+  // lab.submit's "Enviar a publicación", which is a different promise.
   'prereg.commit':
     'Me comprometo solemnemente a ejecutar exactamente esta especificación y a informar de su resultado, muestre lo que muestre.',
   'prereg.submit': 'Enviar preregistro',

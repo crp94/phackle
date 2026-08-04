@@ -46,17 +46,23 @@
 //      exception: it is what Italian academia actually says.)
 //   6. NO VERB-FINAL ENGLISH WORD ORDER. Put the subject after the verb rather
 //      than stranding the verb at the end of a relative clause.
-//   7. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. The reveal screen is *la
-//      rivelazione*, never *la verità*, *i risultati*, *la schermata finale*
-//      or *alla fine*. Paths are *sentieri*; forks are *biforcazioni*; the
-//      call is *il verdetto*; the mode is *Preregistrazione*, in all five
-//      places that name it.
-//   8. ENGLISH ONLY FROM THE ALLOWLIST in point 3 above. "brief" is not on it.
+//   7. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. The reveal SCREEN is *la
+//      rivelazione*, never *i risultati*, *la schermata finale* or *alla
+//      fine*. Paths are *sentieri*; forks are *biforcazioni*; the call is *il
+//      verdetto*; the mode is *Preregistrazione*, in all five places that
+//      name it.
+//      CARVE-OUT: *la verità* is not a fourth name for the screen, it is the
+//      shared noun of published.faceTruth and lab.howThisWorks.step4, which
+//      are one beat. "Guarda in faccia la verità" is CORRECT and is not to be
+//      "fixed" to *rivelazione* by a future pass reading this rule alone.
+//   8. ENGLISH ONLY FROM THE ALLOWLIST in item 3 of the "deliberately NOT
+//      Italian" list at the top of this file. "brief" is not on it.
 //   9. COUNT-BEARING LABELS MUST AGREE AT n = 1: "Giorni consecutivi: {n}",
 //      not "Serie di {n} giorni". Check every {n}/{k}/{forks}/{peeks} against
 //      its real floor before assuming a plural is safe.
-//  10. NOTATION IS NOT PROSE (see point 1 above): decimal point always,
-//      "{hours} h {minutes} min" with spaces, no comma-decimal anywhere.
+//  10. NOTATION IS NOT PROSE (item 1 of the "deliberately NOT Italian" list
+//      at the top of this file): decimal point always, "{hours} h {minutes}
+//      min" with spaces, no comma-decimal anywhere.
 //  11. EM-DASH BUDGET: 0. stats.noData's — is the only permitted U+2014.
 //      Italian reaches for the lineetta more readily than English; the point
 //      of writing natively is that it does not have to.
@@ -286,12 +292,15 @@ export const copy: Record<CopyKey, string> = {
   'reveal.preregFalsePositive':
     "Non è un errore: un'analisi preregistrata, eseguita una volta sola, trova comunque un falso positivo circa il 5% delle volte. Oggi era uno di quei giorni.",
 
-  // The share grid's only localized words. Line 3 renders as
-  // "12 biforcazioni · serie 7", which is how an Italian methods nerd would
-  // actually post it: "biforcazioni" is the same word the glossary and the
-  // fork trail already use, so the share string teaches the term it counts.
-  'share.forksWord': 'biforcazioni',
-  'share.streakWord': 'serie',
+  // The share grid's only localized words. T37 fix round 1 (controller
+  // ruling, see share.ts's §2.9 deviation note): line 3 is now
+  // "Biforcazioni: 12 · Serie: 7" rather than "12 biforcazioni · serie 7",
+  // because the old layout printed "1 biforcazioni" on any one-fork day and
+  // this string gets pasted into other people's feeds. Label position, so
+  // capitalized. "Biforcazioni" is still the same word the glossary and the
+  // fork trail use, so the share string still teaches the term it counts.
+  'share.forksWord': 'Biforcazioni',
+  'share.streakWord': 'Serie',
 
   'summary.score': 'Punteggio: {score}',
   'summary.share': 'Condividi',
