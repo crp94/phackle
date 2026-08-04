@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "cal": "tsx scripts/simulate_calibration.ts"
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",

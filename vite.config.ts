@@ -50,6 +50,12 @@ export default defineConfig({
     environment: 'node',
     // Agent worktrees and orchestration scratch carry their own copies of the
     // suite; globbing them re-runs every test N times.
-    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.superpowers/**'],
+    //
+    // T23: `e2e/**` is excluded because those files are Playwright specs, not
+    // vitest ones — they match vitest's default `*.spec.ts` glob but import
+    // `@playwright/test`, drive a real browser and need a built app on a
+    // running preview server. `npm test` (unit) and `npm run e2e` are
+    // deliberately two separate commands over two disjoint file sets.
+    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.superpowers/**', 'e2e/**'],
   },
 });
