@@ -23,7 +23,7 @@ import { getContent } from '../../src/content';
 import { JOURNALS } from '../../src/content/journals';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import type { ContentLexicons } from './shape.test';
-import { emDashDensity, findEmDashProblems, validateLocaleContent } from './shape.test';
+import { emDashDensity, findEmDashProblems, findMissingSpecKnobs, validateLocaleContent } from './shape.test';
 
 /**
  * Harm check (master spec §4), in Spanish. Same seven concepts as
@@ -271,5 +271,11 @@ describe('Spanish locale wiring', () => {
     const loaded = await getContent('es');
     expect(loaded).toBe(esContent);
     expect(loaded.copy['nav.tagline']).not.toBe(enCopy['nav.tagline']);
+  });
+});
+
+describe('T33 — Spanish spec legend mirrors the six-knob enumeration', () => {
+  it('names every knob, in Spanish, using the Spanish Lab labels', () => {
+    expect(findMissingSpecKnobs(esContent)).toEqual([]);
   });
 });

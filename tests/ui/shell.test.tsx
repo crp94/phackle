@@ -114,7 +114,7 @@ describe('running header', () => {
 });
 
 describe('theme toggle', () => {
-  it('defaults to paper/light, toggles to dark, and persists the explicit choice', async () => {
+  it('defaults to paper/light, switches to dark, and persists the explicit choice', async () => {
     render(
       <LocaleProvider>
         <App puzzleNumber={1} />
@@ -123,14 +123,17 @@ describe('theme toggle', () => {
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-    const button = screen.getByRole('button', { name: 'Paper' });
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    // T33: a two-option group, not a single flip-flop button — BOTH options
+    // are on screen at all times, so the control names what it does and which
+    // side is active without anyone having to click it to find out.
+    expect(screen.getByRole('button', { name: 'Paper' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('false');
 
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    const toggled = screen.getByRole('button', { name: 'Dark' });
-    expect(toggled.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Paper' }).getAttribute('aria-pressed')).toBe('false');
 
     // T13 fix-up: the persisted contract is now `phackle.v1` (storage.ts) —
     // not the retired interim `phackle.settings` key. See
@@ -160,6 +163,30 @@ describe('theme toggle', () => {
     );
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
+
+  it('re-selecting the already-active side is a no-op, not a flip', async () => {
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Paper' }));
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('labels the group so the two options read as one control', async () => {
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+
+    const group = screen.getByRole('group', { name: 'Change theme' });
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['Paper', 'Dark']);
+  });
 });
 
 describe('locale toggle', () => {
@@ -177,10 +204,10 @@ describe('locale toggle', () => {
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
 
     if (AVAILABLE_LOCALES.length <= 1) {
-      expect(screen.queryByRole('group')).toBeNull();
+      expect(screen.queryByRole('group', { name: 'Change language' })).toBeNull();
       return;
     }
-    const group = screen.getByRole('group');
+    const group = screen.getByRole('group', { name: 'Change language' });
     expect(within(group).getAllByRole('button')).toHaveLength(AVAILABLE_LOCALES.length);
   });
 
@@ -188,24 +215,66 @@ describe('locale toggle', () => {
     const setLocale = vi.fn();
     render(<LocaleToggle locales={['en', 'it', 'es']} locale="en" setLocale={setLocale} t={(key) => key} />);
 
-    const group = screen.getByRole('group');
+    const group = screen.getByRole('group', { name: 'a11y.localeToggle' });
     const buttons = within(group).getAllByRole('button');
-    expect(buttons.map((b) => b.textContent)).toEqual(['EN', 'IT', 'ES']);
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
     expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
 
     fireEvent.click(buttons[1]);
     expect(setLocale).toHaveBeenCalledWith('it');
   });
+
+  // T33 (owner: "the language menu should have a little flag"). Flag PLUS
+  // code, never a flag alone: Windows Chrome ships no flag glyphs at all and
+  // renders a regional-indicator pair as the two letters "GB"/"IT"/"ES", so
+  // the code text is what keeps the control legible there. The flag is
+  // aria-hidden decoration; the accessible name is the language's own
+  // endonym, which is the one name a speaker of that language can find.
+  it('shows a flag beside the code, with the language endonym as the accessible name', () => {
+    render(<LocaleToggle locales={['en', 'it', 'es']} locale="en" setLocale={vi.fn()} t={(key) => key} />);
+    const buttons = within(screen.getByRole('group', { name: 'a11y.localeToggle' })).getAllByRole('button');
+
+    expect(buttons.map((b) => b.textContent)).toEqual(['🇬🇧EN', '🇮🇹IT', '🇪🇸ES']);
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'nav.localeNameEn',
+      'nav.localeNameIt',
+      'nav.localeNameEs',
+    ]);
+    for (const b of buttons) {
+      expect(b.querySelector('[aria-hidden="true"]')?.textContent).toMatch(/^[\u{1F1E6}-\u{1F1FF}]{2}$/u);
+    }
+  });
+
+  it('names each locale in its own language, identically in every UI language', async () => {
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+    for (const name of ['English', 'Italiano', 'Español']) {
+      expect(screen.getByRole('button', { name })).toBeTruthy();
+    }
+  });
 });
 
 describe('ThemeToggle (unit)', () => {
-  it('shows the current state as text and flips it on click', () => {
+  it('renders both options with the active one pressed, and selects on click', () => {
     const setTheme = vi.fn();
     render(<ThemeToggle theme="paper" setTheme={setTheme} t={(key) => key} />);
-    const button = screen.getByRole('button', { name: 'nav.themePaper' });
-    fireEvent.click(button);
+
+    expect(screen.getByRole('button', { name: 'nav.themePaper' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'nav.themeDark' }).getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'nav.themeDark' }));
     expect(setTheme).toHaveBeenCalledWith('dark');
+  });
+
+  it('selects paper from dark', () => {
+    const setTheme = vi.fn();
+    render(<ThemeToggle theme="dark" setTheme={setTheme} t={(key) => key} />);
+    fireEvent.click(screen.getByRole('button', { name: 'nav.themePaper' }));
+    expect(setTheme).toHaveBeenCalledWith('paper');
   });
 });
 

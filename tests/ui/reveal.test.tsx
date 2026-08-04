@@ -15,6 +15,7 @@ import type { EngineClient, RevealPayload } from '../../src/engine/protocol';
 import type { RevealCurveEntry } from '../../src/engine/reveal';
 import type { Outcome, PathResult, Spec } from '../../src/engine/types';
 import { Reveal, formatSigFigs } from '../../src/ui/screens/Reveal';
+import { ScreenRouter } from '../../src/ui/ScreenRouter';
 import { recipeLabel } from '../../src/ui/charts/SpecCurve';
 
 afterEach(cleanup);
@@ -460,5 +461,102 @@ describe('T18 — prereg days: no CALL block, and the sig+null false-positive on
       SPEC // SPEC.outcome === 0, so this is the "wrong outcome" case, not the null-day case
     );
     expect(blockText(container, 'stamp')).not.toContain(copy['reveal.preregFalsePositive']);
+  });
+});
+
+// --- T33: the end-of-reveal continue action -------------------------------
+//
+// Escalated shipping blocker, found in play-testing: `store.finishReveal()`
+// had NO caller anywhere in src/ui, so the Summary screen — the day's whole
+// accounting, its share string and its persistence moment — was unreachable
+// in the real app. The reveal simply ended at Fig. 2.
+
+describe('T33 — the reveal ends in an action, not in a figure', () => {
+  it('renders the continue button after the LAST block (fig. 2), not before it', async () => {
+    const { container } = await mountReveal();
+    const cta = container.querySelector('[data-role="to-summary"]') as HTMLButtonElement | null;
+    expect(cta).not.toBeNull();
+    expect(cta?.textContent).toBe(copy['reveal.toSummary']);
+
+    const fig2 = container.querySelector('[data-block="fig2"]') as HTMLElement;
+    // DOCUMENT_POSITION_FOLLOWING: the button comes after fig. 2 in DOM order.
+    expect(fig2.compareDocumentPosition(cta as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('dispatches finishReveal, moving the machine from reveal to summary', async () => {
+    const { container } = await mountReveal();
+    expect(live().screen).toBe('reveal');
+
+    act(() => {
+      (container.querySelector('[data-role="to-summary"]') as HTMLButtonElement).click();
+    });
+
+    expect(live().screen).toBe('summary');
+  });
+
+  it('is present on an abandoned day too — every day ends at the invoice', async () => {
+    const { container } = await mountReveal({}, { path: 'abandon' });
+    expect(container.querySelector('[data-role="to-summary"]')).not.toBeNull();
+  });
+});
+
+describe('T33 — reveal to summary, end to end through the real router', () => {
+  async function mountRouterToReveal() {
+    const p = payload();
+    const view = render(
+      <LocaleProvider>
+        <Capture />
+        <ScreenRouter />
+      </LocaleProvider>
+    );
+    await act(async () => {
+      await live().boot(fakeClient(p), ISO, { practice: false, mode: 'hack', scenarioCount: 20 });
+    });
+    act(() => live().openData());
+    await act(async () => {
+      await live().submit();
+    });
+    await act(async () => {
+      await live().makeCall('noise');
+    });
+    await waitFor(() => expect(view.container.querySelector('[data-block="fig2"]')).not.toBeNull());
+    return view;
+  }
+
+  it('reaches the invoice from the reveal with one tap', async () => {
+    window.localStorage.clear();
+    const { container } = await mountRouterToReveal();
+
+    await act(async () => {
+      (container.querySelector('[data-role="to-summary"]') as HTMLButtonElement).click();
+    });
+
+    await waitFor(() => expect(container.querySelector('.ph-summary__invoice')).not.toBeNull());
+    expect(container.textContent).toContain(copy['summary.invoiceTitle']);
+    expect(container.querySelector('[data-block="fig2"]')).toBeNull();
+  });
+
+  it('persists the finished day exactly once, keyed on the STORE\'s iso (Summary\'s durable guard is undisturbed)', async () => {
+    window.localStorage.clear();
+    const { container } = await mountRouterToReveal();
+
+    await act(async () => {
+      (container.querySelector('[data-role="to-summary"]') as HTMLButtonElement).click();
+    });
+    await waitFor(() => expect(container.querySelector('.ph-summary__invoice')).not.toBeNull());
+
+    const after = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(Object.keys(after.history)).toEqual([ISO]);
+    expect(after.stats.hackDays).toBe(1);
+
+    // A second finishReveal() is idempotent at BOTH layers: the machine is
+    // already on 'summary' (so nothing re-transitions), and the durable
+    // history[iso][mode] guard means a remount cannot double-count the day.
+    act(() => live().finishReveal());
+    await act(async () => {});
+    expect(live().screen).toBe('summary');
+    const again = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(again.stats.hackDays).toBe(1);
+    expect(Object.keys(again.history)).toEqual([ISO]);
   });
 });

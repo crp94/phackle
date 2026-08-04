@@ -30,7 +30,14 @@ export const copy: Record<CopyKey, string> = {
   'nav.about': 'Acerca de',
   'nav.stats': 'Estadísticas',
   'nav.legend': 'Leyenda',
+  'nav.play': 'Jugar',
   'nav.localeToggle': 'Idioma',
+  // Endónimos: cada lengua se nombra a sí misma. Idénticos en los tres
+  // catálogos a propósito (véase la nota de la unión en inglés): quien busca
+  // el italiano busca "Italiano", no "Italiano" traducido a otra cosa.
+  'nav.localeNameEn': 'English',
+  'nav.localeNameIt': 'Italiano',
+  'nav.localeNameEs': 'Español',
   'nav.themePaper': 'Papel',
   'nav.themeDark': 'Oscuro',
 
@@ -173,6 +180,7 @@ export const copy: Record<CopyKey, string> = {
   'reveal.publishedRecipe': 'Publicaste: {recipe}',
   'reveal.groupedCaption': 'Los efectos reales se agrupan. El ruido se dispersa.',
   'reveal.omittedFootnote': '{n} especificaciones tenían muy pocos datos para analizarse y no se representan.',
+  'reveal.toSummary': 'Ver la factura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
   'reveal.accounting1': 'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < .05 por puro azar.',
@@ -306,7 +314,8 @@ export const copy: Record<CopyKey, string> = {
   'legend.trueEffect': 'Efecto real',
 
   'legend.intro': 'Cómo se lee un resultado compartido.',
-  'legend.emojiSpec': 'Cualquier cambio de especificación (variable de resultado, covariables o transformación)',
+  'legend.emojiSpec':
+    'Cualquier cambio de especificación (variable de resultado, subgrupo, covariables, exclusión de atípicos, transformación o cambio a una cola)',
   'legend.emojiSubgroup': 'Cambio de filtro de subgrupo',
   'legend.emojiExclusion': 'Cambio en la exclusión de atípicos',
   'legend.emojiTails': 'Cambio a una cola',
@@ -322,6 +331,8 @@ export const copy: Record<CopyKey, string> = {
     'Tu navegador está bloqueando el almacenamiento local, así que el progreso no se guardará entre visitas.',
 
   'a11y.localeToggle': 'Cambiar de idioma',
+  'a11y.themeToggle': 'Cambiar de tema',
+  'a11y.backToGame': 'P-hackle: volver al puzle de hoy',
   'a11y.specCurveChart':
     'Gráfico del p-valor de todas las especificaciones posibles, ordenadas, con tu especificación publicada resaltada.',
   'a11y.dataCut':

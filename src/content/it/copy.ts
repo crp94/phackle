@@ -30,7 +30,14 @@ export const copy: Record<CopyKey, string> = {
   'nav.about': 'Informazioni',
   'nav.stats': 'Statistiche',
   'nav.legend': 'Legenda',
+  'nav.play': 'Gioca',
   'nav.localeToggle': 'Lingua',
+  // Endonyms: every language names itself, in itself. Identical in all three
+  // catalogs on purpose (see the EN union's own note) — an Italian reader
+  // looking for Spanish looks for "Español", not for "Spagnolo".
+  'nav.localeNameEn': 'English',
+  'nav.localeNameIt': 'Italiano',
+  'nav.localeNameEs': 'Español',
   'nav.themePaper': 'Carta',
   'nav.themeDark': 'Scuro',
 
@@ -170,6 +177,7 @@ export const copy: Record<CopyKey, string> = {
   // from the other side.
   'reveal.groupedCaption': 'Gli effetti veri si addensano. Il rumore si sparpaglia.',
   'reveal.omittedFootnote': '{n} specificazioni avevano troppo pochi dati per essere stimate e non sono nel grafico.',
+  'reveal.toSummary': 'Vedi la fattura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
   'reveal.accounting1': 'Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < .05 per puro caso.',
@@ -306,7 +314,8 @@ export const copy: Record<CopyKey, string> = {
   'legend.trueEffect': 'Effetto vero',
 
   'legend.intro': 'Come si legge un risultato condiviso.',
-  'legend.emojiSpec': 'Qualunque cambio di specificazione (esito, covariate o trasformazione)',
+  'legend.emojiSpec':
+    'Qualunque cambio di specificazione (esito, sottogruppo, covariate, esclusione outlier, trasformazione o passaggio a una coda)',
   'legend.emojiSubgroup': 'Cambio del filtro sul sottogruppo',
   'legend.emojiExclusion': "Cambio dell'esclusione degli outlier",
   'legend.emojiTails': 'Passaggio a una coda',
@@ -323,6 +332,8 @@ export const copy: Record<CopyKey, string> = {
     'Il tuo browser sta bloccando la memoria locale, quindi i progressi non verranno salvati da una visita alla successiva.',
 
   'a11y.localeToggle': 'Cambia lingua',
+  'a11y.themeToggle': 'Cambia tema',
+  'a11y.backToGame': 'P-hackle: torna al rompicapo di oggi',
   'a11y.specCurveChart':
     'Grafico del p-value di ogni specificazione possibile, ordinato, con evidenziata la specificazione che hai pubblicato.',
   'a11y.dataCut':

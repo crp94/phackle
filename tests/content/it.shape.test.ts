@@ -25,6 +25,7 @@ import {
   emDashDensity,
   findEmDashProblems,
   findHarmTerms,
+  findMissingSpecKnobs,
   findNegativeDirectionTerms,
   validateLocaleContent,
   type ContentLexicons,
@@ -225,6 +226,13 @@ describe('Italian locale content', () => {
     // proper nouns, and symbols. Everything else must differ from English.
     const SHARED_WITH_EN = new Set([
       'nav.title',
+      // T33: endonyms. A language's name in its OWN language is the same
+      // string whatever language the interface is in — "Italiano" is
+      // "Italiano" on the English build too — so these three are proper
+      // nouns in the 'nav.title' sense, not prose left untranslated.
+      'nav.localeNameEn',
+      'nav.localeNameIt',
+      'nav.localeNameEs',
       'briefing.openData',
       'briefing.emailFrom',
       'lab.nLabel',
@@ -452,5 +460,11 @@ describe("Italian is wired into the app's locale plumbing", () => {
     expect(loaded).toBe(itContent);
     expect(loaded).not.toBe(enContent);
     expect(loaded.copy['nav.tagline']).not.toBe(enCopy['nav.tagline']);
+  });
+});
+
+describe('T33 — Italian spec legend mirrors the six-knob enumeration', () => {
+  it('names every knob, in Italian, using the Italian Lab labels', () => {
+    expect(findMissingSpecKnobs(itContent)).toEqual([]);
   });
 });

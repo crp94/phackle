@@ -100,14 +100,33 @@ export default function App({ puzzleNumber, children }: AppProps) {
     <div className="ph-app">
       <header className="ph-header">
         <p className="ph-header__masthead">
-          {/* The wordmark is the one permitted raw string besides emoji. */}
-          <span className="ph-header__wordmark">P-hackle</span>
+          {/* T33 (owner: "hard to go back to the main page when you click one
+              of the menus"): the masthead is a real control, not a label —
+              the oldest convention on the web, and the one a player reaches
+              for first. It only ever changes THIS component's page-state, so
+              pressing it mid-day resumes the running machine exactly where
+              the store left it; it can no more restart the day than closing
+              a dialog can. The accessible name opens with the wordmark so
+              the visible label survives inside it (WCAG 2.5.3).
+              The wordmark is the one permitted raw string besides emoji. */}
+          <button type="button" className="ph-header__home" aria-label={t('a11y.backToGame')} onClick={backToGame}>
+            <span className="ph-header__wordmark">P-hackle</span>
+          </button>
           <span className="ph-header__vol">
             {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: displayedPuzzleNumber })}
           </span>
         </p>
         <div className="ph-header__controls">
           <div className="ph-header__nav">
+            {/* The second affordance, and the explicit one: on screen for
+                exactly as long as a nav page is, so "get me back" is never a
+                thing the player has to deduce. An ACTION, not a page — hence
+                no aria-pressed (there is no state it could report). */}
+            {page === 'game' ? null : (
+              <button type="button" className="ph-seg ph-seg--action" onClick={backToGame}>
+                {t('nav.play')}
+              </button>
+            )}
             <button type="button" className="ph-seg" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
               {t('nav.stats')}
             </button>
@@ -138,22 +157,51 @@ interface ThemeToggleProps {
   t: TFunction;
 }
 
-/** A single toggle button, not a segmented control: R6.3 is satisfied by the
- * visible text label (which names the current state) plus `aria-pressed`,
- * with no colour involved at all. */
+/**
+ * T33 (owner: "the dark/paper color selection should be more clear"). This
+ * was a single flip-flop button showing ONE word — which is a control you
+ * have to press to find out what it does, and whose one word is ambiguous
+ * besides ("Paper": am I on paper, or am I being offered paper?). It is now
+ * the same two-option segmented group as the locale toggle: both choices are
+ * on screen at all times, so the control names what it does (theme) and
+ * which side is live, with no hover and no guessing.
+ *
+ * R6.3 (no state by colour alone) holds three times over: the active option
+ * carries `aria-pressed`, R4.6's 2px --ink underline, AND full --ink against
+ * the inactive option's --muted. No new colour is introduced — both are
+ * registered text tokens — and nothing here transitions (R5.5).
+ */
 export function ThemeToggle({ theme, setTheme, t }: ThemeToggleProps) {
-  const isDark = theme === 'dark';
   return (
-    <button
-      type="button"
-      className="ph-toggle"
-      aria-pressed={isDark}
-      onClick={() => setTheme(isDark ? 'paper' : 'dark')}
-    >
-      {isDark ? t('nav.themeDark') : t('nav.themePaper')}
-    </button>
+    <div className="ph-theme-toggle" role="group" aria-label={t('a11y.themeToggle')}>
+      <button
+        type="button"
+        className="ph-seg"
+        aria-pressed={theme === 'paper'}
+        onClick={() => setTheme('paper')}
+      >
+        {t('nav.themePaper')}
+      </button>
+      <button type="button" className="ph-seg" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
+        {t('nav.themeDark')}
+      </button>
+    </div>
   );
 }
+
+/** Flag glyphs are DECORATION, never the label (see LocaleToggle below). */
+const LOCALE_FLAG: Record<Locale, string> = {
+  en: '🇬🇧',
+  it: '🇮🇹',
+  es: '🇪🇸',
+};
+
+/** Each locale's own endonym, the buttons' accessible name. */
+const LOCALE_NAME_KEY: Record<Locale, CopyKey> = {
+  en: 'nav.localeNameEn',
+  it: 'nav.localeNameIt',
+  es: 'nav.localeNameEs',
+};
 
 interface LocaleToggleProps {
   locales: Locale[];
@@ -162,9 +210,20 @@ interface LocaleToggleProps {
   t: TFunction;
 }
 
-/** Hidden while only one locale exists (T4's design); `locales` is a prop
+/**
+ * Hidden while only one locale exists (T4's design); `locales` is a prop
  * specifically so this is testable with a fabricated multi-locale array
- * without reaching for module mocking. */
+ * without reaching for module mocking.
+ *
+ * T33 (owner: "the language menu should have a little flag"): flag AND code,
+ * never a flag alone. Windows Chrome ships no flag glyphs at all and renders
+ * a regional-indicator pair as the bare letters "GB"/"IT"/"ES", so a
+ * flag-only menu degrades to three unlabelled letter pairs on a large share
+ * of desktops; the code text is what keeps it legible there and the flag is
+ * what makes it findable everywhere else. The flag is `aria-hidden` — a
+ * screen reader gets the language's own endonym instead, which is the one
+ * name a speaker of that language can recognise.
+ */
 export function LocaleToggle({ locales, locale, setLocale, t }: LocaleToggleProps) {
   if (locales.length <= 1) return null;
 
@@ -174,11 +233,15 @@ export function LocaleToggle({ locales, locale, setLocale, t }: LocaleToggleProp
         <button
           key={loc}
           type="button"
-          className="ph-seg"
+          className="ph-seg ph-seg--locale"
           aria-pressed={loc === locale}
+          aria-label={t(LOCALE_NAME_KEY[loc])}
           onClick={() => setLocale(loc)}
         >
-          {loc.toUpperCase()}
+          <span className="ph-seg__flag" aria-hidden="true">
+            {LOCALE_FLAG[loc]}
+          </span>
+          <span className="ph-seg__code">{loc.toUpperCase()}</span>
         </button>
       ))}
     </div>

@@ -121,6 +121,34 @@ export function emDashDensity(content: LocaleContent): {
   return { dashes, chars, charsPerDash: dashes === 0 ? Infinity : chars / dashes };
 }
 
+/**
+ * T29 collapsed the Legend's per-knob emoji rows into one 🍴 row, which made
+ * `legend.emojiSpec`'s parenthetical the ONLY place in the game that says
+ * which six knobs a fork can be. T33 mirrors that into Italian and Spanish —
+ * and this is the check that the mirror is a real one rather than a shorter
+ * list wearing the same key: each locale's own enumeration must name all six
+ * knobs, in that locale's OWN vocabulary (the Lab's control labels, plus
+ * `reveal.tailsOne` for the switch, which every locale phrases as a
+ * one-tailed test rather than as the word "Tails").
+ *
+ * Deliberately checked against the locale's other copy rather than against a
+ * word list written here: a lexicon of Italian statistics terms maintained
+ * in a test file would drift from the Lab the first time the Lab is
+ * relabelled, and would pass by not understanding the question.
+ */
+export function findMissingSpecKnobs(content: LocaleContent): string[] {
+  const enumeration = content.copy['legend.emojiSpec'].toLowerCase();
+  const knobs: (keyof LocaleContent['copy'])[] = [
+    'lab.outcome',
+    'lab.subgroup',
+    'lab.covariates',
+    'lab.exclusion',
+    'lab.transform',
+    'reveal.tailsOne',
+  ];
+  return knobs.filter((key) => !enumeration.includes(content.copy[key].toLowerCase()));
+}
+
 export function findEmDashProblems(content: LocaleContent): string[] {
   const problems: string[] = [];
 
@@ -579,5 +607,24 @@ describe('one-tailed direction contract', () => {
       ],
     };
     expect(findNegativeDirectionTerms(ok)).toEqual([]);
+  });
+});
+
+describe('T33 — the one-row spec legend enumerates all six knobs', () => {
+  it('names every knob in English, in the locale\'s own vocabulary', () => {
+    expect(findMissingSpecKnobs(enContent)).toEqual([]);
+  });
+
+  it('still recognises a shortened enumeration when one is introduced (guards the guard)', () => {
+    const shortened: LocaleContent = {
+      ...enContent,
+      copy: { ...enContent.copy, 'legend.emojiSpec': 'Any specification change (outcome or transform)' },
+    };
+    expect(findMissingSpecKnobs(shortened).sort()).toEqual([
+      'lab.covariates',
+      'lab.exclusion',
+      'lab.subgroup',
+      'reveal.tailsOne',
+    ]);
   });
 });

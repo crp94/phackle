@@ -20,7 +20,16 @@ export type CopyKey =
   | 'nav.about'
   | 'nav.stats'
   | 'nav.legend'
+  | 'nav.play'
   | 'nav.localeToggle'
+  // The three language names are ENDONYMS: each locale is named in its own
+  // language, so the value is identical in all three catalogs by design (the
+  // same "proper noun, not prose" bucket as 'nav.title'). They are the
+  // locale buttons' accessible names — the flag is decoration a screen
+  // reader never hears, and "EN" alone is not a name anyone can search for.
+  | 'nav.localeNameEn'
+  | 'nav.localeNameIt'
+  | 'nav.localeNameEs'
   | 'nav.themePaper'
   | 'nav.themeDark'
   | 'briefing.openData'
@@ -188,6 +197,10 @@ export type CopyKey =
   | 'reveal.fig1'
   | 'reveal.fig2'
   | 'reveal.omittedFootnote'
+  // T33: the reveal's own continue action, and the only caller of
+  // store.finishReveal() anywhere. Act II register: it names the ledger it
+  // opens, and makes no comment on the player who is about to read it.
+  | 'reveal.toSummary'
   // T16 additions: statistical NOTATION, not prose. §5 (about.decimalNote)
   // fixes the decimal point in every language, so a translator's job here is
   // to leave the digits alone and translate nothing.
@@ -333,6 +346,12 @@ export type CopyKey =
   | 'errors.workerCrash'
   | 'errors.storageOff'
   | 'a11y.localeToggle'
+  // T33: the theme control's group label, and the masthead's own accessible
+  // name. The masthead one OPENS with the wordmark on purpose — the visible
+  // label has to survive inside the accessible name (WCAG 2.5.3), so it
+  // reads as the wordmark plus what tapping it does, never as a replacement.
+  | 'a11y.themeToggle'
+  | 'a11y.backToGame'
   | 'a11y.specCurveChart'
   | 'a11y.dataCut'
   | 'a11y.shareButton'
@@ -346,7 +365,11 @@ export const copy: Record<CopyKey, string> = {
   'nav.about': 'About',
   'nav.stats': 'Stats',
   'nav.legend': 'Legend',
+  'nav.play': 'Play',
   'nav.localeToggle': 'Language',
+  'nav.localeNameEn': 'English',
+  'nav.localeNameIt': 'Italiano',
+  'nav.localeNameEs': 'Español',
   'nav.themePaper': 'Paper',
   'nav.themeDark': 'Dark',
 
@@ -530,6 +553,7 @@ export const copy: Record<CopyKey, string> = {
   // that is the same lesson read from the other side.
   'reveal.groupedCaption': 'Real effects cluster. Noise scatters.',
   'reveal.omittedFootnote': '{n} specifications had too little data to analyze and are not plotted.',
+  'reveal.toSummary': 'See the invoice',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
   'reveal.accounting1': 'Of {total} possible analyses, {sig} ({sigPct}%) reach p < .05 by chance alone.',
@@ -698,6 +722,8 @@ export const copy: Record<CopyKey, string> = {
   'errors.storageOff': "Your browser is blocking local storage, so progress won't be saved between visits.",
 
   'a11y.localeToggle': 'Change language',
+  'a11y.themeToggle': 'Change theme',
+  'a11y.backToGame': "P-hackle: back to today's puzzle",
   'a11y.specCurveChart':
     "Chart of every possible specification's p-value, sorted, with your published specification highlighted.",
   'a11y.dataCut':
