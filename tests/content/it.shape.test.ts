@@ -233,7 +233,11 @@ describe('Italian locale content', () => {
       'nav.localeNameEn',
       'nav.localeNameIt',
       'nav.localeNameEs',
-      'briefing.openData',
+      // T37: 'briefing.openData' used to sit here. It was not a proper noun in
+      // the 'nav.title' sense at all -- it was the app's primary CTA, left in
+      // English because the source comment mistook it for the journal badge,
+      // and this allow-list entry was that bug institutionalised as a fixture.
+      // The Italian value is now 'Apri i dati', so the entry is gone.
       'briefing.emailFrom',
       'lab.nLabel',
       'lab.covariatesBoth',

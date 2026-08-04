@@ -84,12 +84,15 @@ describe('Briefing', () => {
     expect(bodies.size).toBeGreaterThan(1);
   });
 
-  it('clicking "Open Data" calls store.openData() and nothing else', async () => {
+  // T37: the CTA's English value is 'Open the data' (T36 audit §5.1) -- it was
+  // 'Open Data', the catalog's one Title-Cased action and a homograph of the
+  // open-data badge noun, which is exactly how both locales mistranslated it.
+  it('clicking "Open the data" calls store.openData() and nothing else', async () => {
     const openDataSpy = vi.fn();
     renderBriefing({ openData: openDataSpy as unknown as GameStore['openData'] });
-    await waitFor(() => expect(screen.getByText('Open Data')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Open the data')).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Open Data'));
+    fireEvent.click(screen.getByText('Open the data'));
 
     expect(openDataSpy).toHaveBeenCalledTimes(1);
   });
@@ -171,7 +174,7 @@ describe('Briefing — the mode chooser', () => {
 
   const copy = enContent.copy;
 
-  it('renders no chooser — only the plain Open Data CTA — when Prereg Mode is NOT unlocked', async () => {
+  it('renders no chooser — only the plain "Open the data" CTA — when Prereg Mode is NOT unlocked', async () => {
     seedStorage(freshV1());
     renderBriefing();
     await waitFor(() => expect(screen.getByText(copy['briefing.openData'])).toBeTruthy());
@@ -185,11 +188,11 @@ describe('Briefing — the mode chooser', () => {
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
     expect(screen.getByRole('button', { name: copy['briefing.playHacking'] })).toBeTruthy();
     expect(screen.getByRole('button', { name: copy['briefing.playPrereg'] })).toBeTruthy();
-    // The chooser REPLACES the plain "Open Data" CTA, not shown alongside it.
+    // The chooser REPLACES the plain "Open the data" CTA, not shown alongside it.
     expect(screen.queryByRole('button', { name: copy['briefing.openData'] })).toBeNull();
   });
 
-  it('hides the chooser entirely once prereg has already been played today (falls back to the plain Open Data CTA)', async () => {
+  it('hides the chooser entirely once prereg has already been played today (falls back to the plain "Open the data" CTA)', async () => {
     const iso = isoFromPuzzleNumber(1);
     seedStorage(
       freshV1({

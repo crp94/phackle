@@ -19,8 +19,49 @@
 //     which rewrites the FIRST occurrence only, so no value below repeats a
 //     token — a second {n} would render raw on screen.
 //  3. Terms Italian academics genuinely use in English: "Open Data", "Reviewer
-//     2", "outlier", "p-value", "log". Translating those would cost the
-//     realism the joke is built on.
+//     2", "outlier", "p-value", "df", "log". Translating those would cost the
+//     realism the joke is built on. "Open Data" is allowed as a journal BADGE
+//     in prose only; it was never allowed as a button (see briefing.openData).
+//
+// IT-IT CONVENTION CONTRACT (T37, from the T36 UI-language audit §4b). The
+// rules an it-IT interface follows, on top of the register rules above:
+//
+//   1. ACTIONS TAKE THE SECOND-PERSON IMPERATIVE: "Apri i dati", "Invia per la
+//      pubblicazione", "Condividi", "Chiudi", "Guarda in faccia la verità".
+//      The infinitive is acceptable only for a menu-category label; a noun
+//      phrase never is.
+//   2. REGISTER IS TU throughout the chrome, never Lei. And never the
+//      editorial "noi": the app is impersonal about itself, so no "mentre
+//      generavamo", no "prima che ti mostriamo".
+//   3. SENTENCE CASE EVERYWHERE: "modalità Hacking", not "Modalità Hacking".
+//      Achievement names, glossary terms and headings capitalise the first
+//      word and proper nouns only, titles included (*Il giardino dei sentieri
+//      che si biforcano*). English Title Case is this locale's loudest calque.
+//   4. STATE LABELS ARE NOMINAL OR PARTICIPIAL, never English fragments:
+//      "RISULTATO NULLO", "Copiato negli appunti", "Già giocato oggi". Legend
+//      glosses are NOMINAL: "Invio per la pubblicazione", "Raccolta di altri
+//      dati".
+//   5. NO NOUN-NOUN JUXTAPOSITION. Italian needs the preposition:
+//      "Esclusione degli outlier". ("punti carriera" is the sanctioned
+//      exception: it is what Italian academia actually says.)
+//   6. NO VERB-FINAL ENGLISH WORD ORDER. Put the subject after the verb rather
+//      than stranding the verb at the end of a relative clause.
+//   7. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. The reveal screen is *la
+//      rivelazione*, never *la verità*, *i risultati*, *la schermata finale*
+//      or *alla fine*. Paths are *sentieri*; forks are *biforcazioni*; the
+//      call is *il verdetto*; the mode is *Preregistrazione*, in all five
+//      places that name it.
+//   8. ENGLISH ONLY FROM THE ALLOWLIST in point 3 above. "brief" is not on it.
+//   9. COUNT-BEARING LABELS MUST AGREE AT n = 1: "Giorni consecutivi: {n}",
+//      not "Serie di {n} giorni". Check every {n}/{k}/{forks}/{peeks} against
+//      its real floor before assuming a plural is safe.
+//  10. NOTATION IS NOT PROSE (see point 1 above): decimal point always,
+//      "{hours} h {minutes} min" with spaces, no comma-decimal anywhere.
+//  11. EM-DASH BUDGET: 0. stats.noData's — is the only permitted U+2014.
+//      Italian reaches for the lineetta more readily than English; the point
+//      of writing natively is that it does not have to.
+//  12. ARIA STRINGS SOUND LIKE SPEECH. Read each one aloud: a screen-reader
+//      user should hear something an Italian app says daily, not a spec line.
 import type { CopyKey } from '../en/copy';
 
 export const copy: Record<CopyKey, string> = {
@@ -41,9 +82,13 @@ export const copy: Record<CopyKey, string> = {
   'nav.themePaper': 'Carta',
   'nav.themeDark': 'Scuro',
 
-  // "Open Data" is not translated: it is the badge Italian journals themselves
-  // print, in English, on Italian papers.
-  'briefing.openData': 'Open Data',
+  // T37: was 'Open Data', on the reasoning that it is the badge Italian
+  // journals print in English on Italian papers. That reasoning was the bug in
+  // writing: this key is not the badge, it is the app's primary CTA (the one
+  // button a first-time player can press). "Open Data" as a prose badge stays
+  // on the allowlist above; "Open Data" as a BUTTON never was. Imperative,
+  // per rule 1 of the convention contract.
+  'briefing.openData': 'Apri i dati',
   // The PLAYER is the paper's author; Grantwell only sends the email.
   'briefing.correspondingAuthor': 'Autore corrispondente: tu',
   'briefing.vol': 'Vol. {volume}, n. {issue}',
@@ -53,8 +98,12 @@ export const copy: Record<CopyKey, string> = {
 
   'briefing.modeChooserIntro':
     'La preregistrazione è sbloccata. Scegli come giocare oggi. Un tentativo per modalità.',
-  'briefing.playHacking': 'Gioca in Modalità Hacking',
-  'briefing.playPrereg': 'Gioca in Modalità Prereg',
+  // T37: sentence case (rule 3) — Italian does not capitalise a common noun
+  // mid-sentence — and one name for the mode, "Preregistrazione", which is
+  // what prereg.title, summary.preregUpsell, briefing.modeChooserIntro and
+  // stats.successRateTitle already say (rule 7).
+  'briefing.playHacking': 'Gioca in modalità Hacking',
+  'briefing.playPrereg': 'Gioca in modalità Preregistrazione',
   'briefing.alreadyPlayedToday': 'Già giocato oggi',
 
   'email.from': 'Da:',
@@ -63,8 +112,9 @@ export const copy: Record<CopyKey, string> = {
   'lab.outcome': 'Esito',
   'lab.subgroup': 'Sottogruppo',
   'lab.covariates': 'Covariate',
-  // "outlier" is the word Italian methods sections actually print.
-  'lab.exclusion': 'Esclusione outlier',
+  // "outlier" is the word Italian methods sections actually print; the
+  // preposition is not optional (rule 5: no noun-noun juxtaposition).
+  'lab.exclusion': 'Esclusione degli outlier',
   'lab.transform': 'Trasformazione',
   'lab.tails': 'Code',
   'lab.submit': 'Invia per la pubblicazione',
@@ -84,8 +134,10 @@ export const copy: Record<CopyKey, string> = {
   'lab.subgroupAgeGe40': 'Età ≥ 40',
   'lab.subgroupExpHigh': 'Esperienza alta',
   'lab.subgroupExpLow': 'Esperienza bassa',
-  'lab.subgroupUrban': 'Urbano',
-  'lab.subgroupRural': 'Rurale',
+  // T37: nominal, like their siblings. A bare adjective has nothing to agree
+  // with here. reveal.subgroupUrban/Rurale stay compact and unchanged.
+  'lab.subgroupUrban': 'Area urbana',
+  'lab.subgroupRural': 'Area rurale',
 
   'lab.covariatesNone': 'Nessuna',
   'lab.covariatesBoth': '{income} + {risk}',
@@ -111,7 +163,8 @@ export const copy: Record<CopyKey, string> = {
   // the register a methods section uses. Not one of them may suggest that the
   // choice is convenient: the reveal earns that, and earns it harder if Act I
   // never nudged.
-  'lab.explain.outcome': 'Quale delle quattro cose che hai misurato questa analisi prova a spiegare.',
+  // Rule 6: the subject goes after the verb, not stranded at the end.
+  'lab.explain.outcome': 'Quale delle quattro cose che hai misurato prova a spiegare questa analisi.',
   'lab.explain.subgroup': 'Restringe il campione a un solo gruppo di partecipanti prima della stima.',
   'lab.explain.covariates':
     'Tiene conto anche delle differenze di partenza tra le persone nel confronto fra i due gruppi.',
@@ -120,7 +173,8 @@ export const copy: Record<CopyKey, string> = {
   'lab.explain.tails': 'Verifica un effetto in entrambe le direzioni, oppure solo in quella prevista.',
 
   'lab.howThisWorks.title': 'Come si gioca',
-  'lab.howThisWorks.step1': 'Leggi il brief: la domanda di oggi e i dati che ti hanno consegnato.',
+  // "brief" is an anglicism outside this locale's own declared allowlist.
+  'lab.howThisWorks.step1': 'Leggi la scheda: la domanda di oggi e i dati che ti hanno consegnato.',
   'lab.howThisWorks.step2': "Regola l'analisi finché il numero grande non scende sotto 0.05.",
   'lab.howThisWorks.step3': 'Invia la tua scoperta per la pubblicazione.',
   'lab.howThisWorks.step4': 'Guarda in faccia la verità su quello che hai trovato.',
@@ -139,7 +193,9 @@ export const copy: Record<CopyKey, string> = {
   'lab.cutLegendExcluded': 'Esclusi: {n}',
   'lab.cutLegendMean': 'Media del gruppo',
 
-  'lab.forkTrailHint': 'Ogni simbolo è una mossa che hai fatto. La pagina Legenda ha la chiave.',
+  // T37: "ha la chiave" was a literal calque. In Italian a `chiave` is a
+  // wrench or a cipher, never a map key — that word IS `legenda`.
+  'lab.forkTrailHint': 'Ogni simbolo è una mossa che hai fatto. Il significato di ciascuno è nella pagina Legenda.',
 
   'published.faceTruth': 'Guarda in faccia la verità',
   'published.simulatedPress': 'STAMPA SIMULATA',
@@ -157,7 +213,10 @@ export const copy: Record<CopyKey, string> = {
 
   // Act I's last beat and the hinge into Act II: conspiratorial, not accusing.
   // "Rumore che ho vestito bene" is the player's own admission to make.
-  'call.title': 'Prima che ti mostriamo la verità…',
+  // T37: no editorial "noi" (rule 2), and the reveal screen has one Italian
+  // name, *la rivelazione* (rule 7). This string is also the Published
+  // overlay's aria-label, so it is read aloud as the dialog's own name.
+  'call.title': 'Prima di vedere la rivelazione…',
   'call.real': 'Un effetto reale',
   'call.realSub': 'Questo replicherebbe.',
   'call.noise': 'Rumore che ho vestito bene',
@@ -181,12 +240,19 @@ export const copy: Record<CopyKey, string> = {
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
   'reveal.accounting1': 'Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < .05 per puro caso.',
-  'reveal.accounting2': 'Hai esplorato {k} sentieri prima di pubblicare.',
-  'reveal.accounting2Abandoned': 'Hai esplorato {k} sentieri prima di riportare un risultato nullo.',
+  // T37 — plural safety (rule 9). {k} floors at 1: publishing the default
+  // specification explores exactly one sentiero, so "Hai esplorato 1 sentieri"
+  // was the ordinary first case, not an edge one. Label-colon-count in the two
+  // ledger lines; a number-neutral noun phrase with the count in parentheses
+  // in the third, which has to keep its sentence shape.
+  'reveal.accounting2': 'Sentieri che hai esplorato prima di pubblicare: {k}.',
+  'reveal.accounting2Abandoned': 'Sentieri che hai esplorato prima di riportare un risultato nullo: {k}.',
   'reveal.accounting3':
-    'Un ricercatore che esplora {k} sentieri a caso trova almeno un risultato "significativo" circa il {pHitPct}% delle volte.',
+    'Un ricercatore che esplora a caso quello stesso numero di sentieri ({k}) trova almeno un risultato "significativo" circa il {pHitPct}% delle volte.',
+  // {peeks} floors at 1 (Reveal renders this line only when peeks !== 0), so
+  // "Le tue 1 sbirciate" was on screen for every single-peek day.
   'reveal.peekSurcharge':
-    'Le tue {peeks} sbirciate ai dati rendono il numero vero di analisi circa {mult}× più grande di quanto mostri questa curva.',
+    'Le tue sbirciate ai dati ({peeks}) rendono il numero vero di analisi circa {mult}× più grande di quanto mostri questa curva.',
 
   // Compact figure vocabulary: a callout has one line, a button has a whole row.
   'reveal.subgroupAll': 'Tutti',
@@ -210,7 +276,9 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RITIRATO',
   'reveal.replicated': 'REPLICATO',
-  'reveal.nullReported': 'NULLO RIPORTATO',
+  // T37: "NULLO RIPORTATO" stamped the English word order onto Italian and
+  // read as a fragment with no head noun.
+  'reveal.nullReported': 'RISULTATO NULLO',
   'reveal.callCorrect': 'Il tuo verdetto era giusto.',
   'reveal.callIncorrect': 'Il tuo verdetto era sbagliato.',
   // Clinical, not apologetic: a preregistered analysis run exactly once is still
@@ -228,9 +296,14 @@ export const copy: Record<CopyKey, string> = {
   'summary.score': 'Punteggio: {score}',
   'summary.share': 'Condividi',
   'summary.copied': 'Copiato negli appunti',
-  'summary.nextIn': 'Prossimo rompicapo tra {hours}h {minutes}m',
-  'summary.streak': 'Serie di {n} giorni',
-  'summary.playPrereg': 'Prova la Modalità Prereg',
+  // Rule 10: Italian sets a space before a unit symbol, and "min" is the SI
+  // symbol for a minute.
+  'summary.nextIn': 'Prossimo rompicapo tra {hours} h {minutes} min',
+  // Rule 9: Summary renders this unconditionally and the streak counts today,
+  // so {n} = 1 is every new player's first day. "Serie di 1 giorni" greeted
+  // them. Label-colon-count agrees at every value there is.
+  'summary.streak': 'Giorni consecutivi: {n}',
+  'summary.playPrereg': 'Prova la modalità Preregistrazione',
 
   'summary.breakdownCallCorrect': 'Verdetto giusto',
   'summary.breakdownCallIncorrect': 'Verdetto sbagliato',
@@ -239,7 +312,8 @@ export const copy: Record<CopyKey, string> = {
   'summary.breakdownMissedDiscovery': 'Scoperta mancata',
   'summary.breakdownTrueDiscovery': 'Scoperta vera',
   'summary.breakdownConfirmedNull': 'Nullo confermato',
-  'summary.breakdownUnderpoweredLuck': 'Fortuna sottopotenziata',
+  // Luck is not underpowered; the study is.
+  'summary.breakdownUnderpoweredLuck': 'Colpo di fortuna sottopotenziato',
   'summary.breakdownFalsePositive': 'Falso positivo',
 
   'summary.invoiceTitle': 'Fattura',
@@ -250,27 +324,34 @@ export const copy: Record<CopyKey, string> = {
   // Manuscript register, sincere-bureaucratic, no wink: the form itself is the
   // joke and nothing in its own copy may admit it.
   'prereg.intro':
-    "Dichiara l'analisi completa prima di vedere un solo numero. Ogni scelta qui sotto diventa definitiva nel momento in cui invii. Non c'è nessun risultato da sbirciare prima, e oggi non c'è un secondo tentativo.",
+    "Dichiara l'analisi completa prima di vedere un solo numero. Ogni scelta qui sotto diventa definitiva nel momento in cui invii. Non c'è nessuna rivelazione da sbirciare prima, e oggi non c'è un secondo tentativo.",
   'prereg.commit':
     'Mi impegno solennemente a eseguire e riportare esattamente questa specificazione, qualunque cosa mostri.',
   'prereg.submit': 'Invia la preregistrazione',
-  'prereg.locked': 'Bloccata. Nessuna modifica fino ai risultati.',
+  'prereg.locked': 'Bloccata. Nessuna modifica fino alla rivelazione.',
 
   'stats.title': 'Le tue statistiche',
   'stats.played': 'Giocate',
   'stats.currentStreak': 'Serie attuale',
   'stats.maxStreak': 'Serie record',
-  'stats.callAccuracy': 'Verdetti giusti',
+  // The value rendered under it is a rate ("67%"), not a count.
+  'stats.callAccuracy': 'Precisione dei verdetti',
   'stats.avgScore': 'Punteggio medio',
   'stats.close': 'Chiudi',
 
   'stats.callAccuracyLast20': 'Ultimi 20 verdetti',
-  'stats.successRateTitle': 'Tasso di successo: hacking contro preregistrazione',
+  // "contro" is combative; the comparison is neutral.
+  'stats.successRateTitle': 'Tasso di successo: hacking vs. preregistrazione',
+  // Sentence-initial in its own element, so the capital is correct here.
   'stats.hackModeLabel': 'Modalità Hacking',
-  'stats.preregModeLabel': 'Modalità Prereg',
+  // T37 (rule 7): one name for the mode across all five places it is named.
+  'stats.preregModeLabel': 'Modalità Preregistrazione',
   'stats.noData': '—',
   'stats.forkHistogramTitle': 'Biforcazioni al giorno',
-  'stats.forkHistogramBar': '{forks} biforcazioni: {count}',
+  // T37: the histogram is indexed from 0, so "{forks} biforcazioni" had a
+  // screen reader saying "1 biforcazioni". Label-colon-count agrees at every
+  // value, and "Giocate" reuses stats.played's own word.
+  'stats.forkHistogramBar': 'Biforcazioni: {forks}. Giocate: {count}',
   // "Riconoscimenti", not "Obiettivi": the citations below read like award
   // citations, so the wall they hang on is an honours board, not a task list.
   'stats.achievementsTitle': 'Riconoscimenti',
@@ -280,7 +361,7 @@ export const copy: Record<CopyKey, string> = {
   'about.intro':
     "Ogni giorno P-hackle ti serve un dataset sintetico e un'ipotesi ridicola. La cassetta degli attrezzi invece è vera: cambio dell'esito, caccia al sottogruppo, arresto opzionale. Sono gli stessi gradi di libertà del ricercatore che si usano, per distrazione o meno, nella ricerca davvero pubblicata.",
   'about.mechanism':
-    "Sotto il cofano è tutto vero. Il dataset di ogni giorno è simulato da un processo generatore dei dati dichiarato (otto variabili latenti correlate, un trattamento confuso con età e reddito, quattro famiglie di esiti) e inizializzato dalla data, così ogni giocatore al mondo analizza gli stessi numeri. Le regressioni sono minimi quadrati ordinari. La curva di specificazione è calcolata stimando davvero ogni combinazione di esito, sottogruppo, insieme di covariate, regola di esclusione, trasformazione e scelta delle code. È enumerata, non campionata, e non finta. Nella maggior parte dei giorni l'effetto vero è esattamente zero. Negli altri è piccolo e reale, ed è tutta lì la difficoltà.",
+    "Sotto il cofano è tutto vero. Il dataset di ogni giorno è simulato da un processo generatore dei dati dichiarato (otto variabili latenti correlate, un trattamento con confondimento da età e reddito, quattro famiglie di esiti) e inizializzato dalla data, così ogni giocatore al mondo analizza gli stessi numeri. Le regressioni sono minimi quadrati ordinari. La curva di specificazione è calcolata stimando davvero ogni combinazione di esito, sottogruppo, insieme di covariate, regola di esclusione, trasformazione e scelta delle code. È enumerata, non campionata, e non finta. Nella maggior parte dei giorni l'effetto vero è esattamente zero. Negli altri è piccolo e reale, ed è tutta lì la difficoltà.",
   'about.frozenFork':
     "Una scelta analitica è congelata invece che offerta: gli z-score degli outlier sono calcolati sull'esito trasformato, dentro il sottocampione già filtrato. Anche quella è una biforcazione, e congelarla è a sua volta una decisione. La dichiariamo qui perché le biforcazioni che non vedi sono quelle che fanno il danno.",
   'about.syntheticDisclaimer':
@@ -293,13 +374,13 @@ export const copy: Record<CopyKey, string> = {
   'about.priorArtFiveThirtyEight':
     'Aschwanden & King (2015), "Hack Your Way to Scientific Glory", FiveThirtyEight. È l\'interattivo a cui questa idea appartiene. Usa dati reali e non offre nessuna verità di riferimento; P-hackle aggiunge un processo generatore dei dati noto, un seme quotidiano e il verdetto tra effetto e rumore.',
   'about.priorArtSpecCurve':
-    "Simonsohn, Simmons & Nelson. Analisi della curva di specificazione: il grafico della schermata finale è, in sostanza, la loro figura.",
+    'Simonsohn, Simmons & Nelson. Analisi della curva di specificazione: il grafico della rivelazione è, in sostanza, la loro figura.',
   'about.priorArtForkingPaths':
     "Gelman & Loken. Il giardino dei sentieri che si biforcano: non serve nessuna battuta di pesca perché succeda, basta un'analisi che si adatta ai dati che ti è capitato di vedere.",
   'about.priorArtFalsePositive':
     'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology". È l\'inventario dei gradi di libertà del ricercatore che questa cassetta degli attrezzi implementa, un pulsante alla volta.',
   'about.priorArtOptionalStopping':
-    'Armitage, McPherson & Rowe (1969). Testare di continuo mentre i dati si accumulano gonfia da solo il tasso di falsi positivi, ed è per questo che ogni lotto in più che raccogli ti viene addebitato alla fine.',
+    'Armitage, McPherson & Rowe (1969). Testare di continuo mentre i dati si accumulano gonfia da solo il tasso di falsi positivi, ed è per questo che ogni lotto in più che raccogli ti viene addebitato alla rivelazione.',
   'about.glossaryTitle': 'Glossario',
   'about.contact': 'Domande e segnalazioni di problemi sono benvenute.',
 
@@ -315,30 +396,41 @@ export const copy: Record<CopyKey, string> = {
 
   'legend.intro': 'Come si legge un risultato condiviso.',
   'legend.emojiSpec':
-    'Qualunque cambio di specificazione (esito, sottogruppo, covariate, esclusione outlier, trasformazione o passaggio a una coda)',
+    'Qualunque cambio di specificazione (esito, sottogruppo, covariate, esclusione degli outlier, trasformazione o passaggio a una coda)',
   'legend.emojiSubgroup': 'Cambio del filtro sul sottogruppo',
   'legend.emojiExclusion': "Cambio dell'esclusione degli outlier",
   'legend.emojiTails': 'Passaggio a una coda',
-  'legend.emojiPeek': 'Raccolti altri dati ("solo un altro lotto")',
-  'legend.emojiSubmit': 'Inviato per la pubblicazione',
-  'legend.emojiAbandon': 'Riportato un risultato nullo',
-  'legend.emojiPrereg': 'Preregistrato (prefisso)',
+  // T37 — glosse NOMINALI (rule 4), like legend.emojiSpec above. They say what
+  // a glyph MEANS inside a shared result that may be someone else's, so a bare
+  // participle with a dangling object is not enough.
+  'legend.emojiPeek': 'Raccolta di altri dati ("solo un altro lotto")',
+  'legend.emojiSubmit': 'Invio per la pubblicazione',
+  'legend.emojiAbandon': 'Segnalazione di un risultato nullo',
+  'legend.emojiPrereg': 'Preregistrazione (prefisso)',
   'legend.emojiCallCorrect': 'Verdetto giusto',
   'legend.emojiCallIncorrect': 'Verdetto sbagliato',
 
+  // Rule 2: the app is impersonal about itself; no editorial "noi".
   'errors.workerCrash':
-    'Qualcosa è andato storto mentre generavamo il rompicapo di oggi. Di solito basta ricaricare la pagina.',
+    'Qualcosa è andato storto durante la generazione del rompicapo di oggi. Di solito basta ricaricare la pagina.',
   'errors.storageOff':
     'Il tuo browser sta bloccando la memoria locale, quindi i progressi non verranno salvati da una visita alla successiva.',
 
-  'a11y.localeToggle': 'Cambia lingua',
+  // T37: this labels a role="group", and a group label NAMES its group rather
+  // than commanding. nav.localeToggle already holds exactly this word.
+  'a11y.localeToggle': 'Lingua',
   'a11y.themeToggle': 'Cambia tema',
   'a11y.backToGame': 'P-hackle: torna al rompicapo di oggi',
+  // T37: "ordinato" agreed with "Grafico", so the sentence said the CHART was
+  // sorted; English says the specifications are. Also said "specificazione"
+  // twice in one breath.
   'a11y.specCurveChart':
-    'Grafico del p-value di ogni specificazione possibile, ordinato, con evidenziata la specificazione che hai pubblicato.',
+    'Grafico dei p-value di tutte le specificazioni possibili, ordinate, con evidenziata quella che hai pubblicato.',
   'a11y.dataCut':
     'Grafico a punti del campione attuale: il gruppo di confronto e il gruppo trattato, con ogni punto escluso disegnato come segno barrato.',
-  'a11y.shareButton': 'Copia negli appunti il risultato da condividere',
-  'a11y.closeDialog': 'Chiudi la finestra',
+  'a11y.shareButton': 'Copia il risultato negli appunti',
+  // The target is a dialog, not a window. Still opens with the visible label
+  // "Chiudi", so WCAG 2.5.3 stays satisfied.
+  'a11y.closeDialog': 'Chiudi la finestra di dialogo',
   'a11y.loading': 'Caricamento del rompicapo di oggi',
 };
