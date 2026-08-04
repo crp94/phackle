@@ -240,6 +240,15 @@ export const IT_LEXICONS: ContentLexicons = {
 
 const enIds = enContent.scenarios.map((s) => s.id);
 
+/**
+ * The English number, in the forms the SUPERSTITION takes in Italian: as a
+ * numeral behind the article or behind "numero", and spelled out. Italian
+ * relocated thirteen-mortgage to 17 (eptacaidecafobia), so none of these may
+ * appear in the Italian press bank. See the guards-the-guard test below for
+ * why this is not a bare /13/.
+ */
+const UNLUCKY_THIRTEEN = /\b(?:numero|il|del|al) 13\b|\btredici\b/i;
+
 describe('Italian locale content', () => {
   it('passes the shared validator against the English scenario ids and order', () => {
     expect(validateLocaleContent(itContent, IT_LEXICONS, enIds)).toEqual([]);
@@ -336,11 +345,33 @@ describe('Italian locale content', () => {
     const texts = itContent.press.map((p) => p.text).join(' ');
     // thirteen-mortgage relocates the superstition to 17 (eptacaidecafobia).
     expect(texts).toContain('eptacaidecafobia');
-    expect(texts).not.toMatch(/\bnumero 13\b/);
+    expect(texts).not.toMatch(UNLUCKY_THIRTEEN);
     // standing-desk-poetry's cover story promises the endecasillabo.
     expect(texts).toContain('ENDECASILLABO');
     // cafe-peer-review happens at the bar, so the pastry is a cornetto.
     expect(texts).toContain('CORNETTO');
+  });
+
+  /**
+   * Fix round 1 [Minor 6]. `/\bnumero 13\b/` was too narrow to be a guard: it
+   * matched one phrasing of the relocated superstition and missed the two an
+   * author is at least as likely to write, so a blurb saying "chi evita il 13"
+   * would have shipped English's number under an Italian sentence.
+   *
+   * Scoped to the PRESS BANK (the test above joins press texts and nothing
+   * else) and deliberately NOT a bare /13/: this locale's press may one day
+   * legitimately count to thirteen about something that is not a mortgage
+   * (13 minuti, 13 città), and a guard that forbids a numeral outright would
+   * be banning arithmetic to catch a superstition. The three forms below are
+   * the ones the SUPERSTITION takes.
+   */
+  it('guards the guard: the 13-detector catches the phrasings, and spares an unrelated numeral', () => {
+    for (const bad of ['Chi evita il 13 spunta mutui migliori.', 'La paura del numero 13 vale un mutuo.', 'Tredici piani saltati.']) {
+      expect(bad, `should be caught: "${bad}"`).toMatch(UNLUCKY_THIRTEEN);
+    }
+    for (const ok of ['Diciotto mesi di dati e 13 città coinvolte.', 'Le 13 riunioni sono durate 340 minuti.']) {
+      expect(ok, `should NOT be caught: "${ok}"`).not.toMatch(UNLUCKY_THIRTEEN);
+    }
   });
 
   it('translates every achievement, under the same ids', () => {

@@ -505,7 +505,10 @@ export const content: LocaleContent = {
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      text: "La severità è stata valutata da un collegio di ex direttori, ognuno dei quali è stato recensito al bar e non se l'è dimenticato. Gli autori lo presentano come competenza specifica.",
+      // Fix round 1 [Minor 2]: the cover story's own "non se l'è dimenticato"
+      // was recycled here AND the domain-expertise line stacked on top of it,
+      // so the joke was told twice. English traded them; so does this now.
+      text: 'La severità è stata valutata da un collegio di ex direttori, ognuno dei quali è stato recensito al bar. Gli autori lo presentano come competenza specifica.',
       outlet: 'Il Bollettino Civico',
       tier: 1,
       scenarioIds: ['cafe-peer-review'],
@@ -566,7 +569,16 @@ export const content: LocaleContent = {
     // of these turns on the second person, and on TU rather than Lei (the
     // locale's register rule, ./copy.ts item 2 of the convention contract).
     {
-      text: 'Che cosa dice il tuo lievito madre sul tuo tempo finale. Il molino cooperativo continua a mandare gente allo studio, e noi siamo andati a chiedere perché.',
+      // Fix round 1 [Minor 1]: "il tuo tempo finale" was both punless and off
+      // this scenario's own vocabulary (its outcome is the "Guadagno sul
+      // primato personale"). `lievitare` is the transcreated pun: it is what
+      // dough does and what a quantity does when it grows. Note the DIRECTION
+      // it is pointed in. Applied to a TIME ("quanto lievita il tuo tempo"),
+      // lievitare means the time BALLOONED, i.e. the runner got slower, which
+      // is the opposite of what this paper claims and would make the outlet
+      // sceptical on a screen where Act I outlets are credulous. Pointed at
+      // the primato instead, the rise is the good news the paper is selling.
+      text: "A lievitare non è solo il pane: c'è anche il tuo primato personale. Il molino cooperativo continua a mandare gente allo studio, e noi siamo andati a chiedere perché.",
       outlet: 'Clickeria',
       tier: 2,
       scenarioIds: ['sourdough-marathon'],
@@ -668,7 +680,9 @@ export const content: LocaleContent = {
       scenarioIds: ['dog-economist-stocks'],
     },
     {
-      text: 'ALLARME: IL GATTO È ENTRATO NEL COMITATO INVESTIMENTI',
+      // Fix round 1 [Minor 4]: present tense, per this block's own rule (and
+      // per the Spanish twin, which already read ENTRA).
+      text: 'ALLARME: IL GATTO ENTRA NEL COMITATO INVESTIMENTI',
       outlet: 'Rete Sottopancia',
       tier: 3,
       scenarioIds: ['cat-crypto'],

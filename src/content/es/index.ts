@@ -486,7 +486,10 @@ export const content: LocaleContent = {
       scenarioIds: ['stairs-small-talk'],
     },
     {
-      text: 'La severidad la puntuó un panel de exeditores, todos ellos revisados alguna vez desde una cafetería, y ninguno lo ha olvidado. Los autores lo presentan como conocimiento del terreno.',
+      // Fix round 1 [Minor 2]: the cover story's own "ninguno lo ha olvidado"
+      // was recycled here AND the domain-expertise line stacked on top of it,
+      // so the joke was told twice. English traded them; so does this now.
+      text: 'La severidad la puntuó un panel de exeditores, todos ellos revisados alguna vez desde una cafetería. Los autores lo presentan como conocimiento del terreno.',
       outlet: 'El Boletín Oficioso',
       tier: 1,
       scenarioIds: ['cafe-peer-review'],
@@ -498,7 +501,11 @@ export const content: LocaleContent = {
       scenarioIds: ['terms-and-conditions-service'],
     },
     {
-      text: 'La pregunta por el telescopio se dejaba para el final, después de las indicaciones y de explicarlo todo. Quienes tienen telescopio, anotan los autores, estaban encantados de que se lo preguntaran.',
+      // Fix round 1 [Minor 3]: "de explicarlo todo" was vague where the joke
+      // needs the ethics-board jargon the method actually used. "Sesión
+      // informativa" is this locale's own term for the debrief, and press[7]
+      // already says it.
+      text: 'La pregunta por el telescopio se dejaba para el final, después de las indicaciones y de una sesión informativa completa. Quienes tienen telescopio, anotan los autores, estaban encantados de que se lo preguntaran.',
       outlet: 'El Balance Semanal',
       tier: 1,
       scenarioIds: ['telescope-directions'],
@@ -547,7 +554,17 @@ export const content: LocaleContent = {
     // of these turns on the second person, and on TÚ (the locale's register
     // rule, ./copy.ts item 3 of the convention contract), never usted.
     {
-      text: 'Lo que tu masa madre dice de tu tiempo final. La cooperativa harinera sigue mandando gente al estudio, y hemos ido a preguntarles por qué.',
+      // Fix round 1 [Minor 1]: "tu tiempo final" was both punless and off this
+      // scenario's own vocabulary (its outcome is the "Mejora sobre la marca
+      // personal"). The two verbs do the work instead, in the right
+      // directions: the starter rises, the mark drops, and a dropping marca is
+      // exactly the good news this paper is selling.
+      //
+      // "baja" is on NEGATIVE_DIRECTION_LEXICON_ES and that is fine here:
+      // findNegativeDirectionTerms walks `scenarios[].outcomeLabels` and
+      // nothing else, so the one-tailed direction contract never reads press
+      // text. Verified against the scan, not assumed (see the report).
+      text: 'Tu masa madre sube; tu marca, baja. La cooperativa harinera sigue mandando gente al estudio, y hemos ido a preguntarles por qué.',
       outlet: 'Clicbienestar',
       tier: 2,
       scenarioIds: ['sourdough-marathon'],

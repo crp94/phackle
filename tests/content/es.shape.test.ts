@@ -27,6 +27,7 @@ import {
   emDashDensity,
   findEmDashProblems,
   findMissingSpecKnobs,
+  findNegativeDirectionTerms,
   findPressSpoilerTerms,
   validateLocaleContent,
 } from './shape.test';
@@ -207,6 +208,15 @@ export const ES_PRESS_SPOILER_LEXICON = [
   'siempre cero',
   'se sostiene',
   'se sostuvo',
+  // Fix round 1 [Minor 5]. The compound past and the imperfect are not
+  // reachable from the two entries above (`\bse sostuvo` never matches "se ha
+  // sostenido"), and this project demonstrates the first form itself: the
+  // Spanish Grantwell bank ships "He despejado la tarde para oír que la
+  // hipótesis SE HA SOSTENIDO". That line is safe where it lives (the spoiler
+  // scan reads press, not Grantwell) and is exactly the phrasing a press blurb
+  // would borrow, which is what makes it the right evidence for adding both.
+  'se ha sostenido',
+  'se sostenía',
 ];
 
 export const ES_LEXICONS: ContentLexicons = {
@@ -424,6 +434,9 @@ describe('Spanish press spoiler law (T39a\'s law, scanned in Spanish since T39b)
     'Siempre cero, y lo sabían.',
     'La hipótesis no se sostiene.',
     'La conclusión no se sostuvo ni una semana.',
+    // [Minor 5]: the two forms the reflexive phrases above cannot reach.
+    'La hipótesis se ha sostenido, dicen los autores.',
+    'El efecto se sostenía ya en los datos preliminares.',
   ])('catches the Spanish verdict in "%s"', (text) => {
     const broken = { ...esContent, press: [{ ...esContent.press[1], text }, ...esContent.press.slice(1)] };
     expect(findPressSpoilerTerms(broken, ES_PRESS_SPOILER_LEXICON).length).toBeGreaterThan(0);
@@ -449,6 +462,54 @@ describe('Spanish press spoiler law (T39a\'s law, scanned in Spanish since T39b)
       press: [{ ...esContent.press[1], text: 'El estudio ha sido retractado.' }, ...esContent.press.slice(1)],
     };
     expect(validateLocaleContent(broken, ES_LEXICONS, enIds).some((p) => p.includes('asserts a verdict'))).toBe(true);
+  });
+});
+
+/**
+ * Fix round 1 [Minor 1], the boundary that fix leans on, pinned rather than
+ * assumed.
+ *
+ * press[20] now reads "Tu masa madre sube; tu marca, baja." — and 'baja' is an
+ * entry on NEGATIVE_DIRECTION_LEXICON_ES. That is not a violation: the
+ * one-tailed direction contract is a rule about OUTCOME LABELS (more of the
+ * metric must mean more of the claimed effect), and findNegativeDirectionTerms
+ * walks `scenarios[].outcomeLabels` and nothing else. A press blurb is prose
+ * about the study, not a column in it, and a marca that drops is precisely the
+ * good news this paper is selling.
+ *
+ * Both halves are asserted, because "the scan does not reach press" is only
+ * reassuring if the term would genuinely have fired had it been in scope.
+ */
+describe('Spanish direction contract stops at the outcome labels (fix round 1)', () => {
+  it('leaves a blurb that says "baja" alone, while the term is live for labels', () => {
+    expect(esContent.press[20].text).toContain('baja');
+    expect(findNegativeDirectionTerms(esContent, NEGATIVE_DIRECTION_LEXICON_ES)).toEqual([]);
+    expect(validateLocaleContent(esContent, ES_LEXICONS, enIds)).toEqual([]);
+
+    const [first] = esContent.scenarios;
+    const broken = {
+      ...esContent,
+      scenarios: [
+        {
+          ...first,
+          outcomeLabels: ['Marca que baja', ...first.outcomeLabels.slice(1)] as [string, string, string, string],
+        },
+        ...esContent.scenarios.slice(1),
+      ],
+    };
+    expect(findNegativeDirectionTerms(broken, NEGATIVE_DIRECTION_LEXICON_ES).some((p) => p.includes('baja'))).toBe(true);
+  });
+
+  it('names the scans a blurb IS read by, so the boundary is documented and not folklore', () => {
+    // Harm, spoiler, voice, journal, token, em dash. Two spot checks: the
+    // spoiler scan does reach press[20] (it just finds nothing), and the em
+    // dash budget counts its characters.
+    expect(findPressSpoilerTerms(esContent, ES_PRESS_SPOILER_LEXICON)).toEqual([]);
+    const withVerdict = {
+      ...esContent,
+      press: esContent.press.map((p, i) => (i === 20 ? { ...p, text: `${p.text} Se ha retractado.` } : p)),
+    };
+    expect(findPressSpoilerTerms(withVerdict, ES_PRESS_SPOILER_LEXICON).length).toBeGreaterThan(0);
   });
 });
 
