@@ -1,0 +1,42 @@
+name: e2e
+
+# Deliberately its OWN workflow, not a job bolted onto test.yml: browser-infra
+# flakiness (a chromium download hiccup, a webServer boot timeout) must never
+# be able to mask a real unit-test failure, and vice versa — each gives an
+# independent, unambiguous status check.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      - name: install chromium (+ OS deps)
+        run: npx playwright install --with-deps chromium
+
+      - name: e2e (playwright test — builds + previews the app itself)
+        run: npm run e2e
+
+      # playwright.config.ts's html reporter bundles its referenced traces
+      # and screenshots into playwright-report/ itself, so this one folder is
+      # a self-contained, browsable artifact of what failed and why.
+      - name: upload playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -1,0 +1,49 @@
+name: calibration
+
+# The master spec §8.3 statistical calibration suite ("this suite is the
+# game's balance sheet"). It simulates 1,000 synthetic days and asserts five
+# §3.9 bands — expensive enough (and stable enough, by construction: every
+# draw is seeded, never Math.random) that it does not belong on every push.
+# Weekly cron catches silent drift from ANY change (engine, tuning constants,
+# even a dependency bump) between deliberate touches; workflow_dispatch is
+# the on-demand escape hatch for verifying a tuning change before landing it.
+on:
+  schedule:
+    # Monday 06:00 UTC — a quiet hour, off the back of the weekend, ahead of
+    # both US and EU business hours, so a red run is seen promptly rather
+    # than lost overnight.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      # scripts/simulate_calibration.ts exits non-zero (process.exit(1)) the
+      # moment any ASSERTED §3.9 band misses; GitHub Actions' default bash
+      # `run:` shell already sets `-o pipefail`, so that exit code survives
+      # the `tee` below instead of being swallowed by it.
+      - name: calibration (5 bands, 500 null + 500 effect synthetic days)
+        run: npm run cal | tee calibration-report.txt
+
+      - name: upload calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-report
+          path: |
+            calibration-report.txt
+            src/data/p_hit_by_k.json
+          retention-days: 90

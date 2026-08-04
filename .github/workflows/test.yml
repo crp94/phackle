@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -12,19 +15,19 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
           cache: npm
 
       - run: npm ci
 
+      - name: typecheck
+        run: npm run typecheck
+
       - name: lint
         run: npm run lint
 
-      - name: typecheck
-        run: npx tsc --noEmit
-
-      - name: test
-        run: npx vitest run
+      - name: test (vitest, full run)
+        run: npm test
 
       - name: build
         run: npm run build
