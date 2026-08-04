@@ -21,13 +21,52 @@
 //     harder than English does, so these sentences are built out of colons,
 //     semicolons and full stops instead. stats.noData's glyph is the only
 //     U+2014 in the locale, and it is a "no data" mark, not punctuation.
+//
+// ES-ES CONVENTION CONTRACT (T37, from the T36 UI-language audit §4a). These
+// are the rules an es-ES interface follows, in addition to the register rules
+// above. Break one and the string is wrong even if the sentence is not:
+//
+//   1. ACTIONS TAKE THE INFINITIVE. Every button, link and menu command:
+//      "Abrir los datos", "Enviar a publicación", "Compartir", "Cerrar",
+//      "Afrontar la verdad". Never a noun phrase, never a tú-imperative, even
+//      when the English reads as one.
+//   2. THE TÚ-IMPERATIVE IS FOR INSTRUCTIONS, NOT CONTROLS: numbered how-to
+//      steps, the goal strip, prose telling the player what to do ("Lee…",
+//      "Ajusta…", "Enfréntate…"). A button and a step may share a TERM
+//      ("la verdad") without sharing a MOOD.
+//   3. REGISTER IS TÚ throughout the chrome, matching the corpus. Never
+//      usted, never an impersonal "se" where the player is the subject.
+//   4. SENTENCE CASE EVERYWHERE. Only proper nouns, product mode names
+//      ("modo Preregistro"), stamps (RETRACTADO, PRENSA SIMULADA) and
+//      acronyms take capitals. No English Title Case, ever.
+//   5. STATE LABELS ARE NOMINAL OR PARTICIPIAL, not clauses: "Copiado al
+//      portapapeles", "Veredicto correcto", "Ya has jugado hoy". Legend
+//      glosses are NOMINAL ("Envío a publicación", "Informe de un resultado
+//      nulo"), never a third-person preterite, which invents a subject.
+//   6. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. The reveal screen is *la
+//      revelación*; paths are *senderos*; forks are *bifurcaciones*; a spec is
+//      *una especificación*; the call is *el veredicto*. "La verdad" belongs
+//      to published.faceTruth and lab.howThisWorks.step4, the same beat.
+//   7. COUNT-BEARING LABELS MUST AGREE AT n = 1. Prefer "Etiqueta: {n}" over
+//      "{n} sustantivos"; summary.streak is the worked example, and
+//      reveal.accounting2/3 and stats.forkHistogramBar follow it.
+//   8. NOTATION IS NOT PROSE (rule 2 of the TRANSCREATION list at the top of
+//      this file, not rule 2 of this one): decimal point always, "gl" for
+//      degrees of freedom, no thousands separators.
+//   9. EM-DASH BUDGET: 0. stats.noData's — is the locale's only U+2014 and is
+//      a "no data" mark, not punctuation.
+//  10. ARIA STRINGS SOUND LIKE SPEECH, not documentation: a group label names
+//      its group ("Idioma"), a button label commands ("Cerrar diálogo"), a
+//      figure description is one spoken sentence.
 import type { CopyKey } from '../en/copy';
 
 export const copy: Record<CopyKey, string> = {
   'nav.title': 'P-hackle',
   'nav.tagline': 'Un juego diario sobre el jardín de senderos que se bifurcan.',
   'nav.puzzleNumber': 'Puzle n.º {n}',
-  'nav.about': 'Acerca de',
+  // T37: "Acerca de" left a preposition dangling beside "Estadísticas" and
+  // "Leyenda"; about.title already completes the phrase where it belongs.
+  'nav.about': 'Información',
   'nav.stats': 'Estadísticas',
   'nav.legend': 'Leyenda',
   'nav.play': 'Jugar',
@@ -41,7 +80,10 @@ export const copy: Record<CopyKey, string> = {
   'nav.themePaper': 'Papel',
   'nav.themeDark': 'Oscuro',
 
-  'briefing.openData': 'Datos abiertos',
+  // T37: ACTION, not a topic. The app's primary CTA opens the day's data;
+  // "Datos abiertos" named the open-data policy instead of the gesture.
+  // Infinitive, per rule 1 of the header.
+  'briefing.openData': 'Abrir los datos',
   // "Autor de correspondencia" is the standard masthead formula, and the
   // author is the PLAYER: Grantwell only signs the email (briefing.emailFrom).
   'briefing.correspondingAuthor': 'Autor de correspondencia: Tú',
@@ -52,7 +94,8 @@ export const copy: Record<CopyKey, string> = {
   'briefing.emailSubject': 'Re: lo del plazo',
   'briefing.goal': 'Tu tarea: encontrar un efecto estadísticamente significativo (p < 0.05) y publicarlo.',
 
-  'briefing.modeChooserIntro': 'El preregistro está desbloqueado. Elige cómo juegas hoy. Un intento por modo.',
+  'briefing.modeChooserIntro':
+    'El preregistro está desbloqueado. Elige cómo quieres jugar hoy. Un intento por modo.',
   'briefing.playHacking': 'Jugar en modo Hacking',
   'briefing.playPrereg': 'Jugar en modo Preregistro',
   'briefing.alreadyPlayedToday': 'Ya has jugado hoy',
@@ -66,6 +109,10 @@ export const copy: Record<CopyKey, string> = {
   'lab.exclusion': 'Exclusión de atípicos',
   'lab.transform': 'Transformación',
   'lab.tails': 'Colas',
+  // T37 fix round 1 (ruling): the audit proposed "Enviar a publicar", and it
+  // is idiomatic on its own. In context it was not: it left the locale saying
+  // "publicar" here, "publicación" in legend.emojiSubmit and "a publicación"
+  // in lab.howThisWorks.step3, for one act. One phrase for one act wins.
   'lab.submit': 'Enviar a publicación',
   'lab.reportNull': 'Informar de un resultado nulo',
   'lab.nLabel': 'n = {n}',
@@ -84,8 +131,10 @@ export const copy: Record<CopyKey, string> = {
   'lab.subgroupAgeGe40': 'Edad ≥ 40',
   'lab.subgroupExpHigh': 'Experiencia alta',
   'lab.subgroupExpLow': 'Experiencia baja',
-  'lab.subgroupUrban': 'Urbano',
-  'lab.subgroupRural': 'Rural',
+  // T37: nominal, like their siblings. A bare masculine adjective has nothing
+  // to agree with here. reveal.subgroupUrban/Rural stay compact and unchanged.
+  'lab.subgroupUrban': 'Zona urbana',
+  'lab.subgroupRural': 'Zona rural',
 
   'lab.covariatesNone': 'Ninguna',
   'lab.covariatesBoth': '{income} + {risk}',
@@ -123,7 +172,8 @@ export const copy: Record<CopyKey, string> = {
   'lab.howThisWorks.step1': 'Lee el informe: la pregunta de hoy y los datos que te han dado.',
   'lab.howThisWorks.step2': 'Ajusta el análisis hasta que el número grande baje de 0.05.',
   'lab.howThisWorks.step3': 'Envía tu hallazgo a publicación.',
-  // Deliberately the same wording as published.faceTruth: same beat, same name.
+  // Same beat as published.faceTruth and the same TERM ("la verdad"); the mood
+  // differs on purpose (T37): that one is a button, this one an instruction.
   'lab.howThisWorks.step4': 'Enfréntate a la verdad sobre lo que encontraste.',
   'lab.howThisWorks.dismiss': 'Entendido',
 
@@ -139,9 +189,12 @@ export const copy: Record<CopyKey, string> = {
   'lab.cutLegendExcluded': 'Excluidos: {n}',
   'lab.cutLegendMean': 'Media del grupo',
 
-  'lab.forkTrailHint': 'Cada símbolo es un movimiento que hiciste. La página de Leyenda tiene la clave.',
+  'lab.forkTrailHint': 'Cada símbolo es un movimiento que hiciste. La clave está en la página Leyenda.',
 
-  'published.faceTruth': 'Enfréntate a la verdad',
+  // T37: a BUTTON, so the infinitive (header rule 1). lab.howThisWorks.step4
+  // is the same beat and keeps the same TERM ("la verdad"), but it is an
+  // instruction, so it keeps the tú-imperative: same noun, different mood.
+  'published.faceTruth': 'Afrontar la verdad',
   'published.simulatedPress': 'PRENSA SIMULADA',
   'published.editorsPick': 'Selección del editor',
   'published.doiPrefix': 'DOI:',
@@ -179,17 +232,25 @@ export const copy: Record<CopyKey, string> = {
     'Todas las especificaciones que podrías haber ejecutado, ordenadas por p-valor. No se publicó nada.',
   'reveal.publishedRecipe': 'Publicaste: {recipe}',
   'reveal.groupedCaption': 'Los efectos reales se agrupan. El ruido se dispersa.',
-  'reveal.omittedFootnote': '{n} especificaciones tenían muy pocos datos para analizarse y no se representan.',
+  'reveal.omittedFootnote': '{n} especificaciones tenían demasiado pocos datos para analizarse y no se representan.',
   'reveal.toSummary': 'Ver la factura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
   'reveal.accounting1': 'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < .05 por puro azar.',
-  'reveal.accounting2': 'Exploraste {k} senderos antes de publicar.',
-  'reveal.accounting2Abandoned': 'Exploraste {k} senderos antes de informar de un resultado nulo.',
+  // T37 — plural safety, rule 7 of the header. {k} floors at 1 (publishing the
+  // default specification explores exactly one sendero), so "Exploraste 1
+  // senderos" was the common case, not a corner one. Label-colon-count in the
+  // two ledger lines; a number-neutral noun phrase with the count in
+  // parentheses in the third, which has to keep its sentence shape.
+  'reveal.accounting2': 'Senderos que exploraste antes de publicar: {k}.',
+  'reveal.accounting2Abandoned': 'Senderos que exploraste antes de informar de un resultado nulo: {k}.',
   'reveal.accounting3':
-    'Quien explora {k} senderos al azar encuentra al menos un resultado "significativo" alrededor del {pHitPct}% de las veces.',
+    'Quien explora al azar esa misma cantidad de senderos ({k}) encuentra al menos un resultado "significativo" alrededor del {pHitPct}% de las veces.',
+  // {peeks} floors at 1 (Reveal only renders this line when peeks !== 0), so
+  // the count goes in parentheses; "unas … mayor" also stranded a feminine
+  // plural determiner on a singular comparative.
   'reveal.peekSurcharge':
-    'Tus {peeks} vistazos a los datos hacen que el número real de análisis sea unas {mult}× mayor de lo que muestra esta curva.',
+    'Tus vistazos a los datos ({peeks}) hacen que el número real de análisis sea aproximadamente {mult}× mayor de lo que muestra esta curva.',
 
   // Compact recipe vocabulary: a callout has one line, a button has a whole row.
   'reveal.subgroupAll': 'Todos',
@@ -219,9 +280,15 @@ export const copy: Record<CopyKey, string> = {
   'reveal.preregFalsePositive':
     'Esto no es un fallo tuyo: un análisis preregistrado, ejecutado exactamente una vez, sigue dando un falso positivo alrededor del 5% de las veces. Hoy tocó.',
 
-  // The share grid's third line reads "{forks} bifurcaciones · racha {streak}".
-  'share.forksWord': 'bifurcaciones',
-  'share.streakWord': 'racha',
+  // The share grid's third line. T37 fix round 1 (controller ruling, see
+  // share.ts's §2.9 deviation note): it now reads
+  // "Bifurcaciones: 12 · Racha: 7" rather than "12 bifurcaciones · racha 7",
+  // because the old layout printed "1 bifurcaciones" on any one-fork day and
+  // this string gets pasted into other people's feeds. Label position, so
+  // capitalized — the one place this locale's sentence-case rule yields, and
+  // it yields to a label, not to English Title Case.
+  'share.forksWord': 'Bifurcaciones',
+  'share.streakWord': 'Racha',
 
   'summary.score': 'Puntuación: {score}',
   'summary.share': 'Compartir',
@@ -232,7 +299,7 @@ export const copy: Record<CopyKey, string> = {
   // first-day case. "Racha de 1 días" would greet every new player. A
   // label-colon-count row agrees with every value there is.
   'summary.streak': 'Días seguidos: {n}',
-  'summary.playPrereg': 'Prueba el modo Preregistro',
+  'summary.playPrereg': 'Probar el modo Preregistro',
 
   'summary.breakdownCallCorrect': 'Veredicto correcto',
   'summary.breakdownCallIncorrect': 'Veredicto erróneo',
@@ -241,7 +308,7 @@ export const copy: Record<CopyKey, string> = {
   'summary.breakdownMissedDiscovery': 'Descubrimiento desaprovechado',
   'summary.breakdownTrueDiscovery': 'Descubrimiento verdadero',
   'summary.breakdownConfirmedNull': 'Nulo confirmado',
-  'summary.breakdownUnderpoweredLuck': 'Suerte sin potencia',
+  'summary.breakdownUnderpoweredLuck': 'Suerte con poca potencia',
   'summary.breakdownFalsePositive': 'Falso positivo',
 
   'summary.invoiceTitle': 'Factura',
@@ -253,8 +320,11 @@ export const copy: Record<CopyKey, string> = {
   // joke; its own copy never winks.
   'prereg.intro':
     'Declara tu análisis completo antes de ver un solo número. Cada elección de aquí abajo es definitiva en el momento en que la envías. No hay ninguna revelación que espiar antes, ni un segundo intento hoy.',
+  // T37: a preregistration commits you to REPORT the result, not to publish
+  // it (EN says "running and reporting"), and "publicar" also collided with
+  // lab.submit's "Enviar a publicación", which is a different promise.
   'prereg.commit':
-    'Me comprometo solemnemente a ejecutar y publicar exactamente esta especificación, muestre lo que muestre.',
+    'Me comprometo solemnemente a ejecutar exactamente esta especificación y a informar de su resultado, muestre lo que muestre.',
   'prereg.submit': 'Enviar preregistro',
   'prereg.locked': 'Registrado. No hay más cambios hasta la revelación.',
 
@@ -272,7 +342,10 @@ export const copy: Record<CopyKey, string> = {
   'stats.preregModeLabel': 'Modo Preregistro',
   'stats.noData': '—',
   'stats.forkHistogramTitle': 'Bifurcaciones por día',
-  'stats.forkHistogramBar': '{forks} bifurcaciones: {count}',
+  // T37: the histogram is indexed from 0, so "{forks} bifurcaciones" had a
+  // screen reader saying "1 bifurcaciones". Label-colon-count agrees at every
+  // value, and "Partidas" reuses stats.played's own word.
+  'stats.forkHistogramBar': 'Bifurcaciones: {forks}. Partidas: {count}',
   'stats.achievementsTitle': 'Logros',
   'stats.locked': 'Logro bloqueado',
 
@@ -319,18 +392,24 @@ export const copy: Record<CopyKey, string> = {
   'legend.emojiSubgroup': 'Cambio de filtro de subgrupo',
   'legend.emojiExclusion': 'Cambio en la exclusión de atípicos',
   'legend.emojiTails': 'Cambio a una cola',
-  'legend.emojiPeek': 'Recogió más datos ("solo un lote más")',
-  'legend.emojiSubmit': 'Enviado a publicación',
-  'legend.emojiAbandon': 'Informó de un resultado nulo',
-  'legend.emojiPrereg': 'Preregistrado (prefijo)',
-  'legend.emojiCallCorrect': 'El veredicto fue correcto',
-  'legend.emojiCallIncorrect': 'El veredicto fue erróneo',
+  // T37 — NOMINAL glosses, all of them. They describe what a glyph MEANS
+  // inside a shared result that may be someone else's: a third-person
+  // preterite ("Recogió…") invents a subject, and the second person pins the
+  // move on whoever is reading. legend.emojiSpec already used this form.
+  'legend.emojiPeek': 'Recogida de más datos ("solo un lote más")',
+  'legend.emojiSubmit': 'Envío a publicación',
+  'legend.emojiAbandon': 'Informe de un resultado nulo',
+  'legend.emojiPrereg': 'Preregistro (prefijo)',
+  'legend.emojiCallCorrect': 'Veredicto correcto',
+  'legend.emojiCallIncorrect': 'Veredicto erróneo',
 
   'errors.workerCrash': 'Algo ha fallado al generar el puzle de hoy. Recargar suele arreglarlo.',
   'errors.storageOff':
     'Tu navegador está bloqueando el almacenamiento local, así que el progreso no se guardará entre visitas.',
 
-  'a11y.localeToggle': 'Cambiar de idioma',
+  // T37: this labels a role="group", and a group label NAMES its group rather
+  // than commanding. nav.localeToggle already holds exactly this word.
+  'a11y.localeToggle': 'Idioma',
   // "Cambiar DE tema" is the fixed idiom for changing the SUBJECT of a
   // conversation; the setting is "cambiar tema".
   'a11y.themeToggle': 'Cambiar tema',
@@ -339,7 +418,7 @@ export const copy: Record<CopyKey, string> = {
     'Gráfico del p-valor de todas las especificaciones posibles, ordenadas, con tu especificación publicada resaltada.',
   'a11y.dataCut':
     'Diagrama de puntos de la muestra actual: el grupo de comparación y el grupo tratado, con cada punto excluido dibujado como una marca tachada.',
-  'a11y.shareButton': 'Copiar al portapapeles el resultado para compartir',
+  'a11y.shareButton': 'Copiar el resultado al portapapeles',
   'a11y.closeDialog': 'Cerrar diálogo',
   'a11y.loading': 'Cargando el puzle de hoy',
 };

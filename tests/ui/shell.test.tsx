@@ -204,10 +204,12 @@ describe('locale toggle', () => {
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
 
     if (AVAILABLE_LOCALES.length <= 1) {
-      expect(screen.queryByRole('group', { name: 'Change language' })).toBeNull();
+      expect(screen.queryByRole('group', { name: 'Language' })).toBeNull();
       return;
     }
-    const group = screen.getByRole('group', { name: 'Change language' });
+    // T37 (audit §5.4): a11y.localeToggle NAMES the group; it stopped being
+    // 'Change language' because a group label is not an action.
+    const group = screen.getByRole('group', { name: 'Language' });
     expect(within(group).getAllByRole('button')).toHaveLength(AVAILABLE_LOCALES.length);
   });
 

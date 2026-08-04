@@ -554,13 +554,21 @@ export const content: LocaleContent = {
 
   // Award citations, in the register an Italian honours board uses ("Per
   // meriti...", "Per aver..."). Clinical, never congratulatory.
+  //
+  // T37: the NAMES render as labels on the Stats wall (Stats.tsx's
+  // .ph-stats__ach-name), so they are interface strings and follow the
+  // locale's sentence-case rule (see ./copy.ts's convention contract, rule 3):
+  // Italian capitalises the first word and proper nouns only, titles included.
+  // Which is why the canonical Italian Borges title is "Il giardino dei
+  // sentieri che si biforcano". "HARKing" (an acronym) and "True Detective" (a
+  // proper title) keep their capitals for that reason and no other.
   achievements: {
     first_blood: {
-      name: 'Prima Firma',
+      name: 'Prima firma',
       citation: 'Per il primo articolo che questo laboratorio sia mai riuscito a far passare a un revisore.',
     },
     first_retraction: {
-      name: 'Primo Ritiro',
+      name: 'Primo ritiro',
       citation: "Per la rapidità con cui la homepage dell'ateneo si è dimenticata di te.",
     },
     harking: {
@@ -568,28 +576,28 @@ export const content: LocaleContent = {
       citation: "Per aver formulato l'ipotesi dopo aver visto i risultati, sapendolo benissimo.",
     },
     one_tailed_bandit: {
-      name: 'Il Bandito a Una Coda',
+      name: 'Il bandito a una coda',
       citation: "Per aver deciso, all'ultimo momento utile, che una sola direzione avesse sempre contato.",
     },
     outlier_surgeon: {
-      name: 'Chirurgo degli Outlier',
+      name: 'Chirurgo degli outlier',
       citation: 'Per meriti nella rimozione di esseri umani scomodi.',
     },
     subgroup_safari: {
-      name: 'Safari tra i Sottogruppi',
+      name: 'Safari tra i sottogruppi',
       citation: "Per aver visitato cinque sottogruppi in cerca dell'unico che ti desse ragione.",
     },
     one_more_batch: {
-      name: 'Solo un Altro Lotto',
+      name: 'Solo un altro lotto',
       citation: 'Per aver raccolto dati finché i dati non hanno collaborato.',
     },
     garden: {
-      name: 'Il Giardino dei Sentieri che si Biforcano',
+      name: 'Il giardino dei sentieri che si biforcano',
       citation: 'Per aver guardato venticinque specificazioni e pubblicato la più bella.',
     },
-    monk: { name: 'Il Monaco', citation: 'Per venti giorni passati a non fare niente di tutto questo.' },
+    monk: { name: 'Il monaco', citation: 'Per venti giorni passati a non fare niente di tutto questo.' },
     well_actually: {
-      name: 'Beh, In Realtà',
+      name: 'Beh, in realtà',
       citation: 'Per aver pubblicato il rumore, sapendo esattamente che cosa stavi facendo.',
     },
     true_detective: {

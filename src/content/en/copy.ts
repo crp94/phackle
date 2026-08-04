@@ -364,16 +364,34 @@ export const copy: Record<CopyKey, string> = {
   'nav.puzzleNumber': 'Puzzle #{n}',
   'nav.about': 'About',
   'nav.stats': 'Stats',
+  // T37 (audit §5.11): renders BOTH as a header nav page name and as the
+  // ForkTrail popover's trigger button (ForkTrail.tsx). It must read as a page
+  // NAME in both places, so do not translate it as a verb in either.
   'nav.legend': 'Legend',
   'nav.play': 'Play',
   'nav.localeToggle': 'Language',
   'nav.localeNameEn': 'English',
   'nav.localeNameIt': 'Italiano',
   'nav.localeNameEs': 'Español',
+  // T37 (audit §5.10, corrected for T33's control): these are the two OPTIONS
+  // of a segmented theme control (App.tsx's ThemeToggle), one button each,
+  // both on screen at once with `aria-pressed` marking the live one. They name
+  // a theme, exactly as call.real/call.noise name a claim: option labels,
+  // never verbified. (The audit described the pre-T33 single flip-flop button
+  // and said "the button shows the theme you are in"; that button is gone, and
+  // the instruction that survives it is this one.)
   'nav.themePaper': 'Paper',
   'nav.themeDark': 'Dark',
 
-  'briefing.openData': 'Open Data',
+  // T37 (T36 audit §5.1, adopted as a VALUE change). ACTION, and the Briefing
+  // screen's primary CTA (Briefing.tsx): the only control a first-time player
+  // can press, and the transition out of Act I. The old value, 'Open Data',
+  // was the one Title-Cased action in an otherwise sentence-case catalog and
+  // a homograph of the open-data policy badge -- both translators read it as
+  // the badge noun and shipped a noun phrase. Translate as a VERB in each
+  // locale's own button mood (es infinitive, it imperative), never as the
+  // "open data" badge noun, and never leave it in English.
+  'briefing.openData': 'Open the data',
   // Fix (T15 review, subsumed one-liner): the PLAYER is the paper's author
   // ("You"); Grantwell is only the PI *emailing* them (briefing.emailFrom).
   // "Corresponding author: You" is master spec §2.3/§7.3's own wording — the
@@ -401,6 +419,9 @@ export const copy: Record<CopyKey, string> = {
   'lab.outcome': 'Outcome',
   'lab.subgroup': 'Subgroup',
   'lab.covariates': 'Covariates',
+  // T37 (audit §5.5): an English noun-noun compound, and both locales calqued
+  // it. Name the control in the target language's own grammar; the Romance
+  // languages need a preposition here ("esclusione DEGLI outlier").
   'lab.exclusion': 'Outlier exclusion',
   'lab.transform': 'Transform',
   'lab.tails': 'Tails',
@@ -469,8 +490,14 @@ export const copy: Record<CopyKey, string> = {
 
   // T31 — the first-run intro: four steps, one short sentence each,
   // welcoming, no jargon beyond the game's own 0.05. Shown until dismissed,
-  // then never again (settings.introSeen). Step 4 reuses published.faceTruth's
-  // existing wording on purpose — it is the same beat, named the same way.
+  // then never again (settings.introSeen). Step 4 and published.faceTruth are
+  // the same beat, named the same way.
+  // T37 (audit §5.7): that instruction used to say "reuse the wording
+  // verbatim". Right about the TERM, wrong about the MOOD -- published.faceTruth
+  // is a BUTTON and step 4 is a numbered INSTRUCTION, and Spanish buttons take
+  // the infinitive where its instructions take the tú-imperative. So: same
+  // beat, same NOUN ("the truth"); each locale sets the mood its own UI
+  // conventions require.
   'lab.howThisWorks.title': 'How to play',
   'lab.howThisWorks.step1': "Read the brief: today's question, and the data you have been given.",
   'lab.howThisWorks.step2': 'Adjust the analysis until the big number drops below 0.05.',
@@ -499,6 +526,9 @@ export const copy: Record<CopyKey, string> = {
   // T31 FIX ROUND — finding 4, "RESTORED REQUIREMENT — Legend pointer".
   // One quiet line next to the live ForkTrail: the trail's own emoji are
   // otherwise unexplained anywhere in the Lab.
+  // T37 (audit §5.6): "has the key" is an English idiom, and "key" for a chart
+  // legend has no cognate in either target language. It means "the explanation
+  // of the symbols" -- do not translate the noun literally.
   'lab.forkTrailHint': 'Each symbol is a move you made. The Legend page has the key.',
 
   'published.faceTruth': 'Face the truth',
@@ -528,6 +558,9 @@ export const copy: Record<CopyKey, string> = {
   // beat, and the hinge into Act II. "Noise I dressed up" is the player's own
   // admission to make; the game does not make it for them.
   'call.title': 'Before you see the reveal…',
+  // T37 (audit §5.9): call.real and call.noise sit on <button>s, but they are
+  // CLAIMS the player selects, not actions they perform. Option titles, not
+  // commands -- never verbify them in translation.
   'call.real': 'A real effect',
   'call.realSub': 'This would replicate.',
   'call.noise': 'Noise I dressed up',
@@ -556,15 +589,73 @@ export const copy: Record<CopyKey, string> = {
   'reveal.toSummary': 'See the invoice',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
+  // ------------------------------------------------------------------
+  // T37 (audit §5.3) — STANDING PLURAL-SAFETY NOTE for every counting token
+  // in this catalog. `published.altmetricScore` already carried one; these
+  // four keys did not, and English itself was WRONG AT 1 in all of them
+  // ("You explored 1 paths", "Your 1 data-peeks", "1 forks").
+  //
+  // A string is only safe if it reads correctly at its token's FLOOR, not
+  // merely at the value you happened to test with. Three forms get there, and
+  // the fix below uses each where it fits:
+  //
+  //   a. PARTITIVE / ANAPHORIC: "{k} of them". The count quantifies a set
+  //      named elsewhere, so nothing after it has to agree. Used by
+  //      reveal.accounting2/2Abandoned/3 (see the antecedent note below).
+  //   b. SINGULAR HEAD NOUN: "Your data-peeking ({peeks}×) makes …". The
+  //      subject is a mass noun, so the verb never has to switch. Used by
+  //      reveal.peekSurcharge.
+  //   c. LABEL-COLON-COUNT: "Forks: {forks}". No grammar downstream of the
+  //      colon at all. Used by stats.forkHistogramBar and, in the locales,
+  //      summary.streak and the accounting lines.
+  //
+  // What does NOT work, and was tried: a bare parenthesised count after a
+  // plural head noun ("Your data-peeks (1) make …") keeps the plural verb and
+  // the plural noun, and "({peeks} times)" just relocates the defect to
+  // "1 times".
+  //
+  // The real floor of every counting token, so no locale has to guess:
+  //   {k}      (accounting2/2Abandoned/3)  >= 1  -- playerExplored is
+  //            explored.length, and submitting the default spec gives 1.
+  //   {peeks}  (peekSurcharge)             >= 1  -- Reveal.tsx renders the
+  //            line only when peeks !== 0; {mult} is peeks + 1, so >= 2.
+  //   {forks}  (stats.forkHistogramBar)    >= 0  -- the histogram is indexed
+  //            from zero, so the FIRST bar always reads 0 and the second 1.
+  //   {n}      (summary.streak)            >= 1  -- Summary renders it
+  //            unconditionally and the streak counts today, so day one is 1.
+  //   {n}      (published.altmetricScore)  >= 40 -- the tier-1 floor.
+  //   {n}      (reveal.omittedFootnote)    >= 1  -- rendered only when > 0.
+  //   {total}/{sig} (accounting1)          {sig} may legitimately be 0.
+  //   share.forksWord/share.streakWord: the share grid used to read
+  //   "{n} forks", with n as low as 0 or 1 and no way to inflect the noun.
+  //   Fixed at the SITE (share.ts's line 3, form c) rather than in the word,
+  //   because the string leaves the app; see share.ts's §2.9 deviation note.
+  //
+  // A locale whose agreement rules differ from English must check the floor
+  // above rather than assume the English form is safe.
+  // ------------------------------------------------------------------
   'reveal.accounting1': 'Of {total} possible analyses, {sig} ({sigPct}%) reach p < .05 by chance alone.',
-  'reveal.accounting2': 'You explored {k} paths before publishing.',
-  'reveal.accounting2Abandoned': 'You explored {k} paths before reporting a null result.',
+  // ANAPHORA, load-bearing: "them" refers back to accounting1's "{total}
+  // possible analyses", which Reveal.tsx always renders immediately above
+  // (block "accounting", first <p>). That is what makes "{k} of them"
+  // grammatical at 1 AND at 14 -- a partitive takes no agreement with the
+  // count. Do not reorder these three statements, and do not translate this
+  // pronoun into a locale where it would have no antecedent: IT/ES restate
+  // the noun instead, which is equally correct and their own idiom.
+  'reveal.accounting2': 'You explored {k} of them before publishing.',
+  'reveal.accounting2Abandoned': 'You explored {k} of them before reporting a null result.',
   'reveal.accounting3':
-    'A researcher exploring {k} paths at random finds at least one "significant" result about {pHitPct}% of the time.',
+    'A researcher randomly exploring {k} of them finds at least one "significant" result about {pHitPct}% of the time.',
   // §3.7's honest form: m peeks make the true number of analyses ≈ (m+1)×
   // larger. Not 5^m, and not a scolding.
+  // Plural safety by SINGULAR HEAD NOUN: "data-peeking … makes". The old
+  // "Your {peeks} data-peeks make" said "Your 1 data-peeks make" on every
+  // single-peek day, which is the commonest day this line renders at all.
+  // "({peeks} times)" would only move the defect ("1 times"); the multiplier
+  // idiom this sentence already ends on carries the count instead, and sets
+  // the two figures side by side: peeked 3×, so 4× the analyses.
   'reveal.peekSurcharge':
-    'Your {peeks} data-peeks make the true number of analyses roughly {mult}× larger than this curve shows.',
+    'Your data-peeking ({peeks}×) makes the true number of analyses roughly {mult}× larger than this curve shows.',
 
   // §7.4 recipe vocabulary — compact by design; see the CopyKey union above.
   'reveal.subgroupAll': 'Everyone',
@@ -599,10 +690,18 @@ export const copy: Record<CopyKey, string> = {
 
   // §2.9 share-string human words (the emoji grid, puzzle number and URL stay
   // identical across locales — only these two words are ever localized).
-  'share.forksWord': 'forks',
-  'share.streakWord': 'streak',
+  // T37 fix round 1: LABELS now, not nouns in a counted phrase. Line 3 reads
+  // "Forks: 3 · Streak: 7" (see share.ts's §2.9 deviation note for the ruling
+  // and why it was necessary). Capitalized for label position, and no longer
+  // required to survive being preceded by a bare "1" — which is what
+  // "1 forks" was, in a string that gets pasted into other people's feeds.
+  'share.forksWord': 'Forks',
+  'share.streakWord': 'Streak',
 
   'summary.score': 'Score: {score}',
+  // T37 (audit §5.8): ACTION. 'Share' is a noun/verb homograph in English and
+  // 'Close' (stats.close) an adjective/verb one; both locales guessed right,
+  // but a future one should not have to guess. Translate both as verbs.
   'summary.share': 'Share',
   'summary.copied': 'Copied to clipboard',
   'summary.nextIn': 'Next puzzle in {hours}h {minutes}m',
@@ -644,6 +743,7 @@ export const copy: Record<CopyKey, string> = {
   'stats.maxStreak': 'Max streak',
   'stats.callAccuracy': 'Call accuracy',
   'stats.avgScore': 'Average score',
+  // ACTION, not a state adjective -- see summary.share's note (audit §5.8).
   'stats.close': 'Close',
 
   // T17 additions — see the CopyKey union above.
@@ -653,7 +753,10 @@ export const copy: Record<CopyKey, string> = {
   'stats.preregModeLabel': 'Prereg Mode',
   'stats.noData': '—',
   'stats.forkHistogramTitle': 'Forks per day',
-  'stats.forkHistogramBar': '{forks} forks: {count}',
+  // T37 (audit §5.3): ARIA. The histogram is indexed from zero, so the old
+  // '{forks} forks: {count}' had a screen reader announcing "1 forks" on the
+  // second bar of every chart. Label-colon-count agrees at every value.
+  'stats.forkHistogramBar': 'Forks: {forks}. Played: {count}',
   'stats.achievementsTitle': 'Achievements',
   'stats.locked': 'Locked achievement',
 
@@ -711,6 +814,12 @@ export const copy: Record<CopyKey, string> = {
   'legend.emojiSubgroup': 'Subgroup filter change',
   'legend.emojiExclusion': 'Outlier exclusion change',
   'legend.emojiTails': 'Switched to one-tailed',
+  // T37 (audit §5.2) — LEGEND GLOSSES. These four are bare English past
+  // participles with no subject. They are IMPERSONAL: they describe what a
+  // glyph MEANS, in a share string that may well be someone else's. Spanish
+  // read two of them as third-person preterite and shipped "he/she collected".
+  // Translate them NOMINALLY; never with a finite verb, and never in the
+  // second person.
   'legend.emojiPeek': 'Collected more data ("just one more batch")',
   'legend.emojiSubmit': 'Submitted for publication',
   'legend.emojiAbandon': 'Reported a null result',
@@ -721,7 +830,12 @@ export const copy: Record<CopyKey, string> = {
   'errors.workerCrash': "Something went wrong generating today's puzzle. Reloading usually fixes it.",
   'errors.storageOff': "Your browser is blocking local storage, so progress won't be saved between visits.",
 
-  'a11y.localeToggle': 'Change language',
+  // T37 (audit §5.4, adopted as a value change): this labels a role="group"
+  // (App.tsx's LocaleToggle), not a button. A group label NAMES the group; it
+  // is not an action. 'Change language' had a screen reader announcing
+  // "Change language, group". nav.localeToggle already holds exactly this
+  // word, in every locale.
+  'a11y.localeToggle': 'Language',
   'a11y.themeToggle': 'Change theme',
   'a11y.backToGame': "P-hackle: back to today's puzzle",
   'a11y.specCurveChart':
