@@ -73,3 +73,9 @@
 - Findings-format discipline is what makes GR5 mechanical; a lane that free-texts its findings gets sent back before synthesis.
 - The bar's properties are stated in the header once; no task may cite any publication or competitor by name in any artifact, prompt, or commit.
 - Fix-wave scope control: the backlog is closed at triage; new discoveries during fixes go to the ledger for a possible second triage, never straight into a fix task ("while I'm here" is how polished builds rot).
+
+## Amendments (2026-08-04, owner directives)
+
+- **A1 — i18n chrome is a first-class lane concern.** The T36 UI-language audit (findings file `.superpowers/sdd/2026-08-03-phackle-v1/findings-T36-ui-language.md`) is REQUIRED input to GR3c, which is upgraded from a 10-string spot-check to: every IT/ES string re-read *as interface* (action = infinitive in es-ES, second-person imperative in it-IT; state labels, headings, a11y strings per each locale's software conventions). Root cause to guard: prose-transcreation review is not UI-language review; both must happen.
+- **A2 — scientific accuracy is an explicit, named check.** GR1a additionally verifies every player-visible statistical CLAIM (the Armitage 14% footnote, the reveal's accounting arithmetic, the About page's mechanism disclosure, glossary definitions in all three languages) against the actual engine behavior — a methods-literate reviewer signs off that the game never teaches something false. Findings tagged `scientific` are blockers by default.
+- **A3 — the goal document** (`docs/superpowers/GOAL.md`) is the bar for GR5 synthesis: a finding is closed only when its lane reads clean against the goal's properties, not merely when a patch lands.
