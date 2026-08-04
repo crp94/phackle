@@ -22,8 +22,10 @@ This document only narrows §7; it never invents a different product.
 
 ## §0 Reconciliation with master spec §7
 
-The approved direction narrows eight pieces of §7 wording. These are recorded, not
-silently applied — revert any of them by editing this section and the rule it points at.
+The approved direction narrows ten pieces of §7 wording (eight at approval; rows 7
+and 8 were added by T29's controller-adjudicated layout ruling and its DataCut
+figure pin). These are recorded, not silently applied — revert any of them by
+editing this section and the rule it points at.
 The last row is also the **registry of derived colours** that R1.3a and R1.6
 depend on: a colour derived from the §7.2 palette exists only if it appears both
 in `tokens.css` and in this table.
@@ -37,6 +39,8 @@ in `tokens.css` and in this table.
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
 | §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) steps `--muted` → `--dial-step-1` → `-2` → `-3` → `--assist-green` as p crosses .5/.2/.1/.05, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for the final, solid-green step; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all. A continuous opacity ramp toward the same two tokens was tried first and rejected: on a light-on-paper token, reducing opacity alpha-composites toward `--paper` and collapses contrast (1.60:1 at p=1.0 light, 1.70:1 dark) — see the T14 fix-round report for the exact numbers. Discrete, contrast-verified steps are what actually keeps R1.8's own "stays ≥4.5:1" claim true |
+| §7.3 "two-pane above, stacked below" — which R3.4 restated as `flex-direction: row-reverse` | The Lab's ≥768px layout is a **two-column grid**: question across row 1, dial (row 2) and results (row 3) in column 2, controls in column 1 spanning rows 2–3 (R3.4). Below 768px it is still one stacked column in DOM order, and the **dial block alone** is `position: sticky; top: 0` (R8.1) | T31 removed the mobile stickiness on measured evidence: the whole results pane grew to 998px on a 360×640 phone, and a sticky element taller than the viewport slides to the end of its containing block and paints over its sibling — the six knobs were unreachable. The cost was §2.4's live-dial mechanic. Restoring it needs the *dial alone* to be sticky as a direct child of `.ph-lab`, so its containing block spans the controls; `row-reverse` cannot then keep the dial and the results in one column with the controls spanning both rows, and a grid can. One breakpoint still, no new tokens, no fill |
+| §7.4's three figure radii, read as the complete set | A **fourth** figure radius exists, `--dot-cut` (2px), declared in `tokens.css` and used only for the DataCut's analysed sample | §7.4's `--dot-all` (1.5px) is sized for the SpecCurve, where 1,792 points share one plate and the cloud is a texture. The DataCut draws ~200 points as the figure's entire subject in a 122×88px column; at 1.5px they read as haze, and at `--dot-explored` (4px) as a solid slab. 2px is the only value between them, and it is registered here rather than typed inline so R2.2/R3.1's "no raw px" grep stays true and the figure and its legend swatch can never drift |
 | §7.2 fixes **seven** colours | Exactly **six** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), `--scrim` (`color-mix` of `--ink` at 60%, R4.2's Call-modal backdrop), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any seventh derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, R4.2's "separate the Call modal from the cover" backdrop forces the third, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
 
 ---
@@ -208,9 +212,18 @@ inside one section means the section is really two sections.
 - Don't: use it as a paragraph gap.
 
 **R3.4 — One breakpoint exists: 768px** (master spec §7.3: two-pane above,
-stacked below). A second breakpoint is a design failure, not a fix.
+stacked below). A second breakpoint is a design failure, not a fix. **The Lab's
+two panes are a grid, not a reversed row** (T29 registered edit, §0's last-but-one
+row): below 768px `.ph-lab` stacks its children in DOM order — question, dial,
+results, controls; at and above it, `display: grid; grid-template-columns: 1fr 1fr`
+puts the question across row 1, the dial and the results in column 2 (rows 2 and 3),
+and the controls in column 1 spanning both. `flex-direction: row-reverse` cannot
+express that: it can only order siblings, and the dial and the results must stack
+inside the *same* column while a third child spans both of their rows.
 - Do: `@media (min-width: 768px) { … }`
 - Don't: `@media (min-width: 1024px) { … }`
+- Don't: reach for a second breakpoint because one pane got taller — the pane is
+  the wrong element to make sticky (R8.1's note).
 
 **R3.5 — The page column is capped at `--page-max` (68rem) and centred.**
 - Do: `max-width: var(--page-max); margin-inline: auto;`
@@ -277,7 +290,7 @@ This is how segmented controls (the forks) show their chosen option.
 requires editing this section first.
 
 **R5.1 — Dial tick: `--dur-tick` (120ms), `--ease-out`.** Fires on p-value change;
-animates `color`, `opacity`, and at most 2px of `translateY` on the numeral itself.
+animates `color` and at most 2px of `translateY` on the numeral itself.
 - Do: `transition: color var(--dur-tick) var(--ease-out), transform var(--dur-tick) var(--ease-out);`
 - Don't: animate the dial's `font-size` or run a spring on it.
 
@@ -409,9 +422,22 @@ automatically and keeps `--muted` captions on it at ≥4.62:1.
 **R8.1 — Act I's signature is the dial.** It is the largest thing on the Lab
 screen (`--text-dial`), it is the only element whose colour changes with state
 (R1.8), and it is prominent by size and colour alone — no shadow, no halo, no
-pulse.
-- Do: give it the whole top of the results pane with `--space-40` of air.
+pulse. Below R3.4's breakpoint it is also the one **sticky** element on the
+screen (§0's Lab-layout row): §2.4's mechanic is watching this number move while
+you turn a knob, so the numeral and its n/df line — and nothing else, a
+**measured 153px at 360px wide** — stay pinned at `top: 0` while the controls
+scroll beneath. (153px, not the ~85px this rule first estimated: `--text-dial`
+clamps to 64px there and `p = 0.459` wraps to two lines in a 312px column, so
+2 × 64 + 26. That is 24% of a 640px phone, against the 998px whole-pane sticky
+it replaced.)
+- Do: give it the whole top of the results column with `--space-40` of air.
+- Do: keep the sticky block to the numeral and n/df. Its caption, the figures
+  and the buttons are static siblings.
 - Don't: add a glow, a ring, or a background disc to make it feel special.
+- Don't: make the whole results pane sticky, or fold the caption into the dial
+  block — a sticky element taller than the viewport slides to the end of its
+  containing block and paints over the controls (§0's row states the measured
+  numbers).
 
 **R8.2 — Act II's signature is the RETRACTED stamp.** Oversized, rotated −12°,
 distressed via an inline SVG filter (no image assets), one 450ms slam (R5.2),
@@ -446,7 +472,7 @@ retypes their values.
 | Layout | `--measure` `--page-max` |
 | Motion | `--dur-tick` `--dur-fade` `--dur-stamp` `--dur-confetti` `--ease-out` `--ease-stamp` |
 | Focus | `--focus-ring` `--focus-offset` |
-| Figures (§7.4) | `--dot-all` (1.5px) `--dot-explored` (4px) `--dot-published` (6px) |
+| Figures (§7.4 + T29 §0) | `--dot-all` (1.5px) `--dot-explored` (4px) `--dot-published` (6px) `--dot-cut` (2px) |
 | Stacking | `--z-sticky` `--z-overlay` `--z-modal` `--z-stamp` |
 
 ---

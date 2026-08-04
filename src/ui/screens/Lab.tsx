@@ -9,7 +9,7 @@ import { useGameStore } from '../../game/store';
 import { loadState, saveSettings } from '../../game/storage';
 import { N_SCHEDULE } from '../../game/tuning';
 import { SpecControls } from '../components/SpecControls';
-import { PValueDial } from '../components/PValueDial';
+import { PValueDial, PValueDialCaption } from '../components/PValueDial';
 import { CoefPlot } from '../components/CoefPlot';
 import { DataCut } from '../components/DataCut';
 import { ForkTrail } from '../components/ForkTrail';
@@ -74,7 +74,36 @@ export function Lab() {
 
   return (
     <section className="ph-lab" data-testid="lab-screen">
+      {/* T29 pin 10 (owner, third play-test round): "the question lives on
+          screen 1 but the instructions on screen 2 — by the time you read the
+          how-to, the question is gone." The scenario's own question, rendered
+          straight from content (it is data, not a copy key — same read
+          Briefing.tsx makes of it), above everything else on the screen, so
+          WHAT you are investigating and HOW you investigate it are on the
+          page together. Compact by construction: display serif at --text-22
+          with a hairline beneath (R2.1/R4.4), never the --text-40 title
+          treatment Briefing gives it — this is a reminder, not a second
+          title page, and R8.3 keeps the dial the only thing that shouts.
+          Deliberately NOT part of .ph-lab__dial: that block is the mobile
+          sticky element and every pixel added to it is a pixel of the
+          controls it can cover (see Lab.css). */}
+      <header className="ph-lab__question" data-testid="lab-question">
+        <h2 className="ph-lab__question-text">{scenario.question}</h2>
+      </header>
+
+      {/* T29 pin 1 (controller ruling, dial-alone-sticky): the DIAL BLOCK —
+          the numeral and its n/df line, nothing else — is a direct child of
+          .ph-lab so its containing block spans the controls too, which is
+          what lets it stay on screen while a knob at the bottom of the page
+          is turned (§2.4's HP-bar mechanic). Its caption renders below, in
+          the results pane: a sticky element taller than its share of the
+          viewport does not pin, it slides and paints over its siblings. */}
+      <div className="ph-lab__dial">
+        <PValueDial result={result} pending={pending} />
+      </div>
+
       <div className="ph-lab__results">
+        <PValueDialCaption />
         {/* Native <details>: collapsible with no JavaScript and no animation
             (R5.5's budget is exhaustive and accordion slides are named in it
             as forbidden). Open by default — a first-timer must not have to
@@ -94,7 +123,6 @@ export function Lab() {
             </button>
           </details>
         )}
-        <PValueDial result={result} pending={pending} />
         <CoefPlot result={result} unit={scenario.outcomeUnits[spec.outcome]} />
         {/* Master spec §2.4's "tiny scatter/box visual of the current cut" —
             the sample the two figures above are built from, with the excluded

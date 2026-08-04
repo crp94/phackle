@@ -12,10 +12,11 @@ import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { content as enContent } from '../../src/content/en';
 import { copy as enCopy } from '../../src/content/en/copy';
 import { SpecControls } from '../../src/ui/components/SpecControls';
-import { PValueDial } from '../../src/ui/components/PValueDial';
+import { PValueDial, PValueDialCaption } from '../../src/ui/components/PValueDial';
 import { CoefPlot } from '../../src/ui/components/CoefPlot';
 import { ForkTrail } from '../../src/ui/components/ForkTrail';
 import { Lab } from '../../src/ui/screens/Lab';
+import { LEGEND_ENTRIES } from '../../src/ui/screens/Legend';
 import { coefCssPixelsPerUnit } from '../../src/ui/components/CoefPlot';
 import { gameStore, DEFAULT_SPEC } from '../../src/game/store';
 import { loadState, saveSettings } from '../../src/game/storage';
@@ -390,17 +391,21 @@ describe('ForkTrail', () => {
     return { t: 'PEEK_AND_EXTEND', newN: 250, at };
   }
 
-  it('shows 🍴🎯 for a free view, then a spec-fork, then a subgroup-fork', async () => {
+  // T29 (owner ruling, src/game/share.ts's FORK_EMOJI): 'spec' and 'subgroup'
+  // are still two distinct fork KINDS — classifyChange is untouched and the
+  // achievements read it — but both now PRINT 🍴. The log and the transitions
+  // below are unchanged; only the expected glyph run is.
+  it('shows 🍴🍴 for a free view, then a spec-fork, then a subgroup-fork', async () => {
     const s0 = DEFAULT_SPEC;
     const s1: Spec = { ...DEFAULT_SPEC, outcome: 1 }; // differs only in outcome -> 'spec' (🍴)
-    const s2: Spec = { ...s1, subgroup: 'urban' }; // differs only in subgroup -> 'subgroup' (🎯)
+    const s2: Spec = { ...s1, subgroup: 'urban' }; // differs only in subgroup -> 'subgroup' (🍴)
     const log: PlayerAction[] = [view(s0, false, 0), view(s1, true, 1), view(s2, true, 2)];
     render(
       <LocaleProvider>
         <ForkTrail log={log} mode="hack" />
       </LocaleProvider>
     );
-    expect(await screen.findByText('🍴🎯')).toBeTruthy();
+    expect(await screen.findByText('🍴🍴')).toBeTruthy();
   });
 
   it('includes a peek marker for PEEK_AND_EXTEND', async () => {
@@ -660,28 +665,51 @@ describe('PValueDial caption (T31) — the app\'s single most important explanat
   // line is the answer: whatever state the dial is in, it must say what the
   // number means and what makes it publishable — including BEFORE the first
   // result, which is the very moment a first-timer is most lost.
+  //
+  // T29 (controller ruling, dial-alone-sticky): the caption is now a SIBLING
+  // of the dial block rather than a child of it, because the Lab makes that
+  // block `position: sticky` on mobile and a sticky element taller than its
+  // share of the viewport paints over the controls (T31's measured bug). The
+  // requirement this suite exists for is unchanged and is asserted below
+  // against the LAB — the only place either of them actually renders — so it
+  // is now stated about the real screen instead of about a component in
+  // isolation.
   it.each([
     ['a real result', makeResult({ p: 0.4 })],
     ['an invalid result', makeResult({ valid: false })],
     ['no result yet', null],
-  ] as const)('renders under the dial with %s', async (_label, result) => {
+  ] as const)('renders in every dial state: %s', async (_label, result) => {
     render(
       <LocaleProvider>
-        <PValueDial result={result} pending={false} />
+        <>
+          <PValueDial result={result} pending={false} />
+          <PValueDialCaption />
+        </>
       </LocaleProvider>
     );
     expect(await screen.findByText(enCopy['lab.dialCaption'])).toBeTruthy();
   });
 
-  it('sits inside the dial block, so it reads as that number\'s caption and not as loose prose', async () => {
+  it('sits immediately under the dial block in the Lab, so it reads as that number\'s caption', async () => {
+    const client = makeFakeClient();
     const { container } = render(
       <LocaleProvider>
-        <PValueDial result={makeResult()} pending={false} />
+        <Lab />
       </LocaleProvider>
     );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
     await screen.findByText(enCopy['lab.dialCaption']);
-    const dial = container.querySelector('[data-testid="pvalue-dial"]');
-    expect(dial?.querySelector('.ph-dial__caption')?.textContent).toBe(enCopy['lab.dialCaption']);
+
+    const dialBlock = container.querySelector('.ph-lab__dial') as HTMLElement;
+    const caption = container.querySelector('.ph-dial__caption') as HTMLElement;
+    // Outside the sticky block (pin 1's height constraint)...
+    expect(dialBlock.contains(caption)).toBe(false);
+    expect(caption.textContent).toBe(enCopy['lab.dialCaption']);
+    // ...but the very next thing after it in the document.
+    expect(dialBlock.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const results = container.querySelector('.ph-lab__results') as HTMLElement;
+    expect(results.firstElementChild).toBe(caption);
   });
 
   it('names 0.05 in plain words, with no statistics vocabulary a first-timer would have to look up', () => {
@@ -896,5 +924,257 @@ describe('Lab data figure (T31)', () => {
     await bootIntoLab(client);
     await screen.findByTestId('lab-screen');
     expect(container.querySelector('.ph-datacut')).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T29 — the controller's dial-alone-sticky ruling (pin 1), the scenario
+// question header (pin 10), and the fork trail's own key (pin 11-NEW-b).
+// ---------------------------------------------------------------------------
+
+describe('T29 pin 1 — dial-alone-sticky DOM structure', () => {
+  it('makes the dial block a direct child of .ph-lab, ahead of both panes', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+
+    const lab = container.querySelector('[data-testid="lab-screen"]') as HTMLElement;
+    const children = Array.from(lab.children);
+    const dialIdx = children.findIndex((c) => c.classList.contains('ph-lab__dial'));
+    const resultsIdx = children.findIndex((c) => c.classList.contains('ph-lab__results'));
+    const controlsIdx = children.findIndex((c) => c.classList.contains('ph-lab__controls'));
+
+    // A DIRECT child: its containing block has to span the controls, or a
+    // sticky dial cannot stay on screen while a knob at the bottom is turned.
+    expect(dialIdx).toBeGreaterThanOrEqual(0);
+    // ...ahead of the results pane and the controls — the stacked mobile
+    // reading order, and what the >=768px grid then re-forms into two panes.
+    expect(resultsIdx).toBeGreaterThan(dialIdx);
+    expect(controlsIdx).toBeGreaterThan(resultsIdx);
+  });
+
+  it('keeps the sticky block to the numeral and n/df — nothing that would make it tall', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    await screen.findByText(enCopy['lab.dialCaption']);
+
+    const dialBlock = container.querySelector('.ph-lab__dial') as HTMLElement;
+    expect(dialBlock.querySelector('.ph-dial__value')).toBeTruthy();
+    expect(dialBlock.querySelector('.ph-dial__meta')).toBeTruthy();
+    // The things that made T31's whole-pane sticky taller than the viewport
+    // are all OUTSIDE it — this assertion IS the regression guard.
+    expect(dialBlock.querySelector('.ph-dial__caption')).toBeNull();
+    expect(dialBlock.querySelector('.ph-coef-plot')).toBeNull();
+    expect(dialBlock.querySelector('.ph-datacut')).toBeNull();
+    expect(dialBlock.querySelector('button')).toBeNull();
+  });
+
+  // T29 FIX ROUND (review finding: a guard the caption refactor lost).
+  // PValueDialCaption is now state-independent — it reads nothing from the
+  // store — so every other assertion about it happens to run against a Lab
+  // that already has a result, and NOTHING in the suite would catch someone
+  // wrapping it in `{result && …}` in Lab.tsx. That would silently delete the
+  // app's single most important explanation from the one screen where a
+  // first-time player needs it most: the empty dial, before their first run.
+  // Pinned here, at exactly that moment.
+  it('renders the dial caption BEFORE any first result exists', async () => {
+    const client: EngineClient = {
+      ...makeFakeClient(),
+      // Deliberately never resolves: boot parks on this await, so the store
+      // sits in its genuine pre-first-result Lab state for the whole test
+      // (result === null, pending === true) rather than one faked with
+      // setState after the fact.
+      runSpec: vi.fn(() => new Promise<PathResult>(() => {})),
+    };
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await act(async () => {
+      void gameStore
+        .getState()
+        .boot(client, EPOCH, { practice: false, mode: 'hack', scenarioCount: enContent.scenarios.length });
+    });
+    await waitFor(() => expect(gameStore.getState().pending).toBe(true));
+    await act(async () => {
+      gameStore.getState().openData();
+    });
+
+    // The precondition this test exists for: no result has ever arrived.
+    expect(gameStore.getState().result).toBeNull();
+
+    const caption = container.querySelector('.ph-dial__caption') as HTMLElement;
+    expect(caption, 'the dial caption must not be gated on a result').toBeTruthy();
+    expect(caption.textContent).toBe(enCopy['lab.dialCaption']);
+    expect((container.querySelector('.ph-lab__results') as HTMLElement).firstElementChild).toBe(caption);
+  });
+});
+
+describe("T29 pin 10 — the day's question lives on the Lab too", () => {
+  it("renders the scenario's own question, from content, above everything else", async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+
+    const scenario = enContent.scenarios[gameStore.getState().scenarioIndex];
+    const header = await screen.findByTestId('lab-question');
+    expect(header.textContent).toBe(scenario.question);
+
+    const lab = container.querySelector('[data-testid="lab-screen"]') as HTMLElement;
+    expect(lab.firstElementChild).toBe(header);
+    // ...and NOT inside the sticky dial block: pin 1's height constraint
+    // stands, and a scenario question is one to three lines of serif.
+    expect((container.querySelector('.ph-lab__dial') as HTMLElement).contains(header)).toBe(false);
+  });
+
+  it('shows the question and the how-to-play steps at the same time', async () => {
+    const client = makeFakeClient();
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    expect(await screen.findByTestId('lab-question')).toBeTruthy();
+    expect(await screen.findByTestId('lab-intro')).toBeTruthy();
+    expect((await screen.findAllByTestId('lab-intro-step')).length).toBe(4);
+  });
+});
+
+describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
+  function renderTrail() {
+    return render(
+      <LocaleProvider>
+        <ForkTrail log={[]} mode="hack" />
+      </LocaleProvider>
+    );
+  }
+
+  it('offers a legend affordance next to the trail, closed by default', async () => {
+    renderTrail();
+    const button = await screen.findByTestId('fork-trail-key');
+    expect(button.textContent).toBe(enCopy['nav.legend']);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('opens on hover and closes again on pointer-leave', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+    fireEvent.mouseEnter(wrap);
+    expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
+    fireEvent.mouseLeave(wrap);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('opens on keyboard focus and closes on Escape', async () => {
+    renderTrail();
+    const button = await screen.findByTestId('fork-trail-key');
+    fireEvent.focus(button);
+    const popover = await screen.findByTestId('fork-trail-popover');
+    expect(button.getAttribute('aria-controls')).toBe(popover.getAttribute('id'));
+    fireEvent.keyDown(button, { key: 'Escape' });
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('closes when focus leaves the control entirely', async () => {
+    renderTrail();
+    const button = await screen.findByTestId('fork-trail-key');
+    fireEvent.focus(button);
+    await screen.findByTestId('fork-trail-popover');
+    fireEvent.blur(button, { relatedTarget: document.body });
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('opens on a bare click — the keyboard/AT activation path, and toggles closed on the next one', async () => {
+    renderTrail();
+    const button = await screen.findByTestId('fork-trail-key');
+    fireEvent.click(button);
+    expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
+    fireEvent.click(button);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  // T29 FIX ROUND — the review's touch-robustness finding. The comment this
+  // block replaced claimed a click "is all a touch device fires". It is not:
+  // a first tap fires the COMPATIBILITY mouseenter first and the click after
+  // it, so hover opened the popover and the click closed it again a moment
+  // later. On a phone the key flashed and vanished, and the same sequence
+  // driven in real headless Chrome against the built app left it closed.
+  it('ends OPEN on the real mobile sequence: compatibility mouseenter, then click', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+    const button = await screen.findByTestId('fork-trail-key');
+
+    fireEvent.mouseEnter(wrap);
+    fireEvent.click(button);
+
+    expect(screen.queryByTestId('fork-trail-popover'), 'the tap must not close what its own hover opened').toBeTruthy();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    // ...and the tap after that still dismisses it, or the key could never
+    // be put away on a device with no pointer to move off it.
+    fireEvent.click(button);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('ends OPEN when the pointer identifies itself as touch before the compatibility events', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+    const button = await screen.findByTestId('fork-trail-key');
+
+    // pointerenter always precedes the compatibility mouseenter and carries
+    // the real device, so a touch pointer suppresses the hover-open outright
+    // and leaves the tap to the click handler.
+    fireEvent.pointerEnter(wrap, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrap);
+    fireEvent.click(button);
+
+    expect(screen.queryByTestId('fork-trail-popover')).toBeTruthy();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('still opens on a mouse hover after a touch interaction (a hybrid laptop re-arms per enter)', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+
+    fireEvent.pointerEnter(wrap, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrap);
+    fireEvent.mouseLeave(wrap);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+
+    fireEvent.pointerEnter(wrap, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(wrap);
+    expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
+  });
+
+  it('lists exactly the current vocabulary, derived from the Legend page\'s own mapping', async () => {
+    const { container } = renderTrail();
+    fireEvent.click(await screen.findByTestId('fork-trail-key'));
+    const rows = container.querySelectorAll('.ph-fork-trail__popover-row');
+    expect(rows).toHaveLength(LEGEND_ENTRIES.length);
+    LEGEND_ENTRIES.forEach((entry, i) => {
+      expect(rows[i].querySelector('.ph-fork-trail__popover-glyph')?.textContent).toBe(entry.glyph);
+      expect(rows[i].querySelector('.ph-fork-trail__popover-label')?.textContent).toBe(enCopy[entry.labelKey]);
+    });
+    // No glyph appears twice: the reduced set is the whole point.
+    const glyphs = [...rows].map((r) => r.querySelector('.ph-fork-trail__popover-glyph')?.textContent);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
   });
 });

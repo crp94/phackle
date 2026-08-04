@@ -104,10 +104,16 @@
   --focus-ring: 2px solid var(--ink);
   --focus-offset: 2px;
 
-  /* --- Figures (SpecCurve point radii, master spec §7.4) ------------------ */
+  /* --- Figures (point radii; master spec §7.4 fixes the first three) ------ */
   --dot-all: 1.5px;
   --dot-explored: 4px;
   --dot-published: 6px;
+  /* T29 pin 9, registered in DESIGN.md §9: the DataCut's analysed sample.
+     §7.4's --dot-all is sized for SpecCurve, where 1,792 points share one
+     plate and the cloud is a texture; the DataCut draws 200 points as the
+     figure's whole subject, and needs a crisper mark without reaching
+     --dot-explored (4px), which would fill the column solid. */
+  --dot-cut: 2px;
 
   /* --- Stacking (no raw z-index anywhere) --------------------------------- */
   --z-sticky: 10;

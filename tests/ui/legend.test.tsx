@@ -28,24 +28,30 @@ const t = (key: Parameters<typeof translate>[1], params?: Record<string, string 
   translate(enCopy, key, params);
 
 describe('LEGEND_ENTRIES — built from share.ts mapping, not retyped', () => {
-  it('includes every ForkKind glyph from FORK_EMOJI, plus the prefix/terminal/call glyphs, exactly once each', () => {
+  // T29 (owner ruling — see src/game/share.ts's FORK_EMOJI): the four
+  // spec-change fork kinds all print 🍴 now, so a row-per-ForkKind legend
+  // would print one glyph against four different meanings — a key that
+  // contradicts itself. Legend.tsx dedupes by glyph, first declaration wins.
+  // This assertion is repointed, not relaxed: it still demands that EVERY
+  // glyph the mapping can emit is in the key, still demands each appears
+  // exactly once, and now additionally demands the key carries NOTHING the
+  // mapping cannot emit — a strictly stronger statement than the row count
+  // it replaces.
+  it('lists every glyph FORK_EMOJI + the prefix/terminal/call constants can emit, exactly once each, and nothing else', () => {
     const glyphs = LEGEND_ENTRIES.map((e) => e.glyph);
-    const expected = [
+    const emittable = new Set([
       PREREG_PREFIX,
-      FORK_EMOJI.spec,
-      FORK_EMOJI.subgroup,
-      FORK_EMOJI.exclusion,
-      FORK_EMOJI.tails,
-      FORK_EMOJI.peek,
+      ...Object.values(FORK_EMOJI),
       SUBMIT_EMOJI,
       ABANDON_EMOJI,
       CALL_CORRECT,
       CALL_INCORRECT,
-    ];
-    for (const glyph of expected) {
-      expect(glyphs.filter((g) => g === glyph)).toHaveLength(1);
+    ]);
+    for (const glyph of emittable) {
+      expect(glyphs.filter((g) => g === glyph), `${glyph} is not in the key exactly once`).toHaveLength(1);
     }
-    expect(glyphs).toHaveLength(expected.length);
+    expect(new Set(glyphs)).toEqual(emittable);
+    expect(glyphs).toHaveLength(emittable.size);
   });
 
   it('every entry has a distinct legend.emoji* (or prereg) CopyKey label', () => {

@@ -22,7 +22,7 @@
 // implementation_plan §7 above it. The sanctioned --sig-red uses here are
 // R1.3's places 2 and 3: the .05 threshold rule and its label, and the
 // published point with its ring and leader line.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { CopyKey } from '../../content/en/copy';
 import type { Outcome, Spec } from '../../engine/types';
@@ -92,6 +92,12 @@ export interface FigureGeometry {
   /** Pointer proximity, in user units == CSS px, that counts as a hover. */
   hitRadius: number;
   calloutX: number;
+  /** Where the recipe callout's LEADER starts, as a fraction of the plot
+   * width (T16's deferred minor, closed by T29 pin 5). See `leaderAnchorX`. */
+  leaderAnchorFraction: number;
+  /** The fallback anchor, used when the published point sits under the
+   * primary one — see `leaderAnchorX`. */
+  leaderFallbackFraction: number;
   /** How many characters of recipe fit on one callout line at this width. */
   calloutMaxChars: number;
   /** How many characters of outcome label fit on one band-label line. */
@@ -102,6 +108,35 @@ export interface FigureGeometry {
  * sentence case. Deliberately generous: over-estimating the advance wraps a
  * line early, under-estimating it overflows the plate. */
 const GLYPH_ADVANCE = 0.55;
+
+/**
+ * T16 deferred minor, closed by T29 pin 5. The leader used to start at
+ * `calloutX` (= padLeft + 4) — four pixels right of the y-axis. The published
+ * path is almost always rank ~0, i.e. `padLeft + plotInset` = padLeft + 12,
+ * so the leader ran from x=44 to x=52 over ~200px of height: a red line
+ * parallel to the y-axis, reading as axis furniture rather than as a pointer.
+ * Anchoring it ~40% across the plot restores a real diagonal, which is the
+ * whole visual job of a leader line.
+ */
+const LEADER_ANCHOR_FRACTION = 0.4;
+/** ...and when the published point happens to sit under that anchor (a
+ * player who published a mid-ranked p, not the day's minimum), 40% would be
+ * vertical all over again. 12% is far enough away to be a clear diagonal and
+ * still close to the callout text it leaves from. */
+const LEADER_FALLBACK_FRACTION = 0.12;
+/** How close counts as "under the anchor", as a fraction of plot width. */
+const LEADER_MIN_RUN_FRACTION = 0.12;
+
+/**
+ * Where the recipe callout's leader line starts. Pure, and exported, because
+ * it is the whole of pin 5 and tests/ui/speccurve.test.tsx asserts it
+ * directly at both branches.
+ */
+export function leaderAnchorX(publishedX: number, geom: FigureGeometry): number {
+  const primary = geom.padLeft + geom.plotWidth * geom.leaderAnchorFraction;
+  if (Math.abs(publishedX - primary) >= geom.plotWidth * LEADER_MIN_RUN_FRACTION) return primary;
+  return geom.padLeft + geom.plotWidth * geom.leaderFallbackFraction;
+}
 
 export function geometryFor(containerWidth: number, grouped: boolean): FigureGeometry {
   const measured = Math.round(containerWidth) || FIGURE_DEFAULT_WIDTH;
@@ -132,6 +167,8 @@ export function geometryFor(containerWidth: number, grouped: boolean): FigureGeo
     plotInset: 12,
     hitRadius: HIT_RADIUS_PX,
     calloutX,
+    leaderAnchorFraction: LEADER_ANCHOR_FRACTION,
+    leaderFallbackFraction: LEADER_FALLBACK_FRACTION,
     calloutMaxChars: Math.max(12, Math.floor((width - calloutX - padRight) / perChar)),
     bandLabelMaxChars: Math.max(6, Math.floor(bandWidth / perChar)),
   };
@@ -347,6 +384,63 @@ export function wrapLabel(label: string, maxChars: number, maxLines = 3): string
   return lines.filter((line) => line !== '');
 }
 
+/**
+ * The point cloud — up to 1,792 circles, painted back to front so the
+ * published path is never buried.
+ *
+ * `memo`'d (T29 pin 7). This file's own header already promises "RENDER
+ * ONCE... hovering swaps a tooltip in an HTML overlay rather than touching a
+ * single circle's geometry" — true of the DOM, but not of the reconciler:
+ * `hovered` lived on SpecCurve itself, so every pointermove re-ran the whole
+ * element tree, diffing ~1,792 circles to discover that none of them changed.
+ * `placed` is already a `useMemo` over (points, grouped, geom), none of which
+ * a hover touches, so a memo boundary here makes the promise literally true:
+ * a hover now reconciles the tooltip and nothing else.
+ */
+const Dots = memo(function Dots({ placed, published }: { placed: Placed[]; published: Placed | null }) {
+  return (
+    <g className="ph-speccurve__dots">
+      {placed.map((entry, i) =>
+        entry.point.published || entry.point.explored ? null : (
+          <circle
+            key={i}
+            className="ph-speccurve__dot ph-speccurve__dot--base"
+            cx={entry.x}
+            cy={entry.y}
+            data-p={entry.point.p}
+            data-outcome={entry.point.outcome}
+          />
+        )
+      )}
+      {placed.map((entry, i) =>
+        entry.point.explored && !entry.point.published ? (
+          <circle
+            key={i}
+            className="ph-speccurve__dot ph-speccurve__dot--explored"
+            cx={entry.x}
+            cy={entry.y}
+            data-p={entry.point.p}
+            data-outcome={entry.point.outcome}
+          />
+        ) : null
+      )}
+      {published === null ? null : (
+        <>
+          {/* R6.3: shape as well as colour -- the ring is the shape. */}
+          <circle className="ph-speccurve__ring" cx={published.x} cy={published.y} />
+          <circle
+            className="ph-speccurve__dot ph-speccurve__dot--published"
+            cx={published.x}
+            cy={published.y}
+            data-p={published.point.p}
+            data-outcome={published.point.outcome}
+          />
+        </>
+      )}
+    </g>
+  );
+});
+
 export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurveProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const plotRef = useRef<HTMLDivElement | null>(null);
@@ -454,46 +548,10 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
             {copy['legend.significant']}
           </text>
 
-          {/* Points, painted back to front so the published path is never buried. */}
-          <g className="ph-speccurve__dots">
-            {placed.map((entry, i) =>
-              entry.point.published || entry.point.explored ? null : (
-                <circle
-                  key={i}
-                  className="ph-speccurve__dot ph-speccurve__dot--base"
-                  cx={entry.x}
-                  cy={entry.y}
-                  data-p={entry.point.p}
-                  data-outcome={entry.point.outcome}
-                />
-              )
-            )}
-            {placed.map((entry, i) =>
-              entry.point.explored && !entry.point.published ? (
-                <circle
-                  key={i}
-                  className="ph-speccurve__dot ph-speccurve__dot--explored"
-                  cx={entry.x}
-                  cy={entry.y}
-                  data-p={entry.point.p}
-                  data-outcome={entry.point.outcome}
-                />
-              ) : null
-            )}
-            {published === null ? null : (
-              <>
-                {/* R6.3: shape as well as colour -- the ring is the shape. */}
-                <circle className="ph-speccurve__ring" cx={published.x} cy={published.y} />
-                <circle
-                  className="ph-speccurve__dot ph-speccurve__dot--published"
-                  cx={published.x}
-                  cy={published.y}
-                  data-p={published.point.p}
-                  data-outcome={published.point.outcome}
-                />
-              </>
-            )}
-          </g>
+          {/* Points, painted back to front so the published path is never
+              buried — and behind a memo boundary, so a hover never diffs
+              them (T29 pin 7). */}
+          <Dots placed={placed} published={published} />
 
           {/* The recipe callout, in fig. 1's guaranteed-empty upper left: the
               cloud rises monotonically left to right, so nothing lives there.
@@ -502,10 +560,12 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
               keeps its ring there, and the callout stands down. */}
           {published === null || grouped ? null : (
             <>
+              {/* T29 pin 5: the leader leaves the callout ~40% across the
+                  plot, not four pixels off the y-axis — see leaderAnchorX. */}
               <line
                 data-role="leader"
                 className="ph-speccurve__leader"
-                x1={geom.calloutX}
+                x1={leaderAnchorX(published.x, geom)}
                 y1={geom.padTop + 6 + calloutLines.length * CALLOUT_LINE}
                 x2={published.x}
                 y2={published.y}

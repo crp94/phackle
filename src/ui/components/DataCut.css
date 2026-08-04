@@ -6,16 +6,22 @@
    retyped: `r` is a CSS geometry property, so the tokens apply to the circles
    directly, exactly as in SpecCurve.css.
 
-   MARK SIZES, and why they are what they are. The included cloud takes
-   --dot-all, the same 1.5px SpecCurve gives its own base cloud, for the same
-   reason: at the largest window a column holds 200 points in roughly
-   122 x 72 px, and --dot-explored (4px) would cover 114% of that box — a
-   solid slab, not a distribution. At --dot-all the same column reads as ~16%
-   ink and the shape of the data survives.
+   MARK SIZES, and why they are what they are. The included cloud used to
+   take --dot-all, the same 1.5px SpecCurve gives its own base cloud. That
+   size is right for SpecCurve, where 1,792 points share one plate and the
+   cloud is a texture; it is too faint here, where 200 points ARE the subject
+   and the figure is meant to read as an instrument (T29 pin 9, owner: "data
+   points could look a bit more clear, perhaps hinting towards a data
+   analysis UI"). --dot-cut (2px, registered in tokens.css and DESIGN.md §9
+   alongside the other three figure radii) is the compromise the original
+   comment was reaching for: at the largest window a column holds 200 points
+   in roughly 122 x 88 px, where 2px reads as ~26% ink — crisp marks with the
+   shape of the distribution still legible. --dot-explored (4px) would cover
+   the box outright, which is why it is still not used here.
 
-   The EXCLUDED marks take --dot-explored (4px) instead, hollow, crossed, in
-   --muted. They are rarer and they are the point of the figure, so they are
-   the larger mark: the eye finds the people who left. */
+   The EXCLUDED marks take --dot-explored (4px), hollow, crossed, in --muted.
+   They are rarer and they are the point of the figure, so they stay the
+   larger mark: the eye finds the people who left. */
 
 .ph-datacut {
   margin: var(--space-16) 0 0 0;
@@ -37,9 +43,19 @@
   stroke-width: 1;
 }
 
+/* T29 pin 9: the axis's own tick labels, on SpecCurve's precedent exactly
+   (.ph-speccurve__tick) — --muted mono numerals at --text-13. */
+.ph-datacut__tick {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  font-weight: var(--weight-regular);
+}
+
 /* The analysed sample. */
 .ph-datacut__dot {
-  r: var(--dot-all);
+  r: var(--dot-cut);
   fill: var(--ink);
 }
 
@@ -63,16 +79,21 @@
   stroke-width: 2;
 }
 
-/* The same --space-8 inline padding and --space-12 gap DataCut.tsx's geometry
-   is built from, so each label sits exactly under the column it names. */
+/* The same --space-40/--space-8 inline padding and --space-12 gap
+   DataCut.tsx's geometry is built from, so each label sits exactly under the
+   column it names. */
 .ph-datacut__labels {
   display: flex;
   gap: var(--space-12);
-  padding-inline: var(--space-8);
+  padding-inline-start: var(--space-40);
+  padding-inline-end: var(--space-8);
   margin-block-start: var(--space-4);
 }
 
 .ph-datacut__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   flex: 1 1 0;
   min-width: 0;
   text-align: center;
@@ -80,6 +101,22 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
+}
+
+/* T29 pin 9: the column's own summary line — its mean and its n.
+   R2.4: a numeral is mono and tabular wherever it appears, and the whole
+   short "n = 187" phrase is styled as one unit, the same precedent
+   .ph-header__vol and .ph-published__career already set. */
+.ph-datacut__label-stats {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The mean is a FITTED quantity, not caption furniture — the one --ink
+   number in the figure's caption band, so the eye finds the two group
+   averages it is meant to be comparing. */
+.ph-datacut__label-mean {
+  color: var(--ink);
 }
 
 /* R3.6: a wrapped row of key items, not a grid of chips. */

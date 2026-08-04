@@ -8,20 +8,32 @@
  * backdrop belongs to whatever container mounts this (see Call.tsx).
  */
 
+/* T29 matrix pass: an INLINE gutter, not only a block one. `max-width:
+   var(--measure)` does not bind below ~600px, so as the full-page 'call'
+   screen (the abandon path) this laid its prompt and its two option rules
+   flush against the viewport edge at 360 — the only screen in the product
+   that did, against every other screen's --space-24 page gutter. The Call
+   overlay drops its own inline padding to match, so the two never stack into
+   an unmeasurable 48. */
 .ph-call {
   max-width: var(--measure);
   margin-inline: auto;
-  padding-block: var(--space-40);
+  padding: var(--space-40) var(--space-24);
 }
 
+/* R2.7, T29 pin 6: `call.title` is a SENTENCE with an ellipsis ("Before you
+   see the reveal…"), not a label — and R2.7 permits `text-transform:
+   uppercase` on labels only ("Headlines and prose are sentence case"). The
+   copy is presentation-neutral and belongs to whoever owns the catalog, so
+   the fix is here: the transform and its label tracking are dropped and this
+   stays what it always was underneath — a quiet --muted 13px caption above
+   the prompt. */
 .ph-call__eyebrow {
   margin: 0;
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 .ph-call__prompt {

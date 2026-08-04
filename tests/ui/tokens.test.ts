@@ -334,6 +334,57 @@ describe('R6 focus is a token, not a per-component decision', () => {
   });
 });
 
+/* ================================================== build integrity: @vite-ignore */
+
+/**
+ * T29 FIX ROUND — a mechanical ban on the pragma that shipped the one blocker
+ * this whole visual pass found, placed here because this file already owns the
+ * project's grep-over-source scans.
+ *
+ * THE INCIDENT. `src/ui/screens/Published.tsx` reached the screen registry
+ * through a dynamic import whose specifier was held in a `const` and waved
+ * past Vite's analyzer with the ignore pragma — written when
+ * `src/ui/screens/registry.ts` genuinely did not exist yet in that worktree,
+ * and correct at the time. It became wrong the moment the merge made the
+ * module real: an unanalyzable specifier is never rewritten to the built
+ * chunk's content-hashed URL, so in a PRODUCTION build the request resolved
+ * to `/assets/registry`, 404'd, hit the loader's `catch`, and returned null.
+ * "Face the truth" opened an empty overlay and the entire Act I -> Act II
+ * hand-off was dead in the shipped artifact.
+ *
+ * WHY A TEST AND NOT A REVIEW NOTE. The failure is invisible to this suite by
+ * construction: jsdom tests inject their own loader, `tsc` is happy (the
+ * specifier is a string), `eslint` is happy, and `npm run build` only prints a
+ * warning. Nothing except loading the real built app in a real browser caught
+ * it. So the pragma itself is what gets banned.
+ *
+ * SCOPE. Code under `src/**` only. `src/ui/screens/registry.t15.patch.md` is a
+ * hand-off document that must be able to NAME the pragma in order to warn
+ * about it, so documentation extensions are deliberately out of scope.
+ */
+const SRC_DIR = join(ROOT, 'src');
+const VITE_IGNORE = '@vite-ignore';
+
+describe('build integrity — no @vite-ignore anywhere in src/**', () => {
+  const srcCodeFiles = walk(SRC_DIR).filter((f) => /\.(tsx?|jsx?|css)$/.test(f));
+
+  it('scans a non-trivial number of source files (the walk itself must not silently break)', () => {
+    expect(srcCodeFiles.length).toBeGreaterThan(20);
+  });
+
+  it('finds the pragma in no source file — an unanalyzable dynamic import 404s in a production build', () => {
+    const offending = srcCodeFiles
+      .filter((file) => readFileSync(file, 'utf8').includes(VITE_IGNORE))
+      .map((file) => relative(ROOT, file));
+    expect(offending).toEqual([]);
+  });
+
+  it('still catches the pattern when one is introduced', () => {
+    const bad = `const spec = './registry';\nconst mod = await import(/* ${VITE_IGNORE} */ spec);`;
+    expect(bad.includes(VITE_IGNORE)).toBe(true);
+  });
+});
+
 /* ============================================================ doc / code drift */
 
 describe('DESIGN.md documents the tokens it governs', () => {

@@ -71,7 +71,10 @@
 
 /* T31: the dial's plain-words explainer — the app's most load-bearing
    sentence, and still a caption: --muted, 13px, inside --measure (R1.2,
-   R2.2, R2.8). It explains the signature without becoming one (R8.3). */
+   R2.2, R2.8). It explains the signature without becoming one (R8.3).
+   T29: a SIBLING of .ph-dial rather than a child of it (the dial block is
+   the mobile sticky element and must stay short — see PValueDial.tsx), so it
+   carries the centring the dial block used to give it. */
 .ph-dial__caption {
   max-width: var(--measure);
   margin: var(--space-8) auto 0 auto;
@@ -79,4 +82,5 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
+  text-align: center;
 }

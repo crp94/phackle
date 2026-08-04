@@ -66,17 +66,17 @@ function degreesOfFreedom(result: PathResult): number {
 const TICK_MS = 120; // mirrors --dur-tick (R5.1) for the JS-driven translateY bump's own timing.
 
 /**
- * T31 (second play-test round: "beautiful but hard to fully grasp"). The
- * dial's own caption, and — by the controller's framing — the single most
- * important explanation in the app: a first-timer has to understand the big
- * number from this line alone. It therefore renders in EVERY state, including
- * the pre-first-result placeholder and the n<30 state, which are precisely
- * the moments someone is most likely to be looking at the dial without
- * knowing what it is.
+ * A shell rather than three copies of the same markup: `data-testid` and the
+ * band modifier class stay on this one element so R1.8's own tests keep
+ * addressing it whatever state the dial is in.
  *
- * A shell rather than three copies of the same markup: the caption is the
- * only thing all three branches share, and `data-testid` / the band modifier
- * class stay on this one element so R1.8's own tests keep addressing it.
+ * T29 (controller ruling, dial-alone-sticky): this block holds the NUMERAL
+ * AND THE n/df LINE ONLY. The caption moved out to `PValueDialCaption`
+ * below, because on mobile the Lab makes exactly this block `position:
+ * sticky` — and a sticky element taller than its share of the viewport does
+ * not pin, it slides to the end of its containing block and paints over its
+ * siblings (T31's measured bug, written up in Lab.css). The caption roughly
+ * triples this block's height, so it cannot be inside it.
  */
 function DialShell({
   className,
@@ -87,12 +87,33 @@ function DialShell({
   pending: boolean;
   children: ReactNode;
 }) {
-  const { t } = useLocale();
   return (
     <div className={className} data-testid="pvalue-dial" aria-busy={pending}>
       {children}
-      <p className="ph-dial__caption">{t('lab.dialCaption')}</p>
     </div>
+  );
+}
+
+/**
+ * T31 (second play-test round: "beautiful but hard to fully grasp"). The
+ * dial's own caption, and — by the controller's framing — the single most
+ * important explanation in the app: a first-timer has to understand the big
+ * number from this line alone. It therefore renders in EVERY state, including
+ * the pre-first-result placeholder and the n<30 state, which are precisely
+ * the moments someone is most likely to be looking at the dial without
+ * knowing what it is — so it is a sibling that is always rendered, never a
+ * branch of the dial's own three states.
+ *
+ * Split out of the dial block by T29's dial-alone-sticky ruling (see
+ * DialShell above): it renders immediately under the dial, as the first thing
+ * in the Lab's results pane.
+ */
+export function PValueDialCaption() {
+  const { t } = useLocale();
+  return (
+    <p className="ph-dial__caption" data-testid="pvalue-dial-caption">
+      {t('lab.dialCaption')}
+    </p>
   );
 }
 

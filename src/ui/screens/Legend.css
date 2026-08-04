@@ -41,9 +41,12 @@
   border-block-end: var(--hairline);
 }
 
+/* `min-width`, not `width`: the two call markers are two glyphs wide
+   (⚖️✅ / ⚖️❌) and a hard 2ch box let them spill over the gap into their own
+   label. The column still aligns at 2ch for every single-glyph row. */
 .ph-legend__glyph {
   font-size: var(--text-22);
-  width: 2ch;
+  min-width: 2ch;
   flex: none;
 }
 
