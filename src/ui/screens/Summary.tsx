@@ -303,7 +303,13 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
       };
   const { streak } = streakAfter(historyForStreak, puzzleIso);
 
-  const shareText = shareString({ puzzleNumber, log, mode, callCorrect: callCorrect ?? false, streak, copy });
+  // Post-review fix: `callCorrect` is passed through AS-IS (never `?? false`)
+  // — share.ts's own ShareStringInput.callCorrect is `boolean | null` exactly
+  // so a real `null` (no call was ever made — every Prereg Mode day, since
+  // §2.8 has no CALL step at all) reaches shareString and suppresses the
+  // "→ ⚖️…" suffix entirely, rather than being coerced into a false "wrong
+  // call" reading that every single prereg day previously got by construction.
+  const shareText = shareString({ puzzleNumber, log, mode, callCorrect, streak, copy });
 
   // T30: achievements newly unlocked TODAY — stays empty unless the block
   // below actually runs. Folded into `preregUnlocked` regardless (see the

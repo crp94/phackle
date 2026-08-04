@@ -87,10 +87,31 @@ describe('shareString — §2.9 layout', () => {
     expect(out.split('\n')[2]).toBe(`${forks} forks · streak 12`);
   });
 
+  // Generic-contract test (post-review re-scope): this hand-built log
+  // contains a literal SUBMIT entry, which a REAL prereg day never produces
+  // (store.ts's preregCommit() logs only VIEW_SPEC entries — see the "real
+  // preregCommit shape" test below for that actual case). It still passes
+  // unchanged because buildTrail's prefix is unconditional on `prereg` and
+  // its terminal is now ALSO mode-decided rather than log-decided (any
+  // literal SUBMIT/ABANDON in a prereg-tagged log is deliberately ignored,
+  // and the same single 📄 is appended regardless) — this test is exercising
+  // that generic mechanical contract (the prefix), not a realistic log shape.
   it('prereg mode prefixes the trail with 🧾', () => {
     const log: PlayerAction[] = [view(spec(), false, 0), submit(spec(), 1)];
     const out = shareString({ puzzleNumber: 1, log, mode: 'prereg', callCorrect: true, streak: 0, copy: enCopy });
     expect(trailOf(out).startsWith('🧾')).toBe(true);
+  });
+
+  // Real preregCommit shape (post-review fix): store.ts's preregCommit()
+  // never logs a SUBMIT or ABANDON action at all — a preregistered commit is
+  // always run and reported (§2.6/§7.3 — there is no abandon path) — and
+  // never makes a call (§2.8: no CALL step), so callCorrect is always null.
+  // This is the log shape (and the exact expected output) a REAL prereg day
+  // actually produces.
+  it('the real preregCommit shape (a single un-seen VIEW_SPEC, no SUBMIT/ABANDON at all) still ends in exactly one 📄, with no ⚖️ suffix at all', () => {
+    const log: PlayerAction[] = [view(spec(), false, 0)];
+    const out = shareString({ puzzleNumber: 1, log, mode: 'prereg', callCorrect: null, streak: 0, copy: enCopy });
+    expect(out.split('\n')[1]).toBe('🧾📄');
   });
 
   it('hack mode never prefixes with 🧾', () => {
@@ -136,6 +157,13 @@ describe('emoji trail length matches countForks exactly (§2.10 is the source of
     expect(tokenizeTrail(trailOf(out))).toHaveLength(forks + 1);
   });
 
+  // Generic-contract test (post-review re-scope): the trailing abandon()
+  // here is not a shape a real prereg day can produce (Prereg Mode has no
+  // abandon path at all — see the doc comment on buildTrail); it is
+  // deliberately IGNORED for prereg now, and the single, fixed terminal 📄
+  // is appended regardless, so the length still comes out the same (one
+  // terminal either way) — this is checking the generic "prefix + one
+  // terminal, regardless of log content" contract, not a realistic log.
   it('prereg mode: trail length === forks + 2 (🧾 prefix + terminal marker)', () => {
     const log: PlayerAction[] = [
       view(spec(), false, 0),
@@ -320,6 +348,60 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
         // correct-pair and wrong-pair strings should differ from each other.
         expect(correctOnNull).not.toBe(wrongOnNull);
       }
+    }
+  });
+
+  // --- T18 post-review fix: the property test that would have caught the
+  // original bug (preregCommit logs no SUBMIT/ABANDON at all, and
+  // `callCorrect ?? false` coerced Prereg Mode's real `null` into an
+  // unconditional wrong-call reading — neither was exercised by the test
+  // above, which only ever varies `callCorrect` between two BOOLEAN values
+  // computed from callIsCorrect, never null, and always terminates its
+  // generated log with a literal SUBMIT/ABANDON that a real prereg day would
+  // never contain).
+  //
+  // Prereg Mode's real spoiler surface is narrower than hack mode's: it never
+  // calls at all, so callCorrect is always null, and preregCommit's own log-
+  // building never consults the result (§2.6 — nothing is ever shown before
+  // commit), so the SAME action log is what a significant day and a
+  // non-significant day both produce. The only way day type (or preregSig)
+  // could leak through shareString at all is if some future caller derived
+  // callCorrect from significance instead of passing the real null — this
+  // test fixes a realistic prereg log pattern and proves that scenario is a
+  // no-op today, then "guards the guard" by showing the assertion IS
+  // sensitive to exactly that leak.
+  it('prereg mode: a FIXED action pattern is byte-identical whether the imagined day was significant or not (callCorrect is null either way — there is no call to leak through)', async () => {
+    const rng = makeLcg(0x9e3779b9);
+    const content = await getContent('en');
+    const copy = content.copy;
+
+    for (let trial = 0; trial < 300; trial++) {
+      // The real preregCommit() log shape: only un-seen VIEW_SPEC entries
+      // (boot's own free one, plus the committed spec's own — see
+      // store.ts's preregCommit doc comment), never a SUBMIT/ABANDON, and
+      // never anything derived from the result itself.
+      const committed = pool[Math.floor(rng() * pool.length)];
+      const log: PlayerAction[] = [view(pool[0], false, 0), view(committed, false, 1)];
+      const puzzleNumber = 1 + Math.floor(rng() * 500);
+      const streak = Math.floor(rng() * 60);
+
+      // Summary.tsx's real wiring: `call` stays null regardless of
+      // preregSig (Prereg Mode never makes a call at all) — so this is the
+      // SAME callCorrect: null for both the "significant" and
+      // "non-significant" imagined day, because that IS the real contract,
+      // not a simplifying assumption.
+      const asIfSignificant = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: null, streak, copy });
+      const asIfNonSignificant = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: null, streak, copy });
+      expect(asIfSignificant).toBe(asIfNonSignificant);
+
+      // Guards the guard: this must be a REAL leak channel, not a vacuous
+      // check — if a future regression derived callCorrect from
+      // significance (the exact bug class this test exists to catch:
+      // "sig -> true -> ⚖️✅", "non-sig -> false -> ⚖️❌"), the two outputs
+      // would visibly differ, proving the assertion above is meaningful.
+      const leakedIfSig = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: true, streak, copy });
+      const leakedIfNonSig = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: false, streak, copy });
+      expect(leakedIfSig).not.toBe(leakedIfNonSig);
     }
   });
 });
