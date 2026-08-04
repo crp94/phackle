@@ -294,6 +294,74 @@ export function findPressSpoilerTerms(
 }
 
 /**
+ * Share of ASCII letters that are capitals. Non-ASCII letters are simply not
+ * counted, which costs nothing (an Italian "SÌ" or a Spanish "NEGOCIACIÓN" is
+ * still overwhelmingly ASCII capitals) and avoids a Unicode-case rabbit hole in
+ * what is only a phrasing guard.
+ */
+export function upperCaseRatio(text: string): number {
+  const letters = text.replace(/[^A-Za-z]/g, '');
+  if (letters.length === 0) return 1;
+  return letters.replace(/[^A-Z]/g, '').length / letters.length;
+}
+
+/**
+ * The tier VOICE law. Tier 3 is a broadcast lower third and shouts; tiers 1-2
+ * are print and do not. Language-independent (it counts capitals, not words),
+ * so every locale inherits it.
+ *
+ * A ratio and not `text === text.toUpperCase()`: '401(k)' is a proper noun
+ * whose lowercase k survives even on a chyron, and Italian/Spanish accented
+ * capitals are outside the ASCII class this counts.
+ */
+export function findPressVoiceProblems(content: LocaleContent): string[] {
+  const problems: string[] = [];
+  content.press.forEach((blurb, i) => {
+    const ratio = upperCaseRatio(blurb.text);
+    if (blurb.tier === 3 && ratio <= 0.9) {
+      problems.push(`press[${i}] is tier 3 but is not in the chyron's shouting voice: "${blurb.text}"`);
+    }
+    if (blurb.tier !== 3 && ratio >= 0.5) {
+      problems.push(`press[${i}] is tier ${blurb.tier} but shouts like a chyron: "${blurb.text}"`);
+    }
+  });
+  return problems;
+}
+
+/**
+ * Journals belong on the cover, outlets on the clippings (master spec §4.3 vs
+ * §4.4). The journal pool is shared and English in every locale, so this is a
+ * language-independent check and belongs in the shared validator.
+ */
+export function findPressJournalNames(content: LocaleContent): string[] {
+  const problems: string[] = [];
+  content.press.forEach((blurb, i) => {
+    for (const journal of JOURNALS) {
+      if (`${blurb.text} ${blurb.outlet}`.includes(journal.name)) {
+        problems.push(`press[${i}] names the journal "${journal.name}" — press names outlets, never mastheads`);
+      }
+    }
+  });
+  return problems;
+}
+
+/**
+ * Press text is rendered RAW. src/ui/screens/Published.tsx runs
+ * substituteEffect over the scenario headline only, so a `{effect}` in a blurb
+ * would reach the screen verbatim, braces and all.
+ */
+export function findPressTokens(content: LocaleContent): string[] {
+  const problems: string[] = [];
+  content.press.forEach((blurb, i) => {
+    const tokens = blurb.text.match(/\{[^}]*\}/g) ?? [];
+    if (tokens.length > 0) {
+      problems.push(`press[${i}] carries interpolation token(s) ${tokens.join(', ')}, but press text is never substituted`);
+    }
+  });
+  return problems;
+}
+
+/**
  * T39a's coverage law, and the whole point of the task: "Every day must feel
  * covered BY NAME." A scenario with no scenario-bound blurb at any tier gets
  * generic coverage of an unnamed study on every single one of its days, which
@@ -325,18 +393,28 @@ export function findNegativeDirectionTerms(
 }
 
 /**
- * The two language-specific word lists every locale must supply. Required, not
- * optional: a locale suite that forgot them would silently skip the harm and
- * direction guards, which are the two checks that actually protect the product.
+ * The language-specific word lists every locale must supply. All three are
+ * REQUIRED, not optional: a locale suite that forgot one would silently skip a
+ * guard that actually protects the product, and would report green for it.
+ *
+ * `pressSpoilerTerms` was added in fix round 1 [I1]. Review finding: five press
+ * guards were being invoked on `enContent` only, so today's green was an
+ * artifact of the IT/ES placeholders still being English text. T39b is about to
+ * replace all 48 of those with real Italian and Spanish, and none of it would
+ * have been checked for the spoiler law. Making the field required means a
+ * locale cannot acquire real prose without also declaring the vocabulary that
+ * prose must not use.
  */
 export interface ContentLexicons {
   harmTerms: string[];
   directionTerms: string[];
+  pressSpoilerTerms: string[];
 }
 
 export const EN_LEXICONS: ContentLexicons = {
   harmTerms: HARM_LEXICON,
   directionTerms: NEGATIVE_DIRECTION_LEXICON,
+  pressSpoilerTerms: PRESS_SPOILER_LEXICON,
 };
 
 /**
@@ -441,10 +519,23 @@ export function validateLocaleContent(
     problems.push(`scenario "${id}" has no scenario-bound press blurb (T39a: every day must be covered by name)`);
   }
 
-  // The two language-specific guards. Run here, not only in their own describe
+  // The language-specific guards. Run here, not only in their own describe
   // blocks, so every locale that calls this validator gets them for free.
   problems.push(...findHarmTerms(content, lexicons.harmTerms));
   problems.push(...findNegativeDirectionTerms(content, lexicons.directionTerms));
+
+  // The five PRESS guards (fix round 1 [I1]). These used to be invoked on the
+  // English content only, inside this file's own describe block, which meant
+  // the Italian and Spanish banks were checked for none of it — a gap that was
+  // invisible precisely because their T39a entries are still English
+  // placeholders and therefore passed the English lexicons by accident. Moving
+  // them here is what makes T39b's 48 new blurbs land under the same laws the
+  // English ones were written to.
+  problems.push(...findPressHarmTerms(content, lexicons.harmTerms));
+  problems.push(...findPressSpoilerTerms(content, lexicons.pressSpoilerTerms));
+  problems.push(...findPressVoiceProblems(content));
+  problems.push(...findPressJournalNames(content));
+  problems.push(...findPressTokens(content));
 
   // The em-dash budget is language-independent (it counts one character), so
   // unlike the two lexicons it needs no per-locale argument.
@@ -682,18 +773,6 @@ describe('harm check', () => {
   });
 });
 
-/**
- * Share of ASCII letters that are capitals. Used for the tier-3 chyron voice
- * law below; non-ASCII letters are simply not counted, which costs nothing
- * (an Italian "SÌ" or a Spanish "NEGOCIACIÓN" is still overwhelmingly ASCII
- * capitals) and avoids a Unicode-case rabbit hole in a phrasing guard.
- */
-export function upperCaseRatio(text: string): number {
-  const letters = text.replace(/[^A-Za-z]/g, '');
-  if (letters.length === 0) return 1;
-  return letters.replace(/[^A-Z]/g, '').length / letters.length;
-}
-
 describe('T39a — game-dependent press (owner directive: "at least some of the news are related to the research question")', () => {
   it('names every scenario in at least one blurb, so no day is covered generically only', () => {
     expect(findScenariosWithoutPress(enContent)).toEqual([]);
@@ -737,16 +816,24 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
   });
 
   it('keeps tier 3 in the chyron voice (all caps) and tiers 1-2 out of it', () => {
-    for (const [i, blurb] of enContent.press.entries()) {
-      if (blurb.tier === 3) {
-        // Not a strict `text === text.toUpperCase()`: '401(k)' is a proper
-        // noun whose lowercase k survives even on a chyron, so the law is a
-        // ratio with room for exactly that kind of exception.
-        expect(upperCaseRatio(blurb.text), `press[${i}]: "${blurb.text}"`).toBeGreaterThan(0.9);
-      } else {
-        expect(upperCaseRatio(blurb.text), `press[${i}]: "${blurb.text}"`).toBeLessThan(0.5);
-      }
-    }
+    expect(findPressVoiceProblems(enContent)).toEqual([]);
+    // '401(k)' is a proper noun whose lowercase k survives even on a chyron,
+    // which is why the law is a ratio and not `text === text.toUpperCase()`.
+    const chyron = enContent.press.find((p) => p.text.includes('401(k)'));
+    expect(chyron?.text).not.toBe(chyron?.text.toUpperCase());
+  });
+
+  it('catches a tier-3 blurb that forgot to shout, and a tier-1 blurb that did (guards the guard)', () => {
+    const quietChyron: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p, i) => (i === 29 ? { ...p, text: 'Study: ferns may be leverage.' } : p)),
+    };
+    expect(findPressVoiceProblems(quietChyron).some((p) => p.includes('not in the chyron'))).toBe(true);
+    const shoutingBroadsheet: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p, i) => (i === 1 ? { ...p, text: 'THE EFFECT IS MODEST, SAY THE AUTHORS' } : p)),
+    };
+    expect(findPressVoiceProblems(shoutingBroadsheet).some((p) => p.includes('shouts like a chyron'))).toBe(true);
   });
 
   it('leaves every tier enough scenario-agnostic blurbs for repeat-play variety', () => {
@@ -757,19 +844,65 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
   });
 
   it('keeps journals out of the press: a blurb names an outlet, never a masthead', () => {
-    for (const [i, blurb] of enContent.press.entries()) {
-      for (const journal of JOURNALS) {
-        expect(`${blurb.text} ${blurb.outlet}`, `press[${i}] names journal "${journal.name}"`).not.toContain(journal.name);
-      }
-    }
+    expect(findPressJournalNames(enContent)).toEqual([]);
+    const broken: LocaleContent = {
+      ...enContent,
+      press: [{ ...enContent.press[0], text: `As reported in ${JOURNALS[0].name}.` }, ...enContent.press.slice(1)],
+    };
+    expect(findPressJournalNames(broken)).toHaveLength(1);
   });
 
   it('carries no interpolation token: press text is rendered raw, unlike a headline', () => {
-    // src/ui/screens/Published.tsx runs substituteEffect over the SCENARIO
-    // headline only; a `{effect}` in a blurb would reach the screen verbatim.
-    for (const [i, blurb] of enContent.press.entries()) {
-      expect(blurb.text.match(/\{[^}]*\}/g) ?? [], `press[${i}]`).toEqual([]);
+    expect(findPressTokens(enContent)).toEqual([]);
+    const broken: LocaleContent = {
+      ...enContent,
+      press: [{ ...enContent.press[0], text: 'Cat owners see {effect}% more.' }, ...enContent.press.slice(1)],
+    };
+    expect(findPressTokens(broken).some((p) => p.includes('{effect}'))).toBe(true);
+  });
+
+  /**
+   * FIX ROUND 1 [I1], and the whole point of that finding. All five press
+   * guards must reach `validateLocaleContent`, because that is the ONLY entry
+   * point the Italian and Spanish suites call. Asserting each helper
+   * separately (as this block did before) left the locales checked for none of
+   * it, and the gap was invisible because their T39a entries are still English
+   * placeholders that pass the English lexicons by accident.
+   *
+   * One broken fixture per guard, each asserted through the validator rather
+   * than through its own helper: if a future edit unhooks any of the five, this
+   * fails even though the helper's own test would still be green.
+   */
+  it('routes all five press guards through validateLocaleContent, not just through their helpers', () => {
+    const cases: { guard: string; text: string; tier?: 1 | 2 | 3; needle: string }[] = [
+      { guard: 'harm', text: 'The cure was described as promising.', needle: 'banned term' },
+      { guard: 'spoiler', text: 'It replicated, and the authors are pleased.', needle: 'asserts a verdict' },
+      { guard: 'voice', text: 'A QUIET LITTLE FINDING FOR THE WEEKEND READER', needle: 'shouts like a chyron' },
+      { guard: 'journal', text: `Published in ${JOURNALS[0].name} this week.`, needle: 'names the journal' },
+      { guard: 'token', text: 'A gain of {effect} points was reported.', needle: 'interpolation token' },
+    ];
+    for (const { guard, text, needle } of cases) {
+      const broken: LocaleContent = {
+        ...enContent,
+        press: [{ ...enContent.press[1], text }, ...enContent.press.slice(1)],
+      };
+      const problems = validateLocaleContent(broken, EN_LEXICONS);
+      expect(problems.some((p) => p.includes(needle)), `${guard} guard is not wired into the validator`).toBe(true);
     }
+  });
+
+  it('requires every locale to declare its own press-spoiler lexicon', () => {
+    // ContentLexicons.pressSpoilerTerms is a required field, so a locale that
+    // omits it is a compile error rather than a silently skipped guard. This
+    // asserts the runtime half: an EMPTY lexicon catches nothing, which is the
+    // shape a lazy T39b hand-off would take.
+    const empty: ContentLexicons = { ...EN_LEXICONS, pressSpoilerTerms: [] };
+    const broken: LocaleContent = {
+      ...enContent,
+      press: [{ ...enContent.press[1], text: 'It replicated everywhere.' }, ...enContent.press.slice(1)],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('asserts a verdict'))).toBe(true);
+    expect(validateLocaleContent(broken, empty).some((p) => p.includes('asserts a verdict'))).toBe(false);
   });
 });
 

@@ -129,6 +129,33 @@ export function pickJournal(tags: string[], iso: string): { name: string } {
 export const PRESS_SALT_MARKER = '#';
 
 /**
+ * The day's three press slots, in the order Published renders them, keyed by
+ * the salt each one appends to `iso`. Position in this array IS the slot's
+ * rotation offset within its pool (see pickPress) — which is what makes the
+ * three items pairwise distinct by construction instead of by luck.
+ *
+ * Fix round 1 [M1]. The reviewer found that `fnv1a32`'s low bit is just the
+ * input's byte parity, so two salted seeds of the same parity can never land on
+ * opposite halves of an even-sized pool: card 1 and the chyron collided on
+ * 17.9% of tier-3 days, and card 2 and the chyron on 0.0% — neither number
+ * designed, both artifacts of how many characters "#2" and "#chyron" happen to
+ * have. Mixing the hash better (below) removes the correlation but replaces one
+ * artifact with honest independent draws, which still collide: measured, the
+ * mixing alone moves the day's overall duplicate rate from 12.9% to 17.0%
+ * (card 2 vs chyron 0.0% -> 16.5%). Independence is not the goal; DISTINCTNESS
+ * is. Rotating each slot by its own index makes a same-pool collision
+ * arithmetically impossible whenever the pool has room, measured at 0.0%.
+ *
+ * The cost, stated plainly: on a day where all three slots draw from the same
+ * pool, they are three CONSECUTIVE pool entries rather than three independent
+ * ones, so that day has `poolSize` possible presentations instead of
+ * `poolSize³`. That trade is worth taking — which three of six generic chyrons
+ * appear is imperceptible, whereas the same line printed twice on one screen is
+ * the defect this whole mechanism exists to prevent.
+ */
+const PRESS_SLOT_SALTS = ['', `${PRESS_SALT_MARKER}2`, `${PRESS_SALT_MARKER}chyron`];
+
+/**
  * Press picker (T6 review adoption; T39a guarantee).
  *
  * THE T39a GUARANTEE. Owner directive from play-testing: "Can we do the
@@ -159,14 +186,24 @@ export const PRESS_SALT_MARKER = '#';
  * sourdough study"), and neither branch ever reaches for one.
  *
  * Still a pure, deterministic function of its four arguments: same
- * (bank, tier, scenarioId, iso) always yields the same blurb, via
- * `fnv1a32(iso + tier)`.
+ * (bank, tier, scenarioId, iso) always yields the same blurb.
+ *
+ * SEEDING (fix round 1 [M1]). The day's hash is taken from the UNSALTED date,
+ * so all three slots share one base draw, and the slot's own position in
+ * PRESS_SLOT_SALTS rotates it. `fnv1a32` itself is left spec-verbatim
+ * (Appendix A) — the extra `h ^ (h >>> 15)` avalanche happens here, at the
+ * consumer, where a weak low bit actually matters. An unregistered salt still
+ * works: it falls back to a hash-derived offset, which is best-effort variety
+ * rather than a distinctness guarantee, and is documented as such.
  */
 export function pickPress(press: PressBlurb[], tier: EgregiousnessTier, scenarioId: string, iso: string): PressBlurb {
   const tierMatched = press.filter((p) => p.tier === tier);
   const bound = tierMatched.filter((p) => p.scenarioIds?.includes(scenarioId));
   const agnostic = tierMatched.filter((p) => !p.scenarioIds || p.scenarioIds.length === 0);
-  const isFollowUp = iso.includes(PRESS_SALT_MARKER);
+  const cut = iso.indexOf(PRESS_SALT_MARKER);
+  const isFollowUp = cut !== -1;
+  const day = isFollowUp ? iso.slice(0, cut) : iso;
+  const salt = isFollowUp ? iso.slice(cut) : '';
   const preferred = isFollowUp ? agnostic : bound;
   const fallback = isFollowUp ? bound : agnostic;
   const pool = preferred.length > 0 ? preferred : fallback;
@@ -174,6 +211,9 @@ export function pickPress(press: PressBlurb[], tier: EgregiousnessTier, scenario
   // blurb): widen rather than crash if some future edit ever left a tier
   // with neither a bound nor an agnostic entry for this scenario.
   const safePool = pool.length > 0 ? pool : tierMatched.length > 0 ? tierMatched : press;
-  const idx = fnv1a32(iso + String(tier)) % safePool.length;
+  const h = fnv1a32(day + String(tier));
+  const known = PRESS_SLOT_SALTS.indexOf(salt);
+  const offset = known !== -1 ? known : fnv1a32(salt);
+  const idx = (((h ^ (h >>> 15)) >>> 0) + offset) % safePool.length;
   return safePool[idx];
 }

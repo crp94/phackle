@@ -285,10 +285,15 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
       }
     }
     // Guards the guard: a bug that emptied every `scenarioIds` would make the
-    // loop above vacuously true. 26 is today's count of (scenario, tier) cells
-    // that HAVE a bound blurb -- 20 scenarios x 3 tiers = 60 cells, of which
-    // T39a fills 26. See the task report for why that is not 60.
-    expect(checkedCells).toBe(26);
+    // loop above vacuously true, and would yield 0 here. 26 is today's count of
+    // (scenario, tier) cells that HAVE a bound blurb -- 20 scenarios x 3 tiers
+    // = 60 cells, of which T39a fills 26. See the task report for why not 60.
+    //
+    // [M2] A FLOOR, not an equality: adding coverage is the direction this
+    // number is supposed to move, and a test that fails when someone writes a
+    // 27th bespoke blurb would punish exactly the work it exists to encourage.
+    // Vacuity is still fully guarded -- an emptied scenarioIds gives 0.
+    expect(checkedCells).toBeGreaterThanOrEqual(26);
   });
 
   it("does not repeat that blurb across the day's other cards: follow-ups take the generic pool", () => {
@@ -305,6 +310,40 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
             ).toHaveLength(0);
             expect(blurb.text).not.toBe(card1.text);
           }
+        }
+      }
+    }
+  });
+
+  /**
+   * [M1] The day's three items are pairwise distinct, for EVERY scenario and
+   * tier, not only the covered cells the test above walks.
+   *
+   * "Where pools allow" is asserted rather than assumed: the first expectation
+   * proves each tier's generic pool has room for three simultaneous picks, so a
+   * duplicate below is a seeding defect and never a content shortage.
+   *
+   * This is the test that fails against the old index math. `fnv1a32`'s low bit
+   * is the input's byte parity, so which slot collided with which was decided
+   * by how many characters "#2" and "#chyron" happen to have -- card 1 and the
+   * chyron collided on 17.9% of tier-3 days. Mixing the hash alone does not fix
+   * it either: it just redistributes the collisions (card 2 vs chyron 0.0% ->
+   * 16.5%, overall 12.9% -> 17.0%). Only rotating each slot by its own index
+   * makes a same-pool collision arithmetically impossible.
+   */
+  it('renders three pairwise-distinct items on every day, at every tier', () => {
+    for (const tier of TIERS) {
+      const generic = enContent.press.filter((p) => p.tier === tier && !p.scenarioIds?.length);
+      expect(generic.length, `tier ${tier} generic pool must have room for 3 simultaneous picks`).toBeGreaterThanOrEqual(3);
+    }
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const day = pressForDay(enContent.press, tier, scenario.id, iso);
+          const texts = day.map((b) => b.text);
+          expect(new Set(texts).size, `${scenario.id} @ tier ${tier} on ${iso} repeated a blurb: ${texts.join(' | ')}`).toBe(
+            texts.length
+          );
         }
       }
     }

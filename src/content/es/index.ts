@@ -501,7 +501,7 @@ export const content: LocaleContent = {
     },
     {
       // T39b: transcreation pending
-      text: 'Strangers in three cities were asked the way to a landmark eight minutes away. A fourth city is being added by request.',
+      text: 'The question about the telescope came last, after the directions and a full debrief. Telescope owners, the authors record, were delighted to be asked.',
       outlet: 'El Balance Semanal',
       tier: 1,
       scenarioIds: ['telescope-directions'],
@@ -515,7 +515,7 @@ export const content: LocaleContent = {
     },
     {
       // T39b: transcreation pending
-      text: 'The fieldwork was done at a departure gate with a folding table. Recruitment, the authors note, was never the difficulty.',
+      text: 'Jigsaw solvers had their suitcases measured at a departure gate, on a folding table. Nobody there, the authors note, had anywhere else to be.',
       outlet: 'El Suplemento Dominical',
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
@@ -564,7 +564,7 @@ export const content: LocaleContent = {
     },
     {
       // T39b: transcreation pending
-      text: 'Is your star sign finding the space? A logger recorded every search from street entry to engine off.',
+      text: 'Is your star sign finding the space? The logger runs from street entry to engine off, so your worst circuit of the block is in the dataset.',
       outlet: 'Ruido & Rotativa',
       tier: 2,
       scenarioIds: ['horoscope-parking'],
@@ -592,7 +592,7 @@ export const content: LocaleContent = {
     },
     {
       // T39b: transcreation pending
-      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones.',
+      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones, and about what is in yours.',
       outlet: 'Clicbienestar',
       tier: 2,
       scenarioIds: ['jazz-spreadsheets'],
@@ -606,7 +606,7 @@ export const content: LocaleContent = {
     },
     {
       // T39b: transcreation pending
-      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science.',
+      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science, and so, probably, are you.',
       outlet: 'El Scroll Diario',
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
