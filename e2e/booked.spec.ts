@@ -276,14 +276,11 @@ test('(e) the app still boots and plays with local storage blocked', async ({ pa
   expect(pageErrors, 'THE APP THREW WITH LOCAL STORAGE BLOCKED.').toEqual([]);
 });
 
-// FINDING F1 (see the T23 report): the notice is NOT implemented. The copy
-// key `errors.storageOff` exists and is translated in en/it/es, and
-// `isStorageOff()` is exported and unit-tested — but nothing under src/ui/**
-// calls it and nothing renders the key, so a player whose browser blocks
-// storage is silently told nothing and loses their streak without warning.
-// Kept as a live, skipped test rather than deleted: it is the spec of what
-// the design intends, ready to un-fixme the moment the notice lands.
-test.fixme('(e) blocked storage tells the player their progress will not be saved [FINDING F1]', async ({ page }) => {
+// FINDING F1 (see the T23 report): fixed in T40 — App.tsx now renders
+// errors.storageOff, in the shell, whenever storage.ts's isStorageOff() is
+// true (role="status", --muted register, no new colour, no motion; see
+// App.tsx's own comment on the block for the full rationale).
+test('(e) blocked storage tells the player their progress will not be saved [FINDING F1]', async ({ page }) => {
   await bootWithStorageBlocked(page);
 
   await expect(
@@ -322,9 +319,11 @@ test.fixme('(e) blocked storage tells the player their progress will not be save
 // fake store that already HAS a scenarioIndex, so the pre-boot state that
 // only the real async boot produces is never rendered there.
 //
-// Left .fixme for the controller to triage — the fix is App.tsx's or
-// Briefing's, neither of which is this task's to change.
-test.fixme('the briefing never shows a scenario other than the day\'s own [FINDING F2]', async ({ page }) => {
+// Fixed in T40 — App.tsx's loading gate now waits on store.booted (set
+// inside boot()'s own client.init() resolution, the same set() call that
+// fixes scenarioIndex/iso/puzzleNumber) in addition to content/copy, so the
+// Briefing never mounts on initialState()'s placeholder scenario at all.
+test('the briefing never shows a scenario other than the day\'s own [FINDING F2]', async ({ page }) => {
   await openApp(page);
   const firstPaint = (await page.locator('.ph-briefing__question').innerText()).trim();
 

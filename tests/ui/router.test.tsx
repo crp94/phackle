@@ -57,6 +57,17 @@ function makeRevealPayload(overrides: Partial<RevealPayload> = {}): RevealPayloa
   };
 }
 
+/** Same idiom as tests/game/store.test.ts's own `deferred` — a promise this
+ * test resolves on its own schedule, so a fake client's init() can be held
+ * "in flight" for as long as an assertion needs it. */
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 function makeFakeClient(): EngineClient {
   return {
     init: vi.fn().mockResolvedValue({ scenarioIndex: 0, n: 200 } satisfies InitInfo),
@@ -276,5 +287,52 @@ describe('App boot wiring', () => {
     );
     expect(await screen.findByText('P-hackle')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Paper' })).toBeTruthy();
+  });
+
+  // T40 (FINDING F2) — the jsdom-blind gap the T23 report named explicitly:
+  // every OTHER test in this describe block injects a client whose init()
+  // resolves on the same microtask it's called, so the "content loaded, day
+  // not yet fixed" window this test targets never lasts long enough for an
+  // assertion to land inside it. Holding init() open with a controlled
+  // deferred is what makes that window observable at all.
+  it('holds the loading placeholder — labeled via a11y.loading — until store.boot() has fixed the day, not merely once content has loaded', async () => {
+    const init = deferred<{ scenarioIndex: number; n: 200 }>();
+    const client: EngineClient = {
+      init: () => init.promise,
+      runSpec: vi.fn().mockResolvedValue(makeResult()),
+      extend: vi.fn().mockResolvedValue({ n: 250 } satisfies ExtendInfo),
+      reveal: vi.fn().mockResolvedValue(makeRevealPayload()),
+      onCrash: vi.fn(),
+    };
+    mocks.createEngineClient.mockReturnValue(client);
+
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1}>
+          <ScreenRouter />
+        </App>
+      </LocaleProvider>
+    );
+
+    // Content has loaded (the pre-T40 gate would already show the header and
+    // the Briefing here — that IS finding F2), but client.init() is still
+    // pending, so the day is not fixed. `waitFor` rather than a single
+    // assertion: the FIRST loading render (content itself still in flight)
+    // shares the same data-testid but carries no aria-label, so this polls
+    // past that phase into the one this test is actually about.
+    await waitFor(() => {
+      const loading = screen.getByTestId('app-loading');
+      expect(loading.getAttribute('aria-label')).toBe(enCopy['a11y.loading']);
+      expect(loading.getAttribute('role')).toBe('status');
+    });
+    expect(screen.queryByText('P-hackle')).toBeNull();
+    expect(screen.queryByRole('button', { name: enCopy['briefing.openData'] })).toBeNull();
+
+    await act(async () => {
+      init.resolve({ scenarioIndex: 0, n: 200 });
+    });
+
+    expect(await screen.findByRole('button', { name: enCopy['briefing.openData'] })).toBeTruthy();
+    expect(screen.queryByTestId('app-loading')).toBeNull();
   });
 });
