@@ -68,7 +68,7 @@
 
 /* T31: the first-run "How to play" panel. A hairline-topped block, never a
    card (R4.1/R4.2/R4.5) — no fill, no shadow, no four-sided border. Native
-   <details>, so collapsing is instant: R5.5's budget has four animations and
+   <details>, so collapsing is instant: R5.5 names accordion slides among the
    an accordion slide is not one of them. */
 .ph-lab__intro {
   margin-block-end: var(--space-24);

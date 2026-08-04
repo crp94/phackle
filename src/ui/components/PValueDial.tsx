@@ -63,7 +63,11 @@ function degreesOfFreedom(result: PathResult): number {
   return result.n - 2 - covCount;
 }
 
-const TICK_MS = 120; // mirrors --dur-tick (R5.1) for the JS-driven translateY bump's own timing.
+// Mirrors --dur-quick (DESIGN.md R5.1's scale) — how long the settle class
+// stays on before it is removed so the next result can replay it. T35 moved
+// this from 120 (the retired --dur-tick) onto the shared scale; the
+// keyframe itself now owns the motion, so this timer only re-arms it.
+const TICK_MS = 140;
 
 /**
  * A shell rather than three copies of the same markup: `data-testid` and the

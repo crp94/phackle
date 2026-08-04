@@ -92,11 +92,34 @@
   --measure: 62ch;
   --page-max: 68rem;
 
-  /* --- Motion (exhaustive: four animations exist, §7.5) ------------------- */
-  --dur-tick: 120ms;
-  --dur-fade: 300ms;
+  /* --- Motion (DESIGN.md §5 — the registered scale) ----------------------- */
+  /* THE SCALE. Three timing tokens carry every ordinary motion in the
+     product. They replaced the old one-token-per-animation set
+     (--dur-tick/--dur-fade) in T35, when the motion budget became a motion
+     SYSTEM: a duration is a class of moment, not the name of one effect, so
+     two sites that mean the same kind of thing are timed identically by
+     construction and can never drift apart.
+       --dur-quick   quick UI feedback: the beat that confirms a small thing
+                     happened (dial settle, popover, toast). §7.5's band for
+                     this is 120-200ms.
+       --dur-scene   a scene changing: the screen swap, a reveal block
+                     landing, a press clipping arriving. §7.5's band is
+                     200-350ms.
+       --dur-stagger the DELAY STEP between items of one staggered entrance —
+                     never a duration of its own. Used only inside
+                     calc(var(--ph-stagger-index) * var(--dur-stagger)). */
+  --dur-quick: 140ms;
+  --dur-scene: 260ms;
+  --dur-stagger: 60ms;
+  /* THE TWO PINNED SIGNATURE DURATIONS, both off the scale and both with a
+     named reason (DESIGN.md R5.4): master spec §7.1 fixes the stamp slam at
+     450ms and §7.5 fixes the confetti budget at 3000ms. Nothing else in the
+     product may exceed --dur-scene. */
   --dur-stamp: 450ms;
   --dur-confetti: 3000ms;
+  /* ONE easing for the whole system: everything that enters, settles or
+     confirms uses --ease-out. --ease-stamp's overshoot is reserved for
+     R8.2's single signature moment and appears nowhere else. */
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-stamp: cubic-bezier(0.2, 1.4, 0.3, 1);
 
@@ -151,15 +174,30 @@
 }
 
 /**
- * Reduced motion collapses every CSS animation to an instant state change
- * (§7.5). Canvas confetti has no CSS duration to shorten: --dur-confetti drops
- * to 0ms and the Published screen must skip the canvas entirely by reading
- * matchMedia('(prefers-reduced-motion: reduce)') in JS.
+ * Reduced motion is a PARITY law, not a removal (DESIGN.md R5.6). Every
+ * timing token collapses here, so every animation in src/ui becomes a single
+ * imperceptible frame and every reader gets the same information in the same
+ * final state — nothing appears only as the result of a movement, and nothing
+ * is left waiting on one.
+ *
+ * This is why R5.1 forbids a raw duration anywhere outside this file: a
+ * hard-coded `260ms` in a component would survive this block untouched, and
+ * would be the one animation a reduced-motion reader still had to sit
+ * through. Collapsing the tokens is what makes the guarantee global instead
+ * of per-file.
+ *
+ * --dur-stagger goes to 0ms rather than 1ms because it is multiplied by an
+ * index: a staggered list of n items would otherwise still cost n frames.
+ * Canvas confetti has no CSS duration to shorten at all: --dur-confetti drops
+ * to 0ms and the Published screen must additionally skip the canvas entirely
+ * by reading matchMedia('(prefers-reduced-motion: reduce)') in JS (R5.6's
+ * JS half, via src/ui/hooks/useReducedMotion.ts).
  */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --dur-tick: 1ms;
-    --dur-fade: 1ms;
+    --dur-quick: 1ms;
+    --dur-scene: 1ms;
+    --dur-stagger: 0ms;
     --dur-stamp: 1ms;
     --dur-confetti: 0ms;
     --ease-stamp: linear;

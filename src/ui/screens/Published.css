@@ -31,9 +31,12 @@
 
 /* Review fix: master spec §2.5's altmetric counter. Static (no
    transition/animation property anywhere here -- the spec's "spinning up"
-   would be a 5th, un-budgeted motion; DESIGN.md's four-item list is
-   exhaustive, resolved the same way the press-card "sliding in" language
-   was: a documented precedence note, no motion added). R1.6's gold list
+   would be an UNREGISTERED motion site; DESIGN.md R5.2's list is
+   exhaustive and T35 did not add this one to it — a counter ticking up is
+   decoration, not a beat that tells the player something happened, and the
+   number is deterministic anyway. Resolved as a documented precedence note,
+   no motion added; the press clippings beside it are the entry T35 DID
+   sanction, and one payoff cascade per screen is the budget). R1.6's gold list
    does not include this figure, so it stays on R1.2's default tokens
    (--muted), never --hack-gold/-ink. */
 .ph-altmetric {
@@ -65,9 +68,42 @@
   max-width: var(--measure);
 }
 
+/* DESIGN.md R5.2 site 5: THE COVERAGE ROLLS IN.
+   The clippings are the day's payoff — the moment Act I's sincerity pays out
+   — and every one of them used to be simply present the instant the screen
+   was. One --dur-scene rise each, one --dur-stagger apart (Published.tsx
+   sets --ph-stagger-index: 0, 1 on the two press cards and 2 on the tier-3
+   chyron), so the press arrives in the order it would arrive in: one outlet,
+   then the next, then the broadcast pickup. Three items and 6px of travel is
+   the whole effect — R8.3 still says the only things on this screen allowed
+   to ask to be looked at are the dial and the stamp, and neither is here.
+
+   No base `opacity: 0`, deliberately: the clippings are ordinary content, so
+   if this animation never ran at all (an engine that ignores it, a stylesheet
+   that fails to load) they are simply there. Nothing on this screen appears
+   ONLY as the result of a movement (R5.6). `backwards` supplies the
+   from-state during the stagger delay and does not persist afterwards. */
+@keyframes ph-clipping-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* A PRESS CLIPPING (T29 pin 8), built entirely out of type and hairlines:
    masthead -> dateline rule -> pull-quote -> compliance stamp. R4.5 still
    binds — every rule below is a single edge, never a box. */
+.ph-press-card,
+.ph-chyron {
+  animation: ph-clipping-enter var(--dur-scene) var(--ease-out) backwards;
+  animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
+}
+
 .ph-press-card {
   border-block-end: var(--hairline);
   padding-block: var(--space-16) var(--space-8);

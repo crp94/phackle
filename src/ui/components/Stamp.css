@@ -66,8 +66,19 @@
   fill: none;
 }
 
-/* R5.2: single 450ms slam (scale + rotate, one overshoot) on the mark, plus a
-   <=2px "page" shake on the container -- one timeline, both ending together. */
+/* R5.4: single 450ms slam (scale + rotate, one overshoot) on the mark, plus a
+   <=2px "page" shake on the container -- one timeline, both ending together.
+   Transform and opacity only, the whole way through (R5.3).
+
+   T35 moved the two `animation:` DECLARATIONS that fire these out to
+   Reveal.css, and left the keyframes here. Why the split: this component
+   knows what the slam looks like, but only the screen knows when it should
+   happen, and firing on `.ph-stamp--animate` alone meant firing at mount —
+   inside a scroll-gated block that was still transparent, so the signature
+   moment played to nobody. See Reveal.css's `.ph-fade--in .ph-stamp--animate`
+   rule for the measurement and the reasoning. The modifier class itself is
+   unchanged and still set by Stamp.tsx (and still withheld under reduced
+   motion), so nothing about this component's contract moved. */
 @keyframes ph-stamp-slam {
   0% {
     transform: scale(1.6) rotate(6deg);
@@ -95,10 +106,8 @@
   }
 }
 
-.ph-stamp--animate {
-  animation: ph-stamp-shake var(--dur-stamp) var(--ease-stamp) both;
-}
-
-.ph-stamp--animate .ph-stamp__mark {
-  animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
-}
+/* The `.ph-stamp--animate` modifier is set by Stamp.tsx and consumed by
+   Reveal.css (see the note above the keyframes): the slam fires from
+   `.ph-fade--in .ph-stamp--animate`, i.e. only once the block holding the
+   stamp is actually on screen. No `animation:` declaration lives in this
+   file, by design. */

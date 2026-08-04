@@ -16,7 +16,7 @@
 // raw-units formatting can be pinned by a unit test at every magnitude; same
 // inline waiver as src/i18n/LocaleProvider.tsx's hook export.
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
@@ -107,13 +107,23 @@ function interpolate(template: string, parts: Record<string, Part>): ReactNode[]
   return out;
 }
 
+/** T35 — DESIGN.md R5.2 site 3. The most delay steps any single block may
+ * wait before its own entrance runs. The reveal's first three blocks are
+ * inside the viewport at mount and so all flip visible in IntersectionObserver's
+ * very first callback; without a stagger they arrive as one wash instead of
+ * as a sequence. Capping at 2 is what keeps that from taxing the blocks the
+ * player scrolls to LATER, which intersect one at a time and would otherwise
+ * be delayed purely for sitting further down the document. */
+const MAX_STAGGER_STEPS = 2;
+
 /**
- * One scroll-fade block (R5.3: opacity only, 300ms, one block per
- * intersection). Fails OPEN in every direction that could hide content: no
- * IntersectionObserver, reduced motion, or a node that never mounts all mean
- * "visible now" rather than "visible never".
+ * One scroll-gated block (R5.2 site 3: opacity + a 6px rise, --dur-scene,
+ * one block per intersection, staggered by `index` within a batch). Fails
+ * OPEN in every direction that could hide content: no IntersectionObserver,
+ * reduced motion, or a node that never mounts all mean "visible now" rather
+ * than "visible never".
  */
-function Block({ name, children }: { name: string; children: ReactNode }) {
+function Block({ name, index, children }: { name: string; index: number; children: ReactNode }) {
   const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLElement | null>(null);
   const [visible, setVisible] = useState(
@@ -138,7 +148,17 @@ function Block({ name, children }: { name: string; children: ReactNode }) {
   }, [visible]);
 
   return (
-    <section ref={ref} data-block={name} className={visible ? 'ph-fade ph-fade--in' : 'ph-fade'}>
+    <section
+      ref={ref}
+      data-block={name}
+      className={visible ? 'ph-fade ph-fade--in' : 'ph-fade'}
+      // The animation hook, and the only reason this component takes an
+      // index at all: Reveal.css multiplies it by --dur-stagger to get this
+      // block's animation-delay. A custom property, not an inline duration —
+      // R5.1 keeps every actual timing value inside tokens.css so the
+      // reduced-motion block can collapse it (here, to 0ms).
+      style={{ '--ph-stagger-index': Math.min(index, MAX_STAGGER_STEPS) } as CSSProperties}
+    >
       {children}
     </section>
   );
@@ -243,11 +263,11 @@ export function Reveal() {
 
   return (
     <div className="ph-reveal">
-      <Block name="truth">
+      <Block name="truth" index={0}>
         <p className="ph-reveal__truth">{truth}</p>
       </Block>
 
-      <Block name="fig1">
+      <Block name="fig1" index={1}>
         <Figure
           number={t('reveal.fig1')}
           caption={t(published === null ? 'reveal.curveCaptionAbandoned' : 'reveal.curveCaption')}
@@ -257,7 +277,7 @@ export function Reveal() {
         </Figure>
       </Block>
 
-      <Block name="accounting">
+      <Block name="accounting" index={2}>
         <div className="ph-reveal__accounting">
           <p className="ph-reveal__statement">{accounting1}</p>
           <p className="ph-reveal__statement">{accounting2}</p>
@@ -275,7 +295,7 @@ export function Reveal() {
         </div>
       </Block>
 
-      <Block name="stamp">
+      <Block name="stamp" index={3}>
         {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
             a plain echo of the day's manuscript, built from store state --
             the Published screen owns the real JournalCover. */}
@@ -311,7 +331,7 @@ export function Reveal() {
         ) : null}
       </Block>
 
-      <Block name="call">
+      <Block name="call" index={4}>
         {/* Prereg Mode never visits the CALL screen (§2.8: the prereg score
             rows replace it entirely) — `call` stays null for the whole day,
             so this block already renders nothing on a prereg reveal, with no
@@ -328,7 +348,7 @@ export function Reveal() {
           same thinly-scattered hits everywhere. "The single most important
           educational graphic in the game" teaches by the contrast, which
           means it has to be there on the days with nothing to cluster. */}
-      <Block name="fig2">
+      <Block name="fig2" index={5}>
         <Figure number={t('reveal.fig2')} caption={t('reveal.groupedCaption')} footnote={null}>
           <SpecCurve points={points} grouped outcomeLabels={scenario.outcomeLabels} copy={copy} />
         </Figure>

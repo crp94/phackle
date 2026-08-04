@@ -24,12 +24,13 @@
   font-size: var(--text-dial);
   line-height: var(--leading-dial);
   color: var(--muted);
-  transform: translateY(0);
-  /* R5.1: the dial tick — color and <=2px translateY, 120ms. No opacity
+  /* DESIGN.md R5.2 site 2, half one: the band change. R1.8's five discrete
+     colours cross-fade over --dur-quick rather than cutting, so a step is
+     read as a step and not as a repaint. `color` is a paint property, and
+     the ONE property outside transform/opacity R5.3 sanctions — the dial's
+     colour IS its state (R1.8), and no layout depends on it. Never opacity
      (see this file's own header comment for why). */
-  transition:
-    color var(--dur-tick) var(--ease-out),
-    transform var(--dur-tick) var(--ease-out);
+  transition: color var(--dur-quick) var(--ease-out);
 }
 
 .ph-dial--step-1 .ph-dial__value {
@@ -48,8 +49,32 @@
   color: var(--assist-green);
 }
 
+/* DESIGN.md R5.2 site 2, half two: THE SETTLE. Fires once per genuinely new
+   result (PValueDial.tsx keys it on p|n|outcome, not on every re-render):
+   the numeral drops the 2px R5.3 pins for a quick beat and comes to rest.
+   The meaning is exact — a NEW number just landed here — which is the one
+   thing the old treatment could not say, because the digits changed
+   instantly while only the colour moved.
+
+   T35 replaced a two-legged transition (JS adds a class -> transition to
+   -2px; a setTimeout removes it -> transition back) with one keyframe. Same
+   2px of travel, but a single move instead of an out-and-back, and the
+   return leg no longer depends on a timer firing: if the class were ever
+   left on, the number still ends up exactly where it belongs.
+
+   R8.1 still binds: no glow, no halo, no pulse, no font-size, no repeat. */
+@keyframes ph-dial-settle {
+  from {
+    transform: translateY(-2px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
 .ph-dial__value--tick {
-  transform: translateY(-2px);
+  animation: ph-dial-settle var(--dur-quick) var(--ease-out);
 }
 
 .ph-dial__insufficient {

@@ -103,11 +103,37 @@
   outline-offset: var(--focus-offset);
 }
 
+/* DESIGN.md R5.2 site 7: THE COPY CONFIRMATION.
+   Writing to the clipboard is invisible by definition, so this line IS the
+   whole feedback for the share action — and a line of text that simply
+   blinks into existence beside the button reads as a layout shift rather
+   than as an answer. One --dur-quick rise of R5.3's 2px quick distance
+   arrives WITH the button press instead of after it.
+
+   Both states share the rule on purpose: the `role="status"` success toast
+   and the `role="alert"` failure line are the same kind of transient reply,
+   and R1.3 already forbids distinguishing them by colour. Assistive
+   technology is unaffected either way — the live region announces on insert,
+   which has nothing to do with how the pixels arrive — and with no base
+   `opacity: 0` the text is present even if the animation never runs (R5.6). */
+@keyframes ph-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ph-summary__toast {
   font-family: var(--font-ui);
   font-size: var(--text-13);
   color: var(--muted);
   margin: var(--space-8) 0 0;
+  animation: ph-toast-enter var(--dur-quick) var(--ease-out);
 }
 
 .ph-summary__prereg {

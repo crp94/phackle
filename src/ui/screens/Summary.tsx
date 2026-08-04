@@ -28,12 +28,14 @@ import './Summary.css';
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
 
 // How long the clipboard-fallback "Copied to clipboard" toast stays up.
-// Appears/disappears instantly (no transition) — a fifth CSS animation would
-// violate DESIGN.md §5's exhaustive four-animation motion budget.
+// T35 gives its ARRIVAL a --dur-quick beat (DESIGN.md R5.2 site 7,
+// Summary.css's .ph-summary__toast) because a clipboard write is otherwise
+// invisible; the DISMISSAL after this timeout stays instant, since a toast
+// leaving carries no information.
 const TOAST_MS = 3000;
 // How often the countdown's displayed hours/minutes are refreshed. A plain
-// text update on an interval, not a CSS animation/transition, so it isn't a
-// 5th entry in that same budget.
+// text update on an interval, not a CSS animation/transition, so it is not
+// a motion site under R5.2 at all.
 const COUNTDOWN_REFRESH_MS = 30_000;
 
 export interface SummaryProps {

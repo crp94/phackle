@@ -12,7 +12,7 @@
 // src/game/store.ts's useGameStore) purely so tests can seed an isolated
 // fake store instead of touching that real singleton -- see
 // tests/ui/published.test.tsx's makeFakeStoreHook.
-import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type KeyboardEvent } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore, type GameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
@@ -103,6 +103,12 @@ function readDurConfettiMs(): number {
 interface BlurbCardProps {
   blurb: PressBlurb;
   t: (key: CopyKey, params?: Record<string, string | number>) => string;
+  /** T35 — DESIGN.md R5.2 site 5's animation hook, and nothing else: its
+   * position in the staggered entrance. Published.css multiplies it by
+   * --dur-stagger to get this clipping's animation-delay (a custom property,
+   * never an inline duration — R5.1 keeps every timing value in tokens.css
+   * so reduced motion can collapse it). */
+  index: number;
 }
 
 /* R3.6: a hairline-separated list item, not a bordered card-in-a-grid.
@@ -122,9 +128,9 @@ interface BlurbCardProps {
  *      compliance stamp at the foot of the clipping (§4.4 requires it on
  *      every fake-press asset; it should look like the legal line it is,
  *      not like the item's title, which is where it used to sit). */
-function PressCard({ blurb, t }: BlurbCardProps) {
+function PressCard({ blurb, t, index }: BlurbCardProps) {
   return (
-    <li className="ph-press-card">
+    <li className="ph-press-card" style={{ '--ph-stagger-index': index } as CSSProperties}>
       <p className="ph-press-card__outlet">{blurb.outlet}</p>
       <p className="ph-press-card__text">{blurb.text}</p>
       <p className="ph-press-card__watermark">{t('published.simulatedPress')}</p>
@@ -145,9 +151,9 @@ function PressCard({ blurb, t }: BlurbCardProps) {
  * single edge, which is what R4.4/R4.5 permit (R4.5 bars four sides and the
  * `border` shorthand). No §0 registration is required because nothing new is
  * derived: no colour, no fill, no token. */
-function ChyronBar({ blurb, t }: BlurbCardProps) {
+function ChyronBar({ blurb, t, index }: BlurbCardProps) {
   return (
-    <div className="ph-chyron">
+    <div className="ph-chyron" style={{ '--ph-stagger-index': index } as CSSProperties}>
       <p className="ph-chyron__badge">{t('published.editorsPick')}</p>
       <p className="ph-chyron__text">{blurb.text}</p>
       <p className="ph-chyron__strap">
@@ -219,10 +225,10 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
   const careerPoints = t('published.careerPoints', { n: SCORING.publishedCareer });
   // Review fix (Important): master spec §2.5's fifth celebration element,
   // "a fake altmetric counter spinning up" -- rendered STATIC (the "spinning
-  // up" motion would be a fifth, un-budgeted animation; DESIGN.md's list of
-  // four is exhaustive) precisely the way the press-card "sliding in"
-  // language was already resolved above: a documented precedence note, no
-  // animation added. See src/game/published.ts's altmetricScore/
+  // up" motion would be an unregistered motion site; DESIGN.md R5.2's list
+  // is exhaustive and T35 deliberately left this off it — see Published.css's
+  // own note) precisely the way the press-card "sliding in" language was
+  // resolved above: a documented precedence note, no animation added. See src/game/published.ts's altmetricScore/
   // altmetricPercentile for the tier-scaling contract.
   const altmetricScoreText = t('published.altmetricScore', { n: altmetricScore(iso, tier) });
   const altmetricPercentileText = t('published.altmetricPercentile', { n: altmetricPercentile(iso, tier) });
@@ -294,10 +300,10 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
           <p className="ph-altmetric__percentile">{altmetricPercentileText}</p>
         </div>
         <ul className="ph-press-list">
-          <PressCard blurb={card1} t={t} />
-          <PressCard blurb={card2} t={t} />
+          <PressCard blurb={card1} t={t} index={0} />
+          <PressCard blurb={card2} t={t} index={1} />
         </ul>
-        {chyron && <ChyronBar blurb={chyron} t={t} />}
+        {chyron && <ChyronBar blurb={chyron} t={t} index={2} />}
         <button type="button" className="ph-published__cta" onClick={handleFaceTruth}>
           {t('published.faceTruth')}
         </button>
