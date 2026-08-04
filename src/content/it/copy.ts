@@ -328,6 +328,14 @@ export const copy: Record<CopyKey, string> = {
   'summary.invoiceTitle': 'Fattura',
   'summary.preregUpsell': 'La preregistrazione è sbloccata: impegnati su una sola analisi prima di vedere i dati.',
   'summary.shareFailed': 'Non è stato possibile condividere questo risultato.',
+  // T38 — the heading over what today unlocked. NOMINAL (rule 4), not
+  // participial: "Sbloccati oggi" is a bare masculine plural participle with
+  // nothing on screen to agree with, the same defect T37 fixed in
+  // lab.subgroupUrban/Rurale. "Riconoscimenti" is the term
+  // stats.achievementsTitle already fixed (rule 7) — an honours board, not a
+  // task list — so both places name the same thing. Sentence case (rule 3),
+  // no lineetta (rule 11), no token.
+  'summary.unlockedToday': 'Riconoscimenti di oggi',
 
   'prereg.title': 'Preregistrazione',
   // Manuscript register, sincere-bureaucratic, no wink: the form itself is the

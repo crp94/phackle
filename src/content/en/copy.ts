@@ -274,6 +274,13 @@ export type CopyKey =
   // share.ts's own doc comment says a rejection is "not swallowed... so the
   // caller can surface an error"; this is that surface.
   | 'summary.shareFailed'
+  // T38 addition: the heading over the achievements this day just earned
+  // (Summary.tsx's unlock block). The NAMES and CITATIONS under it are
+  // content, not chrome — they live in each locale's `achievements` bank
+  // (src/content/*/index.ts) and are rendered from there, never restated
+  // here. This one key is the only chrome the block needs, and on a day that
+  // unlocked nothing the whole block (heading included) is absent.
+  | 'summary.unlockedToday'
   | 'prereg.title'
   // T18 addition: the preregistration form's own manuscript-register preamble
   // (§7.3) — one sentence, sincere-bureaucratic, played straight (the form
@@ -724,6 +731,10 @@ export const copy: Record<CopyKey, string> = {
   'summary.invoiceTitle': 'Invoice',
   'summary.preregUpsell': 'Preregistration is unlocked: commit to one analysis before you see the data.',
   'summary.shareFailed': "Couldn't share this result.",
+  // T38 — Act II's one warm beat, and it stays award-ceremony-clinical: it
+  // names the day and stops. The citations it introduces are already dry
+  // enough to carry the joke without a heading that nudges.
+  'summary.unlockedToday': 'Unlocked today',
 
   'prereg.title': 'Preregistration',
   // §7.3: "the same SpecControls but rendered as a preregistration form" —

@@ -136,6 +136,112 @@
   animation: ph-toast-enter var(--dur-quick) var(--ease-out);
 }
 
+/* --- T38: the day's award ceremony ---------------------------------------
+   The honours board's own anatomy (Stats.css's .ph-stats__ach: a hairline-
+   ruled row, name over citation, no fill and no box — R4.1/R4.5), so the two
+   places an achievement is ever named read as one institution. One
+   difference, deliberate: the name is --ink here, not the wall's
+   --hack-gold-ink. R8.3 lets the dial and the stamp ask to be looked at and
+   nothing else, and this block already has the screen's only entrance; gold
+   as well would make Act II's quietest screen shout twice. */
+.ph-summary__unlock {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+  margin: var(--space-40) 0 0;
+  max-width: var(--measure);
+}
+
+/* R2.7's uppercase label treatment: this is a small heading over a list, the
+   same job .ph-press-card__outlet does over a clipping — --ink and
+   --weight-medium, because it opens the block rather than captioning it. */
+.ph-summary__unlock-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin: 0;
+}
+
+.ph-summary__unlock-list {
+  list-style: none;
+  margin: var(--space-8) 0 0;
+  padding: 0;
+}
+
+/* DESIGN.md R5.2 site 9: THE AWARD IS ANNOUNCED.
+   The one moment of the day's scoreboard that is not accounting — and until
+   T38 it was not rendered at all: persistAndComputeSummary computed
+   `unlockedToday`, wrote it to storage and dropped it, so the day's best beat
+   happened silently. A citation that is simply already on the page beside the
+   invoice is a table row; one that arrives is an award. One --dur-scene rise
+   of R5.3's 6px scene distance each, one --dur-stagger apart, in the order
+   the achievements were earned in.
+
+   The trigger is the VIEWPORT, not the mount (R5.7, and the measurement in
+   useEnterOnce.ts's own header that forced it): this block sits below the
+   invoice, the total, the streak and the countdown, so on a phone it is
+   reliably off screen at mount and a mount-gated entrance would finish before
+   the player scrolled to it — exactly the defect T35 fixed on Published.
+
+   R5.7's one-staggered-group-per-screen budget was UNSPENT on Summary and is
+   spent here: site 7's copy-confirmation toast is a single element with no
+   index, not a second cascade.
+
+   The base rule holds `opacity: 0` and `.ph-summary__unlock-item--in`
+   restores it, so what makes the citation visible is the CLASS the component
+   adds, never the animation (R5.6) — and `useEnterOnce` resolves to
+   entered-now under reduced motion, without an IntersectionObserver, and if
+   the node never mounts. `backwards` supplies the from-state during the
+   stagger delay without persisting a transform afterwards. */
+@keyframes ph-unlock-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ph-summary__unlock-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-block-end: var(--hairline);
+  padding-block: var(--space-12);
+  opacity: 0;
+}
+
+.ph-summary__unlock-item--in {
+  opacity: 1;
+  animation: ph-unlock-enter var(--dur-scene) var(--ease-out) backwards;
+  animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
+}
+
+.ph-summary__unlock-name {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* The citation reads as the wall's does: quiet, and one size down from
+   nothing (R1.2 — --muted is exactly this register). */
+.ph-summary__unlock-citation {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0;
+}
+
 .ph-summary__prereg {
   border-block-start: var(--hairline);
   padding-block-start: var(--space-16);

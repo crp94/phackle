@@ -3,8 +3,10 @@
 // hairline table rules); the share button (navigator.share -> clipboard
 // fallback -> a summary.copied toast, shown only for the clipboard path — the
 // OS's own share sheet is already the confirmation for the other one); the
-// streak strip; the countdown to next local midnight; and a (currently
-// disabled-for-now, achievement-gated) Prereg Mode upsell.
+// streak strip; the countdown to next local midnight; T38's unlock block (the
+// achievements TODAY earned, named and cited — DESIGN.md R5.2 site 9, and the
+// screen's only entrance); and a (currently disabled-for-now,
+// achievement-gated) Prereg Mode upsell.
 //
 // A "standalone store-reading screen" (T17 controller pin): the default
 // export reads the game store + storage/locale directly. The named `Summary`
@@ -16,13 +18,14 @@ import { useGameStore } from '../../game/store';
 import type { ResultLogEntry } from '../../game/store';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
-import type { AchievementId } from '../../content/types';
+import type { AchievementId, LocaleContent } from '../../content/types';
 import type { DayType, PathResult, PlayerAction, RevealMetrics } from '../../engine/types';
 import { callIsCorrect, scoreDay } from '../../game/scoring';
 import { loadState, saveAchievements, saveDay, streakAfter } from '../../game/storage';
 import { unlockAchievements } from '../../game/dayComplete';
 import { shareString, shareViaNavigator } from '../../game/share';
 import { msToNextLocalMidnight } from '../../game/daily';
+import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import './Summary.css';
 
 type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
@@ -38,6 +41,13 @@ const TOAST_MS = 3000;
 // a motion site under R5.2 at all.
 const COUNTDOWN_REFRESH_MS = 30_000;
 
+/** T38 — one achievement earned TODAY, already resolved against the active
+ * locale's own bank (`LocaleContent['achievements']`). The screen wrapper
+ * below does the resolving so the presentational half stays prop-driven; the
+ * `name`/`citation` strings are the content bank's, never restated here or in
+ * copy.ts (that bank is the ONLY place an achievement is named). */
+export type UnlockedAchievement = LocaleContent['achievements'][AchievementId] & { id: AchievementId };
+
 export interface SummaryProps {
   t: TFunction;
   /** scoreDay's own [CopyKey, number][] — see scoring.ts: summing these
@@ -48,9 +58,39 @@ export interface SummaryProps {
   now: Date;
   shareText: string;
   preregUnlocked: boolean;
+  /** T38 — what today unlocked, in `unlockAchievements`' own order. Defaults
+   * to none: an EMPTY day renders no block at all (no heading, no
+   * empty-state line), which is the whole point of an award ceremony that
+   * only happens when something was awarded. */
+  unlocked?: UnlockedAchievement[];
 }
 
-export function Summary({ t, breakdown, score, streak, now, shareText, preregUnlocked }: SummaryProps) {
+/** One line of the ceremony: the award's name, then its citation.
+ *
+ * DESIGN.md R5.2 site 9's animation hook and nothing else — the same
+ * `useEnterOnce` idiom as the reveal's blocks (site 3) and Published's
+ * clippings (site 5), for the same reason those two stopped being
+ * mount-gated: on a phone this block sits below the invoice, the total, the
+ * streak and the countdown, so a mount-triggered entrance would run to
+ * completion off screen and the player would scroll down to an award that had
+ * always been there. `index` is its position in the one staggered group,
+ * capped by `staggerStyle` (R5.7's MAX_STAGGER_STEPS). */
+function UnlockLine({ award, index }: { award: UnlockedAchievement; index: number }) {
+  const { ref, entered } = useEnterOnce<HTMLLIElement>();
+  return (
+    <li
+      ref={ref}
+      className={entered ? 'ph-summary__unlock-item ph-summary__unlock-item--in' : 'ph-summary__unlock-item'}
+      style={staggerStyle(index)}
+      data-testid="unlock-item"
+    >
+      <p className="ph-summary__unlock-name">{award.name}</p>
+      <p className="ph-summary__unlock-citation">{award.citation}</p>
+    </li>
+  );
+}
+
+export function Summary({ t, breakdown, score, streak, now, shareText, preregUnlocked, unlocked = [] }: SummaryProps) {
   const [toastVisible, setToastVisible] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,6 +149,24 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
       <p className="ph-summary__streak">{t('summary.streak', { n: streak })}</p>
 
       <p className="ph-summary__countdown">{t('summary.nextIn', { hours, minutes })}</p>
+
+      {/* T38 — the day's best beat, and until now the one it swallowed:
+          persistAndComputeSummary computed `unlockedToday`, persisted it, and
+          threw it away, so a player who had just earned "The One-Tailed
+          Bandit" was told nothing. Rendered between the invoice and the share
+          button, so the ceremony happens before you are invited to brag about
+          it. Nothing at all on a day that unlocked nothing — an "achievements
+          unlocked: none" line would be the opposite of a ceremony. */}
+      {unlocked.length > 0 && (
+        <div className="ph-summary__unlock">
+          <h3 className="ph-summary__unlock-title">{t('summary.unlockedToday')}</h3>
+          <ul className="ph-summary__unlock-list">
+            {unlocked.map((award, i) => (
+              <UnlockLine key={award.id} award={award} index={i} />
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="ph-summary__share">
         {/* No aria-label here: the visible "Share" text (summary.share) is
@@ -206,6 +264,14 @@ export interface ComputedSummary {
   streak: number;
   shareText: string;
   preregUnlocked: boolean;
+  /** T38 — the achievements this call newly unlocked, straight out of the
+   * SAME `unlockedToday` the function already persisted (see below): the
+   * value is returned, not recomputed, so the screen can never disagree with
+   * storage about what happened today. Empty on a practice day, on a
+   * re-visit (`alreadySaved`), and on a day that simply earned nothing —
+   * all three are the same statement, "nothing was unlocked HERE, now", and
+   * all three correctly render no unlock block. */
+  unlockedToday: AchievementId[];
 }
 
 /**
@@ -362,6 +428,14 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     // "today" must be included here, not only what was already in storage
     // before this call started).
     preregUnlocked: state.achievements.first_retraction !== undefined || unlockedToday.includes('first_retraction'),
+    // T38: the same array, handed on rather than re-derived. Re-running
+    // unlockAchievements here (or, worse, diffing storage before/after) would
+    // be a SECOND evaluation of the day and a second thing to keep in step
+    // with the guard above; this way the unlock block shows exactly what
+    // saveAchievements just wrote, and on a re-visit — where the persistence
+    // block is skipped entirely — it stays empty, which is correct: the
+    // ceremony belongs to the day it happened, not to every later visit.
+    unlockedToday,
   };
 }
 
@@ -370,7 +444,7 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
  * store, persists + scores them exactly once per mount, and renders the
  * presentational `Summary` above. */
 export default function SummaryScreen() {
-  const { copy, t } = useLocale();
+  const { content, copy, t } = useLocale();
   const mode = useGameStore((s) => s.mode);
   const practice = useGameStore((s) => s.practice);
   const puzzleNumber = useGameStore((s) => s.puzzleNumber);
@@ -426,7 +500,11 @@ export default function SummaryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reveal, copy]);
 
-  if (!copy || !computed) {
+  // `content` rather than `copy` (they are the same object's presence —
+  // LocaleProvider derives `copy` as `content.copy`): T38 needs the
+  // achievements bank below, and narrowing on the bundle itself is what makes
+  // that read type-safe without a second guard.
+  if (!content || !computed) {
     return <div className="ph-summary" aria-busy="true" data-testid="summary-loading" />;
   }
 
@@ -439,6 +517,10 @@ export default function SummaryScreen() {
       now={now}
       shareText={computed.shareText}
       preregUnlocked={computed.preregUnlocked}
+      // T38: ids -> the locale's OWN name/citation, resolved here (§2.11's
+      // award ceremony is content, not chrome — see UnlockedAchievement).
+      // Order is unlockAchievements' order, preserved end to end.
+      unlocked={computed.unlockedToday.map((id) => ({ id, ...content.achievements[id] }))}
     />
   );
 }
