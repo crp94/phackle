@@ -1,3 +1,20 @@
+/* R1.1, found by measuring during T29's matrix pass: --paper is the only
+   surface in the product, and it was not reaching the viewport edge.
+   Nothing in this project loads a CSS reset — Tailwind is configured as a
+   Vite plugin but `@import "tailwindcss"` appears nowhere, so preflight
+   never runs — which left the user agent's own `body { margin: 8px }` in
+   force. Measured at 360x640: `.ph-app` at left 8, top 8, width 344, with
+   `body`/`html` background `rgba(0,0,0,0)`, i.e. an 8px frame of the UA's
+   CANVAS around every screen at every width. In dark theme that canvas is
+   the UA's near-black, not `--paper` (#141821), and reads as a pale border;
+   in light it is #FFF against #FBF8F1. It also forced a permanent scrollbar,
+   since `.ph-app`'s 100vh plus 16px of margin always exceeds the viewport.
+   `background` on `body` additionally keeps overscroll on paper. */
+body {
+  margin: 0;
+  background: var(--paper);
+}
+
 .ph-app {
   min-height: 100vh;
   background: var(--paper);
