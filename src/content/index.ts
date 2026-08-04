@@ -10,7 +10,7 @@ export async function getContent(locale: Locale): Promise<LocaleContent> {
     case 'en':
       return (await import('./en')).content;
     case 'it':
-      return (await import('./en')).content; // Replaced by T19
+      return (await import('./it')).content;
     case 'es':
       return (await import('./en')).content; // Replaced by T20
     default: {

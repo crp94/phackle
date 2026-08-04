@@ -9,6 +9,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
+import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
 import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
@@ -162,14 +163,25 @@ describe('theme toggle', () => {
 });
 
 describe('locale toggle', () => {
-  it('stays hidden while AVAILABLE_LOCALES has only one entry', async () => {
+  // T19 (Italian shipped, so AVAILABLE_LOCALES is no longer a single entry):
+  // this used to assert the toggle stays hidden, which was a statement about
+  // the locale list's CURRENT length rather than about the App's behaviour.
+  // Phrased against the list itself, it holds for ['en'], ['en','it'] and
+  // ['en','it','es'] alike, so neither transcreation landing can falsify it.
+  it('renders the toggle in the real App exactly when AVAILABLE_LOCALES has more than one entry', async () => {
     render(
       <LocaleProvider>
         <App puzzleNumber={1} />
       </LocaleProvider>
     );
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
-    expect(screen.queryByRole('group')).toBeNull();
+
+    if (AVAILABLE_LOCALES.length <= 1) {
+      expect(screen.queryByRole('group')).toBeNull();
+      return;
+    }
+    const group = screen.getByRole('group');
+    expect(within(group).getAllByRole('button')).toHaveLength(AVAILABLE_LOCALES.length);
   });
 
   it('renders one button per locale once more than one is available', () => {
