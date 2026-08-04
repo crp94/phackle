@@ -171,7 +171,18 @@ describe('generateDataset — determinism', () => {
   });
 });
 
-describe('generateDataset — structural ranges (200 seeds)', () => {
+// T24 CI finalize: each `it` below drives `generateDataset` (Cholesky
+// factorisation + 400-row draw) 200 times, once per seed — real work, not a
+// hang, and it is exactly this suite's own point (§3.1's structural
+// guarantees, swept over enough seeds to trust). Measured 1.7-2.0s per test
+// solo, but under a FULL parallel `vitest run` (52 files racing for CPU) it
+// was observed crossing vitest's 5000ms default `testTimeout` and failing as
+// a false-negative flake — never a real assertion failure. Every test in
+// this describe does the identical 200-seed sweep, so all four share the
+// same risk profile; a generous 20s ceiling (~4x the worst solo time, ~4x
+// the worst observed contended time) keeps this a real timeout guard rather
+// than a coin flip, without weakening or skipping any assertion.
+describe('generateDataset — structural ranges (200 seeds)', { timeout: 20_000 }, () => {
   it('age is always within [22, 70]', () => {
     for (const seed of SEEDS_200) {
       const d = generateDataset(seed, null);
