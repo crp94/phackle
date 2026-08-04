@@ -7,24 +7,72 @@
  * is measurable. The only thing here that asks to be looked at is the stamp.
  */
 
+/* FIX ROUND 1 (M8), and the root cause of the cropped slam. This screen was
+   the ONLY one with no inline gutter — `padding-block` only, while
+   .ph-briefing, .ph-summary and .ph-published__cover all carry
+   var(--space-24) on both axes. Measured at 1088 (where --page-max makes the
+   column exactly flush with the viewport) the truth line began at x=0 and
+   fig. 1's "1.00" axis label was clipped by the window edge; at 360 the same.
+   That is a layout defect in its own right, and it is also why R8.2's stamp —
+   pinned var(--space-24) inside a flush column — had only ~12px of room to
+   its left and threw its oversized first frames off-screen the moment T35
+   made them visible (Stamp.css carries the measurements). One registered
+   token, matching the sibling screens exactly; it cannot introduce overflow,
+   only remove it. */
 .ph-reveal {
   max-width: var(--page-max);
   margin-inline: auto;
   padding-block: var(--space-40);
+  padding-inline: var(--space-24);
 }
 
-/* R5.3: opacity only, 300ms, one block per intersection. No slide, no scale.
-   tokens.css collapses --dur-fade to 1ms under prefers-reduced-motion, and
-   Block() additionally starts visible there, so nothing is ever waiting on a
-   scroll that a reduced-motion reader did not ask for. */
+/* DESIGN.md R5.2 site 3: ACT II ARRIVES AS PAGES OF A REPORT.
+   Each block rises the 6px R5.3 pins as it enters, instead of the flat
+   opacity wash T35 replaced — a page being set down, not a light coming up.
+
+   THE STAGGER, and why it is capped. Measured on the real built app at
+   1088x900: three of the six blocks (truth, fig. 1, the accounting) are
+   already inside the viewport when the reveal mounts, so IntersectionObserver
+   flips all three in its first callback and they used to arrive as one
+   simultaneous wash — the exact opposite of a sequence. --ph-stagger-index
+   (set by Reveal.tsx from DOM order) spaces them one --dur-stagger apart.
+   Reveal.tsx caps that index at 2 deliberately: a block the player scrolls
+   to LATER arrives alone and must never be left waiting on a delay computed
+   from where it happens to sit in the document, so no block ever waits more
+   than two steps (120ms) before its own 260ms.
+
+   `backwards` fill, not `both`: the from-state must apply during the delay
+   (or a staggered block would flash in at full opacity and then jump), but
+   the end state must NOT persist — a lingering transform would make every
+   block a containing block for anything fixed inside it, and R5.3's
+   compositor-only discipline is cheapest when the transform simply goes
+   away. .ph-fade--in's own `opacity: 1` is what actually holds the block
+   visible afterwards, so the content is never present ONLY as the result of
+   an animation (R5.6). tokens.css collapses --dur-scene to 1ms and
+   --dur-stagger to 0ms under prefers-reduced-motion, and Block() additionally
+   starts visible there, so nothing is ever waiting on a scroll — or on a
+   delay — that a reduced-motion reader did not ask for. */
+@keyframes ph-block-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ph-fade {
   display: block;
   opacity: 0;
-  transition: opacity var(--dur-fade) var(--ease-out);
 }
 
 .ph-fade--in {
   opacity: 1;
+  animation: ph-block-enter var(--dur-scene) var(--ease-out) backwards;
+  animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 
 /* R3.2: the page rhythm, and it should be measurable with a ruler. */
@@ -140,6 +188,38 @@
   line-height: var(--leading-display);
   font-weight: var(--weight-regular);
   color: var(--ink);
+}
+
+/* DESIGN.md R5.2 site 4: THE SLAM'S TRIGGER (R8.2's signature moment).
+   Stamp.css owns WHAT the slam is — the two keyframes, unchanged by T35.
+   This screen owns WHEN it fires, and that is the whole fix here.
+
+   THE DEFECT, found by playing the built app. Stamp.css used to fire the
+   animation from `.ph-stamp--animate` alone, which the component sets at
+   MOUNT. But the stamp lives inside the fourth of six scroll-gated Blocks:
+   measured over CDP on the real build at 1088x900, that block mounts with
+   className "ph-fade" (opacity 0) while only truth/fig1/accounting carry
+   "ph-fade--in". So the 450ms slam ran to completion inside a fully
+   transparent parent, seconds before the player scrolled far enough to see
+   anything, and what they eventually reached was a stamp that had always
+   been sitting there. Act II's one signature moment was being spent on an
+   empty room.
+
+   Requiring the visible ancestor moves the start to the intersection that
+   reveals it: a CSS animation begins when its rule first matches, and
+   `.ph-fade--in` is added exactly then. `both` keeps the mark at its
+   resting rotate(-12deg) afterwards (identical to .ph-stamp__mark's own base
+   transform, so nothing shifts); before the block is visible the rule does
+   not match at all, so no fill applies and the stamp has simply not started.
+   Reduced motion is handled twice over: Stamp.tsx withholds
+   .ph-stamp--animate entirely (R5.6's JS half), and --dur-stamp collapses
+   to 1ms besides. */
+.ph-fade--in .ph-stamp--animate {
+  animation: ph-stamp-shake var(--dur-stamp) var(--ease-stamp) both;
+}
+
+.ph-fade--in .ph-stamp--animate .ph-stamp__mark {
+  animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
 }
 
 /* The stamp lands ON the cover — R4.7's ladder, never a raw z-index. */

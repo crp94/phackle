@@ -13,8 +13,9 @@
 // DESIGN.md: this is a data region, governed by the SpecCurve precedent
 // (R1.2/R1.4/R4.3/R6.3/R8.3 — tokens only, no fills, hairline strokes, shape
 // as well as hue, and a quiet figure that never competes with the dial). It
-// animates nothing: §5's motion budget is exhaustive and has no room for a
-// fifth animation, so marks appear and disappear instantly.
+// animates nothing, and R5.2's register deliberately does not list it: a
+// figure redrawing itself is a state change, not a beat that tells the player
+// something happened, so its marks appear and disappear instantly (R5.5).
 //
 // Pure geometry is exported alongside the component, the same trade (and the
 // same waiver) as SpecCurve.tsx: these are exactly the things the tests pin.

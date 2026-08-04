@@ -282,22 +282,33 @@ describe('R2 type scale is closed', () => {
 
 /* ============================================================ R5 motion */
 
-describe('R5 motion budget is exhaustive', () => {
-  const durations = Object.fromEntries(
-    [...rootBlock.matchAll(/--dur-([a-z]+)\s*:\s*(\d+m?s);/g)].map(([, name, value]) => [name, value]),
-  );
+/**
+ * T35 turned §5 from a four-item budget into a motion SYSTEM, and moved its
+ * enforcement into `tests/ui/motion.test.ts` — which owns the scale's exact
+ * values, the site register's agreement with DESIGN.md R5.2's table, the
+ * compositor-property rule and reduced-motion parity. What stays here is only
+ * what this file is FOR: that the tokens the rest of the design system leans
+ * on exist in `tokens.css` at all, and that the reduced-motion override
+ * exists. Duplicating the value assertions would give two files a claim on
+ * the same fact and let them disagree.
+ */
+describe('R5 motion — the scale exists here, and motion.test.ts owns its values', () => {
+  const durations = [...rootBlock.matchAll(/--dur-([a-z]+)\s*:\s*(\d+m?s);/g)].map(([, name]) => name);
 
-  it('declares exactly four durations — the four animations the spec allows', () => {
-    expect(durations).toEqual({ tick: '120ms', stamp: '450ms', fade: '300ms', confetti: '3000ms' });
+  it('declares the three scale durations plus the two pinned signature ones', () => {
+    expect(durations.sort()).toEqual(['confetti', 'quick', 'scene', 'stagger', 'stamp']);
   });
 
-  it('collapses the CSS durations under prefers-reduced-motion', () => {
-    const reduced = /@media\s*\(prefers-reduced-motion:\s*reduce\)/.exec(css);
-    expect(reduced, 'tokens.css must ship a prefers-reduced-motion override').not.toBeNull();
-    const tail = css.slice(reduced?.index ?? 0);
-    for (const name of ['tick', 'stamp', 'fade']) {
-      expect(new RegExp(`--dur-${name}\\s*:\\s*1ms;`).test(tail), `--dur-${name} must collapse to 1ms`).toBe(true);
-    }
+  it('retires the old per-animation duration tokens', () => {
+    // --dur-tick/--dur-fade were one token per effect, which is exactly what
+    // a shared scale replaces; leaving them declared would let a component
+    // keep reaching for a timing nothing documents any more.
+    expect(prop(rootBlock, 'dur-tick')).toBeUndefined();
+    expect(prop(rootBlock, 'dur-fade')).toBeUndefined();
+  });
+
+  it('ships a prefers-reduced-motion override at all', () => {
+    expect(/@media\s*\(prefers-reduced-motion:\s*reduce\)/.exec(css)).not.toBeNull();
   });
 });
 

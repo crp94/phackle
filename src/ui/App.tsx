@@ -58,6 +58,10 @@ export default function App({ puzzleNumber, children }: AppProps) {
   const { content, copy, t, theme, setTheme, locale, setLocale } = useLocale();
   const boot = useGameStore((s) => s.boot);
   const storePuzzleNumber = useGameStore((s) => s.puzzleNumber);
+  // T35: read ONLY to key the <main> transition below (DESIGN.md R5.2 site
+  // 1). App does not route on this and never has — ScreenRouter still owns
+  // which screen renders; this is the animation hook, nothing more.
+  const gameScreen = useGameStore((s) => s.screen);
   const didBootRef = useRef(false);
   const [page, setPage] = useState<NavPage>('game');
 
@@ -141,7 +145,18 @@ export default function App({ puzzleNumber, children }: AppProps) {
           <LocaleToggle locales={AVAILABLE_LOCALES} locale={locale} setLocale={setLocale} t={t} />
         </div>
       </header>
-      <main>
+      {/* T35 — DESIGN.md R5.2 site 1, the product's ONE screen-transition
+          site. `key` is the whole reason this exists: React tears the <main>
+          element down and builds a new one whenever the key changes, which
+          restarts .ph-screen's entrance animation. One wrapper covers BOTH
+          state machines that can change what fills the page — the game's own
+          `screen` (briefing -> lab -> published -> call -> reveal -> summary)
+          and this component's nav `page` (game/stats/legend/about) — so the
+          two never animate on top of each other, and no extra DOM node is
+          introduced for it: the landmark <main> already had to be here.
+          Nothing else about the element changes; a screen swap that used to
+          teleport now lands. */}
+      <main className="ph-screen" key={page === 'game' ? `game:${gameScreen}` : page}>
         {page === 'game' && children}
         {page === 'stats' && <StatsScreen onClose={backToGame} />}
         {page === 'legend' && <LegendScreen onClose={backToGame} />}

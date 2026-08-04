@@ -21,6 +21,40 @@ body {
   color: var(--ink);
 }
 
+/* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
+   The screen change is the biggest state change in the product and, until
+   this task, the only one with no beat at all: briefing -> lab -> published
+   -> call -> reveal -> summary teleported, and so did the stats/legend/about
+   nav. One rise-and-settle says "that was a move, and it has landed" —
+   6px, the scene distance R5.3 pins, on the compositor only.
+
+   NO `animation-fill-mode`, and that is load-bearing rather than an
+   oversight. An element with ANY non-`none` transform — including the
+   `translateY(0)` this keyframe ends on — becomes the containing block for
+   its `position: fixed` descendants. Published's "Face the truth" overlay
+   (.ph-call-overlay, `position: fixed; inset: 0`) is exactly such a
+   descendant, so a `forwards`/`both` fill would silently re-anchor the
+   modal to <main> instead of the viewport for the rest of the screen's
+   life. Without a fill the transform exists only for the 260ms the beat
+   lasts — long before the player can open the overlay — and .ph-lab's
+   sticky dial (R8.1) is likewise only affected during that same window,
+   which is before anything has been scrolled. */
+@keyframes ph-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ph-screen {
+  animation: ph-screen-enter var(--dur-scene) var(--ease-out);
+}
+
 /* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */
 .ph-header {
   display: flex;

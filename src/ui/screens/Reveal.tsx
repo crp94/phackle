@@ -1,5 +1,6 @@
 // THE REVEAL — Act II (master spec §2.7, §7.3 "Reveal"; DESIGN.md R1.3, R2.4,
-// R3.2, R5.3, R5.6, R8.2, R8.3).
+// R3.2, R5.2 (sites 3 and 4 — the block sequence and the stamp's trigger),
+// R5.6, R5.7, R8.2, R8.3).
 //
 // Six blocks, in §2.7's order, and not one number that isn't read off the
 // RevealPayload:
@@ -16,11 +17,12 @@
 // raw-units formatting can be pinned by a unit test at every magnitude; same
 // inline waiver as src/i18n/LocaleProvider.tsx's hook export.
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import { JOURNAL_VOLUME } from '../masthead';
 import { Stamp } from '../components/Stamp';
 import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve';
@@ -108,37 +110,31 @@ function interpolate(template: string, parts: Record<string, Part>): ReactNode[]
 }
 
 /**
- * One scroll-fade block (R5.3: opacity only, 300ms, one block per
- * intersection). Fails OPEN in every direction that could hide content: no
- * IntersectionObserver, reduced motion, or a node that never mounts all mean
- * "visible now" rather than "visible never".
+ * One scroll-gated block (R5.2 site 3: opacity + a 6px rise, --dur-scene,
+ * staggered by `index` within a batch).
+ *
+ * T35 fix round 1 moved the observer and the stagger cap into
+ * `useEnterOnce`, which Published's clippings (site 5) now share — see that
+ * module for why a mount-triggered entrance was the wrong trigger in the
+ * first place. The behaviour here is unchanged: `entered` fails OPEN in
+ * every direction that could hide content, and `.ph-fade--in`'s own
+ * `opacity: 1` (not the animation) is what holds the block visible.
  */
-function Block({ name, children }: { name: string; children: ReactNode }) {
-  const reducedMotion = useReducedMotion();
-  const ref = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(
-    () => reducedMotion || typeof IntersectionObserver === 'undefined'
-  );
-
-  useEffect(() => {
-    if (visible || typeof IntersectionObserver === 'undefined') return;
-    const node = ref.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '0px 0px -8% 0px' }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [visible]);
+function Block({ name, index, children }: { name: string; index: number; children: ReactNode }) {
+  const { ref, entered } = useEnterOnce<HTMLElement>();
 
   return (
-    <section ref={ref} data-block={name} className={visible ? 'ph-fade ph-fade--in' : 'ph-fade'}>
+    <section
+      ref={ref}
+      data-block={name}
+      className={entered ? 'ph-fade ph-fade--in' : 'ph-fade'}
+      // The animation hook, and the only reason this component takes an
+      // index at all: Reveal.css multiplies it by --dur-stagger to get this
+      // block's animation-delay. A custom property, not an inline duration —
+      // R5.1 keeps every actual timing value inside tokens.css so the
+      // reduced-motion block can collapse it (here, to 0ms).
+      style={staggerStyle(index)}
+    >
       {children}
     </section>
   );
@@ -243,11 +239,11 @@ export function Reveal() {
 
   return (
     <div className="ph-reveal">
-      <Block name="truth">
+      <Block name="truth" index={0}>
         <p className="ph-reveal__truth">{truth}</p>
       </Block>
 
-      <Block name="fig1">
+      <Block name="fig1" index={1}>
         <Figure
           number={t('reveal.fig1')}
           caption={t(published === null ? 'reveal.curveCaptionAbandoned' : 'reveal.curveCaption')}
@@ -257,7 +253,7 @@ export function Reveal() {
         </Figure>
       </Block>
 
-      <Block name="accounting">
+      <Block name="accounting" index={2}>
         <div className="ph-reveal__accounting">
           <p className="ph-reveal__statement">{accounting1}</p>
           <p className="ph-reveal__statement">{accounting2}</p>
@@ -275,7 +271,7 @@ export function Reveal() {
         </div>
       </Block>
 
-      <Block name="stamp">
+      <Block name="stamp" index={3}>
         {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
             a plain echo of the day's manuscript, built from store state --
             the Published screen owns the real JournalCover. */}
@@ -311,7 +307,7 @@ export function Reveal() {
         ) : null}
       </Block>
 
-      <Block name="call">
+      <Block name="call" index={4}>
         {/* Prereg Mode never visits the CALL screen (§2.8: the prereg score
             rows replace it entirely) — `call` stays null for the whole day,
             so this block already renders nothing on a prereg reveal, with no
@@ -328,7 +324,7 @@ export function Reveal() {
           same thinly-scattered hits everywhere. "The single most important
           educational graphic in the game" teaches by the contrast, which
           means it has to be there on the days with nothing to cluster. */}
-      <Block name="fig2">
+      <Block name="fig2" index={5}>
         <Figure number={t('reveal.fig2')} caption={t('reveal.groupedCaption')} footnote={null}>
           <SpecCurve points={points} grouped outcomeLabels={scenario.outcomeLabels} copy={copy} />
         </Figure>
@@ -339,7 +335,7 @@ export function Reveal() {
           so the Summary screen — the invoice, the share string and the app's
           one persistence moment — was simply unreachable in the real app and
           the reveal ended at Fig. 2. Deliberately OUTSIDE the last Block: a
-          Block is a scroll-fade section of the argument (R5.3), and an action
+          Block is a scroll-gated section of the argument (R5.2 site 3), and an action
           that can be hidden by an IntersectionObserver that never fires is an
           action that can strand the player. Full width, after everything, so
           it cannot be mistaken for one more caption. */}

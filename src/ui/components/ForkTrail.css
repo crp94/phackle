@@ -74,17 +74,40 @@
   outline-offset: var(--focus-offset);
 }
 
-/* Exactly the SpecCurve tooltip's surface (SpecCurve.css): --paper, a
+/* DESIGN.md R5.2 site 6: the key opening is the ONLY feedback the player
+   gets that their hover/tap did anything, and it used to be a hard cut. One
+   --dur-quick rise of the 2px R5.3 pins for a quick beat — enough to read as
+   "this came from the button below it" and short enough that a mouse
+   sweeping across the row never notices. Closing stays instant: the popover
+   unmounts, and an exit animation on a tooltip is furniture, not meaning
+   (which is also why the system has no exit easing at all — see R5.1).
+
+   No base `opacity: 0`: the rows are real content and are present whether or
+   not this animation ever runs (R5.6).
+
+   Exactly the SpecCurve tooltip's surface (SpecCurve.css): --paper, a
    hairline above and below, no fill of its own, no shadow, no radius. R4.7's
-   ladder rather than a raw z-index. It appears and disappears instantly —
-   §5's four animations are exhaustive and a popover fade is not one.
+   ladder rather than a raw z-index.
 
    T29 FIX ROUND: the containing block is .ph-fork-trail (see above), so
    `inset-inline-start: 0` starts the popover at the COLUMN's inline edge and
    `min(var(--measure), 100%)` caps it at the column's own width. Both bounds
    are needed: --measure alone overflowed the viewport, and 100% alone would
    let a wide desktop column stretch the rows past R2.6's measure. */
+@keyframes ph-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ph-fork-trail__popover {
+  animation: ph-popover-enter var(--dur-quick) var(--ease-out);
   position: absolute;
   inset-block-end: 100%;
   inset-inline-start: 0;

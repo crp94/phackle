@@ -31,9 +31,12 @@
 
 /* Review fix: master spec §2.5's altmetric counter. Static (no
    transition/animation property anywhere here -- the spec's "spinning up"
-   would be a 5th, un-budgeted motion; DESIGN.md's four-item list is
-   exhaustive, resolved the same way the press-card "sliding in" language
-   was: a documented precedence note, no motion added). R1.6's gold list
+   would be an UNREGISTERED motion site; DESIGN.md R5.2's list is
+   exhaustive and T35 did not add this one to it — a counter ticking up is
+   decoration, not a beat that tells the player something happened, and the
+   number is deterministic anyway. Resolved as a documented precedence note,
+   no motion added; the press clippings beside it are the entry T35 DID
+   sanction, and one payoff cascade per screen is the budget). R1.6's gold list
    does not include this figure, so it stays on R1.2's default tokens
    (--muted), never --hack-gold/-ink. */
 .ph-altmetric {
@@ -63,6 +66,58 @@
   margin: var(--space-40) 0 0;
   padding: 0;
   max-width: var(--measure);
+}
+
+/* DESIGN.md R5.2 site 5: THE COVERAGE ROLLS IN.
+   The clippings are the day's payoff — the moment Act I's sincerity pays out
+   — and every one of them used to be simply present the instant the screen
+   was. One --dur-scene rise each, one --dur-stagger apart (Published.tsx
+   sets --ph-stagger-index: 0, 1 on the two press cards and 2 on the tier-3
+   chyron), so the press arrives in the order it would arrive in: one outlet,
+   then the next, then the broadcast pickup. Three items and 6px of travel is
+   the whole effect — R8.3 still says the only things on this screen allowed
+   to ask to be looked at are the dial and the stamp, and neither is here.
+
+   FIX ROUND 1 — THE TRIGGER IS THE VIEWPORT, NOT THE MOUNT. The first cut
+   fired this on mount, which is only ever correct for something guaranteed
+   on screen at mount. Measured on the real build at 360x780: the three
+   clippings sit at document tops 952 / 1143 / 1373 against a 780px
+   viewport, so all three ran and finished (~450ms) while below the fold and
+   the player scrolled down to press that had always been there. That is
+   precisely the defect T35 had just diagnosed for the stamp, reproduced one
+   screen over. `.ph-clipping--in` is now added by useEnterOnce's one-way
+   observer at the moment each clipping actually arrives on screen — the
+   same idiom, the same hook, as the reveal's blocks (site 3). At >=768,
+   where the cards are usually in view at mount already, the observer's very
+   first callback flips them together and the cascade is unchanged.
+
+   The base rule holds `opacity: 0` and `.ph-clipping--in` restores it — so
+   what makes the content visible is the CLASS, never the animation, and
+   `useEnterOnce` resolves to entered-now under reduced motion, without an
+   IntersectionObserver, or if the node never mounts (R5.6's
+   no-content-behind-motion clause). `backwards` supplies the from-state
+   during the stagger delay and does not persist afterwards. */
+@keyframes ph-clipping-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ph-press-card,
+.ph-chyron {
+  opacity: 0;
+}
+
+.ph-clipping--in {
+  opacity: 1;
+  animation: ph-clipping-enter var(--dur-scene) var(--ease-out) backwards;
+  animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 
 /* A PRESS CLIPPING (T29 pin 8), built entirely out of type and hairlines:
