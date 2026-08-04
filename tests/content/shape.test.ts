@@ -50,6 +50,98 @@ export const NEGATIVE_DIRECTION_LEXICON = [
  */
 export const HARM_LEXICON = ['vaccine', 'drug', 'cancer', 'diet', 'cure', 'therapy', 'supplement'];
 
+/**
+ * The em-dash budget (owner directive, T32: "The text has too many em dashes,
+ * reads too AI"). An em dash is the house style of machine-written prose: it
+ * lets a sentence hedge, qualify and append without ever committing to a full
+ * stop. Two caps, both mechanical:
+ *
+ *   1. PER STRING: at most one. A sentence with a pair of them is a parenthesis
+ *      wearing a costume; write the parenthesis, or write two sentences.
+ *   2. CORPUS-WIDE: at least MIN_CHARS_PER_EM_DASH characters per em dash,
+ *      across every user-facing value in the locale (scenarios, banks,
+ *      achievements, glossary AND the copy catalog). The per-string cap alone
+ *      would happily pass a corpus that dashes once in every line.
+ *
+ * WHY 2500, AND NOT THE 400 THIS TEST WAS FIRST WRITTEN WITH. Measured against
+ * the corpus the owner was complaining about, the density was already 1 per
+ * 635.6 characters (48 dashes in 30,508) — so a 400-character floor would have
+ * passed, unchanged, the exact prose that prompted "reads too AI". A budget
+ * that green-lights the thing it was written to catch is decoration. The floor
+ * is therefore set at the state the scrub actually achieved rather than at a
+ * number the problem could clear: the corpus now runs 3 dashes in 30,929
+ * characters (1 per 10,310), of which one is the Stats no-data glyph and two
+ * are deliberate TV-chyron punctuation. 2500 locks that in with roughly 4x
+ * headroom, which is the room IT/ES need for a language whose typography leans
+ * on the dash harder than English does — and it still fails instantly on a
+ * corpus that reaches for the dash as a habit.
+ *
+ * Both caps live in validateLocaleContent so the IT/ES transcreations
+ * (T19/T20) inherit the budget without opting in. The counted character is
+ * U+2014 only: the en dash in "1–10 scale" is a range, not a rhetorical move.
+ */
+const EM_DASH = '—';
+const MAX_EM_DASHES_PER_STRING = 1;
+const MIN_CHARS_PER_EM_DASH = 2500;
+
+/** Every user-facing value in a locale, flattened. Keys are never included. */
+function localeProse(content: LocaleContent): { where: string; text: string }[] {
+  const rows: { where: string; text: string }[] = [...scenarioProse(content)];
+
+  content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
+  content.press.forEach((blurb, i) => {
+    rows.push({ where: `press[${i}].text`, text: blurb.text });
+    rows.push({ where: `press[${i}].outlet`, text: blurb.outlet });
+  });
+  content.retractionSublines.forEach((text, i) => rows.push({ where: `retractionSublines[${i}]`, text }));
+  for (const [id, achievement] of Object.entries(content.achievements)) {
+    rows.push({ where: `achievements.${id}.name`, text: achievement.name });
+    rows.push({ where: `achievements.${id}.citation`, text: achievement.citation });
+  }
+  content.glossary.forEach((entry, i) => {
+    rows.push({ where: `glossary[${i}].term`, text: entry.term });
+    rows.push({ where: `glossary[${i}].def`, text: entry.def });
+  });
+  for (const [key, text] of Object.entries(content.copy)) {
+    rows.push({ where: `copy["${key}"]`, text });
+  }
+
+  return rows;
+}
+
+/** Measured, so a report can quote the number rather than the verdict. */
+export function emDashDensity(content: LocaleContent): {
+  dashes: number;
+  chars: number;
+  charsPerDash: number;
+} {
+  const rows = localeProse(content);
+  const dashes = rows.reduce((n, r) => n + (r.text.match(new RegExp(EM_DASH, 'g')) ?? []).length, 0);
+  const chars = rows.reduce((n, r) => n + r.text.length, 0);
+  return { dashes, chars, charsPerDash: dashes === 0 ? Infinity : chars / dashes };
+}
+
+export function findEmDashProblems(content: LocaleContent): string[] {
+  const problems: string[] = [];
+
+  for (const { where, text } of localeProse(content)) {
+    const n = (text.match(new RegExp(EM_DASH, 'g')) ?? []).length;
+    if (n > MAX_EM_DASHES_PER_STRING) {
+      problems.push(`${where} uses ${n} em dashes (max ${MAX_EM_DASHES_PER_STRING}): "${text}"`);
+    }
+  }
+
+  const { dashes, chars, charsPerDash } = emDashDensity(content);
+  if (charsPerDash < MIN_CHARS_PER_EM_DASH) {
+    problems.push(
+      `em-dash density is 1 per ${charsPerDash.toFixed(1)} characters (${dashes} dashes in ${chars} characters); ` +
+        `budget is 1 per ${MIN_CHARS_PER_EM_DASH}`
+    );
+  }
+
+  return problems;
+}
+
 function scenarioProse(content: LocaleContent): { where: string; text: string }[] {
   return content.scenarios.flatMap((s) => [
     { where: `${s.id}.question`, text: s.question },
@@ -209,6 +301,10 @@ export function validateLocaleContent(
   problems.push(...findHarmTerms(content, lexicons.harmTerms));
   problems.push(...findNegativeDirectionTerms(content, lexicons.directionTerms));
 
+  // The em-dash budget is language-independent (it counts one character), so
+  // unlike the two lexicons it needs no per-locale argument.
+  problems.push(...findEmDashProblems(content));
+
   return problems;
 }
 
@@ -355,6 +451,74 @@ describe('validateLocaleContent', () => {
       ],
     };
     expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('reads as a decrease'))).toBe(true);
+  });
+});
+
+describe('em-dash budget (owner directive: "too many em dashes, reads too AI")', () => {
+  it('keeps every English value at one em dash or fewer', () => {
+    expect(findEmDashProblems(enContent).filter((p) => p.includes('em dashes'))).toEqual([]);
+  });
+
+  it('keeps the whole English corpus above the corpus-wide characters-per-dash floor', () => {
+    const { charsPerDash } = emDashDensity(enContent);
+    expect(charsPerDash).toBeGreaterThanOrEqual(MIN_CHARS_PER_EM_DASH);
+  });
+
+  // The floor's own regression guard: the pre-T32 corpus (the one the owner
+  // called "too AI") measured 1 per 635.6 characters, so any floor at or below
+  // that would have passed it. See MIN_CHARS_PER_EM_DASH's comment.
+  it('sets the floor high enough to have failed the corpus that prompted the directive', () => {
+    expect(MIN_CHARS_PER_EM_DASH).toBeGreaterThan(636);
+  });
+
+  it('catches a string that pairs em dashes around an aside', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...first, coverStory: 'We ran the study — carefully, and at length — and then wrote it up.' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(findEmDashProblems(broken).some((p) => p.includes('uses 2 em dashes'))).toBe(true);
+  });
+
+  it('catches a corpus that respects the per-string cap but dashes once on every line', () => {
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) => ({ ...s, coverStory: `${s.coverStory} And so on.` })),
+      grantwell: enContent.grantwell.map((g) => `${g.replace('.', ' —')} as discussed.`),
+      retractionSublines: enContent.retractionSublines.map((r) => `${r.replace('.', ' —')} as expected.`),
+      press: enContent.press.map((p) => ({ ...p, text: `${p.text.replace('.', ' —')} reportedly.` })),
+      copy: Object.fromEntries(
+        Object.entries(enContent.copy).map(([k, v]) => [k, `${v.replace('.', ' —')} noted.`])
+      ) as typeof enContent.copy,
+    };
+    const perString = findEmDashProblems(broken).filter((p) => p.includes('em dashes'));
+    expect(perString).toEqual([]);
+    expect(findEmDashProblems(broken).some((p) => p.includes('density'))).toBe(true);
+  });
+
+  it('counts the em dash only, never the en dash in "1–10 scale" nor a hyphen', () => {
+    expect(enContent.scenarios.flatMap((s) => s.outcomeUnits).filter((u) => u.includes('–')).length).toBeGreaterThan(0);
+    const before = emDashDensity(enContent).dashes;
+    const salted: LocaleContent = {
+      ...enContent,
+      grantwell: enContent.grantwell.map((g) => `${g} On a 1–10 scale, over 2013–2026, non-trivially.`),
+    };
+    expect(emDashDensity(salted).dashes).toBe(before);
+  });
+
+  it('surfaces the budget through the validator, so IT/ES inherit it', () => {
+    const [first] = enContent.scenarios;
+    const broken: LocaleContent = {
+      ...enContent,
+      scenarios: [
+        { ...first, coverStory: 'One aside — and then — another aside.' },
+        ...enContent.scenarios.slice(1),
+      ],
+    };
+    expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('em dashes'))).toBe(true);
   });
 });
 
