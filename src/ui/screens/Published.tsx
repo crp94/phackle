@@ -12,7 +12,7 @@
 // src/game/store.ts's useGameStore) purely so tests can seed an isolated
 // fake store instead of touching that real singleton -- see
 // tests/ui/published.test.tsx's makeFakeStoreHook.
-import { useEffect, useRef, useState, type ComponentType, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore, type GameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
@@ -31,6 +31,7 @@ import type { PressBlurb } from '../../content/types';
 import type { CopyKey } from '../../content/en/copy';
 import { JournalCover } from '../components/JournalCover';
 import { ConfettiLayer } from '../components/ConfettiLayer';
+import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import './Published.css';
 
 export type UseGameStore = <T>(selector: (state: GameStore) => T) => T;
@@ -107,7 +108,7 @@ interface BlurbCardProps {
    * position in the staggered entrance. Published.css multiplies it by
    * --dur-stagger to get this clipping's animation-delay (a custom property,
    * never an inline duration — R5.1 keeps every timing value in tokens.css
-   * so reduced motion can collapse it). */
+   * so reduced motion can collapse it), capped by R5.7. */
   index: number;
 }
 
@@ -129,8 +130,18 @@ interface BlurbCardProps {
  *      every fake-press asset; it should look like the legal line it is,
  *      not like the item's title, which is where it used to sit). */
 function PressCard({ blurb, t, index }: BlurbCardProps) {
+  // FIX ROUND 1 — the trigger is the VIEWPORT, not the mount. See
+  // src/ui/hooks/useEnterOnce.ts for the measurement that forced this: at
+  // 360 every clipping sits below the fold, so a mount-gated entrance ran
+  // and finished before the player could possibly see it — the same defect
+  // class T35 fixed for the stamp, in the same task.
+  const { ref, entered } = useEnterOnce<HTMLLIElement>();
   return (
-    <li className="ph-press-card" style={{ '--ph-stagger-index': index } as CSSProperties}>
+    <li
+      ref={ref}
+      className={entered ? 'ph-press-card ph-clipping--in' : 'ph-press-card'}
+      style={staggerStyle(index)}
+    >
       <p className="ph-press-card__outlet">{blurb.outlet}</p>
       <p className="ph-press-card__text">{blurb.text}</p>
       <p className="ph-press-card__watermark">{t('published.simulatedPress')}</p>
@@ -152,8 +163,11 @@ function PressCard({ blurb, t, index }: BlurbCardProps) {
  * `border` shorthand). No §0 registration is required because nothing new is
  * derived: no colour, no fill, no token. */
 function ChyronBar({ blurb, t, index }: BlurbCardProps) {
+  // Same viewport gate as the press clippings above; the chyron is the last
+  // item of the same group, so it keeps the group's next stagger index.
+  const { ref, entered } = useEnterOnce<HTMLDivElement>();
   return (
-    <div className="ph-chyron" style={{ '--ph-stagger-index': index } as CSSProperties}>
+    <div ref={ref} className={entered ? 'ph-chyron ph-clipping--in' : 'ph-chyron'} style={staggerStyle(index)}>
       <p className="ph-chyron__badge">{t('published.editorsPick')}</p>
       <p className="ph-chyron__text">{blurb.text}</p>
       <p className="ph-chyron__strap">

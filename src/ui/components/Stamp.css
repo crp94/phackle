@@ -79,9 +79,35 @@
    rule for the measurement and the reasoning. The modifier class itself is
    unchanged and still set by Stamp.tsx (and still withheld under reduced
    motion), so nothing about this component's contract moved. */
+/* FIX ROUND 1 (M8) — THE OVERSHOOT IS 1.20, NOT 1.6.
+   1.6 was never actually looked at by anyone: until T35 fixed the trigger,
+   this animation ran inside a transparent block and nobody ever saw a frame
+   of it, so its widest frame had never been checked against the layout it
+   lands in. The moment it became visible it was cropped by the window.
+
+   Measured on the real build, mark bounding rects at +30ms into the slam,
+   against a flush column: at 1088 `left: -76` (viewport 0), at 360
+   `left: -49`. The stamp is pinned var(--space-24) from the start of a
+   column that --page-max makes exactly viewport-wide, so a centre-origin
+   scale of S spills (S-1)x0.91xW/2 past that edge — 88px at 1088 with
+   W = 322. The two halves of the fix: .ph-reveal gained the inline gutter
+   every other screen already had (see Reveal.css — a defect of its own,
+   found here), which buys 24px, and the overshoot came down until the widest
+   frame clears the window at BOTH widths with room to spare. Re-measured
+   after: at +30ms the mark sits at `left: 24` (360, was -49) and `left: 10`
+   (1088, was -76), and document scrollWidth equals the viewport at every
+   sample of both runs — the first frames are on-screen, and nothing
+   overflows the other way either. 1.24 also cleared, at `left: 4` on 1088;
+   1.20 was taken for the headroom, since the difference in punch between
+   the two is not perceptible and the difference in margin is.
+
+   Nothing else about the timeline moved: the 0.94 undershoot, the 20 degrees
+   of rotation swing (+6 -> -14 -> -12), the opacity ramp, the <=2px page
+   shake, --dur-stamp and --ease-stamp are all untouched, and those — not the
+   raw size of an invisible first frame — are what the slam is made of. */
 @keyframes ph-stamp-slam {
   0% {
-    transform: scale(1.6) rotate(6deg);
+    transform: scale(1.20) rotate(6deg);
     opacity: 0;
   }
   60% {

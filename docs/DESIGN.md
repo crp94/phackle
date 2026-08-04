@@ -327,22 +327,30 @@ keyword (`ease`, `linear`, `steps()`) may appear in a `transition` or
 - Don't: invent `--dur-toast`. A duration names a *class of moment*; two sites
   that mean the same thing are timed by the same token or they will drift.
 
-**R5.2 — These are the motion sites, and this list is exhaustive.** `Decls` is
-the number of `transition:`/`animation:` shorthand declarations the file
-carries; `tests/ui/motion.test.ts` recomputes the per-file totals from the
-stylesheets and fails the build on any drift, in either direction. Adding a
-site means adding its row here first.
+**R5.2 — These are the motion sites, and this list is exhaustive.** `Motion`
+names each site by its own identity — a `@keyframes` name, or `transition:`
+plus the exact property list — and `tests/ui/motion.test.ts` reconciles
+`(file, identity)` pairs against the stylesheets, failing the build on any
+drift in either direction. Adding a site means adding its row here first.
 
-| # | Site | File | Decls | Trigger | Property | Duration | Easing | Reduced motion | Why it earns motion |
+Identities, not counts (fix round 1). The first cut compared per-file
+declaration *totals*, and review's probe walked straight through it: adding
+an unregistered `color` transition to a file that already had a spare count,
+and separately bumping a count to match an unregistered animation, both
+stayed green. A total says how many; it cannot say which. A pair says which,
+so an animation this table does not name has nowhere to hide regardless of
+how many its file is supposed to have.
+
+| # | Site | File | Motion | Trigger | Property | Duration | Easing | Reduced motion | Why it earns motion |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Screen / nav-page transition (`.ph-screen` on `<main>`) | `src/ui/App.css` | 1 | the game's `screen` or the header's `page` changes (App.tsx keys `<main>` on both) | `opacity` 0→1, `transform` `translateY(6px)`→0 | `--dur-scene` | `--ease-out` | 1ms — the new screen is simply there | The biggest state change in the product. It teleported before this task; a screen that lands tells you a move completed |
-| 2 | p-value dial: band colour, and the settle | `src/ui/components/PValueDial.css` | 2 | a genuinely new result (keyed on `p\|n\|outcome`, not on re-render) | `color` (R5.3's one sanctioned exception); `transform` `translateY(-2px)`→0 | `--dur-quick` | `--ease-out` | 1ms — the new number and its colour are simply there | Act I's signature (R8.1) and the game's heartbeat: the whole mechanic is watching this number move when you turn a knob |
-| 3 | Reveal block entrance, staggered | `src/ui/screens/Reveal.css` | 1 | the block intersects the viewport | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `Block()` additionally starts visible | Act II is a report being read; its six blocks are pages arriving in order, not one wash of ink |
-| 4 | RETRACTED stamp: slam + ≤2px paper shake | `src/ui/screens/Reveal.css` | 2 | the block holding the stamp becomes visible (`.ph-fade--in`) | `transform` (scale + rotate), `opacity` | `--dur-stamp` | `--ease-stamp` | Stamp.tsx withholds the class entirely; 1ms besides | Act II's signature (R8.2), the one moment in the game allowed to be loud |
-| 5 | Press clippings + chyron entrance, staggered | `src/ui/screens/Published.css` | 1 | the Published screen mounts | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay | The day's payoff. Coverage arrives outlet by outlet, which is what coverage does |
-| 6 | Fork-trail key popover | `src/ui/components/ForkTrail.css` | 1 | the key opens (hover / focus / tap) | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | The only feedback that the control did anything. Closing stays instant — an exit carries no information |
-| 7 | Share "copied" / "failed" line | `src/ui/screens/Summary.css` | 1 | a clipboard write resolves or rejects | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | A clipboard write is invisible; this line is the entire confirmation that it happened |
-| 8 | Confetti | `src/ui/components/ConfettiLayer.tsx` | 0 (canvas) | Published mounts, once per puzzle | canvas particles | `--dur-confetti` | — | canvas is never created (R5.6's JS half) | §2.5's sincere celebration; unchanged by T35 |
+| 1 | Screen / nav-page transition (`.ph-screen` on `<main>`) | `src/ui/App.css` | `ph-screen-enter` | the game's `screen` or the header's `page` changes (App.tsx keys `<main>` on both) | `opacity` 0→1, `transform` `translateY(6px)`→0 | `--dur-scene` | `--ease-out` | 1ms — the new screen is simply there | The biggest state change in the product. It teleported before this task; a screen that lands tells you a move completed | 
+| 2 | p-value dial: band colour, and the settle | `src/ui/components/PValueDial.css` | `transition:color` + `ph-dial-settle` | a genuinely new result (keyed on `p` / `n` / `outcome`, not on re-render) | `color` (R5.3's one sanctioned exception); `transform` `translateY(-2px)`→0 | `--dur-quick` | `--ease-out` | 1ms — the new number and its colour are simply there | Act I's signature (R8.1) and the game's heartbeat: the whole mechanic is watching this number move when you turn a knob | 
+| 3 | Reveal block entrance, staggered | `src/ui/screens/Reveal.css` | `ph-block-enter` | the block intersects the viewport | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `Block()` additionally starts visible | Act II is a report being read; its six blocks are pages arriving in order, not one wash of ink | 
+| 4 | RETRACTED stamp: slam + ≤2px paper shake | `src/ui/screens/Reveal.css` | `ph-stamp-shake` + `ph-stamp-slam` | the block holding the stamp becomes visible (`.ph-fade--in`) | `transform` (scale + rotate), `opacity` | `--dur-stamp` | `--ease-stamp` | Stamp.tsx withholds the class entirely; 1ms besides | Act II's signature (R8.2), the one moment in the game allowed to be loud | 
+| 5 | Press clippings + chyron entrance, staggered | `src/ui/screens/Published.css` | `ph-clipping-enter` | each clipping enters the viewport (`useEnterOnce`, one-way) | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay | The day's payoff. Coverage arrives outlet by outlet, which is what coverage does | 
+| 6 | Fork-trail key popover | `src/ui/components/ForkTrail.css` | `ph-popover-enter` | the key opens (hover / focus / tap) | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | The only feedback that the control did anything. Closing stays instant — an exit carries no information | 
+| 7 | Share "copied" / "failed" line | `src/ui/screens/Summary.css` | `ph-toast-enter` | a clipboard write resolves or rejects | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | A clipboard write is invisible; this line is the entire confirmation that it happened | 
+| 8 | Confetti | `src/ui/components/ConfettiLayer.tsx` | — (canvas) | Published mounts, once per puzzle | canvas particles | `--dur-confetti` | — | canvas is never created (R5.6's JS half) | §2.5's sincere celebration; unchanged by T35 | 
 
 Two files hold `@keyframes` that they do not themselves fire, and both are
 deliberate: `src/ui/components/Stamp.css` describes the slam while site 4 in
@@ -409,15 +417,25 @@ made — because a token cannot reach a canvas or a `setTimeout`.
 - Don't: put a required piece of content behind an entrance animation's
   opacity and nothing else.
 
-**R5.7 — A staggered entrance is one animation with an indexed delay, and the
-index is capped.** The element carries `--ph-stagger-index` as an inline custom
-property (the only inline style motion may set), the stylesheet multiplies it
-by `--dur-stagger`, and the component caps it — `Reveal.tsx`'s
-`MAX_STAGGER_STEPS = 2`. The cap is the whole discipline: a stagger exists to
-break up items that arrive *simultaneously*, and an uncapped DOM-order index
-punishes an item that arrives alone, purely for sitting further down the
-document.
-- Do: `style={{ '--ph-stagger-index': Math.min(index, MAX_STAGGER_STEPS) }}`.
+**R5.7 — An entrance is triggered by the viewport, staggered by an indexed
+delay, and capped.** All three parts live in one module,
+`src/ui/hooks/useEnterOnce.ts`, and both entrance sites (3 and 5) use it: a
+one-way IntersectionObserver that fires once and disconnects, `staggerStyle()`
+for the inline `--ph-stagger-index` (the only inline style motion may set),
+and `MAX_STAGGER_STEPS = 2`.
+
+**An entrance may not be triggered by mount.** Mount is only ever the right
+trigger for something guaranteed on screen at mount, and below the first fold
+nothing is: measured at 360×780, Published's three clippings sit at document
+tops 952/1143/1373 and a mount-gated entrance finished all three before the
+player could see any of them (fix round 1 — the same defect this task had
+already found for the stamp, one screen over, which is exactly why the trigger
+now lives in shared code rather than in each screen's head).
+
+The cap is the other half: a stagger exists to break up items that arrive
+*simultaneously*, and an uncapped DOM-order index punishes an item that
+arrives alone, purely for sitting further down the document.
+- Do: `const { ref, entered } = useEnterOnce(); … style={staggerStyle(index)}`.
 - Don't: write `.item:nth-child(3) { animation-delay: 180ms; }` — that is a
   raw duration (R5.1) and a fourth site pretending to be one.
 - Don't: stagger more than one group per screen. Two cascades in one arrival
@@ -609,24 +627,32 @@ an element that never declares `:focus-visible` at all; that is a *missing* focu
 style rather than a *suppressed* one, and it is caught by tabbing through the
 screen — the one thing §6 asks a reviewer to actually do.
 
-**Tier A scope, §5's half (`tests/ui/motion.test.ts`).** Four checks, and
-between them they close the system. (1) **Tokens only**: every
-`transition:`/`animation:`/`animation-delay:`/`animation-duration:` under
-`src/ui` outside `tokens.css` is scanned for a raw `ms`/`s` value, a
-`cubic-bezier()`, or a bare timing keyword, and any hit fails the build —
-R5.1, and the thing that makes R5.6's collapse total. (2) **The register is
-exhaustive, in both directions**: R5.2's table is parsed out of this file, its
-per-file `Decls` counts are summed, and the stylesheets are counted
-independently; an unlisted animation and a listed-but-deleted one fail
-identically. (3) **Keyframes are all consumed**: every `@keyframes` defined
-under `src/ui` is referenced by an `animation:` declaration and vice versa, so
-a split like Stamp.css/Reveal.css can never rot into a dead definition.
-(4) **Reduced-motion parity**: every duration token any animation actually
-uses must appear collapsed inside `tokens.css`'s
-`@media (prefers-reduced-motion: reduce)` block — which is what turns "guarded"
-from a per-file promise into a property of the scale itself. What it cannot
-see: whether a moment *deserved* a row (tier E) and whether the movement looks
-right (a human, at 360 and 1088).
+**Tier A scope, §5's half (`tests/ui/motion.test.ts`).** Five checks, and
+between them they close the system. (1) **Tokens only**: every timing
+declaration under `src/ui` outside `tokens.css` — the `transition`/`animation`
+shorthands *and* every longhand (`-property`, `-name`, `-duration`, `-delay`,
+`-timing-function`), in CSS and in JSX style objects alike — is scanned for a
+raw `ms`/`s` value, a `cubic-bezier()`, or a bare timing keyword, and any hit
+fails the build. This is R5.1, and it is what makes R5.6's collapse total.
+(2) **The register is exhaustive, in both directions**: R5.2's table is parsed
+out of this file into `(file, identity)` pairs — an identity being a
+`@keyframes` name, or `transition:` plus its property list — and the
+stylesheets are read independently into the same shape; an unlisted animation
+and a listed-but-deleted one fail identically. Pairs rather than counts,
+because a count says how many and cannot say which (fix round 1: review's probe
+beat the count-based version twice). (3) **Keyframes are all consumed**: every
+`@keyframes` defined under `src/ui` is referenced by an `animation` declaration
+and vice versa, so a split like Stamp.css/Reveal.css can never rot into a dead
+definition. (4) **Compositor properties and travel**: transition property lists
+and keyframe bodies may name only `transform`/`opacity` — with `color` allowed
+in `components/PValueDial.css` and nowhere else — and keyframe translations may
+only be R5.3's 6px and 2px. (5) **Reduced-motion parity**: every duration token
+any animation actually uses must appear collapsed inside `tokens.css`'s
+`@media (prefers-reduced-motion: reduce)` block, which is what turns "guarded"
+from a per-file promise into a property of the scale itself; and every base
+rule that hides content with `opacity: 0` must have a modifier class restoring
+it without an animation. What it cannot see: whether a moment *deserved* a row
+(tier E) and whether the movement looks right (a human, at 360 and 1088).
 
 **Tier C — these four must print nothing:**
 

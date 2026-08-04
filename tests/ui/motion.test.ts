@@ -23,16 +23,19 @@ import { describe, expect, it } from 'vitest';
  *         cubic-bezier(), no bare `ease`/`linear`/`steps()`. This is the load-
  *         bearing one: a hard-coded duration is the single thing the
  *         reduced-motion block below CANNOT reach.
- *   R5.2  DESIGN.md's per-file `Decls` counts equal the stylesheets' own, and
- *         every @keyframes defined is fired and every @keyframes fired is
- *         defined (the Stamp.css/Reveal.css split makes that a live concern).
- *   R5.3  only transform/opacity animate — plus `color`, §5's ONE registered
- *         exception, on the dial — and keyframe travel is 6px or 2px, nothing
- *         else.
+ *   R5.2  DESIGN.md's (file, motion-identity) pairs equal the stylesheets'
+ *         own, and every @keyframes defined is fired and every @keyframes
+ *         fired is defined (the Stamp.css/Reveal.css split makes that live).
+ *         Site 1 additionally has its TRIGGER pinned: <main>'s key is what
+ *         replays the entrance, and no CSS check can see a deleted key.
+ *   R5.3  only transform/opacity animate — plus `color`, in PValueDial.css and
+ *         nowhere else — and keyframe travel is 6px or 2px, nothing else.
  *   R5.6  every duration token an animation actually uses collapses under
  *         prefers-reduced-motion, which is what makes parity a property of the
- *         scale rather than a per-file promise.
- *   R5.7  a staggered delay is calc(index * --dur-stagger), never a literal.
+ *         scale rather than a per-file promise; and nothing is visible only
+ *         because an animation ran.
+ *   R5.7  an entrance is gated on the VIEWPORT (never on mount — fix round 1),
+ *         and its delay is calc(index * --dur-stagger) with the index capped.
  *
  * Rule ids in the test names refer to docs/DESIGN.md.
  */
@@ -69,22 +72,79 @@ const uiCode = uiFiles.map((file) => ({
 const uiCss = uiCode.filter(({ file }) => file.endsWith('.css'));
 
 /**
- * Every timing declaration in a file: the `transition`/`animation` shorthands
- * plus the longhands that carry a time. Deliberately NOT `animation-name` or
- * `transition-property` (no time in them), and the `-` in `animation-delay`
- * is why the shorthand pattern below cannot accidentally swallow a longhand.
+ * Every motion declaration in a file. The `-` in `animation-delay` is why the
+ * shorthand pattern cannot accidentally swallow a longhand, so the two are
+ * matched separately and then used for different checks.
+ *
+ * FIX ROUND 1 (M2): the longhand set used to be `-duration`/`-delay` only,
+ * which left `transition-timing-function: cubic-bezier(…)` and the
+ * `transition-property`/`animation-name` spelling of a whole site entirely
+ * unscanned — a site written in longhand would have been invisible to every
+ * check below. All five longhands are now covered, and the property-bearing
+ * ones feed the register and the compositor-property checks too.
  */
 const SHORTHAND_RE = /\b(?:transition|animation)\s*:\s*([^;{}]+)/g;
-const LONGHAND_RE = /\b(?:transition|animation)-(?:duration|delay)\s*:\s*([^;{}]+)/g;
-/** The JSX-style-object spellings of the same thing. */
-const JSX_TIMING_RE = /\b(?:transition|animation)(?:Duration|Delay)?\s*:\s*(['"][^'"]*['"])/g;
+/** Longhands that carry a TIME (and so must be tokenised). */
+const LONGHAND_TIME_RE = /\b(?:transition|animation)-(?:duration|delay|timing-function)\s*:\s*([^;{}]+)/g;
+/** Longhands that declare WHAT moves (and so must be registered). */
+const LONGHAND_PROP_RE = /\b(transition-property|animation-name)\s*:\s*([^;{}]+)/g;
+/** The JSX-style-object spellings of all of the above. */
+const JSX_TIMING_RE =
+  /\b(?:transition|animation)(?:Duration|Delay|TimingFunction|Property|Name)?\s*:\s*(['"][^'"]*['"])/g;
 
 const shorthandDecls = (code: string): string[] => [...code.matchAll(SHORTHAND_RE)].map((m) => m[1].trim());
+const longhandProps = (code: string): { kind: string; value: string }[] =>
+  [...code.matchAll(LONGHAND_PROP_RE)].map((m) => ({ kind: m[1], value: m[2].trim() }));
 const timingValues = (code: string): string[] => [
   ...shorthandDecls(code),
-  ...[...code.matchAll(LONGHAND_RE)].map((m) => m[1].trim()),
+  ...[...code.matchAll(LONGHAND_TIME_RE)].map((m) => m[1].trim()),
+  ...[...code.matchAll(LONGHAND_PROP_RE)].map((m) => m[2].trim()),
   ...[...code.matchAll(JSX_TIMING_RE)].map((m) => m[1].trim()),
 ];
+
+/** CSS-wide keywords a property list may legally contain but which name nothing. */
+const NOT_A_PROPERTY = /^(?:none|initial|inherit|unset|revert|revert-layer)$/;
+
+/**
+ * A site's IDENTITY: what it is, not how many of it there are. An
+ * `animation` (shorthand or `animation-name`) is identified by its keyframe
+ * name; a `transition` (shorthand or `transition-property`) by
+ * `transition:` plus its sorted property list.
+ */
+function identities(code: string): string[] {
+  const out: string[] = [];
+  for (const [, keyword, value] of code.matchAll(/\b(transition|animation)\s*:\s*([^;{}]+)/g)) {
+    out.push(keyword === 'animation' ? animationIdentity(value) : transitionIdentity(value));
+  }
+  for (const { kind, value } of longhandProps(code)) {
+    out.push(kind === 'animation-name' ? value.trim() : transitionIdentity(value));
+  }
+  return out.filter((id) => id !== '');
+}
+
+/** The keyframe name out of an `animation:` shorthand (any token order). */
+function animationIdentity(value: string): string {
+  const name = value
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .find(
+      (token) =>
+        /^[a-zA-Z_-][\w-]*$/.test(token) &&
+        !/^(?:both|backwards|forwards|none|infinite|alternate|reverse|normal|paused|running|linear|ease|ease-in|ease-out|ease-in-out)$/.test(
+          token
+        )
+    );
+  return name ?? '';
+}
+
+/** `transition:` plus the property list, sorted so order can never matter. */
+function transitionIdentity(value: string): string {
+  const properties = value
+    .split(',')
+    .map((leg) => leg.trim().split(/\s+/)[0])
+    .filter((property) => property && !NOT_A_PROPERTY.test(property) && !/^var\(/.test(property));
+  return properties.length === 0 ? '' : `transition:${[...properties].sort().join('+')}`;
+}
 
 /* ================================================= R5.1 the scale is closed */
 
@@ -177,46 +237,44 @@ describe('R5.1 — the motion scale is closed and lives only in tokens.css', () 
 /* ============================================ R5.2 the register is exhaustive */
 
 /**
- * DESIGN.md R5.2's table, read back out of the document: one row per motion
- * site, carrying the file it lives in and how many `transition:`/`animation:`
- * shorthands that file declares for it. Two sites share `Reveal.css` (the
- * block entrance and the stamp's trigger), so the counts are summed per file
- * rather than compared row by row.
+ * DESIGN.md R5.2's table, read back out of the document as `(file, identity)`
+ * pairs — the `Motion` column names each site by its keyframe or its
+ * transition property list.
+ *
+ * FIX ROUND 1 (M1): this used to compare per-file DECLARATION COUNTS, and
+ * review's probe walked through it twice — once by adding an unregistered
+ * `color` transition to a file whose count had room, once by bumping a count
+ * to match an unregistered animation. A count answers "how many", which is
+ * not the question; a pair answers "which".
  */
-function declaredSites(): Map<string, number> {
+function declaredSites(): string[] {
   const section = design.slice(design.indexOf('**R5.2 —'), design.indexOf('**R5.3 —'));
   const rows = [...section.matchAll(/^\|\s*(\d+)\s*\|(.+)$/gm)];
   expect(rows.length, 'DESIGN.md R5.2 must list at least one site').toBeGreaterThan(0);
-  const out = new Map<string, number>();
+  const out: string[] = [];
   for (const [, , rest] of rows) {
     const cells = rest.split('|').map((c) => c.trim());
     const file = /`([^`]+)`/.exec(cells[1])?.[1];
-    const decls = Number.parseInt(cells[2], 10);
     expect(file, `R5.2 row has no backticked file path: ${rest.slice(0, 60)}`).toBeDefined();
-    expect(Number.isFinite(decls), `R5.2 row has no Decls count: ${rest.slice(0, 60)}`).toBe(true);
-    if (decls > 0) out.set(file as string, (out.get(file as string) ?? 0) + decls);
+    if (!(file as string).endsWith('.css')) continue; // site 8 is canvas
+    const motion = [...cells[2].matchAll(/`([^`]+)`/g)].map(([, id]) => id);
+    expect(motion.length, `R5.2 row names no motion identity: ${rest.slice(0, 60)}`).toBeGreaterThan(0);
+    for (const id of motion) out.push(`${file}::${id}`);
   }
-  return out;
+  return out.sort();
 }
 
-/** The stylesheets' own count of the same thing. */
-function actualSites(): Map<string, number> {
-  const out = new Map<string, number>();
-  for (const { file, code } of uiCss) {
-    const n = shorthandDecls(code).length;
-    if (n > 0) out.set(file, n);
-  }
-  return out;
+/** The stylesheets' own answer to the same question. */
+function actualSites(): string[] {
+  return uiCss.flatMap(({ file, code }) => identities(code).map((id) => `${file}::${id}`)).sort();
 }
 
 describe('R5.2 — DESIGN.md\'s motion register and the stylesheets agree', () => {
-  it('matches per-file declaration counts in both directions', () => {
+  it('matches (file, motion identity) pairs in both directions', () => {
     // An unregistered animation and a registered-but-deleted one fail
-    // identically — which is the whole point of comparing maps rather than
-    // asserting a total.
-    expect(Object.fromEntries([...actualSites()].sort())).toEqual(
-      Object.fromEntries([...declaredSites()].sort())
-    );
+    // identically, and — unlike the count this replaced — an animation
+    // SWAPPED for a different one inside the same file fails too.
+    expect(actualSites()).toEqual(declaredSites());
   });
 
   it('registers eight sites, seven in CSS plus the canvas', () => {
@@ -251,21 +309,40 @@ describe('R5.2 — DESIGN.md\'s motion register and the stylesheets agree', () =
 /* ================================================ R5.3 compositor properties */
 
 describe('R5.3 — only transform and opacity animate', () => {
-  // `color` on the dial is §5's ONE registered exception (DESIGN.md R5.3):
-  // there, the colour IS the state (R1.8) and no layout depends on it.
-  const ALLOWED = new Set(['transform', 'opacity', 'color']);
+  const ALLOWED = new Set(['transform', 'opacity']);
+  /**
+   * `color` is §5's ONE registered exception (DESIGN.md R5.3) and it belongs
+   * to ONE file: on the dial the colour IS the state (R1.8), which is an
+   * argument about that element and nothing else.
+   *
+   * FIX ROUND 1 (M1): the exception used to be global, so review's probe
+   * added a `color` transition to an unrelated screen and the suite stayed
+   * green. An exception that applies everywhere is not an exception.
+   */
+  const COLOUR_EXCEPTION_FILE = 'src/ui/components/PValueDial.css';
 
-  it('animates no property outside transform/opacity (plus the dial\'s colour)', () => {
+  it('animates no property outside transform/opacity, and colour only on the dial', () => {
     const offenders: string[] = [];
     for (const { file, code } of uiCss) {
-      for (const value of [...code.matchAll(/\btransition\s*:\s*([^;{}]+)/g)].map((m) => m[1])) {
-        for (const leg of value.split(',')) {
-          const property = leg.trim().split(/\s+/)[0];
-          if (property && !ALLOWED.has(property)) offenders.push(`${file}: ${property}`);
-        }
+      const properties = [
+        ...[...code.matchAll(/\btransition\s*:\s*([^;{}]+)/g)].map((m) => m[1]),
+        ...[...code.matchAll(/\btransition-property\s*:\s*([^;{}]+)/g)].map((m) => m[1]),
+      ].flatMap((value) => value.split(',').map((leg) => leg.trim().split(/\s+/)[0]));
+      for (const property of properties) {
+        if (!property || NOT_A_PROPERTY.test(property) || ALLOWED.has(property)) continue;
+        if (property === 'color' && file === COLOUR_EXCEPTION_FILE) continue;
+        offenders.push(`${file}: ${property}`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('still rejects the dial\'s own exception when it appears in another file', () => {
+    // Guards the guard: this is exactly the probe that beat the first cut.
+    const elsewhere = { file: 'src/ui/screens/Published.css', code: '.x { transition: color var(--dur-quick) var(--ease-out); }' };
+    const property = /\btransition\s*:\s*([a-z-]+)/.exec(elsewhere.code)?.[1];
+    expect(property).toBe('color');
+    expect(elsewhere.file === COLOUR_EXCEPTION_FILE).toBe(false);
   });
 
   it('declares nothing but transform and opacity inside a @keyframes body', () => {
@@ -349,14 +426,18 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
   it('holds every animated element visible by something other than its animation', () => {
     // R5.6's no-content-behind-motion clause. `opacity: 0` in a base rule is
     // the one way an entrance can strand content, so each such rule must be
-    // paired with a sibling class that restores it without any animation.
+    // accompanied by a MODIFIER class that restores it — a class the
+    // component adds, never the animation itself. The modifier need not
+    // share the base's prefix: Published's clippings are hidden by
+    // `.ph-press-card, .ph-chyron` and restored by the shared
+    // `.ph-clipping--in`, which is one restoring class for one group.
     const offenders: string[] = [];
     for (const { file, code } of uiCss) {
+      const restorers = [...code.matchAll(/([^{}]*--[\w-]+[^{}]*)\{[^{}]*opacity\s*:\s*1\s*[;}]/g)].length;
       for (const [, selector] of code.matchAll(/([^{}]+)\{[^{}]*opacity\s*:\s*0\s*[;}]/g)) {
         const base = selector.trim();
         if (base.startsWith('@') || /\d+%|\bfrom\b|\bto\b/.test(base)) continue; // a keyframe stop, not a rule
-        const restores = new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}--[\\w-]+[^{}]*\\{[^{}]*opacity\\s*:\\s*1`);
-        if (!restores.test(code)) offenders.push(`${file}: ${base}`);
+        if (restorers === 0) offenders.push(`${file}: ${base} has no restoring modifier`);
       }
     }
     expect(offenders).toEqual([]);
@@ -364,6 +445,52 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
 });
 
 /* ===================================================== R5.7 staggered delays */
+
+describe('R5.2 site 1 — the screen transition is actually triggered', () => {
+  // Comments stripped first: the note above the element mentions "<main>" in
+  // prose, and a scan that matches prose proves nothing about the markup.
+  const appTsx = stripComments(readFileSync(join(ROOT, 'src/ui/App.tsx'), 'utf8'));
+
+  /**
+   * FIX ROUND 1 (M3). `.ph-screen`'s animation restarts only because React
+   * tears <main> down and rebuilds it when the `key` changes — delete the
+   * key and the CSS is still perfectly valid, the register still balances,
+   * and the beat silently never happens again. Nothing else in this suite
+   * can see that, because nothing else in this suite reads a key.
+   */
+  it('carries .ph-screen on <main> with a key over BOTH state machines', () => {
+    const main = /<main\b[^>]*>/.exec(appTsx)?.[0] ?? '';
+    expect(main, 'App.tsx must render a <main>').not.toBe('');
+    expect(main).toContain('className="ph-screen"');
+    expect(main, '<main> must be keyed, or the entrance never replays').toMatch(/\bkey=\{/);
+    const key = /\bkey=\{([^}]*\}?[^}]*)\}/.exec(main)?.[1] ?? '';
+    expect(key, 'the key must vary with the header nav page').toMatch(/\bpage\b/);
+    expect(key, 'the key must vary with the game screen').toMatch(/[Ss]creen\b/);
+  });
+
+  it('reads the game screen for that key and nothing else', () => {
+    expect(appTsx).toMatch(/const gameScreen = useGameStore\(\(s\) => s\.screen\)/);
+  });
+});
+
+describe('R5.7 — an entrance is viewport-triggered, staggered and capped', () => {
+  const hook = readFileSync(join(ROOT, 'src/ui/hooks/useEnterOnce.ts'), 'utf8');
+
+  it('gates both entrance sites on the viewport, never on mount', () => {
+    // FIX ROUND 1 (I1). A mount-triggered entrance plays to an empty room
+    // for anything below the fold — measured on Published at 360, which is
+    // what forced this. Both sites now consume the same one-way observer.
+    expect(hook).toMatch(/new IntersectionObserver/);
+    expect(hook).toMatch(/observer\.disconnect\(\)/);
+    for (const rel of ['src/ui/screens/Reveal.tsx', 'src/ui/screens/Published.tsx']) {
+      expect(readFileSync(join(ROOT, rel), 'utf8'), `${rel} must use the shared gate`).toMatch(/useEnterOnce/);
+    }
+  });
+
+  it('fails OPEN, so no content is ever stranded behind the observer', () => {
+    expect(hook).toMatch(/reducedMotion \|\| typeof IntersectionObserver === 'undefined'/);
+  });
+});
 
 describe('R5.7 — a stagger is an indexed delay, capped by the component', () => {
   it('expresses every animation-delay as index x --dur-stagger', () => {
@@ -376,9 +503,9 @@ describe('R5.7 — a stagger is an indexed delay, capped by the component', () =
     }
   });
 
-  it('caps the index in the component rather than trusting DOM order', () => {
-    const reveal = readFileSync(join(ROOT, 'src/ui/screens/Reveal.tsx'), 'utf8');
-    expect(reveal).toMatch(/MAX_STAGGER_STEPS\s*=\s*2/);
-    expect(reveal).toMatch(/Math\.min\(index,\s*MAX_STAGGER_STEPS\)/);
+  it('caps the index in shared code rather than trusting DOM order', () => {
+    const hook = readFileSync(join(ROOT, 'src/ui/hooks/useEnterOnce.ts'), 'utf8');
+    expect(hook).toMatch(/MAX_STAGGER_STEPS\s*=\s*2/);
+    expect(hook).toMatch(/Math\.min\(index,\s*MAX_STAGGER_STEPS\)/);
   });
 });

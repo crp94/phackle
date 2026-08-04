@@ -105,8 +105,8 @@ export function Lab() {
       <div className="ph-lab__results">
         <PValueDialCaption />
         {/* Native <details>: collapsible with no JavaScript and no animation
-            (R5.5's budget is exhaustive and accordion slides are named in it
-            as forbidden). Open by default — a first-timer must not have to
+            (R5.2's register does not list it, and R5.5 names accordion slides
+            outright). Open by default — a first-timer must not have to
             discover the instructions — and gone for good once dismissed. */}
         {introSeen ? null : (
           <details className="ph-lab__intro" data-testid="lab-intro" open>

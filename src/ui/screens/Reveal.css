@@ -7,10 +7,23 @@
  * is measurable. The only thing here that asks to be looked at is the stamp.
  */
 
+/* FIX ROUND 1 (M8), and the root cause of the cropped slam. This screen was
+   the ONLY one with no inline gutter — `padding-block` only, while
+   .ph-briefing, .ph-summary and .ph-published__cover all carry
+   var(--space-24) on both axes. Measured at 1088 (where --page-max makes the
+   column exactly flush with the viewport) the truth line began at x=0 and
+   fig. 1's "1.00" axis label was clipped by the window edge; at 360 the same.
+   That is a layout defect in its own right, and it is also why R8.2's stamp —
+   pinned var(--space-24) inside a flush column — had only ~12px of room to
+   its left and threw its oversized first frames off-screen the moment T35
+   made them visible (Stamp.css carries the measurements). One registered
+   token, matching the sibling screens exactly; it cannot introduce overflow,
+   only remove it. */
 .ph-reveal {
   max-width: var(--page-max);
   margin-inline: auto;
   padding-block: var(--space-40);
+  padding-inline: var(--space-24);
 }
 
 /* DESIGN.md R5.2 site 3: ACT II ARRIVES AS PAGES OF A REPORT.

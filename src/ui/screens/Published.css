@@ -78,11 +78,25 @@
    the whole effect — R8.3 still says the only things on this screen allowed
    to ask to be looked at are the dial and the stamp, and neither is here.
 
-   No base `opacity: 0`, deliberately: the clippings are ordinary content, so
-   if this animation never ran at all (an engine that ignores it, a stylesheet
-   that fails to load) they are simply there. Nothing on this screen appears
-   ONLY as the result of a movement (R5.6). `backwards` supplies the
-   from-state during the stagger delay and does not persist afterwards. */
+   FIX ROUND 1 — THE TRIGGER IS THE VIEWPORT, NOT THE MOUNT. The first cut
+   fired this on mount, which is only ever correct for something guaranteed
+   on screen at mount. Measured on the real build at 360x780: the three
+   clippings sit at document tops 952 / 1143 / 1373 against a 780px
+   viewport, so all three ran and finished (~450ms) while below the fold and
+   the player scrolled down to press that had always been there. That is
+   precisely the defect T35 had just diagnosed for the stamp, reproduced one
+   screen over. `.ph-clipping--in` is now added by useEnterOnce's one-way
+   observer at the moment each clipping actually arrives on screen — the
+   same idiom, the same hook, as the reveal's blocks (site 3). At >=768,
+   where the cards are usually in view at mount already, the observer's very
+   first callback flips them together and the cascade is unchanged.
+
+   The base rule holds `opacity: 0` and `.ph-clipping--in` restores it — so
+   what makes the content visible is the CLASS, never the animation, and
+   `useEnterOnce` resolves to entered-now under reduced motion, without an
+   IntersectionObserver, or if the node never mounts (R5.6's
+   no-content-behind-motion clause). `backwards` supplies the from-state
+   during the stagger delay and does not persist afterwards. */
 @keyframes ph-clipping-enter {
   from {
     opacity: 0;
@@ -95,15 +109,20 @@
   }
 }
 
-/* A PRESS CLIPPING (T29 pin 8), built entirely out of type and hairlines:
-   masthead -> dateline rule -> pull-quote -> compliance stamp. R4.5 still
-   binds — every rule below is a single edge, never a box. */
 .ph-press-card,
 .ph-chyron {
+  opacity: 0;
+}
+
+.ph-clipping--in {
+  opacity: 1;
   animation: ph-clipping-enter var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 
+/* A PRESS CLIPPING (T29 pin 8), built entirely out of type and hairlines:
+   masthead -> dateline rule -> pull-quote -> compliance stamp. R4.5 still
+   binds — every rule below is a single edge, never a box. */
 .ph-press-card {
   border-block-end: var(--hairline);
   padding-block: var(--space-16) var(--space-8);

@@ -63,11 +63,28 @@ function degreesOfFreedom(result: PathResult): number {
   return result.n - 2 - covCount;
 }
 
-// Mirrors --dur-quick (DESIGN.md R5.1's scale) — how long the settle class
-// stays on before it is removed so the next result can replay it. T35 moved
-// this from 120 (the retired --dur-tick) onto the shared scale; the
-// keyframe itself now owns the motion, so this timer only re-arms it.
-const TICK_MS = 140;
+// How long the settle class stays on before it is removed so the next result
+// can replay it. FIX ROUND 1 (M7): READ from the cascade rather than retyped,
+// which is the idiom src/ui/screens/Published.tsx's readDurConfettiMs()
+// already sets for exactly this problem — R5.6's own worked example ("read
+// the token ... or [it] will still block ... for reduced-motion users"). A
+// literal 140 here would survive tokens.css's reduced-motion collapse
+// untouched and hold the class on for 140ms in a build that has no motion at
+// all; reading --dur-quick means this timer shortens with the animation it
+// re-arms, to 1ms.
+//
+// Vitest does not process CSS under jsdom (no `css: true` in
+// vite.config.ts's test block), so getComputedStyle returns '' there,
+// parseFloat('') is NaN, and the guard falls through to the same value
+// tokens.css declares — no mocking needed, exactly as in Published.tsx.
+const FALLBACK_DUR_QUICK_MS = 140;
+
+function readDurQuickMs(): number {
+  if (typeof window === 'undefined') return FALLBACK_DUR_QUICK_MS;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--dur-quick').trim();
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : FALLBACK_DUR_QUICK_MS;
+}
 
 /**
  * A shell rather than three copies of the same markup: `data-testid` and the
@@ -137,7 +154,7 @@ export function PValueDial({ result, pending }: PValueDialProps) {
     prevKeyRef.current = tickKey;
     if (prevKey !== null && tickKey !== null && tickKey !== prevKey && !reducedMotion) {
       setTicking(true);
-      const handle = setTimeout(() => setTicking(false), TICK_MS);
+      const handle = setTimeout(() => setTicking(false), readDurQuickMs());
       return () => clearTimeout(handle);
     }
     return undefined;
