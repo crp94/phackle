@@ -270,9 +270,10 @@ describe('Published: egregiousness tiers and press blurbs', () => {
 
   it('prefers a scenario-bound press blurb when one exists for the tier (cat-crypto tier 1 -> Morning Chirp)', async () => {
     renderPublished({ forks: 1 }); // tier 1
-    // cat-crypto's tier-1 preferred pool is a singleton (only Morning
-    // Chirp's blurb is scenario-bound at this tier), so BOTH press cards
-    // legitimately land on it -- getAllByText, not getByText.
+    // The FIRST card is the scenario-bound one (T39a's guarantee: an unsalted
+    // pickPress prefers the bound pool); the second salts `iso` and therefore
+    // takes the generic pool, so this asserts presence, not count --
+    // getAllByText, not getByText.
     await waitFor(() => expect(screen.getAllByText(/Morning Chirp/).length).toBeGreaterThan(0));
     expect(screen.getAllByText('Scientists say: your cat may be your best financial advisor.').length).toBeGreaterThan(0);
   });

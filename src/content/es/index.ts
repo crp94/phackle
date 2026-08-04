@@ -458,6 +458,68 @@ export const content: LocaleContent = {
       outlet: 'El Boletín Oficioso',
       tier: 1,
     },
+    // ==== T39a: TRANSCREATION PENDING (T39b) ====================================
+    // The 24 scenario-bound blurbs T39a added to the English bank. Structural
+    // parity is a law (tests/content/es.shape.test.ts asserts identical counts,
+    // tiers and scenarioIds index by index), so the entries exist NOW; only the
+    // `text` is still English. The outlets are NOT placeholders — they are this
+    // locale's own established cabeceras, mapped from the English outlet each
+    // blurb was written for, so T39b has one job per entry and not two.
+    //
+    // The debt is mechanically visible, not a comment anyone can forget:
+    // es.shape.test.ts's PENDING_T39B_PRESS test lists exactly these indices and
+    // fails the moment the set of English-aliased blurbs stops matching it — in
+    // EITHER direction. Translating one without shortening that list fails; a
+    // 25th alias sneaking in fails too.
+    {
+      // T39b: transcreation pending
+      text: 'Two coders scored the sock photographs separately and agreed almost every time. The authors call the agreement reassuring.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Severity was scored by former editors, every one of whom has been reviewed in a café. The authors present this as domain expertise.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'The hardest part was recruitment: first find the people who read the agreement, then ask them to read the consent form.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Strangers in three cities were asked the way to a landmark eight minutes away. A fourth city is being added by request.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Eighteen months of calendar records joined to a lunar ephemeris. The hypothesis came from the calendar administrator, proudly credited.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'The fieldwork was done at a departure gate with a folding table. Recruitment, the authors note, was never the difficulty.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
     { text: 'El truco raro con el que los estadísticos PUBLICAN.', outlet: 'El Scroll Diario', tier: 2 },
     {
       text: '¿Tu silla de oficina te está costando un Premio Nacional? Los expertos opinan.',
@@ -485,6 +547,70 @@ export const content: LocaleContent = {
       outlet: 'Clicbienestar',
       tier: 2,
     },
+    // T39a tier-2 additions — see the TRANSCREATION PENDING note above.
+    {
+      // T39b: transcreation pending
+      text: 'What your starter says about your finish line. The flour co-op is still sending people, and we asked them why.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      // T39b: transcreation pending
+      text: "Your shower temperature is in your outbox. Six weeks of sent mail were scored, and 'per my last email' flagged itself.",
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Is your star sign finding the space? A logger recorded every search from street entry to engine off.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'They asked one screening question: do you own a label maker? What happened to those inboxes is now peer-reviewed.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Forty tabs open is not a problem, say researchers who now call it inventory. Every project had to come with a public link.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'There was a researcher at that dinner party, introduced as a colleague from work. Your departure time is now data.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'What your feelings about the number 13 say about your mortgage. The broker who supplied the terms sends regards.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
     {
       text: 'ESTUDIO: ¿HELECHOS = PODER DE NEGOCIACIÓN?',
       outlet: 'Cadena Rótulo 24H',
@@ -510,6 +636,63 @@ export const content: LocaleContent = {
     // out on live television. The clash is the joke.
     { text: 'P MENOR QUE CERO COMA CERO CINCO: SE LO EXPLICAMOS TRAS LA PAUSA', outlet: 'Directo Madrugada', tier: 3 },
     { text: 'EXCLUSIVA: EL HÁBITO QUE EL MERCADO NO QUIERE QUE MANTENGAS', outlet: 'Directo Madrugada', tier: 3 },
+    // T39a tier-3 additions — see the TRANSCREATION PENDING note above.
+    {
+      // T39b: transcreation pending
+      text: 'STUDY: DESK GOES UP, SONNET COMES OUT',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      // T39b: transcreation pending
+      text: "IS YOUR DOG'S NAME A PORTFOLIO STRATEGY? WE ASKED A DOG CALLED HAYEK",
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'ALERT: THE CAT HAS JOINED THE INVESTMENT COMMITTEE',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      // T39b: transcreation pending
+      text: "THE MOON IS FULL AND YOUR FOUR O'CLOCK IS NOT OVER",
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'EXCLUSIVE: THE HARSHEST REVIEW OF YOUR LIFE WAS WRITTEN NEXT TO A PASTRY',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'THE SOCK DRAWER KNOWS WHAT TIME YOU GET UP',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'BREAKING: THE PEOPLE ON THE STAIRS ARE TALKING ABOUT YOU',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      // T39b: transcreation pending
+      text: 'FORTY TABS IS NOT CHAOS. FORTY TABS IS A PIPELINE.',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
   ],
 
   // Act II. Quiet, one sentence, devastating; never a punchline, never smug.

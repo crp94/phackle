@@ -422,12 +422,33 @@ export const content: LocaleContent = {
 
   // Simulated press (master spec §4.4), watermarked SIMULATED PRESS in the UI.
   // Tier = egregiousness of the published spec: tier 1 is credulous but sober,
-  // tier 2 is aggregator-grade, tier 3 is the TV chyron. Blurbs are written
-  // scenario-agnostically so any tier-appropriate line fits any day. The three
-  // that name a subject are the master spec's own verbatim examples, and they
-  // carry `scenarioIds` so the Published screen can prefer them on the right
-  // day and never run a fern chyron over a sourdough study.
+  // tier 2 is aggregator-grade, tier 3 is the TV chyron.
+  //
+  // TWO KINDS OF BLURB, and the array is grouped by tier, generics first:
+  //
+  //  - GENERIC (no `scenarioIds`). Written so any tier-appropriate line fits
+  //    any day; this is the pool every day falls back to, and the reason each
+  //    tier keeps 5-7 of them is repeat-play variety.
+  //  - SCENARIO-BOUND (`scenarioIds`). T39a, owner directive from play-testing:
+  //    "so at least some of the news are related to the research question of
+  //    the game". Before T39a only cat-crypto and fern-negotiation had any, so
+  //    18 of 20 days read as generic coverage of an unnamed study. Every
+  //    scenario now has at least one blurb that names its own subject, at the
+  //    tier its material is funniest in. src/game/published.ts's pickPress
+  //    prefers these for the day's FIRST card and falls back to the generic
+  //    pool for the follow-ups, so a bound blurb never runs three times in a
+  //    row and a fern chyron never runs over a sourdough study.
+  //
+  // SPOILER LAW, binding on every bound blurb (this screen renders on BOTH day
+  // types, real-effect and null): a blurb may riff on the QUESTION, the method
+  // and the cover story's own furniture (the pizza-paid poetry jury, the
+  // co-op's flour, the ethics board's wording), but it may never assert that
+  // the finding is true, false, replicated or retracted. The outlets believe
+  // themselves; the game does not tell them anything the player does not
+  // already know. Enforced by tests/content/shape.test.ts's spoiler scan.
   press: [
+    // ---- TIER 1: credulous but sober. The prestige outlet has read the
+    // abstract, taken it entirely seriously, and reported the method. ----
     {
       text: 'Scientists say: your cat may be your best financial advisor.',
       outlet: 'Morning Chirp',
@@ -439,6 +460,51 @@ export const content: LocaleContent = {
     { text: 'The finding is preliminary. The researchers say that is exactly why it matters.', outlet: 'Public Record Weekly', tier: 1 },
     { text: 'Peer-reviewed and published this week: a link nobody thought to look for.', outlet: 'The Weekly Ledger', tier: 1 },
     { text: 'Researchers call for further study, and for further funding to conduct it.', outlet: 'Public Record Weekly', tier: 1 },
+    // T39a scenario-bound, tier 1.
+    {
+      text: 'Two coders scored the sock photographs separately and agreed almost every time. The authors call the agreement reassuring.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
+    {
+      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'Severity was scored by former editors, every one of whom has been reviewed in a café. The authors present this as domain expertise.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'The hardest part was recruitment: first find the people who read the agreement, then ask them to read the consent form.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'Strangers in three cities were asked the way to a landmark eight minutes away. A fourth city is being added by request.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'Eighteen months of calendar records joined to a lunar ephemeris. The hypothesis came from the calendar administrator, proudly credited.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: 'The fieldwork was done at a departure gate with a folding table. Recruitment, the authors note, was never the difficulty.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    // ---- TIER 2: aggregator-grade. The midmarket outlet has read the
+    // abstract and made it about the reader. ----
     { text: 'One weird trick statisticians PUBLISH with.', outlet: 'The Daily Scroll', tier: 2 },
     { text: 'Is your desk chair costing you a Pulitzer? Experts weigh in.', outlet: 'Buzz & Broadsheet', tier: 2 },
     { text: 'You are already doing this. Science says keep going.', outlet: 'The Daily Scroll', tier: 2 },
@@ -446,6 +512,63 @@ export const content: LocaleContent = {
     { text: 'Nine habits of people who beat the average. Number four is in a real journal.', outlet: 'Clickwell', tier: 2 },
     { text: 'Scientists have finally confirmed what your group chat suspected all along.', outlet: 'Buzz & Broadsheet', tier: 2 },
     { text: 'Experts caution that the study is observational, then discuss it for eleven minutes.', outlet: 'Clickwell', tier: 2 },
+    // T39a scenario-bound, tier 2.
+    {
+      text: 'What your starter says about your finish line. The flour co-op is still sending people, and we asked them why.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: "Your shower temperature is in your outbox. Six weeks of sent mail were scored, and 'per my last email' flagged itself.",
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'Is your star sign finding the space? A logger recorded every search from street entry to engine off.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'They asked one screening question: do you own a label maker? What happened to those inboxes is now peer-reviewed.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'Forty tabs open is not a problem, say researchers who now call it inventory. Every project had to come with a public link.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
+    {
+      text: 'There was a researcher at that dinner party, introduced as a colleague from work. Your departure time is now data.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'The analysts were told the study was about lighting. It was about the 340 hours of hard bop in their headphones.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'What your feelings about the number 13 say about your mortgage. The broker who supplied the terms sends regards.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: 'Two participants switched to something quieter and had to be dropped. Everyone else is still typing loudly for science.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    // ---- TIER 3: the chyron. The broadcast has reduced the abstract to
+    // whatever fits a lower third. ----
     { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
     {
       text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)',
@@ -459,6 +582,40 @@ export const content: LocaleContent = {
     { text: 'NEW RESEARCH: ARE YOU DOING IT WRONG? (YES)', outlet: 'Channel 9 Nightly', tier: 3 },
     { text: 'P LESS THAN POINT OH FIVE — WE EXPLAIN AFTER THE BREAK', outlet: 'Nightside Live', tier: 3 },
     { text: "EXCLUSIVE: THE ONE HABIT THE MARKET DOESN'T WANT YOU TO KEEP", outlet: 'Nightside Live', tier: 3 },
+    // T39a scenario-bound, tier 3.
+    { text: 'STUDY: DESK GOES UP, SONNET COMES OUT', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['standing-desk-poetry'] },
+    {
+      text: "IS YOUR DOG'S NAME A PORTFOLIO STRATEGY? WE ASKED A DOG CALLED HAYEK",
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    { text: 'ALERT: THE CAT HAS JOINED THE INVESTMENT COMMITTEE', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['cat-crypto'] },
+    { text: "THE MOON IS FULL AND YOUR FOUR O'CLOCK IS NOT OVER", outlet: 'Nightside Live', tier: 3, scenarioIds: ['full-moon-meetings'] },
+    {
+      text: 'EXCLUSIVE: THE HARSHEST REVIEW OF YOUR LIFE WAS WRITTEN NEXT TO A PASTRY',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'THE SOCK DRAWER KNOWS WHAT TIME YOU GET UP',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
+    {
+      text: 'BREAKING: THE PEOPLE ON THE STAIRS ARE TALKING ABOUT YOU',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'FORTY TABS IS NOT CHAOS. FORTY TABS IS A PIPELINE.',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
   ],
 
   // Act II. Quiet, one sentence, devastating; never a punchline, never smug.
