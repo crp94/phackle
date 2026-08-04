@@ -1,8 +1,9 @@
 /* Master spec §7.3: two-pane (controls left / results right) at >=768px,
-   stacked on mobile with results pinned top, controls scrolling beneath.
-   DOM order is [results, controls] throughout (see Lab.tsx) — `column`
-   naturally puts the first child on top; `row-reverse` puts the first
-   child on the right, which is exactly "controls left, results right". */
+   stacked below it. DOM order (see Lab.tsx) is
+   [question, dial, results, controls]: `column` stacks them in exactly that
+   reading order on a phone, and the >=768px block below re-forms them as the
+   two-pane grid — DESIGN.md R3.4, whose two-pane wording this task's
+   registered edit restates as the grid formulation. */
 .ph-lab {
   display: flex;
   flex-direction: column;
@@ -12,28 +13,51 @@
   padding: var(--space-24);
 }
 
-/* MOBILE STICKINESS, REMOVED — T31, on measured evidence, flagged for the
-   controller.
-   T14 made this pane `position: sticky; top: 0` with an opaque --paper
-   background and --z-sticky, so the dial stayed on screen while the knobs
-   scrolled beneath it. That works only while the pane is a modest fraction of
-   the viewport. With T31's explanation layer (how-to-play panel, dial
-   caption, labelled CoefPlot, DataCut) the pane measures 998px on a 360x640
-   phone — taller than the viewport. A sticky flex item that tall does not
-   pin: it slides to the end of its containing block and, being opaque and
-   above --z-sticky, paints straight over its sibling. Measured at the bottom
-   of the document at 360x640: results box [-390, 608], controls box
-   [-802, 608], first radio at top -776 and NOT VISIBLE — i.e. the six knobs
-   were unreachable on a phone.
-   Static positioning fixes that with no DOM change and no second breakpoint.
-   What master spec §7.3 actually pins for this width is "stacked below"
-   (DESIGN.md R3.4 quotes it), which DOM order already satisfies — Lab.tsx
-   still renders results before controls. The cost is real and belongs on the
-   record: on mobile the dial is no longer on screen while a knob at the
-   bottom of the page is turned. Restoring it needs the dial ALONE to be the
-   sticky element, as a direct child of .ph-lab so its containing block spans
-   the controls too — a layout change that touches the >=768px two-pane rule
-   and so is the controller's call, not this task's. */
+/* T29 pin 10: the day's question, on the same screen as the instructions.
+   A hairline beneath (R4.4), nothing else — no fill, no second colour. */
+.ph-lab__question {
+  padding-block-end: var(--space-12);
+  border-block-end: var(--hairline);
+}
+
+.ph-lab__question-text {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+/* MOBILE STICKINESS, RESTORED — T29, on the controller's ruling, in the
+   adjudicated shape.
+   HISTORY. T14 made the whole RESULTS PANE `position: sticky; top: 0` with an
+   opaque --paper background and --z-sticky, so the dial stayed on screen
+   while the knobs scrolled beneath it. That works only while the sticky
+   element is a modest fraction of the viewport. With T31's explanation layer
+   (how-to-play panel, dial caption, labelled CoefPlot, DataCut) the pane
+   measured 998px on a 360x640 phone — taller than the viewport. A sticky flex
+   item that tall does not pin: it slides to the end of its containing block
+   and, being opaque and above --z-sticky, paints straight over its sibling.
+   Measured at the bottom of the document at 360x640: results box [-390, 608],
+   controls box [-802, 608], first radio at top -776 and NOT VISIBLE — the six
+   knobs were unreachable on a phone. T31 made the pane static, which fixed
+   that but cost §2.4's HP-bar mechanic: the dial was no longer on screen
+   while a knob at the bottom of the page was turned.
+   THE FIX. The sticky element is now the DIAL ALONE — numeral + n/df, ~85px
+   at 360w — hoisted to a direct child of .ph-lab so its containing block
+   spans the controls too. Everything that made the old block tall (the
+   caption, the two figures, the buttons) stays in .ph-lab__results, which is
+   static. KEEP THIS BLOCK SHORT: adding the caption back into it roughly
+   triples its height and recreates the original overlap bug. */
+.ph-lab__dial {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: var(--z-sticky);
+}
+
 .ph-lab__results {
   padding-block-end: var(--space-16);
   border-block-end: var(--hairline);
@@ -49,13 +73,20 @@
   border-block-end: var(--hairline);
 }
 
+/* R6.4 (T29 pin 4): a bare <summary> is a 13px line ~18px tall — nowhere
+   near the 44px floor. Padded on the space scale plus .ph-lab__collect's own
+   2px transparent border-block-end reserve, which is how every other target
+   in this file clears 44 without growing its type (12 + 18.2 + 12 + 2). */
 .ph-lab__intro-title {
   font-family: var(--font-ui);
   font-size: var(--text-13);
+  line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+  padding-block: var(--space-12);
+  border-block-end: 2px solid transparent;
   cursor: pointer;
 }
 
@@ -80,20 +111,26 @@
   color: var(--ink);
 }
 
+/* R6.4 + T29 pin 4: "Got it" read as a caption, not an action — --muted, no
+   affordance until hover, and 42px tall (24 padding + an unset line-height's
+   ~18px). Now: --ink and permanently underlined (R6.2's affordance idiom,
+   the same one .ph-about__link uses), a declared --leading-ui, and
+   .ph-lab__collect's 2px transparent border-block-end reserve, which clears
+   44 (12 + 21 + 12 + 2). */
 .ph-lab__intro-dismiss {
   margin-block-start: var(--space-12);
   font-family: var(--font-ui);
   font-size: var(--text-15);
-  color: var(--muted);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
   background: none;
   border-style: none;
+  border-block-end: 2px solid transparent;
   padding: var(--space-12) var(--space-16);
   padding-inline-start: 0;
   cursor: pointer;
-}
-
-.ph-lab__intro-dismiss:hover {
-  text-decoration: underline;
 }
 
 .ph-lab__intro-dismiss:focus-visible {
@@ -197,19 +234,43 @@
   outline-offset: var(--focus-offset);
 }
 
+/* R3.4's ONE breakpoint. The two-pane layout is a grid rather than
+   `row-reverse` (T29's registered edit to R3.4): row-reverse can only order
+   siblings, and the dial and the results are now two separate children that
+   must stack inside the SAME right-hand column while the controls span both
+   rows on the left. Row 1 is the full-width question header (pin 10), so the
+   two panes start at row 2 — the relationships the controller adjudicated
+   (dial above results in column 2; controls spanning every pane row in
+   column 1) are exactly preserved, one row lower. */
 @media (min-width: 768px) {
   .ph-lab {
-    flex-direction: row-reverse;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .ph-lab__question {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  /* Static above the breakpoint: on a desktop the dial and the knobs are
+     side by side already, so there is nothing for stickiness to buy. */
+  .ph-lab__dial {
+    position: static;
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .ph-lab__results {
-    flex: 1;
+    grid-column: 2;
+    grid-row: 3;
     padding-block-end: 0;
     border-block-end: none;
   }
 
   .ph-lab__controls {
-    flex: 1;
+    grid-column: 1;
+    grid-row: 2 / span 2;
   }
 }
