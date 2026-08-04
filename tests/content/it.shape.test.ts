@@ -22,6 +22,7 @@ import { copy as enCopy } from '../../src/content/en/copy';
 import { getContent } from '../../src/content';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import {
+  PRESS_SPOILER_LEXICON,
   emDashDensity,
   findEmDashProblems,
   findHarmTerms,
@@ -144,9 +145,30 @@ export const IT_NEGATIVE_DIRECTION_LEXICON = [
   'corte',
 ];
 
+/**
+ * The press spoiler law's vocabulary, Italian. **T39b MUST REPLACE THIS.**
+ *
+ * Fix round 1 [I1] made `pressSpoilerTerms` a required field of
+ * ContentLexicons and wired the press guards into the shared validator, so
+ * every locale's press is now checked for verdict vocabulary rather than only
+ * English's. Italian has no list of its own yet, and there is a precise reason
+ * that is currently harmless: all 24 Italian T39a blurbs are still ENGLISH
+ * placeholder text (see the debt tracker below), so the ENGLISH lexicon is
+ * exactly the right one to run against them today.
+ *
+ * The moment T39b writes real Italian, that stops being true — "ha replicato",
+ * "ritrattato", "smentito" would sail straight past every entry here. So T39b
+ * owns two jobs, not one: transcreate the 24 blurbs AND replace this alias with
+ * real Italian stems, the same way IT_HARM_LEXICON is real Italian and not a
+ * translation of the English list. The debt tracker below fails if the first
+ * job is done without the second being possible to forget.
+ */
+export const IT_PRESS_SPOILER_LEXICON_PENDING_T39B = PRESS_SPOILER_LEXICON;
+
 export const IT_LEXICONS: ContentLexicons = {
   harmTerms: IT_HARM_LEXICON,
   directionTerms: IT_NEGATIVE_DIRECTION_LEXICON,
+  pressSpoilerTerms: IT_PRESS_SPOILER_LEXICON_PENDING_T39B,
 };
 
 const enIds = enContent.scenarios.map((s) => s.id);
@@ -205,6 +227,49 @@ describe('Italian locale content', () => {
       const en = enContent.press[i];
       expect(blurb.tier).toBe(en.tier);
       expect(blurb.scenarioIds ?? null).toEqual(en.scenarioIds ?? null);
+    }
+  });
+
+  /**
+   * T39a's DECLARED TRANSCREATION DEBT, and the mechanism that keeps it from
+   * becoming permanent.
+   *
+   * T39a added 24 scenario-bound blurbs to the English bank. Structural press
+   * parity is a law of this suite (identical counts, tiers and scenarioIds
+   * index by index), and a law is not something a task gets to suspend for its
+   * own convenience — so the Italian entries exist NOW, with this locale's own
+   * mastheads already mapped in, and only their `text` still English. T39b
+   * transcreates them.
+   *
+   * The debt is therefore DATA, not a comment: an aliased blurb is exactly one
+   * whose Italian text is byte-identical to the English at the same index, and
+   * this test pins that set to the list below. It fails in BOTH directions,
+   * which is the property that makes it a tracker rather than a licence:
+   *
+   *   - T39b translates a blurb and forgets to shorten the list -> fail.
+   *   - Someone adds a 25th English-aliased blurb -> fail.
+   *   - T39b finishes the job -> the list is emptied and the test asserts, from
+   *     then on, that NO Italian blurb is ever left in English again.
+   *
+   * The list must only ever shrink. Note also what it proves about today: no
+   * blurb OUTSIDE it coincides with its English counterpart, so the pre-T39a
+   * bank is fully transcreated and this is the whole of the debt.
+   */
+  it('declares exactly the T39a press blurbs still awaiting transcreation, and no others', () => {
+    const PENDING_T39B_PRESS = [
+      6, 7, 8, 9, 10, 11, 12, // tier 1
+      20, 21, 22, 23, 24, 25, 26, 27, 28, // tier 2
+      37, 38, 39, 40, 41, 42, 43, 44, // tier 3
+    ];
+    const aliased = itContent.press.flatMap((blurb, i) => (blurb.text === enContent.press[i].text ? [i] : []));
+    expect(aliased).toEqual(PENDING_T39B_PRESS);
+  });
+
+  it('keeps the outlet mastheads Italian even where the blurb text is still pending', () => {
+    // The placeholders are half-done on purpose: the masthead is the part this
+    // locale had already decided, so T39b has one job per entry, not two.
+    for (const [i, blurb] of itContent.press.entries()) {
+      expect(blurb.outlet, `press[${i}] outlet`).not.toBe(enContent.press[i].outlet);
     }
   });
 

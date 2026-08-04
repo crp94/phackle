@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  PRESS_SALT_MARKER,
   altmetricPercentile,
   altmetricScore,
   confettiParticlesForTier,
@@ -10,10 +13,32 @@ import {
   substituteEffect,
 } from '../../src/game/published';
 import { content as enContent } from '../../src/content/en';
+import type { PressBlurb } from '../../src/content/types';
 import { JOURNALS } from '../../src/content/journals';
 import { TIER_FORKS } from '../../src/game/tuning';
 
 const ISO = '2026-08-10';
+const TIERS = [1, 2, 3] as const;
+
+/**
+ * The day's press exactly as src/ui/screens/Published.tsx assembles it: two
+ * cards at the day's tier, plus a tier-3-only chyron, with the second and third
+ * picks salting `iso` rather than passing an "exclude" list. That file is owned
+ * by another task and is NOT edited here, so this helper is a MIRROR of it —
+ * and the source-scan test at the bottom of this describe block is what keeps
+ * the mirror honest: it reads Published.tsx and fails if the three call sites
+ * ever stop using these exact seeds.
+ */
+function pressForDay(press: PressBlurb[], tier: 1 | 2 | 3, scenarioId: string, iso: string): PressBlurb[] {
+  const card1 = pickPress(press, tier, scenarioId, iso);
+  const card2 = pickPress(press, tier, scenarioId, `${iso}#2`);
+  const chyron = tier === 3 ? pickPress(press, 3, scenarioId, `${iso}#chyron`) : null;
+  return chyron ? [card1, card2, chyron] : [card1, card2];
+}
+
+const isBoundTo = (blurb: PressBlurb, scenarioId: string) => blurb.scenarioIds?.includes(scenarioId) ?? false;
+const boundAt = (scenarioId: string, tier: 1 | 2 | 3) =>
+  enContent.press.filter((p) => p.tier === tier && isBoundTo(p, scenarioId));
 
 describe('egregiousnessTier (tuning.TIER_FORKS: polite=3, editorsPick=10)', () => {
   it.each([
@@ -197,7 +222,10 @@ describe('pickPress (T6 review adoption: prefer scenario-bound, tier-matched; el
   });
 
   it('falls back to the scenario-agnostic tier-matched pool when no scenario-bound blurb exists at this tier', () => {
-    // 'sourdough-marathon' has no scenario-bound press blurb at any tier.
+    // T39a gave 'sourdough-marathon' a bound blurb at tier 2 (the flour co-op
+    // line) and deliberately none at tier 1: a tier is a VOICE, not a volume
+    // knob, and not every scenario's material is funny read straight by a
+    // broadsheet. Tier 1 is therefore still a genuine fallback case here.
     const picked = pickPress(enContent.press, 1, 'sourdough-marathon', ISO);
     expect(picked.tier).toBe(1);
     expect(picked.scenarioIds ?? []).toHaveLength(0);
@@ -228,5 +256,183 @@ describe('pickPress (T6 review adoption: prefer scenario-bound, tier-matched; el
       Array.from({ length: 20 }, (_, i) => pickPress(enContent.press, 2, 'sourdough-marathon', `${ISO}#${i}`).text)
     );
     expect(picks.size).toBeGreaterThan(1);
+  });
+});
+
+describe('T39a — the day-is-covered-by-name guarantee (owner directive from play-testing)', () => {
+  const ISOS = ['2026-01-01', '2026-08-10', '2026-11-30', '2027-03-03', '2027-12-25'];
+
+  it('gives every scenario at least one blurb that names it, at some tier', () => {
+    for (const scenario of enContent.scenarios) {
+      const bound = enContent.press.filter((p) => isBoundTo(p, scenario.id));
+      expect(bound.length, `scenario "${scenario.id}" has no bound blurb`).toBeGreaterThan(0);
+    }
+  });
+
+  it("includes a scenario-bound blurb in the day's press whenever the bank holds one at the day's tier", () => {
+    let checkedCells = 0;
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        if (boundAt(scenario.id, tier).length === 0) continue;
+        checkedCells += 1;
+        for (const iso of ISOS) {
+          const day = pressForDay(enContent.press, tier, scenario.id, iso);
+          expect(
+            day.some((b) => isBoundTo(b, scenario.id)),
+            `${scenario.id} @ tier ${tier} on ${iso} ran generic coverage despite a bound blurb existing`
+          ).toBe(true);
+        }
+      }
+    }
+    // Guards the guard: a bug that emptied every `scenarioIds` would make the
+    // loop above vacuously true, and would yield 0 here. 26 is today's count of
+    // (scenario, tier) cells that HAVE a bound blurb -- 20 scenarios x 3 tiers
+    // = 60 cells, of which T39a fills 26. See the task report for why not 60.
+    //
+    // [M2] A FLOOR, not an equality: adding coverage is the direction this
+    // number is supposed to move, and a test that fails when someone writes a
+    // 27th bespoke blurb would punish exactly the work it exists to encourage.
+    // Vacuity is still fully guarded -- an emptied scenarioIds gives 0.
+    expect(checkedCells).toBeGreaterThanOrEqual(26);
+  });
+
+  it("does not repeat that blurb across the day's other cards: follow-ups take the generic pool", () => {
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        if (boundAt(scenario.id, tier).length === 0) continue;
+        for (const iso of ISOS) {
+          const [card1, ...followUps] = pressForDay(enContent.press, tier, scenario.id, iso);
+          expect(isBoundTo(card1, scenario.id)).toBe(true);
+          for (const blurb of followUps) {
+            expect(
+              blurb.scenarioIds ?? [],
+              `${scenario.id} @ tier ${tier} on ${iso} repeated a bound blurb in a follow-up slot`
+            ).toHaveLength(0);
+            expect(blurb.text).not.toBe(card1.text);
+          }
+        }
+      }
+    }
+  });
+
+  /**
+   * [M1] The day's three items are pairwise distinct, for EVERY scenario and
+   * tier, not only the covered cells the test above walks.
+   *
+   * "Where pools allow" is asserted rather than assumed: the first expectation
+   * proves each tier's generic pool has room for three simultaneous picks, so a
+   * duplicate below is a seeding defect and never a content shortage.
+   *
+   * This is the test that fails against the old index math. `fnv1a32`'s low bit
+   * is the input's byte parity, so which slot collided with which was decided
+   * by how many characters "#2" and "#chyron" happen to have -- card 1 and the
+   * chyron collided on 17.9% of tier-3 days. Mixing the hash alone does not fix
+   * it either: it just redistributes the collisions (card 2 vs chyron 0.0% ->
+   * 16.5%, overall 12.9% -> 17.0%). Only rotating each slot by its own index
+   * makes a same-pool collision arithmetically impossible.
+   */
+  it('renders three pairwise-distinct items on every day, at every tier', () => {
+    for (const tier of TIERS) {
+      const generic = enContent.press.filter((p) => p.tier === tier && !p.scenarioIds?.length);
+      expect(generic.length, `tier ${tier} generic pool must have room for 3 simultaneous picks`).toBeGreaterThanOrEqual(3);
+    }
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const day = pressForDay(enContent.press, tier, scenario.id, iso);
+          const texts = day.map((b) => b.text);
+          expect(new Set(texts).size, `${scenario.id} @ tier ${tier} on ${iso} repeated a blurb: ${texts.join(' | ')}`).toBe(
+            texts.length
+          );
+        }
+      }
+    }
+  });
+
+  it('is the SALT, not the call order, that distinguishes a follow-up (no fourth parameter was added)', () => {
+    // The mechanism in one assertion: identical arguments except for the salt
+    // marker, opposite pools. cat-crypto at tier 1 is the clearest case -- one
+    // bound blurb, five generic ones.
+    const first = pickPress(enContent.press, 1, 'cat-crypto', ISO);
+    const followUp = pickPress(enContent.press, 1, 'cat-crypto', `${ISO}${PRESS_SALT_MARKER}2`);
+    expect(first.scenarioIds).toContain('cat-crypto');
+    expect(followUp.scenarioIds ?? []).toHaveLength(0);
+  });
+
+  it('never hands a follow-up a blurb bound to a DIFFERENT scenario, even when its own pool is empty', () => {
+    // The inverted preference must not become a hole in the scenarioIds law.
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          for (const blurb of pressForDay(enContent.press, tier, scenario.id, iso)) {
+            for (const id of blurb.scenarioIds ?? []) {
+              expect(id, `${scenario.id} @ tier ${tier} on ${iso} leaked "${id}"`).toBe(scenario.id);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps every pick at the requested tier, bound or generic', () => {
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const [card1, card2, chyron] = pressForDay(enContent.press, tier, scenario.id, iso);
+          expect(card1.tier).toBe(tier);
+          expect(card2.tier).toBe(tier);
+          if (chyron) expect(chyron.tier).toBe(3);
+        }
+      }
+    }
+  });
+
+  it("is deterministic: the same day yields the same three items, in the same order", () => {
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        const a = pressForDay(enContent.press, tier, scenario.id, ISO).map((b) => b.text);
+        const b = pressForDay(enContent.press, tier, scenario.id, ISO).map((x) => x.text);
+        expect(a).toEqual(b);
+      }
+    }
+  });
+
+  it('still varies the generic slots across dates, so repeat plays are not identical', () => {
+    const isos = Array.from({ length: 40 }, (_, i) => `2026-09-${String((i % 30) + 1).padStart(2, '0')}`);
+    const secondCards = new Set(isos.map((iso) => pickPress(enContent.press, 2, 'jazz-spreadsheets', `${iso}#2`).text));
+    expect(secondCards.size).toBeGreaterThan(1);
+  });
+
+  it('falls back to the bound pool for a follow-up if a tier ever loses its generic blurbs', () => {
+    // The preference is a preference on BOTH sides. A synthetic bank with no
+    // generic tier-1 entry must still answer a salted call rather than crash.
+    const boundOnly: PressBlurb[] = [
+      { text: 'A', outlet: 'Morning Chirp', tier: 1, scenarioIds: ['cat-crypto'] },
+      { text: 'B', outlet: 'Morning Chirp', tier: 1, scenarioIds: ['cat-crypto'] },
+    ];
+    const picked = pickPress(boundOnly, 1, 'cat-crypto', `${ISO}#2`);
+    expect(['A', 'B']).toContain(picked.text);
+  });
+
+  /**
+   * The guarantee lives in pickPress, but it is only a guarantee about the
+   * SCREEN if the screen still seeds its three calls the way pressForDay above
+   * assumes. Published.tsx belongs to another task and is not edited here, so
+   * this reads its source instead -- the same regex-over-source-text idiom
+   * tests/content/copyFreeze.test.ts and tests/ui/tokens.test.ts already use.
+   */
+  it('matches the three call sites src/ui/screens/Published.tsx actually uses', () => {
+    const source = readFileSync(
+      fileURLToPath(new URL('../../src/ui/screens/Published.tsx', import.meta.url)),
+      'utf8'
+    );
+    const calls = source.match(/pickPress\([^)]*\)/g) ?? [];
+    expect(calls).toHaveLength(3);
+    // The first pick is UNSALTED -- that is what makes it the day's guaranteed
+    // scenario-bound card. The other two carry PRESS_SALT_MARKER.
+    expect(calls[0]).toContain(', iso)');
+    expect(calls[0]).not.toContain(PRESS_SALT_MARKER);
+    expect(calls[1]).toContain(`\${iso}${PRESS_SALT_MARKER}2`);
+    expect(calls[2]).toContain(`\${iso}${PRESS_SALT_MARKER}chyron`);
   });
 });

@@ -114,28 +114,106 @@ export function pickJournal(tags: string[], iso: string): { name: string } {
 }
 
 /**
- * Press picker (T6 review adoption). Prefers a blurb whose `scenarioIds`
- * names today's scenario AND matches `tier`; falls back to the
- * scenario-agnostic pool at that same tier (blurbs with no `scenarioIds` at
- * all) so a blurb written for a DIFFERENT scenario never leaks in (that is
- * exactly what PressBlurb.scenarioIds exists to prevent — see
- * src/content/types.ts's own doc comment: "a fern chyron could run over a
- * sourdough study"). Deterministic via `fnv1a32(iso + tier)`.
+ * The salt marker a caller appends to `iso` when it wants a SECOND, usually
+ * distinct blurb for the same day (Published's 2nd press card, `${iso}#2`, and
+ * its tier-3 chyron, `${iso}#chyron`). Salting the seed argument was already
+ * the house idiom — it is how the callers avoid this function growing a
+ * bespoke "exclude" parameter — and T39a promotes it from a seeding trick to
+ * a documented part of the contract, because pickPress now has to tell the
+ * day's FIRST pick from its follow-ups (see below).
  *
- * Callers needing a second, usually-distinct pick (Published's 2nd press
- * card, and the tier-3 chyron blurb) salt the `iso` argument itself (e.g.
- * `` `${iso}#2` ``) rather than this function growing a bespoke "exclude"
- * parameter — still a pure, deterministic function of its four arguments.
+ * Unambiguous by construction: `isoFromPuzzleNumber` emits `YYYY-MM-DD` and a
+ * calendar date has no '#' in it, so `iso.includes(PRESS_SALT_MARKER)` is
+ * exactly "this is a follow-up pick", never a false positive on a real date.
+ */
+export const PRESS_SALT_MARKER = '#';
+
+/**
+ * The day's three press slots, in the order Published renders them, keyed by
+ * the salt each one appends to `iso`. Position in this array IS the slot's
+ * rotation offset within its pool (see pickPress) — which is what makes the
+ * three items pairwise distinct by construction instead of by luck.
+ *
+ * Fix round 1 [M1]. The reviewer found that `fnv1a32`'s low bit is just the
+ * input's byte parity, so two salted seeds of the same parity can never land on
+ * opposite halves of an even-sized pool: card 1 and the chyron collided on
+ * 17.9% of tier-3 days, and card 2 and the chyron on 0.0% — neither number
+ * designed, both artifacts of how many characters "#2" and "#chyron" happen to
+ * have. Mixing the hash better (below) removes the correlation but replaces one
+ * artifact with honest independent draws, which still collide: measured, the
+ * mixing alone moves the day's overall duplicate rate from 12.9% to 17.0%
+ * (card 2 vs chyron 0.0% -> 16.5%). Independence is not the goal; DISTINCTNESS
+ * is. Rotating each slot by its own index makes a same-pool collision
+ * arithmetically impossible whenever the pool has room, measured at 0.0%.
+ *
+ * The cost, stated plainly: on a day where all three slots draw from the same
+ * pool, they are three CONSECUTIVE pool entries rather than three independent
+ * ones, so that day has `poolSize` possible presentations instead of
+ * `poolSize³`. That trade is worth taking — which three of six generic chyrons
+ * appear is imperceptible, whereas the same line printed twice on one screen is
+ * the defect this whole mechanism exists to prevent.
+ */
+const PRESS_SLOT_SALTS = ['', `${PRESS_SALT_MARKER}2`, `${PRESS_SALT_MARKER}chyron`];
+
+/**
+ * Press picker (T6 review adoption; T39a guarantee).
+ *
+ * THE T39a GUARANTEE. Owner directive from play-testing: "Can we do the
+ * 'simulated press' page a bit more game-dependent? so at least some of the
+ * news are related to the research question of the game." Every scenario now
+ * ships at least one scenario-bound blurb (src/content/en/index.ts), and the
+ * guarantee lives HERE rather than at the call sites: whenever the bank holds
+ * a blurb bound to today's scenario at today's tier, the day's FIRST pick — the
+ * unsalted one, Published's first press card — is one of them. The call sites
+ * pass the scenarioId already and need no change.
+ *
+ * WHY THE FOLLOW-UPS INVERT THE PREFERENCE. Before T39a only two scenarios had
+ * bound blurbs, so "both picks prefer the bound pool" was harmless: the
+ * pool-of-one collision the second card could land in was rare enough for
+ * Published.tsx's own comment to wave at ("harmless on the rare pool-of-one
+ * day"). With every scenario bound, that rare case becomes the COMMON case —
+ * the same blurb printed two or three times on the same screen, every day.
+ * So a follow-up pick (a salted `iso`) prefers the scenario-AGNOSTIC pool
+ * instead, which turns a probabilistic near-collision into a structural
+ * distinction: card 1 names the study, cards 2/3 give it generic coverage.
+ *
+ * Each preference is a preference, not a filter: either side falls back to the
+ * other when its own pool is empty, so a tier with no bound blurb for today
+ * still yields a first card, and a hypothetical tier with no agnostic blurb
+ * still yields a follow-up. What NEVER happens either way is a blurb bound to a
+ * DIFFERENT scenario leaking in — that is exactly what PressBlurb.scenarioIds
+ * exists to prevent (see src/content/types.ts: "a fern chyron could run over a
+ * sourdough study"), and neither branch ever reaches for one.
+ *
+ * Still a pure, deterministic function of its four arguments: same
+ * (bank, tier, scenarioId, iso) always yields the same blurb.
+ *
+ * SEEDING (fix round 1 [M1]). The day's hash is taken from the UNSALTED date,
+ * so all three slots share one base draw, and the slot's own position in
+ * PRESS_SLOT_SALTS rotates it. `fnv1a32` itself is left spec-verbatim
+ * (Appendix A) — the extra `h ^ (h >>> 15)` avalanche happens here, at the
+ * consumer, where a weak low bit actually matters. An unregistered salt still
+ * works: it falls back to a hash-derived offset, which is best-effort variety
+ * rather than a distinctness guarantee, and is documented as such.
  */
 export function pickPress(press: PressBlurb[], tier: EgregiousnessTier, scenarioId: string, iso: string): PressBlurb {
   const tierMatched = press.filter((p) => p.tier === tier);
-  const preferred = tierMatched.filter((p) => p.scenarioIds?.includes(scenarioId));
+  const bound = tierMatched.filter((p) => p.scenarioIds?.includes(scenarioId));
   const agnostic = tierMatched.filter((p) => !p.scenarioIds || p.scenarioIds.length === 0);
-  const pool = preferred.length > 0 ? preferred : agnostic;
+  const cut = iso.indexOf(PRESS_SALT_MARKER);
+  const isFollowUp = cut !== -1;
+  const day = isFollowUp ? iso.slice(0, cut) : iso;
+  const salt = isFollowUp ? iso.slice(cut) : '';
+  const preferred = isFollowUp ? agnostic : bound;
+  const fallback = isFollowUp ? bound : agnostic;
+  const pool = preferred.length > 0 ? preferred : fallback;
   // Defensive backstop (content guarantees every tier has >=1 agnostic
   // blurb): widen rather than crash if some future edit ever left a tier
-  // with only scenario-bound entries.
+  // with neither a bound nor an agnostic entry for this scenario.
   const safePool = pool.length > 0 ? pool : tierMatched.length > 0 ? tierMatched : press;
-  const idx = fnv1a32(iso + String(tier)) % safePool.length;
+  const h = fnv1a32(day + String(tier));
+  const known = PRESS_SLOT_SALTS.indexOf(salt);
+  const offset = known !== -1 ? known : fnv1a32(salt);
+  const idx = (((h ^ (h >>> 15)) >>> 0) + offset) % safePool.length;
   return safePool[idx];
 }
