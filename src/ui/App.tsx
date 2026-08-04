@@ -27,6 +27,7 @@ import type { CopyKey } from '../content/en/copy';
 import { gameStore, useGameStore } from '../game/store';
 import { createEngineClient } from '../game/engineClient';
 import { isPractice, localIsoDate } from '../game/daily';
+import { JOURNAL_VOLUME } from './masthead';
 import StatsScreen from './screens/Stats';
 import LegendScreen from './screens/Legend';
 import AboutScreen from './screens/About';
@@ -101,7 +102,9 @@ export default function App({ puzzleNumber, children }: AppProps) {
         <p className="ph-header__masthead">
           {/* The wordmark is the one permitted raw string besides emoji. */}
           <span className="ph-header__wordmark">P-hackle</span>
-          <span className="ph-header__vol">{t('briefing.vol', { volume: 1, issue: displayedPuzzleNumber })}</span>
+          <span className="ph-header__vol">
+            {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: displayedPuzzleNumber })}
+          </span>
         </p>
         <div className="ph-header__controls">
           <div className="ph-header__nav">

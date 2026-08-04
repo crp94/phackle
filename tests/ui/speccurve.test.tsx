@@ -21,6 +21,7 @@ import {
   formatP,
   bandLabel,
   geometryFor,
+  leaderAnchorX,
   nearestIndex,
   recipeLabel,
   recipeLabelCompact,
@@ -190,6 +191,51 @@ describe('§7.4 / R6.3 point classing', () => {
     const { container } = renderCurve({ points: [point(0.02), point(0.6)] });
     expect(container.querySelector('[data-role="callout"]')).toBeNull();
     expect(container.querySelector('[data-role="leader"]')).toBeNull();
+  });
+
+  // T16 deferred minor, closed by T29 pin 5. The leader used to start at
+  // `calloutX` = padLeft + 4, while the published path — almost always the
+  // day's lowest p, i.e. rank 0 — lands at padLeft + plotInset = padLeft + 12.
+  // Eight pixels of run over ~200 of rise is a red line parallel to the
+  // y-axis: it reads as axis furniture, not as a pointer.
+  describe('T29 pin 5 — the leader is a diagonal, not axis furniture', () => {
+    const geom = SPEC_CURVE_GEOM;
+
+    it('anchors ~40% across the plot at the common rank-0 published point', () => {
+      const publishedX = geom.padLeft + geom.plotInset; // rank 0
+      const anchor = leaderAnchorX(publishedX, geom);
+      expect(anchor).toBeCloseTo(geom.padLeft + geom.plotWidth * 0.4, 6);
+      // A real diagonal: the run is a substantial fraction of the plot, not
+      // the 8px the old anchor produced.
+      expect(Math.abs(anchor - publishedX)).toBeGreaterThan(geom.plotWidth * 0.25);
+    });
+
+    it('steps aside when the published point sits under that anchor', () => {
+      const publishedX = geom.padLeft + geom.plotWidth * 0.4; // right on it
+      const anchor = leaderAnchorX(publishedX, geom);
+      expect(anchor).toBeCloseTo(geom.padLeft + geom.plotWidth * 0.12, 6);
+      expect(Math.abs(anchor - publishedX)).toBeGreaterThan(geom.plotWidth * 0.25);
+    });
+
+    it('never leaves a run shorter than 12% of the plot width, wherever the path published', () => {
+      for (let f = 0; f <= 1.0001; f += 0.02) {
+        const publishedX = geom.padLeft + geom.plotWidth * f;
+        const run = Math.abs(leaderAnchorX(publishedX, geom) - publishedX);
+        expect(run, `published at ${(f * 100).toFixed(0)}% of the plot`).toBeGreaterThanOrEqual(
+          geom.plotWidth * 0.12 - 1e-9
+        );
+      }
+    });
+
+    it('renders the line from that anchor, in the real figure', () => {
+      const { container } = renderCurve({ points });
+      const leader = container.querySelector('[data-role="leader"]') as SVGLineElement;
+      const dot = container.querySelector('.ph-speccurve__dot--published') as SVGCircleElement;
+      const publishedX = Number(dot.getAttribute('cx'));
+      expect(Number(leader.getAttribute('x1'))).toBeCloseTo(leaderAnchorX(publishedX, geom), 6);
+      // ...and it is no longer parallel to the y-axis.
+      expect(Math.abs(Number(leader.getAttribute('x1')) - publishedX)).toBeGreaterThan(geom.plotWidth * 0.1);
+    });
   });
 });
 

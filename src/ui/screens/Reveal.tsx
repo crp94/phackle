@@ -21,6 +21,7 @@ import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { JOURNAL_VOLUME } from '../masthead';
 import { Stamp } from '../components/Stamp';
 import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve';
 import type { CopyKey } from '../../content/en/copy';
@@ -276,7 +277,11 @@ export function Reveal() {
             the Published screen owns the real JournalCover. */}
         <div className="ph-reveal__cover">
           <div className="ph-reveal__cover-card" data-role="cover-echo">
-            <p className="ph-reveal__cover-vol">{t('briefing.vol', { volume: 1, issue: puzzleNumber })}</p>
+            {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
+                never a second literal — see src/ui/masthead.ts. */}
+            <p className="ph-reveal__cover-vol">
+              {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
+            </p>
             <p className="ph-reveal__cover-title">{scenario.question}</p>
           </div>
           <div className="ph-reveal__stamp">
