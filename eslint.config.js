@@ -52,6 +52,15 @@ export default tseslint.config(
     },
   },
   {
+    // T23: the Playwright suite and its config run in NODE (process.env, the
+    // test runner's own globals) while also containing browser-side
+    // `page.evaluate` callbacks — so both global sets are legal here. The
+    // src/** Math.random ban above deliberately does not extend to this
+    // directory: nothing here is part of the shipped, seeded game.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     // Engine purity: src/engine/** may depend on its own modules and on
     // src/game/tuning.ts (pure constants) only — never react, ui, game (besides
     // tuning), i18n or content — and never touch the wall clock.
