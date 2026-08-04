@@ -32,10 +32,17 @@ jobs:
       - run: npm ci
 
       # scripts/simulate_calibration.ts exits non-zero (process.exit(1)) the
-      # moment any ASSERTED §3.9 band misses; GitHub Actions' default bash
-      # `run:` shell already sets `-o pipefail`, so that exit code survives
-      # the `tee` below instead of being swallowed by it.
+      # moment any ASSERTED §3.9 band misses. That exit code must survive the
+      # `tee` below, or a real band failure reports GREEN on this unwatched
+      # weekly cron. GitHub Actions' UNSPECIFIED default shell is plain
+      # `bash -e {0}` — NO `pipefail` — so without an explicit `shell:` here
+      # `npm run cal | tee ...` would silently swallow a non-zero `npm run
+      # cal` behind `tee`'s own (near-always-zero) exit code. `pipefail` is
+      # only added when `shell: bash` is declared explicitly (GitHub's own
+      # workflow-syntax docs: unspecified = `bash -e {0}`, explicit `bash` =
+      # `bash --noprofile --norc -eo pipefail {0}`), so it is declared here.
       - name: calibration (5 bands, 500 null + 500 effect synthetic days)
+        shell: bash
         run: npm run cal | tee calibration-report.txt
 
       - name: upload calibration report
