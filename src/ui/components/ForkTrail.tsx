@@ -23,6 +23,7 @@ import { useLocale } from '../../i18n/LocaleProvider';
 import { FORK_EMOJI } from '../../game/share';
 import { classifyChange } from '../../game/forkLog';
 import { LEGEND_ENTRIES } from '../screens/Legend';
+import { GlyphMark } from './GlyphMark';
 import type { PlayerAction, Spec } from '../../engine/types';
 import './ForkTrail.css';
 
@@ -159,7 +160,7 @@ function TrailKey() {
         <span className="ph-fork-trail__popover" id={popoverId} role="tooltip" data-testid="fork-trail-popover">
           {LEGEND_ENTRIES.map((entry) => (
             <span className="ph-fork-trail__popover-row" key={entry.labelKey}>
-              <span className="ph-fork-trail__popover-glyph">{entry.glyph}</span>
+              <GlyphMark glyph={entry.glyph} className="ph-fork-trail__popover-glyph" />
               <span className="ph-fork-trail__popover-label">{t(entry.labelKey)}</span>
             </span>
           ))}

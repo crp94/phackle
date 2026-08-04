@@ -87,6 +87,21 @@ describe('Legend component — renders the mapping + copy keys only', () => {
     expect(container.textContent).not.toContain('streak 12');
   });
 
+  // T34 (owner play-test finding, "when using two emojis... make sure the
+  // text does not overlap" — the concrete instance being CALL_CORRECT/
+  // CALL_INCORRECT, ⚖️✅/⚖️❌, a scale + a check/cross): every glyph routes
+  // through GlyphMark, which adds letter-spacing independent of the row's
+  // own flex `gap`. This is a regression guard against a future edit
+  // reverting to a bare `{entry.glyph}` text node.
+  it('renders every glyph through GlyphMark (ph-glyph-mark), not a bare text node', () => {
+    const { container } = render(<Legend t={t} />);
+    const glyphSpans = container.querySelectorAll('.ph-legend__glyph');
+    expect(glyphSpans).toHaveLength(LEGEND_ENTRIES.length);
+    glyphSpans.forEach((span) => {
+      expect(span.classList.contains('ph-glyph-mark')).toBe(true);
+    });
+  });
+
   it('calls onClose when the close button is activated, and labels it via a11y.closeDialog', () => {
     const onClose = vi.fn();
     render(<Legend t={t} onClose={onClose} />);
