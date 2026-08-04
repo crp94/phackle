@@ -164,8 +164,15 @@ describe('Published: journal cover wiring', () => {
     expect(JOURNALS.some((j) => j.name === expectedJournal)).toBe(true);
 
     renderPublished();
-    await waitFor(() => expect(document.documentElement.lang).toBe('it'));
-    expect(screen.getByText(expectedJournal)).toBeTruthy();
+    // T19: wait for CONTENT, not for the <html lang> attribute. LocaleProvider
+    // sets lang as soon as the locale is *detected*, one tick before
+    // getContent() resolves; that gap was invisible while 'it' aliased the
+    // already-imported English module and became a real (empty-render) race the
+    // moment src/content/it/ shipped as its own dynamic import. The lang
+    // assertion is kept below, so this still proves the masthead is English
+    // while the app is genuinely running in Italian.
+    await waitFor(() => expect(screen.getByText(expectedJournal)).toBeTruthy());
+    expect(document.documentElement.lang).toBe('it');
   });
 });
 

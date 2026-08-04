@@ -9,8 +9,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
-import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
+import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
 import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
@@ -163,14 +163,12 @@ describe('theme toggle', () => {
 });
 
 describe('locale toggle', () => {
-  // AVAILABLE_LOCALES grows as real content ships (T19 appends 'it', T20
-  // appends 'es'), so this asserts the CONTRACT the header actually has —
-  // the toggle appears exactly when there is more than one language to
-  // choose, and then lists every one of them — instead of freezing the
-  // array's length on the day the test was written. The single-locale branch
-  // it used to cover is now pinned directly on the component just below,
-  // where it cannot go stale.
-  it('mirrors AVAILABLE_LOCALES: hidden at one locale, one button per locale beyond that', async () => {
+  // T19 (Italian shipped, so AVAILABLE_LOCALES is no longer a single entry):
+  // this used to assert the toggle stays hidden, which was a statement about
+  // the locale list's CURRENT length rather than about the App's behaviour.
+  // Phrased against the list itself, it holds for ['en'], ['en','it'] and
+  // ['en','it','es'] alike, so neither transcreation landing can falsify it.
+  it('renders the toggle in the real App exactly when AVAILABLE_LOCALES has more than one entry', async () => {
     render(
       <LocaleProvider>
         <App puzzleNumber={1} />
@@ -182,13 +180,8 @@ describe('locale toggle', () => {
       expect(screen.queryByRole('group')).toBeNull();
       return;
     }
-    const buttons = within(screen.getByRole('group')).getAllByRole('button');
-    expect(buttons.map((b) => b.textContent)).toEqual(AVAILABLE_LOCALES.map((loc) => loc.toUpperCase()));
-  });
-
-  it('stays hidden when only one locale is available', () => {
-    render(<LocaleToggle locales={['en']} locale="en" setLocale={vi.fn()} t={(key) => key} />);
-    expect(screen.queryByRole('group')).toBeNull();
+    const group = screen.getByRole('group');
+    expect(within(group).getAllByRole('button')).toHaveLength(AVAILABLE_LOCALES.length);
   });
 
   it('renders one button per locale once more than one is available', () => {
