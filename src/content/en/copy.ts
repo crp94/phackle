@@ -661,7 +661,15 @@ export const copy: Record<CopyKey, string> = {
   // above for why these are 'emoji'-infixed and distinct from the 5 keys
   // just above (T16's SpecCurve chart legend).
   'legend.intro': 'How to read a shared result.',
-  'legend.emojiSpec': 'Any specification change (outcome, covariates or transform)',
+  // T29 fix round: 🍴 is now the ONLY in-trail glyph for a spec change —
+  // share.ts's FORK_EMOJI collapsed subgroup/exclusion/tails onto it, and the
+  // Legend deduplicates by glyph, so this one row is the only place the key
+  // explains any of them. Its parenthetical therefore names all six knobs, in
+  // the order Spec declares them (src/engine/types.ts). The three keys below
+  // it are no longer rendered anywhere; they stay in the union because every
+  // locale's Record<CopyKey, string> must still be total.
+  'legend.emojiSpec':
+    'Any specification change (outcome, subgroup, covariates, outlier exclusion, transform or one-tailed switch)',
   'legend.emojiSubgroup': 'Subgroup filter change',
   'legend.emojiExclusion': 'Outlier exclusion change',
   'legend.emojiTails': 'Switched to one-tailed',

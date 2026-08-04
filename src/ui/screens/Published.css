@@ -147,11 +147,20 @@
    channel, closed by a vertical hairline — a single edge, which R4.4/R4.5
    permit (R4.5 bars four sides and the `border` shorthand) — and the band
    reads as a broadcast lower third.
-   BELOW it the badge stacks ABOVE the headline instead. Measured at 360
-   (task-T29-shots/published-tier3-360-paper-after.png, kept as the evidence):
-   the channel costs ~94px of a 312px column, which pushed a shipped
-   all-caps chyron line to seven --text-28 lines in a ~180px gutter. A lower
-   third that narrow is not a lower third. */
+   BELOW it the badge stacks ABOVE the headline instead. Why: the first cut
+   used the badge channel at EVERY width, and measured at 360 the channel
+   cost ~94px of a 312px column, which pushed a shipped all-caps chyron line
+   to seven --text-28 lines in a ~180px gutter. A lower third that narrow is
+   not a lower third.
+   EVIDENCE, stated honestly (T29 fix round). This comment used to cite
+   task-T29-shots/published-tier3-360-paper-after.png as showing that defect.
+   It does not: the final capture run overwrote the before-shots, so every
+   published-tier3 shot in that directory shows the FIXED stacked layout at
+   360 and the channel only at >=768. The seven-line measurement above was
+   taken from the pre-fix build during the capture pass and is not backed by
+   any surviving image — no shot in the set shows it. The regression guard
+   that IS mechanical is the R3.4 one-breakpoint grep gate plus this rule's
+   own media query. */
 @media (min-width: 768px) {
   .ph-chyron {
     grid-template-columns: auto 1fr;

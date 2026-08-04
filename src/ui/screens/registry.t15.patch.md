@@ -66,7 +66,22 @@ Then replace the two stub entries in the `SCREENS` map:
   `children` (content non-null). No change to `App.tsx` or `main.tsx` is
   needed beyond wiring the registry itself.
 - `Published`'s "Face the truth" overlay reaches `SCREENS.call` through its
-  own `loadCallScreenFromRegistry` (a fully dynamic, `/* @vite-ignore */`
-  import of `./registry` — see that file's own header comment for why), so
-  it will pick up whatever `call` ends up wired to (T16's real `Call.tsx`,
-  once merged) with no further change on this task's side.
+  own `loadCallScreenFromRegistry`, so it will pick up whatever `call` ends
+  up wired to (T16's real `Call.tsx`, once merged) with no further change on
+  this task's side.
+
+  **CORRECTED — T29 fix round. Do not reinstate the pattern this bullet used
+  to recommend.** It described that loader as "a fully dynamic,
+  `/* @vite-ignore */` import of `./registry`" and treated the ignore pragma
+  as the way to reference a module that did not exist yet. That was true only
+  while `registry.ts` was genuinely absent. Once the controller's merge made
+  the module real, the pragma became a **shipping blocker**: an unanalyzable
+  specifier is never rewritten to the built chunk's content-hashed URL, so in
+  a production build the request resolved to `/assets/registry`, 404'd, hit
+  the loader's `catch` and returned `null` — "Face the truth" opened an empty
+  overlay, and jsdom could not see it because the tests inject their own
+  loader. `Published.tsx` now uses a plain literal `import('./registry')`
+  (the Published -> registry -> Published cycle is harmless because the
+  import is dynamic), and `tests/ui/tokens.test.ts` fails the build if the
+  pragma reappears anywhere under `src/**`. This file is exempt from that
+  scan only because it has to name the pragma in order to warn about it.

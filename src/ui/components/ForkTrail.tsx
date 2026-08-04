@@ -57,9 +57,13 @@ function buildLiveTrail(log: PlayerAction[], prereg: boolean): string {
 }
 
 /**
- * The key, where the symbols are (T29 pin 11-NEW-b). Opens on hover (pointer),
- * on focus (keyboard) and on click/tap (touch, which fires no hover); closes
- * on pointer-leave, on blur out of the whole control, and on Escape.
+ * The key, where the symbols are (T29 pin 11-NEW-b). Opens on hover (mouse),
+ * on focus (keyboard) and on click/tap (touch); closes on pointer-leave, on
+ * blur out of the whole control, and on Escape.
+ *
+ * The original note here said touch "fires no hover". It does — see the
+ * fix-round comment inside the component for the compatibility-event
+ * sequence a first tap really produces, and the two guards that handle it.
  *
  * Surface follows the SpecCurve tooltip's precedent exactly (DESIGN.md R4.1/
  * R4.2/R4.4): --paper background, a hairline top and bottom, no fill of its
@@ -73,10 +77,37 @@ function TrailKey() {
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const popoverId = useId();
 
+  // T29 FIX ROUND — touch robustness. Hover (open) and click (toggle) are
+  // bound to the SAME control, and a mobile browser fires a compatibility
+  // `mouseenter` immediately BEFORE the `click` of a first tap: hover opened
+  // the popover and the click that arrived a moment later closed it again, so
+  // on a phone the key flashed and vanished. Reproduced in real headless
+  // Chrome against the built app before this patch (the capture harness had
+  // to fall back to a bare .click() to get an open popover at all).
+  //
+  // Two independent guards, because either one alone has a gap:
+  //   1. `lastPointerType` — `pointerenter` always precedes the compatibility
+  //      `mouseenter`, on both mouse and touch, and carries the real device.
+  //      A non-mouse pointer therefore suppresses the hover-open entirely and
+  //      leaves the tap to the click handler, which toggles as normal. It
+  //      re-arms on every enter, so a hybrid laptop is right either way.
+  //   2. `hoverOpened` — for engines with no pointer events at all, the click
+  //      that immediately follows a hover-open is swallowed instead (the
+  //      popover is already open; that click was never a "close" gesture).
+  //      It stays armed until the next leave/dismiss, so a much later click
+  //      is swallowed too — harmless, since a second click still closes.
+  const lastPointerType = useRef<string>('mouse');
+  const hoverOpened = useRef(false);
+
+  function dismiss() {
+    hoverOpened.current = false;
+    setOpen(false);
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
     if (event.key === 'Escape' && open) {
       event.stopPropagation();
-      setOpen(false);
+      dismiss();
     }
   }
 
@@ -84,15 +115,32 @@ function TrailKey() {
   // button today, but the popover is markup that could gain one) must not
   // dismiss it; focus leaving the control entirely must.
   function handleBlur(event: React.FocusEvent<HTMLSpanElement>) {
-    if (!wrapRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+    if (!wrapRef.current?.contains(event.relatedTarget as Node | null)) dismiss();
+  }
+
+  function handleMouseEnter() {
+    if (lastPointerType.current !== 'mouse') return; // a tap's compat event
+    hoverOpened.current = true;
+    setOpen(true);
+  }
+
+  function handleClick() {
+    if (hoverOpened.current) {
+      hoverOpened.current = false; // the hover already opened it: not a close
+      return;
+    }
+    setOpen((wasOpen) => !wasOpen);
   }
 
   return (
     <span
       className="ph-fork-trail__key"
       ref={wrapRef}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onPointerEnter={(event) => {
+        lastPointerType.current = event.pointerType || 'mouse';
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={dismiss}
       onFocus={() => setOpen(true)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
@@ -103,7 +151,7 @@ function TrailKey() {
         data-testid="fork-trail-key"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        onClick={handleClick}
       >
         {t('nav.legend')}
       </button>

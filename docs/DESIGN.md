@@ -424,8 +424,12 @@ screen (`--text-dial`), it is the only element whose colour changes with state
 (R1.8), and it is prominent by size and colour alone — no shadow, no halo, no
 pulse. Below R3.4's breakpoint it is also the one **sticky** element on the
 screen (§0's Lab-layout row): §2.4's mechanic is watching this number move while
-you turn a knob, so the numeral and its n/df line — and nothing else, ~85px at
-360px wide — stay pinned at `top: 0` while the controls scroll beneath.
+you turn a knob, so the numeral and its n/df line — and nothing else, a
+**measured 153px at 360px wide** — stay pinned at `top: 0` while the controls
+scroll beneath. (153px, not the ~85px this rule first estimated: `--text-dial`
+clamps to 64px there and `p = 0.459` wraps to two lines in a 312px column, so
+2 × 64 + 26. That is 24% of a 640px phone, against the 998px whole-pane sticky
+it replaced.)
 - Do: give it the whole top of the results column with `--space-40` of air.
 - Do: keep the sticky block to the numeral and n/df. Its caption, the figures
   and the buttons are static siblings.

@@ -45,8 +45,11 @@
    knobs were unreachable on a phone. T31 made the pane static, which fixed
    that but cost §2.4's HP-bar mechanic: the dial was no longer on screen
    while a knob at the bottom of the page was turned.
-   THE FIX. The sticky element is now the DIAL ALONE — numeral + n/df, ~85px
-   at 360w — hoisted to a direct child of .ph-lab so its containing block
+   THE FIX. The sticky element is now the DIAL ALONE — numeral + n/df, a
+   MEASURED 153px at 360w (not the ~85px first estimated: --text-dial clamps
+   to 64px there and `p = 0.459` wraps to two lines in a 312px column, so
+   2 x 64 + 26; 24% of a 640px phone, against the 998px it replaced) —
+   hoisted to a direct child of .ph-lab so its containing block
    spans the controls too. Everything that made the old block tall (the
    caption, the two figures, the buttons) stays in .ph-lab__results, which is
    static. KEEP THIS BLOCK SHORT: adding the caption back into it roughly

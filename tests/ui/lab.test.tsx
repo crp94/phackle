@@ -979,6 +979,47 @@ describe('T29 pin 1 — dial-alone-sticky DOM structure', () => {
     expect(dialBlock.querySelector('.ph-datacut')).toBeNull();
     expect(dialBlock.querySelector('button')).toBeNull();
   });
+
+  // T29 FIX ROUND (review finding: a guard the caption refactor lost).
+  // PValueDialCaption is now state-independent — it reads nothing from the
+  // store — so every other assertion about it happens to run against a Lab
+  // that already has a result, and NOTHING in the suite would catch someone
+  // wrapping it in `{result && …}` in Lab.tsx. That would silently delete the
+  // app's single most important explanation from the one screen where a
+  // first-time player needs it most: the empty dial, before their first run.
+  // Pinned here, at exactly that moment.
+  it('renders the dial caption BEFORE any first result exists', async () => {
+    const client: EngineClient = {
+      ...makeFakeClient(),
+      // Deliberately never resolves: boot parks on this await, so the store
+      // sits in its genuine pre-first-result Lab state for the whole test
+      // (result === null, pending === true) rather than one faked with
+      // setState after the fact.
+      runSpec: vi.fn(() => new Promise<PathResult>(() => {})),
+    };
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await act(async () => {
+      void gameStore
+        .getState()
+        .boot(client, EPOCH, { practice: false, mode: 'hack', scenarioCount: enContent.scenarios.length });
+    });
+    await waitFor(() => expect(gameStore.getState().pending).toBe(true));
+    await act(async () => {
+      gameStore.getState().openData();
+    });
+
+    // The precondition this test exists for: no result has ever arrived.
+    expect(gameStore.getState().result).toBeNull();
+
+    const caption = container.querySelector('.ph-dial__caption') as HTMLElement;
+    expect(caption, 'the dial caption must not be gated on a result').toBeTruthy();
+    expect(caption.textContent).toBe(enCopy['lab.dialCaption']);
+    expect((container.querySelector('.ph-lab__results') as HTMLElement).firstElementChild).toBe(caption);
+  });
 });
 
 describe("T29 pin 10 — the day's question lives on the Lab too", () => {
@@ -1062,13 +1103,65 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
   });
 
-  it('opens on tap — a click, which is all a touch device fires', async () => {
+  it('opens on a bare click — the keyboard/AT activation path, and toggles closed on the next one', async () => {
     renderTrail();
     const button = await screen.findByTestId('fork-trail-key');
     fireEvent.click(button);
     expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
     fireEvent.click(button);
     expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  // T29 FIX ROUND — the review's touch-robustness finding. The comment this
+  // block replaced claimed a click "is all a touch device fires". It is not:
+  // a first tap fires the COMPATIBILITY mouseenter first and the click after
+  // it, so hover opened the popover and the click closed it again a moment
+  // later. On a phone the key flashed and vanished, and the same sequence
+  // driven in real headless Chrome against the built app left it closed.
+  it('ends OPEN on the real mobile sequence: compatibility mouseenter, then click', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+    const button = await screen.findByTestId('fork-trail-key');
+
+    fireEvent.mouseEnter(wrap);
+    fireEvent.click(button);
+
+    expect(screen.queryByTestId('fork-trail-popover'), 'the tap must not close what its own hover opened').toBeTruthy();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    // ...and the tap after that still dismisses it, or the key could never
+    // be put away on a device with no pointer to move off it.
+    fireEvent.click(button);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+  });
+
+  it('ends OPEN when the pointer identifies itself as touch before the compatibility events', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+    const button = await screen.findByTestId('fork-trail-key');
+
+    // pointerenter always precedes the compatibility mouseenter and carries
+    // the real device, so a touch pointer suppresses the hover-open outright
+    // and leaves the tap to the click handler.
+    fireEvent.pointerEnter(wrap, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrap);
+    fireEvent.click(button);
+
+    expect(screen.queryByTestId('fork-trail-popover')).toBeTruthy();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('still opens on a mouse hover after a touch interaction (a hybrid laptop re-arms per enter)', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+
+    fireEvent.pointerEnter(wrap, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrap);
+    fireEvent.mouseLeave(wrap);
+    expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
+
+    fireEvent.pointerEnter(wrap, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(wrap);
+    expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
   });
 
   it('lists exactly the current vocabulary, derived from the Legend page\'s own mapping', async () => {

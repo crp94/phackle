@@ -3,7 +3,16 @@
    closed spacing scale), R4.1/R4.2/R4.4 (no fill, no shadow, hairlines),
    R4.7 (the stacking ladder), R5.5 (state changes instantly), R6.1/R6.4. */
 
+/* T29 FIX ROUND: `position: relative` moved here from .ph-fork-trail__key.
+   The key sits mid-row, so a popover anchored to the KEY could start at the
+   key's own inline-start and run --measure (~421px measured) past it. In the
+   real built app that widened the DOCUMENT itself: at a 360px viewport the
+   document measured 585px wide with the popover open (949px at 768), i.e.
+   opening a legend gave the whole page a horizontal scrollbar. Anchoring to
+   the trail ROW instead makes `100%` below mean "the column", which is the
+   only bound that can never overflow. */
 .ph-fork-trail {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -33,7 +42,6 @@
 }
 
 .ph-fork-trail__key {
-  position: relative;
   display: inline-flex;
 }
 
@@ -69,7 +77,13 @@
 /* Exactly the SpecCurve tooltip's surface (SpecCurve.css): --paper, a
    hairline above and below, no fill of its own, no shadow, no radius. R4.7's
    ladder rather than a raw z-index. It appears and disappears instantly —
-   §5's four animations are exhaustive and a popover fade is not one. */
+   §5's four animations are exhaustive and a popover fade is not one.
+
+   T29 FIX ROUND: the containing block is .ph-fork-trail (see above), so
+   `inset-inline-start: 0` starts the popover at the COLUMN's inline edge and
+   `min(var(--measure), 100%)` caps it at the column's own width. Both bounds
+   are needed: --measure alone overflowed the viewport, and 100% alone would
+   let a wide desktop column stretch the rows past R2.6's measure. */
 .ph-fork-trail__popover {
   position: absolute;
   inset-block-end: 100%;
@@ -79,7 +93,7 @@
   flex-direction: column;
   gap: var(--space-8);
   width: max-content;
-  max-width: var(--measure);
+  max-width: min(var(--measure), 100%);
   padding: var(--space-12);
   background: var(--paper);
   border-block-start: var(--hairline);
