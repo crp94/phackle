@@ -195,7 +195,6 @@ const ROSTER_KEPT: Record<string, string> = {
 const ROSTER_PENDING: Record<string, string> = {
   'nav.tagline':
     'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
-  'nav.skipToContent': 'gr6-017 — App.tsx, first child of .ph-app, targeting the existing <main tabindex="-1">. W7.',
   'briefing.finishedToday':
     'gr6-008 — Briefing.tsx replaces briefing.alreadyPlayedToday in the finished-day block (its own TODO-W2 comment). W6 is merged; the swap is one line and is booked.',
   'briefing.finishedNextIn': 'gr6-008 — Briefing.tsx replaces summary.nextIn in the finished-day countdown. Same commit.',
@@ -208,7 +207,6 @@ const ROSTER_PENDING: Record<string, string> = {
   'about.sectionNotReal': 'gr6-036 — About.tsx, <h2> over about.syntheticDisclaimer + about.decimalNote (which moves here). W7.',
   'about.sectionYourData': 'gr6-036 — About.tsx, <h2> over about.dataDisclosure. W7.',
   'about.sectionPriorArt': 'gr6-036 — About.tsx, <h2> over about.priorArt and the five citations. W7.',
-  'errors.reload': 'gr6-007 — App.tsx, the reload control on the whole-screen boot-failure state. W7.',
   'summary.playPrereg':
     'RETIRED, not pending: W6 (gr6-020) deleted the button this labelled. Blocked on tests/ui/summary.test.tsx:285,837, which still name the key to pin the CTA\'s absence and belong to W7 this round. W7 re-pins those structurally, then deletes the key from all three catalogs and this roster.',
 };

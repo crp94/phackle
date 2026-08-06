@@ -200,10 +200,16 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * work; the store's own `alreadyPlayedToday`/finished-day logic picks the
    * new day up on their next visit.
    *
-   * BOOKED FOR W2 + a follow-up: the mid-play case has no affordance at all
-   * (no "a new puzzle is ready — reload" line), because that sentence is copy
-   * this catalog does not have. The keys are `errors.newDay` and
-   * `errors.reload`; when they land, this effect is where the notice hangs.
+   * STILL OPEN, and narrowed by what W2 actually shipped: the mid-play case
+   * has no affordance at all (no "a new puzzle is ready — reload" line). Two
+   * keys were booked for it. `errors.reload` LANDED and is wired, but at the
+   * boot-failure screen below, which is the only place a reload control is
+   * unambiguous; `errors.newDay` — the sentence that would say WHY a mid-day
+   * player should press it — was not written, in any locale. One word with no
+   * sentence around it is not an affordance, it is a button that appears
+   * during play for no stated reason, so nothing hangs here yet. RE-BOOKED:
+   * this effect is still where the notice belongs the day `errors.newDay`
+   * exists in all three catalogs.
    *
    * The check runs on an interval AND on `visibilitychange`, because a
    * backgrounded tab's timers are throttled to the point of uselessness and
@@ -289,11 +295,12 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * produced a day takes the page.
    *
    * The reload control is the one the copy has promised all along
-   * ("Reloading usually fixes it"). Its label is a STAND-IN: `nav.play`,
-   * shipped and translated in all three locales, until W2 lands the
-   * `errors.reload` key its own batch already lists for this row. It renders
-   * here and nowhere else — this screen has no header and no nav — so it
-   * cannot collide with the header's own PLAY.
+   * ("Reloading usually fixes it"), and it now says so: `errors.reload`
+   * ("Reload") landed with W2 and replaces the `nav.play` stand-in this
+   * comment used to describe. One word, because the <h1> above it is the
+   * sentence that already explained what pressing it does. It renders here
+   * and nowhere else — this screen has no header and no nav — so the word
+   * cannot be read as a second, competing PLAY.
    */
   if (!booted && storeError) {
     return (
@@ -312,7 +319,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
               data-testid="app-boot-error-reload"
               onClick={() => window.location.reload()}
             >
-              {t('nav.play')}
+              {t('errors.reload')}
             </button>
           </section>
         </main>
@@ -343,12 +350,14 @@ export default function App({ puzzleNumber, children }: AppProps) {
           .ph-skip-link:focus un-hides it; the target is the <main> element
           that is already `tabindex="-1"` for R6.6's focus management, so
           there is no new focus target and no new tab stop.
-          TODO-W2: the label is a stand-in — `nav.play`, shipped in all three
-          locales. W2's own batch lists a skip-link key for this row;
-          `a11y.skipToContent` ("Skip to today's puzzle") is what this
-          element wants, and it is a one-word edit here when it lands. */}
+          The label is its own key now: `nav.skipToContent` ("Skip to the main
+          content") replaces the `nav.play` stand-in this comment used to
+          describe. The generic wording is deliberate over a puzzle-flavoured
+          one — the destination is <main>, which is the About page or the
+          Stats page as often as it is today's study, and a link that promises
+          "today's puzzle" would be lying on three of the four routes. */}
       <a className="ph-visually-hidden ph-skip-link ph-focusable" href={`#${MAIN_ID}`} data-testid="app-skip-link">
-        {t('nav.play')}
+        {t('nav.skipToContent')}
       </a>
       <header className="ph-header">
         <p className="ph-header__masthead">
