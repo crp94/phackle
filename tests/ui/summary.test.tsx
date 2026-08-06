@@ -282,8 +282,20 @@ describe('Summary — prereg block (gr6-020): gated on the unlock AND on the day
   });
 
   it('renders NO dead CTA: the block is heading + sentence, never a permanently disabled button', () => {
-    render(<Summary {...props} preregUnlocked={true} />);
-    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
+    // gr6-020, pinned STRUCTURALLY. This used to assert the absence of a
+    // button named `summary.playPrereg` — which meant the key for a control
+    // W6 deleted had to stay alive in three catalogs purely so this line
+    // could name it, and a translator maintaining a string whose only
+    // remaining consumer is an assertion that it never appears. The shape is
+    // what gr6-020 actually decided: this block is a heading and a sentence,
+    // and it has no control of any kind. Naming the shape also catches a CTA
+    // that comes back under a DIFFERENT label, which naming the old string
+    // never could.
+    const { container } = render(<Summary {...props} preregUnlocked={true} />);
+    const block = container.querySelector('.ph-summary__prereg') as HTMLElement;
+    expect(block).not.toBeNull();
+    expect(block.querySelectorAll('button, a, input, [role="button"]')).toHaveLength(0);
+    expect(Array.from(block.children).map((el) => el.tagName)).toEqual(['H2', 'P']);
     for (const button of screen.getAllByRole('button')) {
       expect(button.hasAttribute('disabled'), `"${button.textContent}" is a dead control`).toBe(false);
     }
@@ -847,7 +859,10 @@ describe('SummaryScreen — achievement evaluation wired into the one persist mo
     // true the instant the achievement is earned, not only on some later day.
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
     // gr6-020: and it is a sentence, not a permanently disabled button.
-    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
+    // Pinned as the block's SHAPE rather than by the deleted CTA's old label
+    // — see the sibling assertion in "renders NO dead CTA" above for why.
+    const block = document.querySelector('.ph-summary__prereg') as HTMLElement;
+    expect(block.querySelectorAll('button, a, input, [role="button"]')).toHaveLength(0);
   });
 
   it('a remount does not move the unlock date (saveAchievements is not re-invoked; alreadySaved skips the whole persist block)', async () => {
