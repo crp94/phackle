@@ -24,7 +24,12 @@ export interface ScoreDayInput {
    * (§2.6), so callCorrect is defined whether the day was published or
    * abandoned. */
   callCorrect: boolean | null;
-  forks: number;
+  /** GR6 §1(f): distinct outcome families the player looked at today
+   * (`forkLog.ts`'s `distinctOutcomeFamilies`), which is what the parsimony
+   * row is scored on now — it replaced a raw `forks` count, and the field was
+   * renamed rather than reinterpreted so no call site can keep passing the old
+   * number under the new rule. */
+  outcomeFamilies: number;
   stamp: RevealPayload['stamp'];
   /** Prereg Mode only: was the single committed analysis significant? */
   preregSig?: boolean;
@@ -68,6 +73,24 @@ function scoreHack(i: ScoreDayInput): ScoreDayResult {
   // Row 3: parsimony bonus — "only if call correct" (§2.8), independent of
   // published vs. abandoned.
   //
+  // GR6 RULING §1(f) (gr2-007): THE CHARGE IS PER OUTCOME FAMILY, NOT PER FORK.
+  // The old row, `max(0, 40 - 4*forks)`, was zero from 10 forks on — measured
+  // medians were 4 forks (greedy hill-climber), 13 (informed caller) and 27.5
+  // (naive), so the only model that beats the base rate collected the bonus on
+  // 2 days in 32. The reason is structural rather than a matter of scale:
+  // §2.7.6 teaches that robustness ACROSS specifications is the real/noise
+  // detection skill, and every robustness check is a fork, so the row charged
+  // the player for doing the one thing the game asks of them.
+  //
+  // Counting families instead makes the two agree. Re-running the same
+  // spec inside one outcome column costs nothing, however many times; each
+  // additional outcome column costs `parsimonyPerExtraFamily`. The first
+  // family is free BECAUSE IT IS NOT A CHOICE — the Lab opens on the default
+  // spec and renders its result, so every player has looked at one family
+  // before they touch anything (see store.ts's boot prefetch, and
+  // `countForks`' own "the initial default spec is free" rule, which this
+  // mirrors one axis up).
+  //
   // gr6-018: the ROW is now unconditional; the VALUE still is not. A wrong
   // call earns 0 parsimony, exactly as before — but it used to earn no row
   // either, and on the modal Hacking Mode day (75% of days are null, the
@@ -77,7 +100,15 @@ function scoreHack(i: ScoreDayInput): ScoreDayResult {
   // same day printed "+25 career points" in gold. Itemising the zero is what
   // an invoice does, and it costs nothing: adding 0 leaves `score` and the
   // breakdown-sums-to-score contract untouched.
-  const parsimony = i.callCorrect === true ? Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * i.forks) : 0;
+  //
+  // `Math.max(0, families - 1)` rather than a bare `families - 1`: a log with
+  // no VIEW_SPEC entry at all (nothing in the real app produces one — boot
+  // always logs the default — but every other guard in this file is written
+  // for the shape rather than for the caller) must charge nothing, not pay a
+  // bonus above parsimonyMax.
+  const extraFamilies = Math.max(0, i.outcomeFamilies - 1);
+  const parsimony =
+    i.callCorrect === true ? Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerExtraFamily * extraFamilies) : 0;
   breakdown.push(['summary.breakdownParsimony', parsimony]);
   score += parsimony;
 
@@ -117,7 +148,15 @@ function scorePrereg(i: ScoreDayInput): ScoreDayResult {
     key = 'summary.breakdownUnderpoweredLuck';
     score = SCORING.preregNonsigEffect;
   } else {
-    // sig && dayType === 'null': the real 5% false positive.
+    // sig && dayType === 'null': the false positive a preregistered analysis
+    // still gets. §2.8 calls it "the real 5% false positive"; the ROW is
+    // unchanged (it is the spec's, and it scores 0 either way), but the rate is
+    // not 5% in this DGP and the reveal no longer says it is — measured 19.6%
+    // for the form's default spec at N=400 over 591 accepted null days, because
+    // X is assigned from the same latents the outcomes load on. See
+    // `reveal.preregFalsePositive`'s note in src/content/en/copy.ts (gr6-009,
+    // ruling §1(a)) for the full table and the guard in
+    // tests/engine/day.test.ts.
     key = 'summary.breakdownFalsePositive';
     score = SCORING.preregSigNull;
   }

@@ -14,6 +14,7 @@ import type { AchievementId } from '../content/types';
 import type { CopyKey } from '../content/en/copy';
 import type { DayType, PathResult, PlayerAction, RevealMetrics, Spec } from '../engine/types';
 import { specKey } from '../engine/specGrid';
+import { distinctOutcomeFamilies } from './forkLog';
 import { callIsCorrect, scoreDay } from './scoring';
 import { shareString } from './share';
 import { loadState, saveAchievements, saveDay, streakAfter } from './storage';
@@ -255,7 +256,15 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
 
   const callCorrect = call !== null ? callIsCorrect(call, dayType) : null;
   const preregSig = mode === 'prereg' ? Boolean(preregResult && preregResult.valid && preregResult.p < 0.05) : undefined;
-  const scoreResult = scoreDay({ mode, dayType, published, callCorrect, forks, stamp, preregSig });
+  // GR6 §1(f): the parsimony row is scored on distinct outcome FAMILIES now,
+  // not on `forks`. Derived here from the day's own log rather than added to
+  // `FinishedGameFields`, for the reason `publishedSpecFromLog` above gives for
+  // the published spec: the log is already the authoritative record of what the
+  // player looked at, and a second, separately-maintained count would be one
+  // more thing that can disagree with it. `forks` stays in the fields — the
+  // share string, the day record and the achievements all still count forks.
+  const outcomeFamilies = distinctOutcomeFamilies(log);
+  const scoreResult = scoreDay({ mode, dayType, published, callCorrect, outcomeFamilies, stamp, preregSig });
 
   const state = loadState();
   // The DURABLE idempotency guard (see the doc comment above): keyed on the
