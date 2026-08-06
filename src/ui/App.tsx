@@ -309,7 +309,10 @@ export default function App({ puzzleNumber, children }: AppProps) {
             (R5.2 site 1, R6.6): this is a screen like any other, and it must
             arrive the same way rather than teleporting in. */}
         <main className="ph-screen" id={MAIN_ID} key={screenKey} ref={mainRef} tabIndex={-1}>
-          <section className="ph-boot-error" data-testid="app-boot-error">
+          {/* §9.1's page shell, composed rather than retyped (see App.css's
+              own note for why this rule was adopted after the section that
+              enumerated its adopters was written). */}
+          <section className="ph-page ph-page--titled ph-boot-error" data-testid="app-boot-error">
             {/* R6.6: every screen carries exactly one <h1>, its own title.
                 This screen's title is what went wrong. */}
             <h1 className="ph-boot-error__title">{t('errors.workerCrash')}</h1>

@@ -106,8 +106,10 @@ body {
    sides: a screen that opens on a title needs the extra air over it (R3.1).
    A MODIFIER, so it re-states only the declaration it changes and is written
    beside its base — `class="ph-page ph-page--titled ph-briefing"` — exactly as
-   `.ph-radio--selected` re-states only its border. Two adopters: `.ph-briefing`
-   and `.ph-prereg`.
+   `.ph-radio--selected` re-states only its border. Three adopters:
+   `.ph-briefing`, `.ph-prereg` and — added after §9.1 was written, since
+   gr6-007's screen did not exist when it enumerated two — `.ph-boot-error`.
+   Its own ruling is recorded at its rule below.
 
    `.ph-reveal` IS NOT ONE, and the ruling is Reveal.css's (restated here so
    the next consolidation does not re-open it from this end): that screen pads
@@ -298,11 +300,36 @@ body {
    hairline-underlined action. No fill (R4.1), no box (R4.5), no red — R1.3
    reserves --sig-red for Act II's four places, and a failed boot is not one
    of them. */
-.ph-boot-error {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-40) var(--space-24) var(--space-24);
-}
+/* THE SHELL IS `.ph-page ph-page--titled` (§9.1), composed in App.tsx —
+   ADOPTED, and the reasoning is here because §9.1's own enumeration could not
+   have named this rule.
+
+   This screen POSTDATES the section. gr6-050 consolidated the page shells
+   that existed when §9.1 was written; gr6-007 created this one afterwards,
+   and it was typed out longhand — `--page-max`, `margin-inline: auto`, 40/24/
+   24 — which is character-for-character `.ph-page` plus `.ph-page--titled`.
+   §9.1's stated defect is "the page shell in 4 disagreeing spellings", and a
+   consolidation that only ever looks backwards regrows that one spelling at a
+   time. The match-first test in constraint 3 is satisfied exactly: the two
+   utilities carry precisely the four declarations this rule had, so nothing
+   about the rendered screen changes.
+
+   It also passes the CATEGORY test constraint 3 applies before the value one
+   — the test that ruled `.ph-call` out as "not a page at all". This IS a
+   page: it takes the whole viewport, it is the only content of <main>, and it
+   opens on an <h1> (R6.6), which is what `--space-40` above and 24 around is
+   for. It belongs beside `.ph-briefing` and `.ph-prereg`, not beside the Call
+   modal's column.
+
+   The rule is deleted rather than emptied, exactly as `.ph-about`'s and
+   `.ph-briefing`'s were: the shell was its entire content, so the block class
+   now names the screen (for its two BEM children and the shape probes) and
+   styles nothing. `tests/ui/classNames.test.ts`'s SHELL_CONSOLIDATED list
+   gains it for that reason — the list is per-name and demands the utility be
+   written beside it, so this is a fifth adopter, not a loosening.
+
+   NOT ADOPTED, ruled at the same time and recorded at its own site instead:
+   `.ph-published__cover` (see src/ui/screens/Published.css). */
 
 .ph-boot-error__title {
   max-width: var(--measure);

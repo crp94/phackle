@@ -122,6 +122,14 @@ const SHELL_CONSOLIDATED = new Map<string, string>([
   ['ph-legend', 'ph-page'],
   ['ph-stats', 'ph-page'],
   ['ph-summary', 'ph-page'],
+  // Added after gr6-050, and the fifth name rather than a widening: gr6-007's
+  // boot-failure screen POSTDATES §9.1's enumeration and had typed the shell
+  // out longhand (--page-max, margin-inline: auto, 40/24/24 — exactly
+  // `.ph-page` plus `.ph-page--titled`). Adopting it emptied its rule the
+  // same way the four above were emptied. The pairing is what keeps this
+  // honest: it is forgiven only on elements that also write `ph-page`, so a
+  // boot screen that loses the shell still goes red.
+  ['ph-boot-error', 'ph-page'],
 ]);
 
 export function unmatchedClasses(
