@@ -275,7 +275,9 @@ export const copy: Record<CopyKey, string> = {
   'published.careerPoints': '+{n} punti carriera',
   // {n} is altmetricScore(), whose lowest possible value is the tier-1 floor of
   // 40, so the Italian plural ("volte") is unconditionally safe. One {n} only:
-  // t() rewrites the first occurrence and would leave a second one raw.
+  // t() sostituisce ogni occorrenza (regex globale), ma alcuni siti
+  // interpolano con un String.replace letterale e fanno solo la prima: vale la
+  // regola "un token, una volta" del preambolo.
   'published.altmetricScore': 'Già menzionato {n} volte online',
   // "prodotti della ricerca" is the exact phrase the Italian research-assessment
   // machinery uses for a paper. The bureaucratic noun IS the joke.

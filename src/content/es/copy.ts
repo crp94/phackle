@@ -273,7 +273,9 @@ export const copy: Record<CopyKey, string> = {
   'published.careerPoints': '+{n} puntos de carrera',
   // {n} is altmetricScore(), whose floor is the tier-1 minimum of 40
   // (src/game/published.ts), so plural-only agreement is unconditionally safe
-  // in Spanish too. One {n}, once: t() rewrites the first occurrence only.
+  // in Spanish too. One {n}, once: t() sustituye todas las apariciones (regex
+  // global), pero varios sitios interpolan con un String.replace literal y solo
+  // hacen la primera. Regla 3 del preámbulo.
   // gr6-065: el adverbio va delante, como en inglés desde este mismo cambio.
   'published.altmetricScore': 'Ya mencionado {n} veces en internet',
   'published.altmetricPercentile': 'En el {n}% superior de toda la producción científica de la historia',

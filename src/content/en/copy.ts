@@ -544,6 +544,13 @@ export const copy: Record<CopyKey, string> = {
   // T37 (audit §5.11): renders BOTH as a header nav page name and as the
   // ForkTrail popover's trigger button (ForkTrail.tsx). It must read as a page
   // NAME in both places, so do not translate it as a verb in either.
+  // gr6-029 RETIRES THE SECOND JOB: the trigger takes `lab.forkTrailKey`
+  // ("What these mean"), so this key goes back to being the page name and
+  // nothing else. The double duty put three tokens of "Legend" within one
+  // glance on the Lab, naming two affordances, with a sentence between them
+  // pointing at the one the player was not standing next to. Until W7 lands
+  // that one-line swap in ForkTrail.tsx:170 the old wording is still on
+  // screen; the instruction above stands either way.
   'nav.legend': 'Legend',
   'nav.play': 'Play',
   // gr6-026: `nav.localeToggle` is DELETED. The visible control is a pair of
