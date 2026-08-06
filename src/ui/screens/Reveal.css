@@ -157,6 +157,36 @@
 
 /* ---- the stamp beat (§2.7.4, R8.2) ------------------------------------- */
 
+/* gr2-015, controller ruling (c), 2026-08-06. THE SIGNATURE MOMENT IS ARRIVED
+   AT, NOT SCROLLED PAST.
+   Measured at 1088 before this: truth -> Fig. 1 (~420px) -> the accounting
+   (~250px) -> the stamp (~150px) -> the call line -> Fig. 2. The one beat the
+   whole screen is built toward was 8% of the page with the same --space-40
+   either side as a caption, so a player scrolling at reading speed went past
+   it. §2.7 SPECIFIES this block order, so the ruled fix is rest rather than
+   resequencing: the beat keeps its place and gets a room of its own. */
+.ph-reveal__stamp-beat {
+  padding-block: var(--space-64);
+  scroll-snap-align: center;
+}
+
+/* The other half of the same ruling. `scroll-snap-type` has to sit on the
+   SCROLL CONTAINER, and this app's is the document (`.ph-app` is min-height
+   100vh with no overflow of its own) — so it is scoped with :has() to the one
+   screen that wants it rather than declared globally, which would put a snap
+   on the Lab and the Stats wall too. `proximity`, never `mandatory`: the
+   player keeps ordinary control of the scroll and is only settled onto the
+   beat when they were stopping near it anyway.
+   Reduced motion gets NO snap at all — a scroll that finishes somewhere other
+   than where it was released is exactly the kind of motion R5.6's readers
+   asked not to have — and a browser without :has() simply gets the air, which
+   is the substantive half. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.ph-reveal) {
+    scroll-snap-type: y proximity;
+  }
+}
+
 .ph-reveal__cover {
   position: relative;
   max-width: var(--measure);
@@ -222,14 +252,45 @@
   animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
 }
 
-/* The stamp lands ON the cover — R4.7's ladder, never a raw z-index. */
+/* The stamp lands ON the cover — R4.7's ladder, never a raw z-index.
+ *
+ * gr6-059: THE LOWER-RIGHT QUADRANT, not the top-left. A rubber stamp SHOULD
+ * overlap the document it lands on — that is the whole image, and R8.2 wants
+ * it — but it was pinned var(--space-16) from the TOP of the cover, which put
+ * its letterforms straight through "VOL. 1, NO. 5" and through the day's
+ * question. Measured on the production build at 768 before the change: the
+ * mark and the (then rotated) subline crossed the question's two lines at
+ * once, so the stamp, the volume line and the title were all hard to read and
+ * the beat's only sentence was the worst of the three.
+ *
+ * Anchored to the block-end/inline-end corner with no inset, the mark's own
+ * word lands in the cover's bottom padding — white space — and only the
+ * frame's top edge grazes the title, which is a stamp hitting a corner rather
+ * than a strikethrough. 50% rather than 60%: re-measured at both widths, 60%
+ * put the word RETRACTED back across the question's second line at 768, where
+ * the card is short (145px) and the title runs the full measure. At 360 the
+ * mark is still 43% of the viewport, so R8.2's "oversized" survives the trim.
+ */
 .ph-reveal__stamp {
   position: absolute;
-  inset-block-start: var(--space-16);
-  inset-inline-start: var(--space-24);
+  inset-block-end: 0;
+  inset-inline-end: 0;
   z-index: var(--z-stamp);
-  width: 60%;
+  width: 50%;
   pointer-events: none;
+}
+
+/* gr6-059 / gr2-016: §4.5's retraction subline, set as prose.
+ * Mono at the caption size, --ink rather than --muted: it is Act II's voice at
+ * the beat the whole screen builds to, not furniture. Horizontal, beneath the
+ * card, at the measure — nothing about it rotated, and nothing under it. */
+.ph-reveal__stamp-subline {
+  max-width: var(--measure);
+  margin: var(--space-24) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
 }
 
 /* T33 — the day's continue action, into the invoice (§2.8).

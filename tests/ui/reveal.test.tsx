@@ -403,12 +403,43 @@ describe('§2.7.4 the verdict stamp', () => {
 
   it('adds a rotating retraction subline only to RETRACTED', async () => {
     const retracted = await mountReveal({ stamp: 'RETRACTED' });
-    const sub = retracted.container.querySelector('[data-block="stamp"] .ph-stamp__subline')?.textContent ?? '';
+    const sub = retracted.container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
     expect(en.retractionSublines).toContain(sub);
     cleanup();
 
     const replicated = await mountReveal({ stamp: 'REPLICATED' });
-    expect(replicated.container.querySelector('[data-block="stamp"] .ph-stamp__subline')).toBeNull();
+    expect(replicated.container.querySelector('[data-role="stamp-subline"]')).toBeNull();
+  });
+
+  // gr6-059 / gr2-016: the subline used to be a rotated <text> node inside the
+  // stamp's own SVG, drawn at -12deg across the day's question. It is prose
+  // now: horizontal, beneath the card, after the mark in reading order.
+  it('sets the subline outside the stamp graphic, after the cover card', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED' });
+    const svg = container.querySelector('.ph-stamp__mark')!;
+    expect(svg.querySelectorAll('text')).toHaveLength(1); // the label, and nothing else
+    expect(svg.textContent).toBe(copy['reveal.retracted']);
+
+    const subline = container.querySelector('[data-role="stamp-subline"]')!;
+    expect(subline.closest('.ph-stamp')).toBeNull();
+    expect(subline.closest('svg')).toBeNull();
+    // After the cover (which holds the card and the mark), inside the beat.
+    const beat = container.querySelector('.ph-reveal__stamp-beat')!;
+    const order = [...beat.children].map((el) => el.className);
+    expect(order[0]).toContain('ph-reveal__cover');
+    expect(order[1]).toContain('ph-reveal__stamp-subline');
+  });
+
+  // gr6-011: the mark carried the sentence as its aria-label AND exposed its
+  // <text> children, so Act II's signature beat was read out twice in a row.
+  it('is announced exactly once (role="img" + aria-label; the glyphs are hidden)', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED' });
+    const svg = container.querySelector('.ph-stamp__mark')!;
+    expect(svg.getAttribute('role')).toBe('img');
+    expect(svg.getAttribute('aria-label')).toBe(copy['reveal.retracted']);
+    for (const text of svg.querySelectorAll('text')) {
+      expect(text.getAttribute('aria-hidden')).toBe('true');
+    }
   });
 });
 

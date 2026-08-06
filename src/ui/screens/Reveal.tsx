@@ -379,26 +379,44 @@ export function Reveal() {
         {isPrereg && payload.dayType === 'null' && payload.stamp === 'RETRACTED' ? (
           <p className="ph-reveal__statement">{t('reveal.preregFalsePositive')}</p>
         ) : null}
-        {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
-            a plain echo of the day's manuscript, built from store state --
-            the Published screen owns the real JournalCover. */}
-        <div className="ph-reveal__cover">
-          <div className="ph-reveal__cover-card" data-role="cover-echo">
-            {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
-                never a second literal — see src/ui/masthead.ts. */}
-            <p className="ph-reveal__cover-vol">
-              {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
+        {/* gr2-015 / controller ruling (c): THE BEAT GETS AIR. Measured at
+            1088, the signature moment was 8% of the page height with no rest
+            either side, reached by accident on the way to Fig. 2. §2.7's block
+            ORDER is untouched (that was the alternative, and it reverses the
+            argument the accounting builds toward); the stamp simply gets a
+            block of its own to land in. Reveal.css carries the padding and the
+            scroll snap. */}
+        <div className="ph-reveal__stamp-beat">
+          {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
+              a plain echo of the day's manuscript, built from store state --
+              the Published screen owns the real JournalCover. */}
+          <div className="ph-reveal__cover">
+            <div className="ph-reveal__cover-card" data-role="cover-echo">
+              {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
+                  never a second literal — see src/ui/masthead.ts. */}
+              <p className="ph-reveal__cover-vol">
+                {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
+              </p>
+              <p className="ph-reveal__cover-title">{scenario.question}</p>
+            </div>
+            <div className="ph-reveal__stamp">
+              <Stamp kind={payload.stamp} label={t(STAMP_LABEL[payload.stamp])} animate={!reducedMotion} />
+            </div>
+          </div>
+          {/* gr6-059: THE SUBLINE, HORIZONTAL, BENEATH THE CARD.
+              It used to be a rotated <text> node inside the stamp's own SVG,
+              drawn at -12deg across the second line of the day's question — so
+              Act II's only voice on this screen was also its least readable
+              string, and both it and the question were crossed through. It is
+              also what made the stamp paint outside the window (see Stamp.tsx's
+              geometry note: a 49-character mono line is 556 user units wide in
+              a 320-unit viewBox). Out here it is ordinary prose, read once, in
+              reading order, after the verdict it comments on. */}
+          {subline === undefined ? null : (
+            <p className="ph-reveal__stamp-subline" data-role="stamp-subline">
+              {subline}
             </p>
-            <p className="ph-reveal__cover-title">{scenario.question}</p>
-          </div>
-          <div className="ph-reveal__stamp">
-            <Stamp
-              kind={payload.stamp}
-              label={t(STAMP_LABEL[payload.stamp])}
-              subline={subline}
-              animate={!reducedMotion}
-            />
-          </div>
+          )}
         </div>
       </Block>
 

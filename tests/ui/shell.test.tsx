@@ -286,10 +286,37 @@ describe('Stamp', () => {
     expect(screen.getByText('RETRACTED')).toBeTruthy();
   });
 
-  it('renders an optional subline as text too', () => {
-    render(<Stamp kind="NULL_REPORTED" label="NULL REPORTED" subline="p = 0.61" animate={false} />);
+  // gr6-011: `role="img"` + `aria-label` is the ONE channel that announces the
+  // verdict. It used to be two — the label was also exposed as an SVG <text>
+  // node — and the AX tree read "image: RETRACTED / StaticText: RETRACTED" at
+  // Act II's loudest moment. R8.2's "always also present as text" is satisfied
+  // by either channel alone.
+  it('announces the verdict exactly once, and keeps the glyphs out of the AX tree', () => {
+    const { container } = render(<Stamp kind="NULL_REPORTED" label="NULL REPORTED" animate={false} />);
+    const svg = container.querySelector('.ph-stamp__mark')!;
+    expect(svg.getAttribute('role')).toBe('img');
+    expect(svg.getAttribute('aria-label')).toBe('NULL REPORTED');
+    const texts = [...svg.querySelectorAll('text')];
+    expect(texts).toHaveLength(1);
+    expect(texts[0].getAttribute('aria-hidden')).toBe('true');
+    // Still a real, queryable text node on screen — only its second trip
+    // through the accessibility tree is gone.
     expect(screen.getByText('NULL REPORTED')).toBeTruthy();
-    expect(screen.getByText('p = 0.61')).toBeTruthy();
+  });
+
+  // gr6-010: the filter region is pinned to the viewBox in USER SPACE, so what
+  // the mark paints is a subset of its own box whatever the label says. It used
+  // to be `objectBoundingBox` at 140%, i.e. a fraction of however wide the text
+  // inside happened to be — measured at 555.6 user units in a 320-unit viewBox
+  // on the production build, painting 72px outside the window at 768.
+  it('pins the distress filter to the viewBox, in user space, not to the text\'s bbox', () => {
+    const { container } = render(<Stamp kind="RETRACTED" label="RETRACTED" animate={false} />);
+    const svg = container.querySelector('.ph-stamp__mark')!;
+    const filter = svg.querySelector('filter')!;
+    expect(filter.getAttribute('filterUnits')).toBe('userSpaceOnUse');
+    const region = ['x', 'y', 'width', 'height'].map((a) => Number(filter.getAttribute(a)));
+    const viewBox = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    expect(region).toEqual(viewBox);
   });
 
   it('animates when animate=true and motion is not reduced', () => {
