@@ -46,6 +46,7 @@ function fakeDay(overrides: Partial<DailyPuzzle>): GeneratedDay {
     scenarioId: '7',
     dayType: 'null',
     attemptUsed: 0,
+    capExhausted: false,
     nFull: 400,
     ...overrides,
   };

@@ -58,11 +58,24 @@ export interface PathResult {
 // true outcome's own raw units (effect.d * the pre-injection sample sd of
 // that outcome column) — not the bare standardized `d` draw. See day.ts's
 // assemblePuzzle for how it's computed and why the distinction matters.
+// capExhausted (gr6-102): true iff the acceptance loop ran out of attempts
+// (MAX_ATTEMPTS) and served the best-scoring attempt instead of one that
+// actually passed the day's gate — the single condition under which the
+// reveal's promises are not backed by the day's data (a null day with fewer
+// than 30 hackable paths, or an effect day whose canonical spec cannot find
+// the effect). Rare: over 120 consecutive dates the attempt histogram was
+// 0:76 1:28 2:10 3:4 4:1 7:1, max 7 of 20. It used to be reported ONLY by a
+// console.warn from inside a Web Worker, i.e. invisible in production and
+// unreadable by anything downstream; the warn is kept and this field puts the
+// fact on the wire as well. NOT spoiler-bearing: both day types can set it,
+// so its value says nothing about dayType, trueOutcome or trueBeta — which is
+// why protocol.ts's spoiler-guard suite passes it through to RevealPayload
+// while still refusing every field that would.
 export interface DailyPuzzle {           // worker-side only until reveal
   isoDate: string; puzzleNumber: number; scenarioId: string;
   dayType: DayType; trueOutcome?: Outcome; trueBeta?: number;
   heterogeneous?: { subgroup: Spec['subgroup']; multiplier: number };
-  attemptUsed: number; nFull: 400;
+  attemptUsed: number; capExhausted: boolean; nFull: 400;
 }
 
 export type PlayerAction =

@@ -56,6 +56,7 @@ function payload(over: Partial<RevealPayload> = {}): RevealPayload {
     trueOutcome: null,
     trueBeta: 0,
     hetero: null,
+    capExhausted: false, // gr6-102 (W5): required field on RevealPayload
     ...over,
   };
 }
