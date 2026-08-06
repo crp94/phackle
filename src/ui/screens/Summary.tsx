@@ -24,7 +24,7 @@ import type { AchievementId, LocaleContent } from '../../content/types';
 // it is framework-free, and it always was. This screen consumes it.
 import { persistAndComputeSummary, type ComputedSummary } from '../../game/dayComplete';
 import { shareViaNavigator } from '../../game/share';
-import { msToNextLocalMidnight } from '../../game/daily';
+import { localIsoDate, msToNextLocalMidnight } from '../../game/daily';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import { useAppNav } from '../nav';
 import './Summary.css';
@@ -63,6 +63,31 @@ export interface SummaryProps {
    * nothing to invite. Defaults to false so every existing caller keeps its
    * behaviour. */
   preregPlayedToday?: boolean;
+  /**
+   * W8 (w6-r-006's second instance) — whether the day this invoice is FOR is
+   * still the day the wall clock is on. False for a player who was mid-play
+   * at midnight and has since finished: the day they just completed is
+   * yesterday's, and it correctly saved as yesterday's (dayComplete.ts's
+   * `puzzleIso`).
+   *
+   * The countdown below is suppressed when it is false, exactly as the
+   * Briefing's finished-day countdown already is. w6-r-006 fixed that one and
+   * recorded this screen as carrying "the identical bug" — it does: `now` is a
+   * live wall-clock read and the invoice is anchored to the puzzle's own date,
+   * so after a straddle the line read "Next puzzle in 23h 55m" about a puzzle
+   * that was already waiting.
+   *
+   * w8-r-001: and something DOES replace it — `errors.newDayReady` plus the
+   * reload control, rendered by this component. An earlier version of this
+   * note said the shell's `errors.newDay` notice covered this screen. It did,
+   * and that was the defect: that sentence ends "when you finish", addressed
+   * to a player who has not, and it deliberately carries no control. The shell
+   * now excludes `'summary'` (App.tsx) and this screen speaks for itself.
+   *
+   * Defaults to true — the case that was always being described — so every
+   * existing caller keeps its behaviour.
+   */
+  puzzleIsToday?: boolean;
   /** gr6-018 — the day's career-points figure (`scoreDay`'s `career`), or
    * `null` on a Prereg Mode day, which has no career track at all (§2.8
    * lists it only among the Hacking Mode rows). Deliberately NOT a breakdown
@@ -116,6 +141,7 @@ export function Summary({
   shareText,
   preregUnlocked,
   preregPlayedToday = false,
+  puzzleIsToday = true,
   career = null,
   onViewStats,
   unlocked = [],
@@ -208,7 +234,46 @@ export function Summary({
 
       <p className="ph-summary__streak">{t('summary.streak', { n: streak })}</p>
 
-      <p className="ph-summary__countdown">{t('summary.nextIn', { hours, minutes })}</p>
+      {/* w6-r-006, second instance: DO NOT PRINT A COUNTDOWN THAT IS WRONG.
+          w8-r-001: AND DO NOT LEAVE NOTHING IN ITS PLACE.
+
+          These two are one decision, which is why they are one ternary. The
+          countdown answers "when does the next one arrive"; once the wall
+          clock has passed the puzzle's own date the honest answer is "it
+          already has", and printing "23h 55m" instead was the bug w6-r-006
+          named. But suppressing the number alone left the finished-day screen
+          with no line about tomorrow at all — and nothing else on it, or
+          anywhere in the app, routes to the new day: nothing navigates back
+          to the briefing, and the shell's own `errors.newDay` notice is
+          excluded from this screen precisely because its sentence is written
+          for a player who has not finished.
+
+          So the replacement carries the control the shell's notice must not.
+          It is safe here and only here: `SummaryScreen`'s first-mount effect
+          has already run `persistAndComputeSummary` by the time this renders,
+          so the day, the achievements and the streak are all written and a
+          reload discards nothing. The sentence says that before it asks for
+          the press, exactly as `errors.workerCrash` earns the other reload
+          button in this product. `window.location.reload()` inline, matching
+          App.tsx's boot-error control — this is the same act, and it has no
+          business becoming a prop only one caller could ever supply. */}
+      {puzzleIsToday ? (
+        <p className="ph-summary__countdown" data-testid="summary-countdown">
+          {t('summary.nextIn', { hours, minutes })}
+        </p>
+      ) : (
+        <div className="ph-summary__new-day" data-testid="summary-new-day">
+          <p className="ph-summary__new-day-line">{t('errors.newDayReady')}</p>
+          <button
+            type="button"
+            className="ph-summary__new-day-reload ph-focusable ph-label"
+            data-testid="summary-new-day-reload"
+            onClick={() => window.location.reload()}
+          >
+            {t('errors.reload')}
+          </button>
+        </div>
+      )}
 
       {/* gr6-062 — the day ends where the day's reward is. The screen's last
           word used to be an upsell, with no route to the honours board it had
@@ -427,6 +492,29 @@ export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) 
       career={computed.career}
       preregUnlocked={computed.preregUnlocked}
       preregPlayedToday={computed.preregPlayedToday}
+      // w6-r-006's second instance. Derived from the SAME `now` the countdown
+      // itself is computed from — which this screen already refreshes on the
+      // 30s interval above — rather than from a second, independent
+      // `localIsoDate()` call: one clock read, so the suppression and the
+      // number it suppresses cannot be answering different questions.
+      //
+      // `localIsoDate(now)`, WITH THE ARGUMENT, is the whole of that
+      // discipline, and w8-r-005 found it unguarded: a reviewer swapped in a
+      // second bare `localIsoDate()` here and the suite stayed green. It is
+      // compiled now — tests/ui/summary.test.tsx asserts over this file's own
+      // source that `localIsoDate` is called exactly once and always with an
+      // argument, which is the only shape of this rule a test can hold.
+      //
+      // STATED HONESTLY (w8-r-005): the agreement between this screen and the
+      // shell is EVENTUAL, not instantaneous. The shell re-checks the date on
+      // a 60s interval (plus visibilitychange); this screen refreshes `now`
+      // every 30s. So for at most one shell tick after a midnight crossed
+      // while the Summary is open, the shell may not yet have cleared its own
+      // state while this screen has already switched. Bounded by
+      // ROLLOVER_CHECK_MS, self-correcting on the next tick, and invisible in
+      // the direction that matters — the shell EXCLUDES 'summary' outright
+      // (w8-r-001), so the two can never both be on screen.
+      puzzleIsToday={localIsoDate(now) === iso}
       onViewStats={viewStats}
       // T38: ids -> the locale's OWN name/citation, resolved here (§2.11's
       // award ceremony is content, not chrome — see UnlockedAchievement).

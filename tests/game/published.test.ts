@@ -16,6 +16,7 @@ import {
 import { content as enContent } from '../../src/content/en';
 import type { PressBlurb } from '../../src/content/types';
 import { JOURNALS } from '../../src/content/journals';
+import { NO_ISSUE, issueLabel } from '../../src/ui/masthead';
 import { TIER_FORKS, TIER_MOVES } from '../../src/game/tuning';
 import { LAB_DEFAULT_SPEC } from '../../src/engine/day';
 import type { Spec } from '../../src/engine/types';
@@ -142,10 +143,21 @@ describe('hackingMoves + egregiousnessTierFromSpec (GR6 ruling §1(h), TIER_MOVE
 });
 
 describe('fakeDoi', () => {
-  it('formats as 10.1337/phk.{puzzleNumber}', () => {
-    expect(fakeDoi(1)).toBe('10.1337/phk.1');
-    expect(fakeDoi(42)).toBe('10.1337/phk.42');
-    expect(fakeDoi(1337)).toBe('10.1337/phk.1337');
+  // w8-r-004: the parameter is a `string`, and the `String()` calls here are
+  // the point rather than noise. `fakeDoi` takes an issue LABEL — whatever
+  // src/ui/masthead.ts's `issueLabel` decided this day prints — so a bare
+  // number reaching it is now a compile error, which is what stops
+  // `10.1337/phk.-3` coming back. See that function's own note.
+  it('formats as 10.1337/phk.{issue}', () => {
+    expect(fakeDoi(String(1))).toBe('10.1337/phk.1');
+    expect(fakeDoi(String(42))).toBe('10.1337/phk.42');
+    expect(fakeDoi(String(1337))).toBe('10.1337/phk.1337');
+  });
+
+  it('renders whatever label it is handed, including the practice em dash', () => {
+    expect(fakeDoi(NO_ISSUE)).toBe('10.1337/phk.\u2014');
+    expect(fakeDoi(issueLabel(-3, true))).toBe('10.1337/phk.\u2014');
+    expect(fakeDoi(issueLabel(-3, false))).toBe('10.1337/phk.-3');
   });
 });
 

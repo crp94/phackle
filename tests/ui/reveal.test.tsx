@@ -104,7 +104,11 @@ const live = () => harness.store as GameStore;
 
 async function mountReveal(
   over: Partial<RevealPayloadFull> = {},
-  opts: { path?: 'abandon' | 'submit'; call?: 'real' | 'noise' } = {}
+  // gr6-021 adds `iso`/`practice`: the day the store BOOTS with is what
+  // decides `puzzleNumber` (and therefore which subline the §4.5 banks
+  // rotate to), and a pre-EPOCH date makes that number negative. Both
+  // default to what every existing caller already got.
+  opts: { path?: 'abandon' | 'submit'; call?: 'real' | 'noise'; iso?: string; practice?: boolean } = {}
 ) {
   const p = payload(over);
   const view = render(
@@ -114,7 +118,11 @@ async function mountReveal(
     </LocaleProvider>
   );
   await act(async () => {
-    await live().boot(fakeClient(p), ISO, { practice: false, mode: 'hack', scenarioCount: 20 });
+    await live().boot(fakeClient(p), opts.iso ?? ISO, {
+      practice: opts.practice ?? false,
+      mode: 'hack',
+      scenarioCount: 20,
+    });
   });
   act(() => live().openData());
   await act(async () => {
@@ -406,6 +414,49 @@ describe('§2.7.4 the verdict stamp', () => {
     const cover = container.querySelector('[data-block="stamp"] [data-role="cover-echo"]');
     expect(cover).not.toBeNull();
     expect(cover?.textContent).toContain(SCENARIO.question);
+  });
+
+  /* gr6-021 — THE PRE-EPOCH DAY, WHERE BOTH BANKS USED TO VANISH.
+     `puzzleNumber = daysBetween(EPOCH, iso) + 1` is negative before launch,
+     JavaScript's `%` keeps the dividend's sign, and `bank[-3]` is
+     `undefined` — which this component renders as "no subline". So every
+     line of both banks was invisible on every day the game had ever been
+     played, silently. This is the screen-level pin; daily.ts's own suite
+     walks the banks arithmetically over a full year. */
+  const PRE_EPOCH_ISO = '2026-08-06'; // puzzleNumber -3 against EPOCH 2026-08-10
+
+  it('still finds a retraction subline on a PRE-EPOCH (negative puzzle number) day', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED' }, { iso: PRE_EPOCH_ISO, practice: true });
+    expect(live().puzzleNumber, 'the fixture is not actually pre-EPOCH any more').toBeLessThan(0);
+    const sub = container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
+    expect(sub, 'the whole 14-line retraction bank vanished on a pre-EPOCH day').not.toBe('');
+    expect(en.retractionSublines).toContain(sub);
+  });
+
+  it('still finds a null-reported subline on a PRE-EPOCH day', async () => {
+    const { container } = await mountReveal(
+      { stamp: 'NULL_REPORTED' },
+      { path: 'abandon', iso: PRE_EPOCH_ISO, practice: true }
+    );
+    expect(live().puzzleNumber).toBeLessThan(0);
+    const sub = container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
+    expect(sub, 'the whole 10-line null-reported bank vanished on a pre-EPOCH day').not.toBe('');
+    expect(en.nullReportedSublines).toContain(sub);
+  });
+
+  /* gr6-021/gr6-022 — the cover echo is a masthead too, and must agree with
+     the running header about a practice day's missing issue number. */
+  it('the cover echo prints an em dash for the issue number on a practice day, never a negative one', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED' }, { iso: PRE_EPOCH_ISO, practice: true });
+    const vol = container.querySelector('[data-role="cover-echo"] .ph-reveal__cover-vol')?.textContent ?? '';
+    expect(vol).toBe('Vol. 1, No. —');
+    expect(vol, 'the cover echo still registers a negative issue').not.toContain('-3');
+  });
+
+  it('the cover echo prints the real number on a real day', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED' });
+    const vol = container.querySelector('[data-role="cover-echo"] .ph-reveal__cover-vol')?.textContent ?? '';
+    expect(vol).toBe(`Vol. 1, No. ${live().puzzleNumber}`);
   });
 
   it('adds a rotating retraction subline only to RETRACTED', async () => {

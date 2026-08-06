@@ -7,18 +7,37 @@
 // player who is mid-hack at midnight finishes the day they started.
 //
 // Nothing held that gate in place. `grep -r 'visibilitychange\|ROLLOVER'
-// tests/ e2e/` returned nothing before this file, and the effect is
-// UNREACHABLE IN JSDOM by construction: `createEngineClient()`'s `new Worker`
-// throws there, so `clientRef` is null and `checkRollover` returns on its
-// first line. Only a real browser can see this code run at all. Measured by
-// the reviewer: deleting the guard outright — so midnight wipes a half-hacked
-// spec, an open reveal or a finished summary — left tsc 0, vitest 1698 and
-// e2e 22/22 all green.
+// tests/ e2e/` returned nothing before this file, and the effect was
+// unreachable in the jsdom suites AS THEY THEN STOOD: nothing mocked
+// `createEngineClient`, so `new Worker` threw, `clientRef` stayed null and
+// `checkRollover` bailed at its client guard. Only a real browser could see
+// the code run. Measured by the reviewer: deleting the gate outright — so
+// midnight wipes a half-hacked spec, an open reveal or a finished summary —
+// left tsc 0, vitest 1698 and e2e 22/22 all green.
+//
+// CORRECTED BY W8 (w8-r-002), because the paragraph above used to read as a
+// permanent property of jsdom and is not one. `tests/ui/appMidnight.test.tsx`
+// now reaches the same effect in jsdom by mocking `createEngineClient` (the
+// `tests/ui/router.test.tsx` idiom), which populates `clientRef` and makes
+// every branch reachable. The client guard has also since moved off the
+// function's first line down to the re-boot that uses it — an ordering
+// change only, behaviour-neutral, and NOT what made the effect testable.
+// These e2e tests remain the only coverage in a REAL browser, which is the
+// tier that matters for a `visibilitychange` listener and a throttled
+// interval, so nothing here is redundant.
 //
 // Both halves are pinned here, because a one-sided test is worse than none:
 // an effect that never fires would pass a "nothing was destroyed" assertion
 // perfectly, and an effect that always fires would pass a "the new day
 // arrives" one.
+//
+// BOOKED, not fixed here (w8-r-006): neither test asserts the AFFORDANCE W8
+// added — the shell's `errors.newDay` notice on a mid-play rollover, and the
+// Summary's own `errors.newDayReady` line plus reload control on a finished
+// one. Both are covered in jsdom by appMidnight.test.tsx and summary.test.tsx
+// with load-bearing guards, so this is a tier gap rather than a coverage gap.
+// It belongs to the FINAL VERIFICATION WAVE (W10, which had `e2e/**`, is
+// merged and closed).
 import { expect, test } from '@playwright/test';
 import { FIXED_INSTANT_MS, PUZZLE_NUMBER, enterLab, openApp, turnKnobAndSettle, DEFAULT_SPEC } from './harness';
 

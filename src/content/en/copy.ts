@@ -88,6 +88,11 @@ export type CopyKey =
   // string, which is why it lives in `nav.` beside the other header controls
   // rather than in `a11y.`.
   | 'nav.skipToContent'
+  // GR6 gr6-022: the practice-session marker. Chrome, beside the masthead's
+  // volume line, which is why it lives in `nav.` — and it is the SAME string
+  // the share text uses (see the value), so the word the player read at the
+  // top of the screen is the word their friends read in the paste.
+  | 'nav.practiceMode'
   // The three language names are ENDONYMS: each locale is named in its own
   // language, so the value is identical in all three catalogs by design (the
   // same "proper noun, not prose" bucket as 'nav.title'). They are the
@@ -513,6 +518,15 @@ export type CopyKey =
   // it" since T6 and the app has never offered a control that does it. This is
   // that control's label.
   | 'errors.reload'
+  // GR6 gr6-021/w6-r-006/w7-r-003: the mid-play midnight notice. Booked twice
+  // and written by neither wave — W6 could not print an honest countdown
+  // without it and suppressed the number instead; W7 wired the rollover and
+  // declined to author copy. See the value below for what it does and does
+  // not say.
+  | 'errors.newDay'
+  // w8-r-001: `errors.newDay`'s SIBLING, for the one screen its sentence is
+  // false on. Same event, a player who has already finished — see the value.
+  | 'errors.newDayReady'
   | 'a11y.localeToggle'
   // T33: the theme control's group label, and the masthead's own accessible
   // name. The masthead one OPENS with the wordmark on purpose — the visible
@@ -577,6 +591,27 @@ export const copy: Record<CopyKey, string> = {
   // (`tabindex="-1"`, T22), so the link is the whole fix. Names the
   // DESTINATION, because that is what a skip link is read as.
   'nav.skipToContent': 'Skip to the main content',
+  // gr6-022 — THE ONE WORD PRACTICE MODE HAS NEVER HAD.
+  //
+  // Practice mode reaches the player two ways (daily.ts's `isPractice`): every
+  // date before EPOCH, and `?practice=1`, which does not expire at launch. It
+  // records nothing (dayComplete.ts skips `saveDay` entirely on a practice
+  // day), it re-seeds from `Math.random()` rather than from the date, and it
+  // can be replayed any number of times — and until this key, none of that was
+  // visible ANYWHERE. A practice session rendered a masthead, a journal cover,
+  // a DOI and a share string that a stranger could not tell from the real day
+  // whose date it borrowed.
+  //
+  // A NOUN PHRASE, not a verb phrase (rule 1): it labels a state the player is
+  // in, it is not something they do. It renders in exactly two places, and on
+  // purpose: beside the masthead's volume line — which now prints an em dash
+  // where the issue number would be (src/ui/masthead.ts) so the two read as
+  // one statement — and inside the share string's first line, which is the
+  // only line of that text a reader can use to place the run. Rule 8 (one name
+  // per concept) is what makes that reuse right rather than lazy: a second
+  // string for the share would be free to drift from the one on screen, and
+  // the drift would land in the text that leaves the app.
+  'nav.practiceMode': 'Practice run',
   'nav.localeNameEn': 'English',
   'nav.localeNameIt': 'Italiano',
   'nav.localeNameEs': 'Español',
@@ -1467,6 +1502,57 @@ export const copy: Record<CopyKey, string> = {
   // gr6-007 — the control `errors.workerCrash` has always promised. One word,
   // because the sentence above it already said what pressing it does.
   'errors.reload': 'Reload',
+  // THE MID-PLAY MIDNIGHT NOTICE (w6-r-006, w7-r-003 — booked to two waves,
+  // authored by neither, landed by W8).
+  //
+  // WHAT IT IS FOR. `App.tsx` reads the date once, at boot, and honours a
+  // rollover only on the briefing with nothing done, because a re-boot is a
+  // `set({ ...initialState() })` and would take a half-hacked spec away from
+  // the player at the exact moment they came back to it. That ruling is
+  // right and stands. What it left behind is a player who crosses midnight
+  // mid-hack and is told nothing at all, while the masthead, the study, the
+  // Grantwell email and the countdown all quietly go on describing
+  // yesterday.
+  //
+  // WHAT IT DELIBERATELY DOES NOT SAY: "reload". Both bookings sketched the
+  // affordance as "a new puzzle is ready — reload", and that instruction is
+  // WRONG HERE, which is the one thing this key had to get right. Nothing
+  // about a day in progress is persisted until the Summary, so mid-play a
+  // reload is the DESTRUCTIVE action: it is the very thing the rollover
+  // ruling refuses to do to the player, offered to them as a button with no
+  // warning on it. `errors.reload` therefore stays where gr6-007 put it — on
+  // the boot-failure screen, where there is no day to lose — and this is a
+  // notice, not a control.
+  //
+  // So the sentence answers the two questions a player actually has, in
+  // order: does the day I am in the middle of still count (yes, as the day it
+  // started — that is exactly what `puzzleIso` guarantees in
+  // dayComplete.ts), and where did today's puzzle go (nowhere; it is waiting).
+  // Second person, plain and precise per the register rule for `errors.`;
+  // no token, so there is nothing for a call site to fail to supply; no em
+  // dash, in a string that would otherwise be the natural place to reach for
+  // one.
+  'errors.newDay':
+    "It is a new day. The one you are playing still counts as the day it started; today's puzzle is waiting when you finish.",
+  // w8-r-001 — THE SAME MIDNIGHT, TOLD TO A PLAYER WHO HAS FINISHED.
+  //
+  // `errors.newDay` above ends "waiting when you finish", which is addressed
+  // to somebody mid-play and is FALSE on the Summary — where the player has
+  // finished, and where W8's own countdown suppression had just removed the
+  // last line on that screen pointing at tomorrow. So the finished-day screen
+  // was left saying nothing true and offering no route at all.
+  //
+  // AND THE ARGUMENT FOR WITHHOLDING "RELOAD" DOES NOT REACH HERE. That
+  // argument is that mid-play nothing is persisted, so a reload throws the
+  // day away. By the time this screen renders, `SummaryScreen`'s first-mount
+  // effect has ALREADY run `persistAndComputeSummary` — the day is written,
+  // the achievements are written, the streak is written. A reload here costs
+  // nothing, and it is the only way to reach the new day (nothing navigates
+  // back to the briefing). So this line carries the control, and says why it
+  // is safe before it asks for the press: "This one is saved" is the sentence
+  // that earns the button, exactly as `errors.workerCrash` earns the other
+  // one.
+  'errors.newDayReady': "A new day started while you were playing. This one is saved; reload for today's puzzle.",
 
   // T37 (audit §5.4, adopted as a value change): this labels a role="group"
   // (App.tsx's LocaleToggle), not a button. A group label NAMES the group; it

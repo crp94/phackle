@@ -30,7 +30,7 @@ import { createEngineClient, type EngineClient } from '../game/engineClient';
 import { isPractice, localIsoDate } from '../game/daily';
 import { isStorageOff } from '../game/storage';
 import { AppNavContext, type AppNav } from './nav';
-import { JOURNAL_VOLUME } from './masthead';
+import { JOURNAL_VOLUME, issueLabel } from './masthead';
 import StatsScreen from './screens/Stats';
 import LegendScreen from './screens/Legend';
 import AboutScreen from './screens/About';
@@ -84,6 +84,9 @@ export default function App({ puzzleNumber, children }: AppProps) {
   // for every OTHER crash in this game.
   const booted = useGameStore((s) => s.booted);
   const storeError = useGameStore((s) => s.error);
+  // gr6-022: the header's practice marker, and the issue number it stands
+  // next to (which a practice day does not have — src/ui/masthead.ts).
+  const practice = useGameStore((s) => s.practice);
   // T35: read ONLY to key the <main> transition below (DESIGN.md R5.2 site
   // 1). App does not route on this and never has — ScreenRouter still owns
   // which screen renders; this is the animation hook, nothing more.
@@ -109,6 +112,12 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * never back — so a second read is a complete answer, not a poll).
    */
   const [storageOff, setStorageOff] = useState(() => isStorageOff());
+  /** gr6-021's sibling, W8: the local date has moved past the day the store
+   * booted with AND the player is somewhere the rollover effect below
+   * deliberately will not re-boot (i.e. mid-play). Set only from that same
+   * effect, so the notice and the re-boot are decided by ONE reading of the
+   * clock and can never contradict each other. */
+  const [newDayPending, setNewDayPending] = useState(false);
 
   // T22 — FOCUS MANAGEMENT ACROSS THE ONE ROUTE CHANGE THIS APP HAS.
   //
@@ -219,16 +228,52 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * showing yesterday's result and the new day is exactly what should replace
    * it.
    *
-   * STILL OPEN, and narrowed by what W2 actually shipped: the mid-play case
-   * has no affordance at all (no "a new puzzle is ready — reload" line). Two
-   * keys were booked for it. `errors.reload` LANDED and is wired, but at the
-   * boot-failure screen below, which is the only place a reload control is
-   * unambiguous; `errors.newDay` — the sentence that would say WHY a mid-day
-   * player should press it — was not written, in any locale. One word with no
-   * sentence around it is not an affordance, it is a button that appears
-   * during play for no stated reason, so nothing hangs here yet. RE-BOOKED:
-   * this effect is still where the notice belongs the day `errors.newDay`
-   * exists in all three catalogs.
+   * THE MID-PLAY CASE, CLOSED (W8). It used to end here with nothing at all:
+   * a player who crossed midnight three knobs into the Lab kept their day —
+   * correctly — and was told nothing, while the masthead, the study, the
+   * Grantwell email and the Summary's countdown all went on describing
+   * yesterday. Both earlier bookings sketched the affordance as "a new puzzle
+   * is ready — reload", and this notice does NOT carry the reload half,
+   * deliberately: MID-PLAY nothing is persisted until the Summary, so a reload
+   * is the DESTRUCTIVE action — the very thing the ruling above refuses to do
+   * to the player — and offering it as a button would be handing them the
+   * loaded gun this effect was written to keep pointed away. `errors.newDay`
+   * (all three catalogs) is therefore a NOTICE and not a control: it says the
+   * day in progress still counts as the day it started, and that today's
+   * puzzle is waiting.
+   *
+   * AND THAT ARGUMENT STOPS AT EXACTLY ONE SCREEN (w8-r-001). `'summary'` is
+   * excluded below, because everything the argument rests on is false there:
+   * `SummaryScreen`'s first-mount effect has already run
+   * `persistAndComputeSummary`, so the day is written before that screen ever
+   * paints and a reload costs nothing; `errors.newDay`'s own sentence ends
+   * "when you finish", which is addressed to somebody who has not; and W8's
+   * countdown suppression had just removed the last line on that screen
+   * pointing anywhere but backwards, leaving the finished day with NO ROUTE
+   * AT ALL to the new one. The Summary therefore renders its own line, with
+   * its own sentence and with `errors.reload` — see
+   * `screens/Summary.tsx`'s `puzzleIsToday` block. This shell notice is for
+   * the screens where the day can still be lost: lab, prereg, published, call
+   * and reveal.
+   *
+   * `newDayPending` is set from the SAME check, which is what keeps the notice
+   * and the re-boot from ever disagreeing: at most one of them can be true of
+   * a given tick, and both are cleared the moment the store's `iso` is today
+   * again (whether this effect re-booted or the player reloaded).
+   *
+   * ON THE GUARD ORDER, corrected (w8-r-002). The `clientRef`/`content` guard
+   * used to be the first line of `checkRollover`; it now sits immediately
+   * above the re-boot, the only branch that uses it. That is an ORDERING
+   * improvement and nothing more — the conjuncts are side-effect-free, so the
+   * permutation is behaviour-neutral, and the reviewer confirmed it by
+   * restoring the original order and finding the whole suite, appMidnight
+   * included, still green. An earlier version of this comment claimed the
+   * move is what makes the effect reachable under jsdom. IT IS NOT: what
+   * makes it reachable is mocking `createEngineClient`
+   * (tests/ui/appMidnight.test.tsx, the tests/ui/router.test.tsx idiom), which
+   * populates `clientRef` whatever the guard order. w7-r-003's
+   * "unreachable in jsdom by construction" was true of a suite that did not
+   * mock it, and is closed by the mock, not by this line.
    *
    * The check runs on an interval AND on `visibilitychange`, because a
    * backgrounded tab's timers are throttled to the point of uselessness and
@@ -237,13 +282,32 @@ export default function App({ puzzleNumber, children }: AppProps) {
   useEffect(() => {
     if (!content) return undefined;
     function checkRollover() {
-      const client = clientRef.current;
-      if (!client || !content) return;
       const state = gameStore.getState();
-      if (!state.booted || state.iso === localIsoDate()) return;
+      if (!state.booted || state.iso === localIsoDate()) {
+        // Either there is no day yet, or the day on screen IS today. Nothing
+        // is stale, so the notice retires itself — including after a re-boot
+        // below, which is what stops it flashing on the briefing.
+        setNewDayPending(false);
+        return;
+      }
+      // The Summary owns its own version of this (w8-r-001, see above): it is
+      // the one stale screen where the day is already saved, so it gets a
+      // sentence that is true of a finished player AND the control this
+      // notice must not offer.
+      if (state.screen === 'summary') {
+        setNewDayPending(false);
+        return;
+      }
       // See the ruling above: the briefing is the one state the player can be
       // in having done nothing, because nothing ever navigates back to it.
-      if (state.screen !== 'briefing') return;
+      // Everywhere else the day is kept and the player is TOLD.
+      if (state.screen !== 'briefing') {
+        setNewDayPending(true);
+        return;
+      }
+      const client = clientRef.current;
+      if (!client || !content) return;
+      setNewDayPending(false);
       void boot(client, localIsoDate(), {
         practice: isPractice(window.location.search),
         mode: state.mode,
@@ -398,8 +462,30 @@ export default function App({ puzzleNumber, children }: AppProps) {
             <span className="ph-header__wordmark">P-hackle</span>
           </button>
           <span className="ph-header__vol">
-            {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: displayedPuzzleNumber })}
+            {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: issueLabel(displayedPuzzleNumber, practice) })}
           </span>
+          {/* gr6-022 — PRACTICE MODE, MADE VISIBLE.
+              Practice mode reaches a player two ways (daily.ts's isPractice):
+              every date before EPOCH, and `?practice=1`, which does not expire
+              at launch. It records nothing, re-seeds from Math.random() rather
+              than from the date, and can be replayed all day — and none of
+              that was visible anywhere in the product. The marker and the em
+              dash the volume line now prints in place of an issue number
+              (src/ui/masthead.ts) are one statement, which is why they sit in
+              the same paragraph: "Vol. 1, No. — · Practice run" reads as a
+              masthead for a thing that is not an issue, rather than as a
+              badge stuck onto one that is.
+              --muted per R1.2 (this is a caption about the page, not a
+              headline on it) and .ph-label for the same tracked small-caps
+              treatment the rest of the chrome uses. No role="status": it is
+              true from the first paint of the session to the last and nothing
+              ever arrives here, so it is read in document order right after
+              the number it qualifies. */}
+          {practice ? (
+            <span className="ph-header__practice ph-label" data-testid="app-practice-marker">
+              {t('nav.practiceMode')}
+            </span>
+          ) : null}
         </p>
         <div className="ph-header__controls">
           {/* T22: a real <nav> landmark, not a bare div. This is the app's
@@ -462,6 +548,24 @@ export default function App({ puzzleNumber, children }: AppProps) {
       {storageOff ? (
         <p className="ph-storage-notice" role="status">
           {t('errors.storageOff')}
+        </p>
+      ) : null}
+      {/* W8 (w6-r-006 / w7-r-003) — THE MID-PLAY MIDNIGHT NOTICE.
+          Same treatment as the storage notice directly above, and for the same
+          reasons: rendered in the shell so it is visible on whichever screen
+          the player is actually standing on, a quiet manuscript line rather
+          than a modal, and role="status" rather than "alert" because nothing
+          is wrong and nothing is blocked. It differs from that one in the
+          single way that matters here — it can ARRIVE while the player is
+          reading the screen (the rollover check fires on an interval and on
+          visibilitychange), which is exactly the case a live region exists
+          for, and is why it keeps role="status" rather than relying on
+          document order the way the practice marker above does.
+          It retires itself: the moment the store's `iso` is today again the
+          same check clears the flag. */}
+      {newDayPending ? (
+        <p className="ph-new-day-notice" role="status" data-testid="app-new-day-notice">
+          {t('errors.newDay')}
         </p>
       ) : null}
       {/* T35 — DESIGN.md R5.2 site 1, the product's ONE screen-transition

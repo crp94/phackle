@@ -143,6 +143,63 @@ describe('shareString — §2.9 layout', () => {
     expect(incorrect.split('\n')[1].endsWith('⚖️❌')).toBe(true);
   });
 
+  // gr6-022 — LINE 1 ON A PRACTICE DAY. `?practice=1` does not expire at
+  // launch and every pre-EPOCH date is a practice date, so before this the
+  // share text for a session that was never recorded, never seeded from the
+  // date, and replayable all day was byte-identical to the real issue's.
+  it('a practice run names itself on line 1 instead of claiming an issue number', () => {
+    const log: PlayerAction[] = [view(spec(), false, 0), submit(spec(), 1)];
+    const real = shareString({ puzzleNumber: 5, log, mode: 'hack', callCorrect: true, streak: 1, copy: enCopy });
+    const practice = shareString({
+      puzzleNumber: 5,
+      log,
+      mode: 'hack',
+      callCorrect: true,
+      streak: 1,
+      practice: true,
+      copy: enCopy,
+    });
+
+    expect(real.split('\n')[0]).toBe('P-hackle #5');
+    expect(practice.split('\n')[0]).toBe(`P-hackle (${enCopy['nav.practiceMode']})`);
+    // The number is GONE, not merely accompanied: a reader must not be able to
+    // read a practice paste as issue #5.
+    expect(practice).not.toContain('#5');
+    // ...and nothing else about the string moved.
+    expect(practice.split('\n').slice(1)).toEqual(real.split('\n').slice(1));
+  });
+
+  it('omitting `practice` is exactly the real-day string (the default is the case that always shipped)', () => {
+    const log: PlayerAction[] = [view(spec(), false, 0), submit(spec(), 1)];
+    const omitted = shareString({ puzzleNumber: 7, log, mode: 'hack', callCorrect: false, streak: 3, copy: enCopy });
+    const explicit = shareString({
+      puzzleNumber: 7,
+      log,
+      mode: 'hack',
+      callCorrect: false,
+      streak: 3,
+      practice: false,
+      copy: enCopy,
+    });
+    expect(omitted).toBe(explicit);
+  });
+
+  it('names the practice run in the reader\'s own language, from the same key the header shows', async () => {
+    const log: PlayerAction[] = [view(spec(), false, 0), submit(spec(), 1)];
+    const seen = new Set<string>();
+    for (const locale of AVAILABLE_LOCALES) {
+      const { copy } = await getContent(locale);
+      const out = shareString({ puzzleNumber: 5, log, mode: 'hack', callCorrect: true, streak: 1, practice: true, copy });
+      // The wordmark stays a deliberate non-translation (delta spec i18n §6);
+      // the marker beside it is the locale's own.
+      expect(out.split('\n')[0]).toBe(`P-hackle (${copy['nav.practiceMode']})`);
+      seen.add(copy['nav.practiceMode']);
+    }
+    // Not a translation that forgot to translate: the three locales really do
+    // say three different things here.
+    expect(seen.size).toBe(AVAILABLE_LOCALES.length);
+  });
+
   it('an abandoned day ends the trail with 🏳️, a published day with 📄', () => {
     const publishedLog: PlayerAction[] = [view(spec(), false, 0), submit(spec(), 1)];
     const abandonedLog: PlayerAction[] = [view(spec(), false, 0), abandon(1)];
@@ -357,6 +414,13 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
         const { log, mode } = genPattern(rng);
         const puzzleNumber = 1 + Math.floor(rng() * 500);
         const streak = Math.floor(rng() * 60);
+        // gr6-022: the new input, swept alongside the others. It is held
+        // EQUAL across each pair below, which is the whole claim being
+        // tested — `practice` is a property of the SESSION, never of the day
+        // (see ShareStringInput.practice), so day-type independence has to
+        // hold at either of its values, and a `practice` that had been
+        // derived from anything about the day would break exactly here.
+        const practice = rng() < 0.5;
 
         // Same action pattern, opposite underlying day types, both resolving
         // to a CORRECT call: (null day, called noise) vs (effect day, called
@@ -367,6 +431,7 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
           mode,
           callCorrect: callIsCorrect('noise', 'null'),
           streak,
+          practice,
           copy,
         });
         const correctOnEffect = shareString({
@@ -375,6 +440,7 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
           mode,
           callCorrect: callIsCorrect('real', 'effect'),
           streak,
+          practice,
           copy,
         });
         expect(correctOnEffect).toBe(correctOnNull);
@@ -386,6 +452,7 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
           mode,
           callCorrect: callIsCorrect('real', 'null'),
           streak,
+          practice,
           copy,
         });
         const wrongOnEffect = shareString({
@@ -394,6 +461,7 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
           mode,
           callCorrect: callIsCorrect('noise', 'effect'),
           streak,
+          practice,
           copy,
         });
         expect(wrongOnEffect).toBe(wrongOnNull);

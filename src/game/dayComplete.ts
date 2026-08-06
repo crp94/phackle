@@ -288,7 +288,35 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
         ...state.history,
         [puzzleIso]: { ...state.history[puzzleIso], [mode]: { mode, score: 0, forks: 0, stamp, shareString: '' } },
       };
-  const { streak } = streakAfter(historyForStreak, puzzleIso);
+  //
+  // gr6-078 — A PRACTICE DAY MUST NOT MOVE THE STREAK IT DOES NOT JOIN.
+  //
+  // The placeholder above answers "what will the streak BE once today is
+  // saved", which is exactly right for a real day and a fiction on a practice
+  // one: `saveDay` is skipped entirely below (`!practice`), so the day is
+  // never written, and the invoice was printing N+1 while storage — and the
+  // Stats wall, which reads `stats.streak` — held N. The number is also
+  // embedded in the share text three lines down, so the overclaim left the
+  // app in the paste.
+  //
+  // DEVIATION FROM THE BACKLOG ROW'S SUGGESTED ONE-LINER, measured. That row
+  // proposes `alreadySaved || practice ? state.history : {…}`, which does stop
+  // the overclaim but replaces it with a different wrong number: `streakAfter`
+  // walks BACKWARDS from the day it is given and stops at the first day with
+  // no record, so on a practice day whose real day has not been played it
+  // returns 0 — a player on a 7-day streak would be shown "Streak: 0" for
+  // running a practice session, and would have every reason to believe they
+  // had just lost it. The honest figure is the one the rest of the app is
+  // already showing that player: `stats.streak`, which is what the Stats
+  // screen prints (Stats.tsx) and what `saveDay` last computed through the
+  // last day actually recorded. Reading it here makes the invoice AGREE with
+  // the honours board by construction rather than by arithmetic that happens
+  // to coincide.
+  //
+  // The `alreadySaved` arm is unchanged and still comes first, so a practice
+  // session run on a day whose real record exists reads that record's own
+  // streak — the same number either branch would produce.
+  const { streak } = practice && !alreadySaved ? { streak: state.stats.streak } : streakAfter(historyForStreak, puzzleIso);
 
   // Post-review fix: `callCorrect` is passed through AS-IS (never `?? false`)
   // — share.ts's own ShareStringInput.callCorrect is `boolean | null` exactly
@@ -296,7 +324,11 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
   // §2.8 has no CALL step at all) reaches shareString and suppresses the
   // "→ ⚖️…" suffix entirely, rather than being coerced into a false "wrong
   // call" reading that every single prereg day previously got by construction.
-  const shareText = shareString({ puzzleNumber, log, mode, callCorrect, streak, copy });
+  // gr6-022: `practice` reaches the share string as an explicit input, so a
+  // practice run's paste says what it is instead of naming an issue number it
+  // has no claim to. See ShareStringInput.practice for why it is passed rather
+  // than derived (the spoiler property).
+  const shareText = shareString({ puzzleNumber, log, mode, callCorrect, streak, practice, copy });
 
   // T30: achievements newly unlocked TODAY — stays empty unless the block
   // below actually runs. Folded into `preregUnlocked` regardless (see the

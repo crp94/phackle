@@ -7,6 +7,9 @@
 // achievement-gated) Prereg Mode upsell. jsdom pragma because
 // persistAndComputeSummary touches localStorage (via storage.ts) — same
 // convention as tests/game/storage.test.ts.
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
@@ -22,7 +25,7 @@ import { content as enContent } from '../../src/content/en';
 import { MAX_STAGGER_STEPS } from '../../src/ui/hooks/useEnterOnce';
 import { t as translate } from '../../src/i18n/t';
 import type { PersistedState } from '../../src/game/storage';
-import { DEFAULT_SPEC, useGameStore } from '../../src/game/store';
+import { DEFAULT_SPEC, gameStore, useGameStore } from '../../src/game/store';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { localIsoDate } from '../../src/game/daily';
 import type { EngineClient } from '../../src/engine/protocol';
@@ -164,6 +167,114 @@ describe('Summary — streak strip and countdown', () => {
       />
     );
     expect(screen.getByText(t('summary.nextIn', { hours: 2, minutes: 0 }))).toBeTruthy();
+  });
+
+  // w6-r-006's SECOND INSTANCE, which that ruling found, named and left open:
+  // "Summary's own countdown has the identical bug". `now` is a live
+  // wall-clock read and the invoice belongs to the puzzle's own date, so a
+  // player who was mid-play at midnight and has since finished was told
+  // "Next puzzle in 23h 55m" about a puzzle that was already waiting.
+  it('SUPPRESSES the countdown when the day this invoice is for is no longer today', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 11, 0, 5, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+        puzzleIsToday={false}
+      />
+    );
+    expect(screen.queryByTestId('summary-countdown'), 'a countdown to a puzzle that is already here').toBeNull();
+    // Nothing else about the screen is withheld — this is one wrong number
+    // removed, not a degraded screen.
+    expect(screen.getByText(t('summary.streak', { n: 1 }))).toBeTruthy();
+    expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy();
+  });
+
+  // w8-r-001 — SUPPRESSING THE COUNTDOWN LEFT NO ROUTE AT ALL.
+  //
+  // Nothing in this app navigates back to the briefing, and the shell's
+  // `errors.newDay` notice is excluded from this screen (its sentence ends
+  // "when you finish", addressed to a player who has not). So with the
+  // countdown gone the finished day had no line about tomorrow and no way to
+  // reach it. These three pin the replacement: the sentence, the control, and
+  // the fact that the control is what it says it is.
+  it('offers a ROUTE to the new day in the countdown\'s place, not silence', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 11, 0, 5, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+        puzzleIsToday={false}
+      />
+    );
+    const block = screen.getByTestId('summary-new-day');
+    expect(block.textContent).toContain(t('errors.newDayReady'));
+    // The sentence must be TRUE of a player who has finished: `errors.newDay`
+    // (the mid-play one) is not, and putting it here was the defect.
+    expect(block.textContent, 'the mid-play sentence leaked onto the finished-day screen').not.toContain(
+      t('errors.newDay')
+    );
+    expect(screen.getByTestId('summary-new-day-reload').textContent).toBe(t('errors.reload'));
+  });
+
+  it('the route actually reloads (it is safe here: the day is already persisted on mount)', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 11, 0, 5, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+        puzzleIsToday={false}
+      />
+    );
+    const spy = vi.fn();
+    // Same stub shape as tests/ui/shell.test.tsx's boot-error reload test:
+    // jsdom's location.reload is a non-configurable no-op.
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, reload: spy } });
+    fireEvent.click(screen.getByTestId('summary-new-day-reload'));
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows NO such block on an ordinary day — a reload offer with nothing to reload to is noise', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 10, 22, 0, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+      />
+    );
+    expect(screen.queryByTestId('summary-new-day')).toBeNull();
+    expect(screen.queryByTestId('summary-new-day-reload')).toBeNull();
+  });
+
+  it('defaults to showing it, so the ordinary day is untouched', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 10, 22, 0, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+      />
+    );
+    expect(screen.getByTestId('summary-countdown')).toBeTruthy();
   });
 });
 
@@ -838,6 +949,65 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
       vi.useRealTimers();
     }
   });
+
+  // W8 — the same straddle, asked about the SCREEN rather than about storage.
+  // The persistence half was fixed in T17 review round 2 (above); the
+  // countdown half is w6-r-006's recorded second instance, and this is the
+  // wrapper end of it: `SummaryScreen` must derive `puzzleIsToday` from the
+  // store's own `iso`, not assume it.
+  it('a summary finished after a real midnight prints no countdown at all (w6-r-006, second instance)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(new Date(2026, 7, 10, 23, 50, 0, 0)); // still the puzzle's own day
+      const ready = vi.fn();
+      const harness = render(
+        <LocaleProvider>
+          <DriveToSummary onReady={ready} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(ready).toHaveBeenCalled());
+      harness.unmount();
+
+      // Before: the countdown is right, and printed.
+      const before = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+      expect(screen.getByTestId('summary-countdown')).toBeTruthy();
+      before.unmount();
+
+      // The player crossed midnight. The day they finished is still 2026-08-10
+      // and still correctly saved as 2026-08-10 — but it is not today.
+      vi.setSystemTime(new Date(2026, 7, 11, 0, 30, 0, 0));
+      expect(localIsoDate()).toBe('2026-08-11'); // the straddle is real
+      expect(gameStore.getState().iso).toBe('2026-08-10');
+
+      const after = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+      expect(
+        screen.queryByTestId('summary-countdown'),
+        'the invoice still counts down 23h to a puzzle the player could open now'
+      ).toBeNull();
+      // w8-r-001, at the wrapper end too: suppressing the number must not
+      // leave the finished day with nothing. The route is there, and it is
+      // the finished-day sentence rather than the mid-play one.
+      expect(screen.getByTestId('summary-new-day').textContent).toContain(t('errors.newDayReady'));
+      expect(screen.getByTestId('summary-new-day-reload').textContent).toBe(t('errors.reload'));
+      // And the day really was already written before this screen painted,
+      // which is the fact that makes offering a reload here honest.
+      const persisted = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+      expect(persisted.history?.['2026-08-10']?.hack, 'a reload here would lose the day').toBeDefined();
+      after.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // --- T30: achievement evaluation wired into the SAME persist moment --------
@@ -1315,5 +1485,59 @@ describe('SummaryScreen — the stats route comes from the shell context (gr6-06
     );
     await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
     expect(screen.queryByTestId('summary-stats-action')).toBeNull();
+  });
+});
+
+// --- w8-r-005: the ONE-CLOCK-READ discipline, compiled ----------------------
+//
+// `SummaryScreen` derives `puzzleIsToday` from `localIsoDate(now)` — the same
+// `now` the countdown itself is computed from — rather than from a second,
+// independent `localIsoDate()`. That is what makes the suppression and the
+// number it suppresses answers to the same question, and the wave report
+// claimed the two "can never be answering different questions".
+//
+// NOTHING HELD IT. The reviewer swapped in a bare, independent
+// `localIsoDate()` and the whole suite stayed green — the two reads agree
+// almost always, so a behavioural test would have to catch a sub-millisecond
+// straddle of local midnight to tell them apart, which is not a test anyone
+// can write honestly.
+//
+// So it is compiled the way this repo already compiles rules that live in the
+// shape of the source rather than in its output (tests/ui/tokens.test.ts,
+// tests/content/copyFreeze.test.ts): read the file, strip comments and
+// strings, and assert that `localIsoDate` is called exactly once and never
+// with an empty argument list. That is the rule, stated as the only thing
+// about it a test can see.
+describe('Summary.tsx source: one clock read, and it is the screen\'s own `now` (w8-r-005)', () => {
+  const SOURCE = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'ui', 'screens', 'Summary.tsx'),
+    'utf8'
+  );
+  /** Comments and template/quoted strings removed, so a `localIsoDate()`
+   * written inside the doc comments that EXPLAIN this rule cannot be mistaken
+   * for a second call. */
+  const CODE = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+
+  it('finds the call at all (a guard over zero matches guards nothing)', () => {
+    expect(CODE).toContain('localIsoDate');
+  });
+
+  it('calls localIsoDate exactly once', () => {
+    const calls = CODE.match(/\blocalIsoDate\s*\(/g) ?? [];
+    expect(
+      calls.length,
+      'Summary.tsx now reads the wall clock more than once. The countdown and the suppression that ' +
+        'hides it must come from ONE reading of the date, or the screen can hide a countdown it is ' +
+        'simultaneously computing (or print one it has decided is stale).'
+    ).toBe(1);
+  });
+
+  it('never calls it with an empty argument list — the screen passes its own `now`', () => {
+    expect(
+      /\blocalIsoDate\s*\(\s*\)/.test(CODE),
+      'Summary.tsx calls localIsoDate() with no argument, which reads the live wall clock a SECOND ' +
+        'time instead of the `now` this screen already holds and refreshes on its own interval.'
+    ).toBe(false);
+    expect(CODE).toMatch(/\blocalIsoDate\s*\(\s*now\s*\)/);
   });
 });

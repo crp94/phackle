@@ -621,12 +621,26 @@ export function generateDay(iso: string, scenarioCount: number): GeneratedDay {
  * daySeed) so practice datasets can never collide with a real calendar
  * date's. `dayType`/effect params reuse seeds.ts's own dayTypeFor/
  * effectParamsFor unchanged, keyed on String(seed) (both accept any string,
- * not just real ISO dates). */
+ * not just real ISO dates).
+ *
+ * gr6-021 residual (w8-r-003): `seed % scenarioCount` was a BARE remainder on
+ * an exported entry point whose only stated precondition was "normally
+ * practiceSeed()". Today's caller does satisfy it — `practiceSeed()` is
+ * `Math.floor(Math.random() * 2**32)`, always >= 0 — but "the current caller
+ * happens to be safe" is a fact about the call site, not a property of this
+ * function, and a negative `seed` would have selected `scenarios[-n]`:
+ * `undefined`, silently, exactly the way the §4.5 verdict banks failed. The
+ * euclidean form is written out here rather than imported from
+ * src/game/daily.ts's `bankIndex`, which is the same expression: eslint bars
+ * src/engine/** from importing src/game/** (eslint.config.js), and that
+ * boundary is worth more than the three characters sharing it would save.
+ * Identical output for every non-negative seed, so nothing about today's
+ * behaviour — determinism goldens included — moves. */
 export function generatePractice(seed: number, scenarioCount: number): GeneratedDay {
   return assemblePuzzle({
     isoDate: 'practice',
     puzzleNumber: 0,
-    scenarioIdx: seed % scenarioCount,
+    scenarioIdx: ((seed % scenarioCount) + scenarioCount) % scenarioCount,
     hashSourceIso: String(seed),
     seedForAttempt: (attempt) => fnv1a32(`practice:${seed}:${attempt}`),
     warnContext: `practice:${seed}`,
