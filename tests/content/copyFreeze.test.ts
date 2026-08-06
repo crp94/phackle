@@ -48,16 +48,31 @@ const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, ' ').r
    1. CopyKey audit — every t()/copy[] usage site references a real key
    ================================================================ */
 
+/**
+ * A CopyKey as it is written at a call site. TWO OR MORE segments, and the
+ * `+` is the whole point (w7-r-009).
+ *
+ * This was `[a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+` — exactly ONE dot — and the
+ * closing-quote backreference then made the mismatch total rather than
+ * partial: against `'lab.explain.outcome'` the body matches `lab.explain`,
+ * the `\1` finds `.` instead of the quote, and the whole match FAILS. So the
+ * twelve multi-segment keys this catalog has were not merely truncated at
+ * these call sites, they were invisible at them. Measured: 8 literal call
+ * sites unscanned (`lab.explain.*` in SpecControls.tsx,
+ * `lab.howThisWorks.title`/`.dismiss` in Lab.tsx).
+ */
+const KEY = String.raw`[a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+`;
+
 // `t('some.key', ...)` — the useLocale()-bound convenience signature every
 // UI component uses, AND (optionally) the raw `t(copyRecordArg, 'some.key',
 // ...)` signature (src/i18n/t.ts's own export) — both end in the same
 // quoted-key argument shape, so one pattern covers both call sites.
-const T_CALL_RE = /\bt\(\s*(?:[A-Za-z0-9_.]+\s*,\s*)?(['"`])([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+)\1/g;
+const T_CALL_RE = new RegExp(String.raw`\bt\(\s*(?:[A-Za-z0-9_.]+\s*,\s*)?(['"\`])(${KEY})\1`, 'g');
 // `copy['some.key']` / `i.copy["some.key"]` — share.ts's own convention: it
 // has no bound t() (shareString is a pure function of a `copy` record
 // parameter, deliberately never a hook), so it looks keys up by bracket
 // access directly.
-const BRACKET_RE = /\bcopy\[\s*(['"`])([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+)\1\s*\]/g;
+const BRACKET_RE = new RegExp(String.raw`\bcopy\[\s*(['"\`])(${KEY})\1\s*\]`, 'g');
 
 /**
  * Deliberately NOT a blanket "any key-shaped string literal anywhere in the
@@ -466,13 +481,42 @@ interface CallSite {
   params: string[] | null;
 }
 
-/** Every `t('some.key', { … })` / `t(record, 'some.key', { … })` call site,
- * with the param names it supplies. A site with no second argument reports
- * an empty param list, which is exactly as meaningful — it asserts the value
- * carries no tokens. */
+/**
+ * Every BINDING SITE — somewhere a catalog value meets the params that fill
+ * its tokens — with the param names it supplies. A site with no params
+ * reports an empty list, which is exactly as meaningful: it asserts the value
+ * carries no tokens.
+ *
+ * TWO SHAPES, because the product has two and they share the one property
+ * that makes this check necessary — an unbound token stays VISIBLE:
+ *   - `t('some.key', { … })` / `t(record, 'some.key', { … })` — src/i18n/t.ts.
+ *   - `interpolate(copy['some.key'], { … })` — Reveal.tsx's own binder, which
+ *     splices ReactNodes rather than strings (numerals get their own mono
+ *     span) and so cannot use `t()`. Its doc comment states the same contract
+ *     in the same words: "an unbound token stays visible rather than
+ *     vanishing, so a missed param is obvious on screen."
+ *
+ *   - `copy['some.key'].replace('{tok}', …)` — SpecCurve.tsx's threshold
+ *     label, which is a plain string going into an SVG <text> and needs
+ *     neither binder. The replaced token is a literal, so it reads as a
+ *     param exactly like the other two shapes.
+ *
+ * Scanning only the first shape would have left the twelve `reveal.*` values
+ * unreconciled — among them `reveal.accounting1Effect`, which carries five
+ * tokens and is the most token-dense string in the product. The catalog-end
+ * assertion below is what forced this: with one shape scanned it would have
+ * needed a twelve-key amnesty list, which is not a guard.
+ */
 function callSites(file: string, text: string): CallSite[] {
   const sites: CallSite[] = [];
-  const re = /\bt\(\s*(?:[A-Za-z0-9_.]+\s*,\s*)?(['"`])([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+)\1/g;
+  // Either binder's opening: `t(` (optionally with the raw signature's copy
+  // record first) or a `copy[` bracket lookup — which is both `interpolate`'s
+  // argument and SpecCurve's bare read, since what follows the `]` is what
+  // tells the two apart.
+  const re = new RegExp(
+    String.raw`\b(?:t\(\s*(?:[A-Za-z0-9_.]+\s*,\s*)?|copy\[\s*)(['"\`])(${KEY})\1\s*\]?`,
+    'g'
+  );
   for (const match of text.matchAll(re)) {
     const after = text.slice((match.index ?? 0) + match[0].length);
     const next = after.match(/^\s*(.)/);
@@ -481,7 +525,22 @@ function callSites(file: string, text: string): CallSite[] {
       sites.push({ file, key: match[2], params: [] });
       continue;
     }
-    if (next[1] !== ',') continue;
+    // `copy['key'].replace('{tok}', …)` — the params are the literal tokens
+    // handed to `.replace`, read straight off the chain.
+    if (/^\s*\.replace\(/.test(after)) {
+      const replaced = [...after.matchAll(/^(?:\s*\.replace\(\s*(['"`])\{(\w+)\}\1[^)]*\))+/g)]
+        .flatMap((m) => [...m[0].matchAll(/\{(\w+)\}/g)].map(([, name]) => name));
+      sites.push({ file, key: match[2], params: replaced });
+      continue;
+    }
+    if (next[1] !== ',') {
+      // A BARE `copy['key']` read: the string goes to the screen exactly as
+      // written, so nothing can bind anything and the value must carry no
+      // token. An empty param list says precisely that, and section 4's first
+      // assertion enforces it.
+      if (match[0].includes('copy[')) sites.push({ file, key: match[2], params: [] });
+      continue;
+    }
     const rest = after.slice(after.indexOf(',') + 1).replace(/^\s+/, '');
     if (!rest.startsWith('{')) {
       // a params object that is not a literal (a variable, a call): the names
@@ -586,5 +645,122 @@ describe('Token reconciliation — a value\'s {tokens} and its call site\'s para
     const tokens = tokensOf(catalog[site.key as keyof typeof catalog]);
     expect(tokens.filter((token) => !site.params!.includes(token))).toEqual(['n']);
     expect(site.params!.filter((param) => !tokens.includes(param))).toEqual(['pct']);
+  });
+});
+
+/* ================================================================
+   5. The catalog-end reconciliation (w7-r-009)
+   ================================================================ */
+
+/**
+ * WHY THIS EXISTS, and why section 4 alone was not enough.
+ *
+ * Section 4 reconciles from the CALL SITE's end: for every site it finds, the
+ * value's tokens must match the params. That is only as complete as the scan
+ * that finds the sites — and the scan had a hole of exactly the shape it was
+ * written to prevent. Its key pattern accepted ONE dot, so the twelve
+ * multi-segment keys in this catalog matched nothing at all (the closing-quote
+ * backreference turned a partial match into no match), and eight real call
+ * sites were never examined. A `{ghostparam}` added to
+ * `lab.howThisWorks.step1` in all three catalogs left the whole suite green
+ * and rendered the raw token to the player.
+ *
+ * The regex is widened, but widening a regex is not a proof: the next hole
+ * will be a shape nobody thought of either. THIS check reconciles from the
+ * CATALOG's end, where a regex gap cannot hide — it starts from the values
+ * that actually carry tokens and demands that each one be reachable by a site
+ * the scanner can see. A key the scanner cannot see is not silently exempt
+ * from section 4; it is a failure here.
+ *
+ * `lab.howThisWorks.step1` is the case that makes the point. It is read back
+ * as `t(key)` from a `CopyKey[]` table, so NO call-site regex, however wide,
+ * can ever attribute params to it. It carries no token today, and this check
+ * is what makes that a requirement rather than a coincidence.
+ */
+
+/**
+ * The sites where ONE params object is bound to a SET of interchangeable
+ * keys, chosen at runtime. A scanner cannot attribute params to these — the
+ * key is a ternary or a variable — so they are enumerated, and the enumeration
+ * carries the invariant that makes them safe instead of an excuse:
+ *
+ *   every key in a group carries EXACTLY the token set its one binding site
+ *   supplies.
+ *
+ * That is the same reconciliation section 4 performs, done against a hand-read
+ * call site rather than a parsed one. A token added to any member diverges
+ * from its siblings and from the pinned set, and fails here.
+ */
+const DYNAMIC_KEY_GROUPS: { site: string; params: string[]; keys: string[] }[] = [
+  {
+    // Reveal.tsx: `t(isPrereg ? 'reveal.preregisteredRecipe' : 'reveal.publishedRecipe', { recipe })`
+    site: 'Reveal.tsx — the published/preregistered recipe line',
+    params: ['recipe'],
+    keys: ['reveal.publishedRecipe', 'reveal.preregisteredRecipe'],
+  },
+  {
+    // Reveal.tsx: `interpolate(copy[exploredKey], { k })`, where `exploredKey`
+    // is one of three, chosen by mode then by path (gr6-003).
+    site: 'Reveal.tsx — the explored-count line (accounting2)',
+    params: ['k'],
+    keys: ['reveal.accounting2', 'reveal.accounting2Abandoned', 'reveal.accounting2Prereg'],
+  },
+];
+
+describe('Catalog-end reconciliation — a value that carries a token is reachable (w7-r-009)', () => {
+  const scannedKeys = new Set(allCallSites.map(({ key }) => key));
+  const tokenBearing = (catalog: Record<string, string>) =>
+    Object.keys(catalog).filter((key) => tokensOf(catalog[key]).length > 0);
+
+  it.each(ALL_LOCALES)('%s: every token-bearing value is reached by a scanned site or a named dynamic one', (_n, catalog) => {
+    const enumerated = new Set(DYNAMIC_KEY_GROUPS.flatMap(({ keys }) => keys));
+    const unreachable = tokenBearing(catalog).filter((key) => !scannedKeys.has(key) && !enumerated.has(key));
+    // A key here means: this value interpolates something, and nothing in the
+    // product that this suite can see binds it. Either the call site is a
+    // shape the scanner does not know (widen it, as w7-r-009 did), or the
+    // token is genuinely unbound and renders raw.
+    expect(unreachable).toEqual([]);
+  });
+
+  it.each(ALL_LOCALES)('%s: every dynamically-keyed group carries exactly the tokens its one site supplies', (_n, catalog) => {
+    const problems: string[] = [];
+    for (const { site, params, keys } of DYNAMIC_KEY_GROUPS) {
+      for (const key of keys) {
+        const value = catalog[key];
+        if (value === undefined) {
+          problems.push(`${site}: ${key} is no longer in the catalog`);
+          continue;
+        }
+        const tokens = [...tokensOf(value)].sort();
+        if (JSON.stringify(tokens) !== JSON.stringify([...params].sort())) {
+          problems.push(`${site}: ${key} carries [${tokens.join(', ')}], but the site supplies [${params.join(', ')}]`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it('keeps the dynamic enumeration MINIMAL — a key the scanner can now see must leave it', () => {
+    // Self-retiring, like the dead-key roster. If a call site is ever
+    // rewritten to a literal the scanner reads, its key belongs in the
+    // ordinary reconciliation and not in a hand-maintained list.
+    const nowScannable = DYNAMIC_KEY_GROUPS.flatMap(({ keys }) => keys).filter((key) => scannedKeys.has(key));
+    expect(nowScannable).toEqual([]);
+  });
+
+  it('is not vacuous: it is looking at a real and substantial set of values', () => {
+    expect(tokenBearing(copy as unknown as Record<string, string>).length).toBeGreaterThan(25);
+    expect(scannedKeys.size).toBeGreaterThan(50);
+  });
+
+  it('still catches a token added to a value nothing can bind (guards the guard)', () => {
+    // The reviewer's exact probe, in miniature: a multi-segment key read back
+    // from a CopyKey[] table, which no call-site regex can ever reach.
+    const fabricated: Record<string, string> = { 'lab.howThisWorks.step1': 'Turn a knob and watch {ghostparam}.' };
+    const enumerated = new Set(DYNAMIC_KEY_GROUPS.flatMap(({ keys }) => keys));
+    const unreachable = Object.keys(fabricated).filter(
+      (key) => tokensOf(fabricated[key]).length > 0 && !scannedKeys.has(key) && !enumerated.has(key)
+    );
+    expect(unreachable).toEqual(['lab.howThisWorks.step1']);
   });
 });
