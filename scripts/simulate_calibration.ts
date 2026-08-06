@@ -59,16 +59,66 @@
 // seed, so this file never hard-codes day.ts's internal seed derivation.
 //
 // ============================================================================
-// THE GREEDY RANDOM EXPLORER  (band b, and the p_hit table)
+// THE THREE EXPLORERS  (band b, and the p_hit table)  — GR6 RULING §1(k)
 // ============================================================================
-// One explorer walk = a uniformly random permutation of all 1,792 specs
-// (seeded Fisher–Yates on mulberry32), walked in order without replacement,
-// stopping at the FIRST significant path (valid && p < .05) at N = 200 — the
-// window every player starts in (§3.8). "Paths to first hit" is that path's
-// 1-based position. Invalid specs ("insufficient data") COUNT as paths
-// walked: the player spent a fork on them and saw a result.
-// Band (b) uses exactly ONE walk per day (walk #0), per the pinned
-// definition.
+// §3.9(b) pins a band on "median paths to first hit for a greedy random
+// explorer", and the number it certifies (11) describes ONE explorer of at
+// least three, which is the finding gr2-012 raised and ruling §1(k) resolves
+// REPORT-ONLY: no constant changes and no band moves, but the report must name
+// which explorer the certified number describes and measure the others beside
+// it. All three are now printed, from the SAME enumerated curve:
+//
+//   1. PERMUTATION (the band-(b) explorer, and the p_hit table's). One walk =
+//      a uniformly random permutation of all 1,792 specs (seeded Fisher–Yates
+//      on mulberry32), walked in order without replacement, stopping at the
+//      FIRST significant path (valid && p < .05) at N = 200 — the window every
+//      player starts in (§3.8). "Paths to first hit" is that path's 1-based
+//      position. Invalid specs ("insufficient data") COUNT as paths walked:
+//      the player spent a fork on them and saw a result. Band (b) uses exactly
+//      ONE walk per day (walk #0), per the pinned definition. THIS EXPLORER
+//      CANNOT BE PLAYED: it teleports to an arbitrary spec on every step,
+//      while the Lab affords exactly one knob-change at a time.
+//   2. SINGLE-KNOB WALK (what the interface actually affords). Starts on the
+//      lab default — the spec the player is looking at when the screen opens,
+//      counted as path 1 — and each step moves to a uniformly random
+//      ONE-KNOB neighbour of the current spec. Same stopping rule, capped at
+//      WALK_MAX_STEPS moves. This is the honest model of a player who is
+//      turning dials without a plan.
+//   3. GREEDY HILL-CLIMB (what a competent player does). Same start, but each
+//      step moves to the neighbour with the SMALLEST p, deterministically.
+//      Capped the same way. This is the fast end of the range.
+//
+// The walk and the climb are informational rows with their own pinned ranges
+// (see `informational` below); neither gates the exit code, because §3.9(b) is
+// a band on the permutation explorer and re-basing a certified target is a
+// ruling, not a measurement. What they gate is honesty: printed together, the
+// report states the spread instead of implying that one number describes every
+// player. Both are read off the curve this suite has already enumerated, so
+// they cost array lookups rather than regressions.
+//
+// MEASURED WHEN THE ROWS WERE ADDED (1,000 days, medians over the served
+// 75/25 mix): permutation 11 · single-knob walk 18 · greedy climb 2. The 4x
+// spread gr2-012 reported is real and is now on the report rather than in a
+// finding document.
+//
+// AND ONE CORRECTION TO THE RULING'S OWN EXPECTATION, because it was checked
+// rather than assumed. §1(k) says "(d)'s predicate independently shortens the
+// 'never find anything' tail, so re-measure the walk after (d) lands". It does
+// not: it lengthens it slightly. Measured on this tree against a control copy
+// identical except that day.ts is HEAD's (no §1(d) gate), same explorer code,
+// same seeds — walk median 15 -> 18, walk 60-move miss rate 0.150 -> 0.166,
+// permutation miss 0.066 -> 0.070, climb median 2 -> 2. The direction is
+// obvious in hindsight: §1(d) removes the days on which the lab default is
+// ALREADY significant, and those are exactly the days an interface-shaped
+// explorer solves on its first path. Nothing here changes the ruling — band
+// (b) is still report-only and no constant moved — but the "re-measure before
+// considering option (b)" instruction now has its measurement, and the answer
+// is that the tail did not shrink.
+//
+// WHERE THE §3.9b PROSE CORRECTION LIVES. In this file, on band (b)'s own row
+// and in this header — NOT in docs/implementation_plan.md, which is the frozen
+// master spec (untouched since the seed commit; every GR6 deviation is recorded
+// at the code that deviates, per the house rule the other waves followed).
 //
 // POPULATION (controller adjudication, 2026-08-03). Band (b) is ASSERTED on
 // the median over the DAILY MIX — 75% null / 25% effect, i.e. the mix the
@@ -147,15 +197,15 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runSpec } from '../src/engine/analyze';
-import { canonicalSpecFor, generatePractice } from '../src/engine/day';
+import { canonicalSpecFor, generatePractice, LAB_DEFAULT_SPEC } from '../src/engine/day';
 import type { EffectSpec } from '../src/engine/dgp';
 import { generateDataset } from '../src/engine/dgp';
 import { fnv1a32, mulberry32 } from '../src/engine/prng';
 import { P_HIT_MAX_K, pHitTableChecksum } from '../src/engine/reveal';
 import { dayTypeFor, effectParamsFor } from '../src/engine/seeds';
 import type { CurvePoint } from '../src/engine/specGrid';
-import { allSpecs, enumerateCurve, sigCount } from '../src/engine/specGrid';
-import type { DayType, Outcome } from '../src/engine/types';
+import { allSpecs, AXES, enumerateCurve, sigCount, specKey } from '../src/engine/specGrid';
+import type { DayType, Outcome, Spec } from '../src/engine/types';
 import { EFFECT_D_RANGE, HETERO_MULTIPLIER, MAX_ATTEMPTS, NULL_SIG_BAND, P_EFFECT_PCT } from '../src/game/tuning';
 
 // ---- run parameters ----
@@ -205,6 +255,95 @@ function shuffledIndices(n: number, seed: number): number[] {
     idx[j] = tmp;
   }
   return idx;
+}
+
+// §1(k) — THE ONE-KNOB NEIGHBOUR TABLE.
+//
+// Built once, from `allSpecs()` and `specKey`, because both interface-shaped
+// explorers below need "which specs are one dial away from this one" on every
+// step and neither may re-derive it per day. Two specs are neighbours iff they
+// differ on exactly ONE of the six axes — which is exactly what the Lab's six
+// controls can do in a single move (the covariates count as two axes, one per
+// checkbox, matching the two independent controls the screen shows).
+const NEIGHBOURS: number[][] = (() => {
+  const indexByKey = new Map<string, number>();
+  SPECS.forEach((spec, i) => indexByKey.set(specKey(spec), i));
+  const variants: ((spec: Spec) => Spec[])[] = [
+    (spec) => AXES.outcome.filter((v) => v !== spec.outcome).map((v) => ({ ...spec, outcome: v })),
+    (spec) => AXES.subgroup.filter((v) => v !== spec.subgroup).map((v) => ({ ...spec, subgroup: v })),
+    (spec) => [{ ...spec, covariates: { ...spec.covariates, income: !spec.covariates.income } }],
+    (spec) => [{ ...spec, covariates: { ...spec.covariates, risk: !spec.covariates.risk } }],
+    (spec) => AXES.exclusion.filter((v) => v !== spec.exclusion).map((v) => ({ ...spec, exclusion: v })),
+    (spec) => AXES.transform.filter((v) => v !== spec.transform).map((v) => ({ ...spec, transform: v })),
+    (spec) => AXES.tails.filter((v) => v !== spec.tails).map((v) => ({ ...spec, tails: v })),
+  ];
+  return SPECS.map((spec) => {
+    const out: number[] = [];
+    for (const variantsOf of variants) {
+      for (const neighbour of variantsOf(spec)) {
+        const idx = indexByKey.get(specKey(neighbour));
+        if (idx !== undefined) out.push(idx);
+      }
+    }
+    return out;
+  });
+})();
+
+/** Where both interface-shaped explorers start: the spec the Lab opens on. */
+const DEFAULT_SPEC_INDEX = SPECS.findIndex((spec) => specKey(spec) === specKey(LAB_DEFAULT_SPEC));
+
+/** The cap on both interface-shaped explorers, in moves. 60 is gr2-012's own
+ * measurement horizon ("never finds anything in 60 moves on 19.3% of walks"),
+ * kept so the numbers below are comparable to the finding that produced the
+ * ruling. */
+const WALK_MAX_STEPS = 60;
+
+/**
+ * §1(k) explorer 2 — the SINGLE-KNOB RANDOM WALK: start on the lab default
+ * (counted as path 1, because the player is looking at its result before they
+ * touch anything), then step to a uniformly random one-knob neighbour of the
+ * CURRENT spec. Returns the 1-based path count at the first hit, or Infinity if
+ * `WALK_MAX_STEPS` moves produce none. Revisits are allowed and counted — a
+ * player turning dials without a plan does re-tread specs, and pretending
+ * otherwise would flatter the model.
+ */
+function singleKnobWalkFirstHit(sig: Uint8Array, seed: number): number {
+  const rng = mulberry32(seed);
+  let current = DEFAULT_SPEC_INDEX;
+  if (sig[current] === 1) return 1;
+  for (let step = 1; step <= WALK_MAX_STEPS; step++) {
+    const options = NEIGHBOURS[current];
+    current = options[Math.floor(rng() * options.length)];
+    if (sig[current] === 1) return step + 1;
+  }
+  return Infinity;
+}
+
+/**
+ * §1(k) explorer 3 — the GREEDY HILL-CLIMB: same start, but each step moves to
+ * the VALID neighbour with the smallest p. Deterministic (no seed): this is
+ * the competent player, and the point of measuring it is the fast edge of the
+ * spread, not its variance. Stops on the first significant spec, on a local
+ * minimum with nowhere better to go, or at the cap.
+ */
+function greedyClimbFirstHit(curve: CurvePoint[], sig: Uint8Array): number {
+  let current = DEFAULT_SPEC_INDEX;
+  if (sig[current] === 1) return 1;
+  for (let step = 1; step <= WALK_MAX_STEPS; step++) {
+    let best = -1;
+    let bestP = curve[current].valid ? curve[current].p : Infinity;
+    for (const candidate of NEIGHBOURS[current]) {
+      if (!curve[candidate].valid) continue;
+      if (curve[candidate].p < bestP) {
+        bestP = curve[candidate].p;
+        best = candidate;
+      }
+    }
+    if (best === -1) return Infinity; // local minimum, nothing significant
+    current = best;
+    if (sig[current] === 1) return step + 1;
+  }
+  return Infinity;
 }
 
 /** 1-based position of the first significant path along `order`, or
@@ -320,6 +459,11 @@ interface SimDay {
   acceptedSig: number;
   pathsToFirstHit: number;
   subsetHitPositions: number[]; // one per SUBSET_DRAWS_PER_DAY (walk #0 first)
+  // §1(k): the two explorers the INTERFACE affords, measured beside the
+  // permutation one that band (b) is certified on. Infinity = found nothing
+  // within WALK_MAX_STEPS moves.
+  walkFirstHit: number;
+  climbFirstHit: number;
   // ADOPTED statistic (see header): family density >= 60%.
   callReal: boolean;
   callCorrect: boolean;
@@ -375,6 +519,10 @@ function simulateDay(index: number): SimDay {
     if (draw === 0 && Number.isFinite(position)) walk0Published = order[position - 1];
   }
   const pathsToFirstHit = subsetHitPositions[0];
+
+  // §1(k) — the same day, walked the two ways a player can actually walk it.
+  const walkFirstHit = singleKnobWalkFirstHit(sig, fnv1a32(`knobwalk:${index}`));
+  const climbFirstHit = greedyClimbFirstHit(curve, sig);
 
   // --- informed caller (§3.9d) ---
   const familyCounts = [0, 0, 0, 0];
@@ -432,6 +580,8 @@ function simulateDay(index: number): SimDay {
     acceptedSig,
     pathsToFirstHit,
     subsetHitPositions,
+    walkFirstHit,
+    climbFirstHit,
     callReal,
     callCorrect: callReal === (dayType === 'effect'),
     callRealShare,
@@ -542,6 +692,30 @@ function weightedMedian(nullValues: number[], effectValues: number[]): number {
 }
 const weightedMedianHit = weightedMedian(nullHits, effectHits);
 
+// §1(k) — the same statistic for the two interface-shaped explorers, on the
+// same daily mix, plus the tail gr2-012 measured: how often 60 moves produce
+// nothing at all. The permutation explorer's tail is computed on the same
+// horizon (position > WALK_MAX_STEPS), so the three numbers are comparable.
+const walkHitsNull = nullDays.map((d) => d.walkFirstHit);
+const walkHitsEffect = effectDays.map((d) => d.walkFirstHit);
+const climbHitsNull = nullDays.map((d) => d.climbFirstHit);
+const climbHitsEffect = effectDays.map((d) => d.climbFirstHit);
+const weightedMedianWalk = weightedMedian(walkHitsNull, walkHitsEffect);
+const weightedMedianClimb = weightedMedian(climbHitsNull, climbHitsEffect);
+
+/** Mixture rate over the served 75/25 day mix, the same weighting band (d)
+ * uses for accuracy. */
+function weightedRate(nullFlags: boolean[], effectFlags: boolean[]): number {
+  return (1 - pEffect) * fraction(nullFlags) + pEffect * fraction(effectFlags);
+}
+const missedWithin = (values: number[]) => values.map((v) => !(v <= WALK_MAX_STEPS));
+const walkMissRate = weightedRate(missedWithin(walkHitsNull), missedWithin(walkHitsEffect));
+const climbMissRate = weightedRate(missedWithin(climbHitsNull), missedWithin(climbHitsEffect));
+const permutationMissRate = weightedRate(
+  missedWithin(nullDays.map((d) => d.pathsToFirstHit)),
+  missedWithin(effectDays.map((d) => d.pathsToFirstHit)),
+);
+
 // (c) effect-day canonical power at N=400
 const rawPower = fraction(effectDays.map((d) => d.rawCanonicalHit === true));
 
@@ -570,7 +744,13 @@ const bands: Band[] = [
   atLeast('a', 'null-day hackability: P(sig paths >= 30) on the ACCEPTED day', 0.99, acceptedHackable),
   // (b) over the DAILY MIX (75/25) — the player-experience statistic
   // (adjudicated 2026-08-03; see the header).
-  twoSided('b', `greedy explorer: median paths to first hit (daily mix, P(effect)=${P_EFFECT_PCT}%)`, 4, 12, weightedMedianHit),
+  twoSided(
+    'b',
+    `PERMUTATION explorer: median paths to first hit (daily mix, P(effect)=${P_EFFECT_PCT}%) — §1(k): this is the explorer §3.9b's number describes`,
+    4,
+    12,
+    weightedMedianHit,
+  ),
   // (c) on the raw draw — post-acceptance this is 1.000 by construction and
   // could never land in [0.6, 0.85] under any tuning.
   twoSided('c', 'effect-day canonical power @ N=400 (raw draw)', 0.6, 0.85, rawPower),
@@ -587,6 +767,12 @@ const bands: Band[] = [
 // single run instead of from a report nobody will re-read.
 const informational: Band[] = [
   atLeast('a-raw', 'hackability on an unconditioned raw draw (the sampler\'s workload)', 0.99, rawHackable, false),
+  // §1(k)'s two rows. Ranges are WATCHES, not gates (see the explorer header):
+  // wide enough that the ordinary spread between explorers does not read as a
+  // failure, tight enough that a real regression in either direction shows.
+  twoSided('b-walk', `SINGLE-KNOB walk: median paths to first hit (daily mix) — the explorer the Lab affords`, 4, 24, weightedMedianWalk, false),
+  twoSided('b-climb', 'GREEDY HILL-CLIMB: median paths to first hit (daily mix) — the competent player', 1, 8, weightedMedianClimb, false),
+  atMost('b-walk-miss', `single-knob walk finds nothing in ${WALK_MAX_STEPS} moves (daily mix)`, 0.2, walkMissRate, false),
   twoSided('b-null', 'explorer median paths to first hit, null-only (band [4,16])', 4, 16, medianNullHit, false),
   twoSided('b-eff', 'explorer median paths to first hit, effect-only', 4, 16, median(effectHits), false),
   twoSided('d-share', '§3.9d literal family-SHARE rule (adjudicated out, never beats 0.750)', 0.75, 0.9, shareWeighted, false),
@@ -731,6 +917,14 @@ console.log(
     `· min ${Math.min(...effectDays.map((d) => d.acceptedSig))} · max ${Math.max(
       ...effectDays.map((d) => d.acceptedSig),
     )}`,
+);
+console.log(
+  `  §1(k) explorers (mix) : PERMUTATION ${fixed(weightedMedianHit, 1)} [band b, the certified one] · ` +
+    `SINGLE-KNOB WALK ${fixed(weightedMedianWalk, 1)} · GREEDY CLIMB ${fixed(weightedMedianClimb, 1)} ` +
+    `· found nothing in ${WALK_MAX_STEPS}: perm ${fixed(permutationMissRate, 3)} / walk ${fixed(
+      walkMissRate,
+      3,
+    )} / climb ${fixed(climbMissRate, 3)}`,
 );
 console.log(
   `  paths to first hit    : DAILY MIX(${P_EFFECT_PCT}%) ${fixed(weightedMedianHit, 1)} [band b] · null-only ${fixed(
