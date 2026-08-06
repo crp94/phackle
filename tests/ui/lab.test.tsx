@@ -1110,7 +1110,11 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
   it('offers a legend affordance next to the trail, closed by default', async () => {
     renderTrail();
     const button = await screen.findByTestId('fork-trail-key');
-    expect(button.textContent).toBe(enCopy['nav.legend']);
+    // gr6-029: the trigger asks the question, it does not repeat the page
+    // name. `nav.legend` on this button was the third "Legend" in twenty
+    // words on one screen, naming a different affordance each time.
+    expect(button.textContent).toBe(enCopy['lab.forkTrailKey']);
+    expect(button.textContent).not.toBe(enCopy['nav.legend']);
     expect(button.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
   });

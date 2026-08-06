@@ -195,7 +195,6 @@ const ROSTER_KEPT: Record<string, string> = {
 const ROSTER_PENDING: Record<string, string> = {
   'nav.tagline':
     'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
-  'lab.forkTrailKey': 'gr6-029 — ForkTrail.tsx:170 replaces t(\'nav.legend\') on the popover trigger. W7.',
   'summary.viewStats': "gr6-062 — Summary.tsx:216 replaces the t('nav.stats') placeholder on the stats action. W7.",
   'stats.emptyState': 'gr6-035 — Stats.tsx, under the title, rendered only when played === 0. W7.',
   'about.sectionHowItWorks': 'gr6-036 — About.tsx, <h2> over about.mechanism + about.frozenFork. W7.',

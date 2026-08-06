@@ -187,7 +187,18 @@ function TrailKey() {
         aria-controls={open ? popoverId : undefined}
         onClick={handleClick}
       >
-        {t('nav.legend')}
+        {/* gr6-029's component half. This rendered `nav.legend`, so the word
+            "Legend" named two different affordances three times within one
+            glance on the Lab: the header's page name, this trigger, and
+            `lab.forkTrailHint` between them pointing at the one the player was
+            NOT standing next to. Both affordances stay — GR4 measured them
+            rendering the same seven rows and answering different questions
+            ("what do these mean, here, now" versus "take me to the reference
+            page") — so the fix is that each says which question it answers.
+            `lab.forkTrailKey` is the question, not a page name: "What these
+            mean". `nav.legend` goes back to being the page name and nothing
+            else, and W2 rewrote the hint's English idiom in the same batch. */}
+        {t('lab.forkTrailKey')}
       </button>
       {open ? (
         <span className="ph-fork-trail__popover" id={popoverId} role="list" data-testid="fork-trail-popover">
