@@ -157,6 +157,31 @@
 
 /* ---- the stamp beat (§2.7.4, R8.2) ------------------------------------- */
 
+/* gr2-015, controller ruling (c), 2026-08-06. THE SIGNATURE MOMENT IS ARRIVED
+   AT, NOT SCROLLED PAST.
+   Measured at 1088 before this: truth -> Fig. 1 (~420px) -> the accounting
+   (~250px) -> the stamp (~150px) -> the call line -> Fig. 2. The one beat the
+   whole screen is built toward was 8% of the page with the same --space-40
+   either side as a caption, so a player scrolling at reading speed went past
+   it. §2.7 SPECIFIES this block order, so the ruled fix is rest rather than
+   resequencing: the beat keeps its place and gets a room of its own.
+
+   AIR ONLY, NO SCROLL SNAP (w1-r-007). The first attempt paired this padding
+   with `scroll-snap-align: center` here and `scroll-snap-type: y proximity` on
+   `:root:has(.ph-reveal)`. Both are gone. DESIGN.md R5.2 states that its table
+   of motion sites is EXHAUSTIVE and compiled (tests/ui/motion.test.ts), R5.5
+   that nothing outside that table animates, and there is no row for a scroll
+   snap — so it was a tenth motion site added without a lawbook entry, and the
+   compiled register could not see it: deleting its own reduced-motion guard
+   left motion.test.ts green. Wrapping it in `prefers-reduced-motion` was itself
+   the admission that it was motion. Ruling (c) said the stamp gets air, and
+   padding is air. If the snap is ever wanted it goes through W0/W10 as an R5.2
+   row plus a check that parses `scroll-snap` the way the existing one parses
+   animation identities. */
+.ph-reveal__stamp-beat {
+  padding-block: var(--space-64);
+}
+
 .ph-reveal__cover {
   position: relative;
   max-width: var(--measure);
@@ -222,14 +247,61 @@
   animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
 }
 
-/* The stamp lands ON the cover — R4.7's ladder, never a raw z-index. */
+/* The stamp lands ON the cover — R4.7's ladder, never a raw z-index.
+ *
+ * gr6-059: THE LOWER-RIGHT QUADRANT, not the top-left. A rubber stamp SHOULD
+ * overlap the document it lands on — that is the whole image, and R8.2 wants
+ * it — but it was pinned var(--space-16) from the TOP of the cover, which put
+ * its letterforms straight through "VOL. 1, NO. 5" and through the day's
+ * question. Measured on the production build at 768 before the change: the
+ * mark and the (then rotated) subline crossed the question's two lines at
+ * once, so the stamp, the volume line and the title were all hard to read and
+ * the beat's only sentence was the worst of the three.
+ *
+ * Anchored to the block-end/inline-end corner with no inset, at 50% rather
+ * than 60% of the cover. At 360 the mark is still 43% of the viewport, so
+ * R8.2's "oversized" survives the trim.
+ *
+ * WHAT THIS ACHIEVES, AND WHAT IT DOES NOT (w1-r-012 — an earlier version of
+ * this comment claimed the 768 case was fixed; it is not). Measured on the
+ * production build, label ink against the title's box:
+ *
+ *   360   title 373-470, label ink 468-511   ->   2px of overlap. Clear.
+ *   768   title 399-464, label ink 425-494   ->  39px of the label's 69px
+ *                                                crosses the question's
+ *                                                second line.
+ *
+ * 768 is not solvable from here, and the reason is the card, not the offset:
+ * it is 145px tall with a 64px title at the full measure, leaving 25px of
+ * interior white space beneath it. No 69px label fits in 25px, and pushing the
+ * mark far enough down to clear the title (top at 464) puts its foot at 588,
+ * through the subline that starts at 553. A width-conditional placement would
+ * fix it and needs a breakpoint this stylesheet does not have.
+ * What gr2-016 asked for is nonetheless materially delivered at both widths:
+ * the mark no longer runs through "VOL. 1, NO. 5" or the title's FIRST line,
+ * and the subline — the string that finding called the least readable in the
+ * product — is out of the graphic entirely.
+ */
 .ph-reveal__stamp {
   position: absolute;
-  inset-block-start: var(--space-16);
-  inset-inline-start: var(--space-24);
+  inset-block-end: 0;
+  inset-inline-end: 0;
   z-index: var(--z-stamp);
-  width: 60%;
+  width: 50%;
   pointer-events: none;
+}
+
+/* gr6-059 / gr2-016: §4.5's retraction subline, set as prose.
+ * Mono at the caption size, --ink rather than --muted: it is Act II's voice at
+ * the beat the whole screen builds to, not furniture. Horizontal, beneath the
+ * card, at the measure — nothing about it rotated, and nothing under it. */
+.ph-reveal__stamp-subline {
+  max-width: var(--measure);
+  margin: var(--space-24) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
 }
 
 /* T33 — the day's continue action, into the invoice (§2.8).

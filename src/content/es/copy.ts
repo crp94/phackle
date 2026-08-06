@@ -231,12 +231,33 @@ export const copy: Record<CopyKey, string> = {
   'reveal.curveCaptionAbandoned':
     'Todas las especificaciones que podrías haber ejecutado, ordenadas por p-valor. No se publicó nada.',
   'reveal.publishedRecipe': 'Publicaste: {recipe}',
+  // gr6-003: el verbo del modo Preregistro, no el del modo Hacking.
+  'reveal.preregisteredRecipe': 'Preregistraste: {recipe}',
   'reveal.groupedCaption': 'Los efectos reales se agrupan. El ruido se dispersa.',
   'reveal.omittedFootnote': '{n} especificaciones tenían demasiado pocos datos para analizarse y no se representan.',
   'reveal.toSummary': 'Ver la factura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
-  'reveal.accounting1': 'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < .05 por puro azar.',
+  // gr6-001 / w1-r-001 — "por puro azar" era falso, pero "el resto viene de la
+  // confusión" tampoco era cierto: en los días nulos ACEPTADOS el sesgo de
+  // confusión explica alrededor del 5% de los resultados significativos,
+  // indistinguible de cero, porque el muestreo por rechazo (§3.3) descarta
+  // justamente la cola confundida. La medición completa está en la nota de
+  // en/copy.ts. La línea afirma ahora tres cosas ciertas: el recuento es lo que
+  // produce el umbral por sí solo, no hay efecto, y aun así el diseño no es una
+  // prueba limpia.
+  // Tres arreglos de lengua en la misma pasada: el predicado desnudo "son
+  // azar"; la colisión "azar" / "al azar" en doce palabras (ahora "de forma
+  // aleatoria"); y "la confusión" a secas, que se lee como confusión cotidiana
+  // sin antecedente en pantalla, frente al término real "sesgo de confusión".
+  // "confundido con la edad y la renta" es literal de about.mechanism (regla 6).
+  // Cero rayas (regla 9); punto decimal con cero delante.
+  'reveal.accounting1':
+    'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < 0.05. Ninguno encontró un efecto, porque no lo hay: un umbral de 0.05 deja pasar alrededor de uno de cada veinte por sí solo. Y ninguno es una prueba limpia: el tratamiento nunca se asignó de forma aleatoria, y hay sesgo de confusión con la edad y la renta.',
+  // w1-r-003: el cierre era un absoluto y chocaba con el pie de la Fig. 2 dos
+  // bloques más abajo ("Los efectos reales se agrupan").
+  'reveal.accounting1Effect':
+    'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < 0.05: {trueSig} sobre la variable donde el efecto es real, {otherSig} sobre las variables donde no hay nada. Un p-valor por sí solo no dice cuál es cuál.',
   // T37 — plural safety, rule 7 of the header. {k} floors at 1 (publishing the
   // default specification explores exactly one sendero), so "Exploraste 1
   // senderos" was the common case, not a corner one. Label-colon-count in the
@@ -244,8 +265,19 @@ export const copy: Record<CopyKey, string> = {
   // parentheses in the third, which has to keep its sentence shape.
   'reveal.accounting2': 'Senderos que exploraste antes de publicar: {k}.',
   'reveal.accounting2Abandoned': 'Senderos que exploraste antes de informar de un resultado nulo: {k}.',
+  // gr6-003 — compromiso, no exploración. El verbo es el que ya usa
+  // summary.preregUpsell ("comprométete con un análisis"), regla 6.
+  'reveal.accounting2Prereg':
+    'Senderos con los que te comprometiste antes de ver un solo número: {k}. No ejecutaste ningún otro.',
   'reveal.accounting3':
     'Quien explora al azar esa misma cantidad de senderos ({k}) encuentra al menos un resultado "significativo" alrededor del {pHitPct}% de las veces.',
+  // gr6-002 — la frase anterior describe una búsqueda uniforme al azar, y nadie
+  // juega así: quien sigue el p-valor llega a la significación en 3 o 4 pasos.
+  // w1-r-004: CONDICIONAL. El juego no mide cómo buscaste, así que no puede
+  // afirmarlo. "un mínimo" en vez de "una cota inferior": es una expectativa
+  // empírica, no una cota demostrada.
+  'reveal.accounting3Directed':
+    'Si seguiste el p-valor, no buscaste al azar. La búsqueda dirigida llega antes a la significación, así que la cifra de arriba es un mínimo.',
   // {peeks} floors at 1 (Reveal only renders this line when peeks !== 0), so
   // the count goes in parentheses; "unas … mayor" also stranded a feminine
   // plural determiner on a singular comparative.
@@ -389,7 +421,9 @@ export const copy: Record<CopyKey, string> = {
   'legend.title': 'Leyenda',
   'legend.explored': 'Especificación que miraste',
   'legend.unexplored': 'Especificación que no miraste',
-  'legend.significant': 'p < .05',
+  // w1-r-008: forma con cero delante, como reveal.accounting1. Notación:
+  // idéntica en los tres idiomas (SHARED_WITH_EN).
+  'legend.significant': 'p < 0.05',
   'legend.published': 'La que publicaste',
   'legend.trueEffect': 'Efecto real',
 

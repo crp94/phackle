@@ -724,10 +724,11 @@ describe('DESIGN §10 tier C', () => {
      * selector was for.
      */
     const PLACES: Record<string, string> = {
-      // Place 1 — the RETRACTED stamp: `.ph-stamp__mark--red`'s three descendants.
+      // Place 1 — the RETRACTED stamp: `.ph-stamp__mark--red`'s two descendants.
+      // (Three until W1's gr6-059 moved the subline out of the SVG to horizontal
+      // HTML in --ink; the red meaning did not shrink, the element left the mark.)
       '.ph-stamp__mark--red .ph-stamp__border': 'place 1, the RETRACTED stamp (border)',
       '.ph-stamp__mark--red .ph-stamp__label': 'place 1, the RETRACTED stamp (label)',
-      '.ph-stamp__mark--red .ph-stamp__subline': 'place 1, the RETRACTED stamp (subline)',
       // Place 2 — the p = .05 threshold rule and its label.
       '.ph-speccurve__threshold': 'place 2, the p = .05 threshold rule',
       '.ph-speccurve__threshold-label': 'place 2, the p = .05 threshold label',

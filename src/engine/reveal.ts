@@ -91,9 +91,35 @@ export function verdictStamp(
  * place as one who explored 40 — the curve is flat and ~1 by then). */
 export const P_HIT_MAX_K = 40;
 
+/**
+ * The shape of `src/data/p_hit_by_k.json`.
+ *
+ * TWO VECTORS, one per day type (gr6-002). The table used to be a single
+ * `pHit` built from ACCEPTED NULL DAYS ONLY (`simulate_calibration.ts` iterates
+ * `nullDays`), and `buildRevealMetrics` quoted it on every day — so an effect
+ * day's accounting read out a null day's number. In the SHIPPED table the gap
+ * at the commonest k is a factor of 2.72 (k = 5: pHitNull 0.2256 against
+ * pHitEffect 0.6136), which is not a rounding difference in a sentence the
+ * reveal reads out loud as a headline percentage.
+ *
+ * (w1-r-006: this comment used to quote 0.514 / 2.3x. That is GR1a's original
+ * figure, measured over UNCONDITIONED effect draws; the shipped vector is
+ * simulated on ACCEPTED days — the population a player is actually served — and
+ * comes out higher. A doc comment must quote the number in the file it
+ * documents, so the backlog's "51% at k=5" is superseded by 61.4%.)
+ *
+ * EXPORTED DELIBERATELY (gr6-098), not by oversight: it is the parameter type
+ * of `assertPHitTable` below, which is itself exported so a startup path or a
+ * test can assert a table it constructed. Without this type in the public
+ * surface that argument cannot be named from outside this module. It has no
+ * other consumer, and that is the whole reason it is here.
+ */
 export interface PHitTable {
   checksum: number;
-  pHit: number[];
+  /** P(>=1 hit within k) on ACCEPTED NULL days. */
+  pHitNull: number[];
+  /** P(>=1 hit within k) on ACCEPTED EFFECT days. */
+  pHitEffect: number[];
 }
 
 const TABLE = pHitTableJson as PHitTable;
@@ -219,28 +245,51 @@ export function assertPHitTable(table: PHitTable): void {
         `regenerate it with \`npm run cal\` (scripts/simulate_calibration.ts).`,
     );
   }
-  if (table.pHit.length !== P_HIT_MAX_K + 1) {
-    throw new Error(
-      `p_hit_by_k.json has the wrong length: ${table.pHit.length}, expected ${P_HIT_MAX_K + 1} ` +
-        `(index 0 unused, then k = 1..${P_HIT_MAX_K}). Regenerate it with \`npm run cal\`.`,
-    );
+  // Per vector, and naming the offender. The checksum cannot do this job: it
+  // is fnv1a32 over the DGP constant vector, which knows nothing about how
+  // many vectors the FILE carries — so a table half-regenerated under an older
+  // shape would pass the freshness check and then read `undefined` at every k.
+  for (const name of ['pHitNull', 'pHitEffect'] as const) {
+    const vector = table[name];
+    if (!Array.isArray(vector) || vector.length !== P_HIT_MAX_K + 1) {
+      throw new Error(
+        `p_hit_by_k.json has the wrong length for ${name}: ${Array.isArray(vector) ? vector.length : 'missing'}, ` +
+          `expected ${P_HIT_MAX_K + 1} (index 0 unused, then k = 1..${P_HIT_MAX_K}). ` +
+          `Regenerate it with \`npm run cal\`.`,
+      );
+    }
   }
 }
 
 /**
  * P(a random-order explorer hits at least one significant path within its
- * first `k`), read off the build-time simulation (§3.7). `k` is clamped into
- * [1, P_HIT_MAX_K]; non-integers are floored first.
+ * first `k`), read off the build-time simulation (§3.7), **on a day of type
+ * `dayType`**. `k` is clamped into [1, P_HIT_MAX_K]; non-integers are floored
+ * first.
+ *
+ * The `dayType` argument is gr6-002's fix and is deliberately REQUIRED rather
+ * than defaulted: the old single-argument signature silently answered every
+ * caller with the null-day vector, and a default would preserve exactly that
+ * failure mode for the next caller who forgets.
+ *
+ * KNOWN APPROXIMATION (w1-r-005, informational, pre-existing and unchanged by
+ * the two-vector split): both vectors are simulated at `CURVE_N = 200`
+ * (scripts/simulate_calibration.ts), while the reveal enumerates its curve at
+ * `state.n` — 250 to 400 once the player has peeked. A larger window makes hits
+ * easier, so on a peeked day this lookup slightly understates. The single null
+ * vector had exactly the same property; it is recorded here because W1 now owns
+ * the line, not because the split introduced it. reveal.peekSurcharge is the
+ * copy that addresses the same distortion from the other side.
  *
  * Deliberately a LOOKUP, never `1 - (1 - q)^k`: paths that share an outcome
  * column are strongly correlated, so the analytic form materially overstates
  * the hit rate (§3.7 says so in as many words). The table bakes the real
  * correlation in because it was simulated on real days.
  */
-export function pHitAtK(k: number): number {
+export function pHitAtK(k: number, dayType: DayType): number {
   assertPHitTable(TABLE);
   const clamped = Math.min(Math.max(Math.floor(k), 1), P_HIT_MAX_K);
-  return TABLE.pHit[clamped];
+  return (dayType === 'effect' ? TABLE.pHitEffect : TABLE.pHitNull)[clamped];
 }
 
 // ---- reveal metrics (§3.7, §6) ----
@@ -259,9 +308,29 @@ export interface RevealCurveEntry {
   spec: Spec;
 }
 
-/** §6's RevealMetrics with the richer curve entries (see RevealCurveEntry). */
+/**
+ * §6's RevealMetrics with the richer curve entries (see RevealCurveEntry) and
+ * the day-typed hit split gr6-001 needs.
+ *
+ * WHY THE SPLIT LIVES HERE AND NOT ON §6's `RevealMetrics`: the two counts are
+ * a partition of `sigPaths`, and `sigPaths` is computed here against the p <
+ * .05 threshold over VALID points only. §6's declared `curve` entries carry
+ * neither the threshold nor the invalid points, so the split cannot be
+ * re-derived downstream without re-declaring the significance rule in the view
+ * layer — the one place it must never be duplicated. `src/engine/types.ts` is
+ * not this wave's to edit, so the fields ride the same widening
+ * `RevealPayload` already uses for `curve` (see Reveal.tsx's `RevealPayloadFull`);
+ * hoisting them onto `RevealMetrics` is a two-line follow-up for whoever owns
+ * that file next, and would need no change here.
+ */
 export interface RevealMetricsFull extends Omit<RevealMetrics, 'curve'> {
   curve: RevealCurveEntry[];
+  /** Valid p < .05 paths whose outcome IS the day's true outcome. Always 0 on
+   * a null day: there is no true outcome for a hit to be on. */
+  sigTrueOutcome: number;
+  /** Valid p < .05 paths on any OTHER outcome. `sigTrueOutcome +
+   * sigOtherOutcome === sigPaths`, on every day type, by construction. */
+  sigOtherOutcome: number;
 }
 
 /**
@@ -289,7 +358,15 @@ export interface RevealMetricsFull extends Omit<RevealMetrics, 'curve'> {
  *  - `playerExplored` — the caller's list length, verbatim. The published
  *    spec is NOT implicitly added: the store (T12) owns fork accounting
  *    (§2.10) and hands over the authoritative list.
- *  - `pHitAtK` — the lookup at k = playerExplored (clamped, see pHitAtK).
+ *  - `sigTrueOutcome` / `sigOtherOutcome` — gr6-001's partition of `sigPaths`
+ *    by whether the hit sits on the outcome the day declared real. One extra
+ *    comparison in the loop below and no second enumeration: the true outcome
+ *    is already in hand on `day.puzzle`, and `point.spec.outcome` is already
+ *    being read to build the payload entry. On a null day `trueOutcome` is
+ *    absent and every hit lands on the "other" side, which is the honest
+ *    reading: none of them is on an outcome where something was real.
+ *  - `pHitAtK` — the lookup at k = playerExplored (clamped), on THIS DAY'S
+ *    vector (gr6-002), never the null-day one on an effect day.
  */
 export function buildRevealMetrics(
   day: GeneratedDay,
@@ -300,14 +377,23 @@ export function buildRevealMetrics(
 ): RevealMetricsFull {
   const exploredKeys = new Set(explored.map(specKey));
   const publishedKey = published === null ? null : specKey(published);
+  // `?? null` rather than a bare read: an effect day whose trueOutcome went
+  // missing must count zero true-outcome hits, not compare against `undefined`
+  // and accidentally match an outcome that is also undefined. Same discipline
+  // verdictStamp already applies to the same field.
+  const trueOutcome = day.puzzle.trueOutcome ?? null;
 
   const totalPaths = curve.length;
   let sigPaths = 0;
+  let sigTrueOutcome = 0;
   const entries: RevealCurveEntry[] = [];
 
   for (const point of curve) {
     if (!point.valid) continue;
-    if (point.p < 0.05) sigPaths++;
+    if (point.p < 0.05) {
+      sigPaths++;
+      if (point.spec.outcome === trueOutcome) sigTrueOutcome++;
+    }
     const key = specKey(point.spec);
     entries.push({
       p: point.p,
@@ -322,10 +408,15 @@ export function buildRevealMetrics(
     totalPaths,
     sigPaths,
     sigFraction: totalPaths === 0 ? 0 : sigPaths / totalPaths,
+    sigTrueOutcome,
+    // Subtraction, not a second counter: the two are a PARTITION of sigPaths by
+    // definition, and deriving one from the other makes that impossible to
+    // break by editing one branch of the loop.
+    sigOtherOutcome: sigPaths - sigTrueOutcome,
     playerExplored: explored.length,
-    pHitAtK: pHitAtK(explored.length),
+    pHitAtK: pHitAtK(explored.length, day.puzzle.dayType),
     curve: entries,
-    stamp: verdictStamp(day.puzzle.dayType, published, day.puzzle.trueOutcome ?? null),
+    stamp: verdictStamp(day.puzzle.dayType, published, trueOutcome),
     peeks,
   };
 }

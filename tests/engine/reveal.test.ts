@@ -261,40 +261,176 @@ describe('buildRevealMetrics — counts from a synthetic curve', () => {
   });
 });
 
+// --- (e) gr6-001: the day-typed hit split (§2.7.3's accounting) ---
+//
+// GR1a measured that ~70% of an effect day's significant paths sit on the
+// outcome the day declared real one line earlier, and the reveal called all of
+// them "chance alone". The accounting cannot be honest without the split, and
+// the split cannot be computed downstream: `RevealPayload['curve']` carries
+// VALID points only and no p < .05 threshold, so the count belongs where the
+// threshold already lives.
+
+describe('buildRevealMetrics — the day-typed hit split (gr6-001)', () => {
+  /** Four significant points on outcome 1, three on other outcomes, one
+   * significant-but-INVALID on outcome 1 (must count nowhere), plus filler. */
+  const sigOn = (outcome: Outcome, offset: number) => specWithOutcome(outcome, offset);
+  const curve: CurvePoint[] = [
+    point(sigOn(1, 0), 0.001),
+    point(sigOn(1, 1), 0.01),
+    point(sigOn(1, 2), 0.02),
+    point(sigOn(1, 3), 0.049),
+    point(sigOn(1, 4), 0.0001, false), // invalid: counts nowhere
+    point(sigOn(0, 0), 0.004),
+    point(sigOn(2, 0), 0.03),
+    point(sigOn(3, 0), 0.041),
+    point(sigOn(1, 5), 0.5), // valid, not significant
+    point(sigOn(0, 1), 0.9),
+  ];
+
+  it('splits an effect day into true-outcome hits and everything else', () => {
+    const m = buildRevealMetrics(
+      fakeDay({ dayType: 'effect', trueOutcome: 1, trueBeta: 0.24 }),
+      curve,
+      null,
+      [],
+      0,
+    );
+    expect(m.sigPaths).toBe(7);
+    expect(m.sigTrueOutcome).toBe(4);
+    expect(m.sigOtherOutcome).toBe(3);
+  });
+
+  it('always partitions sigPaths exactly — the two counts sum to it, on every day type', () => {
+    for (const day of [
+      fakeDay({ dayType: 'effect', trueOutcome: 1, trueBeta: 0.24 }),
+      fakeDay({ dayType: 'effect', trueOutcome: 0, trueBeta: 0.24 }),
+      fakeDay({ dayType: 'effect', trueOutcome: 3, trueBeta: 0.24 }),
+      fakeDay({ dayType: 'null' }),
+    ]) {
+      const m = buildRevealMetrics(day, curve, null, [], 0);
+      expect(m.sigTrueOutcome + m.sigOtherOutcome).toBe(m.sigPaths);
+    }
+  });
+
+  it('puts every hit on the "other" side of a NULL day: there is no true outcome to be on', () => {
+    const m = buildRevealMetrics(fakeDay({ dayType: 'null' }), curve, null, [], 0);
+    expect(m.sigTrueOutcome).toBe(0);
+    expect(m.sigOtherOutcome).toBe(7);
+  });
+
+  it('never counts an invalid point on either side (an unanalyzable spec is not a hit)', () => {
+    // The invalid point sits on outcome 1 at p = 0.0001: if the split counted
+    // it, the effect day above would read 5 true-outcome hits, not 4.
+    const m = buildRevealMetrics(
+      fakeDay({ dayType: 'effect', trueOutcome: 1, trueBeta: 0.24 }),
+      curve,
+      null,
+      [],
+      0,
+    );
+    expect(m.sigTrueOutcome).toBe(4);
+    expect(m.curve.some((e) => e.p === 0.0001)).toBe(false);
+  });
+
+  it('reads p < .05 strictly, on the true-outcome side too (0.05 is not a hit)', () => {
+    const boundary: CurvePoint[] = [point(sigOn(1, 0), 0.05), point(sigOn(1, 1), 0.0499)];
+    const m = buildRevealMetrics(
+      fakeDay({ dayType: 'effect', trueOutcome: 1, trueBeta: 0.24 }),
+      boundary,
+      null,
+      [],
+      0,
+    );
+    expect(m.sigPaths).toBe(1);
+    expect(m.sigTrueOutcome).toBe(1);
+    expect(m.sigOtherOutcome).toBe(0);
+  });
+
+  it('treats an effect day whose trueOutcome went missing as having no true-outcome hits', () => {
+    // day.ts's assemblePuzzle always sets trueOutcome on an effect day, but the
+    // type admits the absence and verdictStamp already resolves it explicitly
+    // rather than by a `undefined === undefined` accident. Same discipline here.
+    const m = buildRevealMetrics(fakeDay({ dayType: 'effect', trueBeta: 0.24 }), curve, null, [], 0);
+    expect(m.sigTrueOutcome).toBe(0);
+    expect(m.sigOtherOutcome).toBe(m.sigPaths);
+  });
+});
+
 // --- (c) pHitAtK reads the table (§3.7) ---
 
 describe('pHitAtK', () => {
-  it('reads the shipped table verbatim at 1..40', () => {
+  it('reads the shipped table verbatim at 1..40, per day type', () => {
     for (const k of [1, 2, 7, 14, 25, P_HIT_MAX_K]) {
-      expect(pHitAtK(k)).toBe(shippedTable.pHit[k]);
+      expect(pHitAtK(k, 'null')).toBe(shippedTable.pHitNull[k]);
+      expect(pHitAtK(k, 'effect')).toBe(shippedTable.pHitEffect[k]);
     }
   });
 
   it('clamps k into [1, 40]', () => {
-    expect(pHitAtK(0)).toBe(shippedTable.pHit[1]);
-    expect(pHitAtK(-5)).toBe(shippedTable.pHit[1]);
-    expect(pHitAtK(41)).toBe(shippedTable.pHit[P_HIT_MAX_K]);
-    expect(pHitAtK(10_000)).toBe(shippedTable.pHit[P_HIT_MAX_K]);
+    expect(pHitAtK(0, 'null')).toBe(shippedTable.pHitNull[1]);
+    expect(pHitAtK(-5, 'null')).toBe(shippedTable.pHitNull[1]);
+    expect(pHitAtK(41, 'null')).toBe(shippedTable.pHitNull[P_HIT_MAX_K]);
+    expect(pHitAtK(10_000, 'effect')).toBe(shippedTable.pHitEffect[P_HIT_MAX_K]);
   });
 
-  it('is fed by buildRevealMetrics at k = explored.length', () => {
+  it('is fed by buildRevealMetrics at k = explored.length, on the DAY\'S OWN vector (gr6-002)', () => {
     const curve = [point(SPECS[0], 0.01)];
     for (const k of [0, 1, 5, 40, 60]) {
       const explored = SPECS.slice(0, k);
-      const m = buildRevealMetrics(fakeDay({}), curve, null, explored, 0);
-      expect(m.playerExplored).toBe(k);
-      expect(m.pHitAtK).toBe(pHitAtK(k));
+      const nullDay = buildRevealMetrics(fakeDay({ dayType: 'null' }), curve, null, explored, 0);
+      expect(nullDay.playerExplored).toBe(k);
+      expect(nullDay.pHitAtK).toBe(pHitAtK(k, 'null'));
+
+      const effectDay = buildRevealMetrics(
+        fakeDay({ dayType: 'effect', trueOutcome: 0, trueBeta: 0.24 }),
+        curve,
+        null,
+        explored,
+        0,
+      );
+      expect(effectDay.pHitAtK).toBe(pHitAtK(k, 'effect'));
     }
   });
 
-  it('ships a table that is a probability, non-decreasing in k (index 0 unused)', () => {
-    expect(shippedTable.pHit).toHaveLength(P_HIT_MAX_K + 1);
-    expect(shippedTable.pHit[0]).toBe(0);
-    for (let k = 1; k <= P_HIT_MAX_K; k++) {
-      expect(shippedTable.pHit[k]).toBeGreaterThanOrEqual(0);
-      expect(shippedTable.pHit[k]).toBeLessThanOrEqual(1);
-      if (k > 1) expect(shippedTable.pHit[k]).toBeGreaterThanOrEqual(shippedTable.pHit[k - 1]);
+  it('does NOT quote the null-day number on an effect day (the defect gr6-002 names)', () => {
+    // GR1a measured 23% shown against 51% true at k = 5. The two vectors must
+    // therefore be genuinely different objects, not the same numbers twice.
+    const curve = [point(SPECS[0], 0.01)];
+    const explored = SPECS.slice(0, 5);
+    const nullDay = buildRevealMetrics(fakeDay({ dayType: 'null' }), curve, null, explored, 0);
+    const effectDay = buildRevealMetrics(
+      fakeDay({ dayType: 'effect', trueOutcome: 0, trueBeta: 0.24 }),
+      curve,
+      null,
+      explored,
+      0,
+    );
+    expect(effectDay.pHitAtK).not.toBe(nullDay.pHitAtK);
+  });
+
+  it('ships two vectors, each a probability non-decreasing in k (index 0 unused)', () => {
+    for (const vector of [shippedTable.pHitNull, shippedTable.pHitEffect]) {
+      expect(vector).toHaveLength(P_HIT_MAX_K + 1);
+      expect(vector[0]).toBe(0);
+      for (let k = 1; k <= P_HIT_MAX_K; k++) {
+        expect(vector[k]).toBeGreaterThanOrEqual(0);
+        expect(vector[k]).toBeLessThanOrEqual(1);
+        if (k > 1) expect(vector[k]).toBeGreaterThanOrEqual(vector[k - 1]);
+      }
     }
+  });
+
+  it('finds significance sooner on an effect day than on a null one, at every k', () => {
+    // Not a tautology of the simulation: it is the substantive claim that makes
+    // the day-typed selection worth making. An effect day's true-outcome family
+    // is dense with hits, so a random walk trips over one earlier.
+    for (let k = 1; k <= P_HIT_MAX_K; k++) {
+      expect(shippedTable.pHitEffect[k]).toBeGreaterThan(shippedTable.pHitNull[k]);
+    }
+  });
+
+  it('carries no legacy single-vector `pHit` key that could be read as either day', () => {
+    expect(Object.keys(shippedTable).sort()).toEqual(['checksum', 'pHitEffect', 'pHitNull']);
   });
 });
 
@@ -356,20 +492,42 @@ describe('assertPHitTable', () => {
   });
 
   it('throws on a stale checksum, naming the regeneration command', () => {
-    const stale = { checksum: (pHitTableChecksum() ^ 0xdeadbeef) >>> 0, pHit: shippedTable.pHit };
+    const stale = {
+      checksum: (pHitTableChecksum() ^ 0xdeadbeef) >>> 0,
+      pHitNull: shippedTable.pHitNull,
+      pHitEffect: shippedTable.pHitEffect,
+    };
     expect(() => assertPHitTable(stale)).toThrow(/npm run cal/);
     expect(() => assertPHitTable(stale)).toThrow(/checksum/i);
   });
 
-  it('throws on a wrong-length table', () => {
-    const short = { checksum: pHitTableChecksum(), pHit: shippedTable.pHit.slice(0, 10) };
-    expect(() => assertPHitTable(short)).toThrow(/length/i);
+  it('throws on a wrong-length vector, naming WHICH one (gr6-002: the shape guard, not the checksum)', () => {
+    // The checksum guards the DGP the table was simulated under; it cannot see
+    // the table's SHAPE at all (dgpConstantVector knows nothing about how many
+    // vectors the file carries). A two-vector table therefore needs the length
+    // guard to run per vector, or a half-regenerated file reads as fresh.
+    const shortNull = {
+      checksum: pHitTableChecksum(),
+      pHitNull: shippedTable.pHitNull.slice(0, 10),
+      pHitEffect: shippedTable.pHitEffect,
+    };
+    expect(() => assertPHitTable(shortNull)).toThrow(/length/i);
+    expect(() => assertPHitTable(shortNull)).toThrow(/pHitNull/);
+
+    const shortEffect = {
+      checksum: pHitTableChecksum(),
+      pHitNull: shippedTable.pHitNull,
+      pHitEffect: shippedTable.pHitEffect.slice(0, 10),
+    };
+    expect(() => assertPHitTable(shortEffect)).toThrow(/length/i);
+    expect(() => assertPHitTable(shortEffect)).toThrow(/pHitEffect/);
   });
 
-  it('is reached through pHitAtK (the engine never reads a stale table silently)', () => {
+  it('is reached through pHitAtK on both day types (the engine never reads a stale table silently)', () => {
     // The shipped table is fresh, so this is the positive half of the guard;
     // the negative half is covered by the stale-checksum case above, which
     // exercises the exact function pHitAtK delegates to.
-    expect(() => pHitAtK(12)).not.toThrow();
+    expect(() => pHitAtK(12, 'null')).not.toThrow();
+    expect(() => pHitAtK(12, 'effect')).not.toThrow();
   });
 });

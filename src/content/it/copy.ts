@@ -238,6 +238,8 @@ export const copy: Record<CopyKey, string> = {
   'reveal.curveCaptionAbandoned':
     'Tutte le specificazioni che avresti potuto stimare, ordinate per p-value. Non è stato pubblicato niente.',
   'reveal.publishedRecipe': 'Hai pubblicato: {recipe}',
+  // gr6-003: il verbo della modalità Preregistrazione, non quello di Hacking.
+  'reveal.preregisteredRecipe': 'Hai preregistrato: {recipe}',
   // Holds on null days too: niente si addensa, and that is the same lesson read
   // from the other side.
   'reveal.groupedCaption': 'Gli effetti veri si addensano. Il rumore si sparpaglia.',
@@ -245,7 +247,25 @@ export const copy: Record<CopyKey, string> = {
   'reveal.toSummary': 'Vedi la fattura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
-  'reveal.accounting1': 'Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < .05 per puro caso.',
+  // gr6-001 / w1-r-001 — "per puro caso" non era vero su nessuno dei due tipi
+  // di giorno, ma nemmeno "le altre sono confondimento" lo era: sui giorni
+  // nulli ACCETTATI il confondimento vale circa il 5% dei risultati
+  // significativi, indistinguibile da zero, perché il campionamento per rifiuto
+  // (§3.3) scarta proprio la coda confusa. La misura completa è nella nota di
+  // en/copy.ts. La riga dice ora tre cose tutte vere: il conteggio è quello che
+  // la soglia produce da sola, un effetto non c'è, e il disegno non è comunque
+  // un test pulito.
+  // Due correzioni di lingua nella stessa passata: "sono caso" non è una
+  // predicazione che l'italiano ammette (il file scrive "il caso da solo" in
+  // lab.dialCaption), e "si muove con" era un calco di "moves with".
+  // "confondimento con l'età e il reddito" riprende about.mechanism (regola 7).
+  // Zero em dash (regola 11); punto decimale con lo zero iniziale.
+  'reveal.accounting1':
+    "Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < 0.05. Nessuna ha trovato un effetto, perché non ce n'è: una soglia di 0.05 ne lascia passare circa una su venti da sola. E nessuna è un test pulito: il trattamento non è mai stato assegnato in modo casuale, e c'è confondimento con l'età e il reddito.",
+  // w1-r-003: la chiusa era un assoluto e si scontrava con la didascalia della
+  // Fig. 2 due blocchi più in basso ("Gli effetti veri si addensano").
+  'reveal.accounting1Effect':
+    "Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < 0.05: {trueSig} sull'esito dove l'effetto è reale, {otherSig} sugli esiti dove non c'è niente. Un p-value da solo non dice di quale dei due si tratta.",
   // T37 — plural safety (rule 9). {k} floors at 1: publishing the default
   // specification explores exactly one sentiero, so "Hai esplorato 1 sentieri"
   // was the ordinary first case, not an edge one. Label-colon-count in the two
@@ -253,8 +273,23 @@ export const copy: Record<CopyKey, string> = {
   // in the third, which has to keep its sentence shape.
   'reveal.accounting2': 'Sentieri che hai esplorato prima di pubblicare: {k}.',
   'reveal.accounting2Abandoned': 'Sentieri che hai esplorato prima di riportare un risultato nullo: {k}.',
+  // gr6-003 — impegno, non esplorazione. Participio NOMINALE, non un passato
+  // prossimo del giocatore: "ti sei impegnato" era l'unico participio del
+  // giocatore con ausiliare essere in tutto il file, e come tale l'unica
+  // stringa che assegna un genere a chi gioca (revisione W1, transcreazione).
+  // Il verbo è quello di prereg.intro ("Dichiara l'analisi completa"),
+  // regola 7. La seconda frase tiene l'ausiliare avere, che è invariabile.
+  'reveal.accounting2Prereg':
+    'Sentieri dichiarati prima di vedere un solo numero: {k}. Non ne hai eseguito nessun altro.',
   'reveal.accounting3':
     'Un ricercatore che esplora a caso quello stesso numero di sentieri ({k}) trova almeno un risultato "significativo" circa il {pHitPct}% delle volte.',
+  // gr6-002 — la frase sopra descrive una ricerca uniforme a caso, che nessuno
+  // fa: chi segue il p-value arriva alla significatività in 3-4 mosse.
+  // w1-r-004: CONDIZIONALE. Il gioco non misura come hai cercato, quindi non
+  // può affermarlo. Anche l'ordine "arriva prima alla significatività" (non
+  // "arriva alla significatività prima"), che era ordine inglese.
+  'reveal.accounting3Directed':
+    'Se hai seguito il p-value, non hai cercato a caso. La ricerca guidata arriva prima alla significatività, quindi il numero qui sopra è un minimo.',
   // {peeks} floors at 1 (Reveal renders this line only when peeks !== 0), so
   // "Le tue 1 sbirciate" was on screen for every single-peek day.
   'reveal.peekSurcharge':
@@ -407,7 +442,9 @@ export const copy: Record<CopyKey, string> = {
   'legend.title': 'Legenda',
   'legend.explored': 'Specificazione che hai guardato',
   'legend.unexplored': 'Specificazione che non hai guardato',
-  'legend.significant': 'p < .05',
+  // w1-r-008: forma con lo zero iniziale, come reveal.accounting1. Notazione:
+  // identica in tutte le lingue (SHARED_WITH_EN).
+  'legend.significant': 'p < 0.05',
   'legend.published': 'Quella che hai pubblicato',
   'legend.trueEffect': 'Effetto vero',
 

@@ -392,6 +392,39 @@ describe('handleRequest — reveal', () => {
     expect(payload.hetero).toEqual(puzzle.heterogeneous);
   });
 
+  // w1-r-002: THE WIRE CARRIES THE DAY-TYPED HIT SPLIT.
+  //
+  // gr6-001's two counts are declared on `RevealMetricsFull` (reveal.ts), not
+  // on §6's narrower `RevealMetrics`, so `RevealPayload` does not type them and
+  // the screen widens with an assertion (`Reveal.tsx`'s `RevealPayloadFull`).
+  // That assertion is unchecked by construction — which means nothing else in
+  // the suite proves the fields survive the spread on line ~151 below.
+  // Reveal.tsx's own suite renders from a hand-built payload literal, and
+  // reveal.test.ts calls buildRevealMetrics directly; neither goes through
+  // handleRequest. Stripping the two fields from the spread left `tsc` at 0 and
+  // the whole suite green, and `formatCount` is `String(Math.round(v))`, so
+  // every effect-day reveal would have shipped "NaN on the outcome where the
+  // effect is real". This is the assertion that closes it, and it is at the
+  // boundary rather than in the type because src/engine/types.ts belongs to
+  // another wave.
+  it('carries gr6-001\'s hit split on the wire, partitioning sigPaths (not typed by RevealPayload)', () => {
+    for (const iso of [NULL_ISO, EFFECT_ISO]) {
+      const state = freshState();
+      handleRequest(state, { id: 1, op: 'init', iso, scenarioCount: SCENARIO_COUNT });
+      const payload = revealData(handleRequest(state, { id: 2, op: 'reveal', published: null, explored: [] })) as
+        RevealPayload & { sigTrueOutcome?: number; sigOtherOutcome?: number };
+
+      expect(typeof payload.sigTrueOutcome, `${iso}: sigTrueOutcome missing from the wire payload`).toBe('number');
+      expect(typeof payload.sigOtherOutcome, `${iso}: sigOtherOutcome missing from the wire payload`).toBe('number');
+      expect(payload.sigTrueOutcome! + payload.sigOtherOutcome!).toBe(payload.sigPaths);
+      // A null day has no true outcome for a hit to be on; an effect day must
+      // actually find some, or the split is being computed against the wrong
+      // field and would read zero forever without failing the sum above.
+      if (payload.dayType === 'null') expect(payload.sigTrueOutcome).toBe(0);
+      else expect(payload.sigTrueOutcome).toBeGreaterThan(0);
+    }
+  });
+
   it('effect day without heterogeneity: hetero is null', () => {
     const { puzzle: effectPuzzle } = generateDay(EFFECT_ISO, SCENARIO_COUNT);
     // Sanity: EFFECT_ISO (distinct from EFFECT_HETERO_ISO by construction of

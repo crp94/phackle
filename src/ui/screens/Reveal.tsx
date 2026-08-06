@@ -27,9 +27,30 @@ import { JOURNAL_VOLUME } from '../masthead';
 import { Stamp } from '../components/Stamp';
 import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve';
 import type { CopyKey } from '../../content/en/copy';
-import type { RevealCurveEntry } from '../../engine/reveal';
+import type { RevealCurveEntry, RevealMetricsFull } from '../../engine/reveal';
 import type { RevealPayload } from '../../engine/protocol';
 import './Reveal.css';
+
+/**
+ * The reveal payload as it ACTUALLY arrives, rather than as §6's narrower
+ * `RevealMetrics` declares it.
+ *
+ * `protocol.ts` builds the wire object as `{ ...buildRevealMetrics(...), ... }`,
+ * so every field `RevealMetricsFull` adds is on the object at runtime and
+ * survives the worker's structuredClone (own enumerable properties, all of
+ * them). The screen already relies on exactly this for `curve`, which it
+ * widens to `RevealCurveEntry[]` a few lines into the component and for the
+ * same reason; gr6-001's two hit counts are the second instance, named once
+ * here instead of casting twice.
+ *
+ * Not a papering-over of a missing field: `tests/engine/reveal.test.ts` pins
+ * that `buildRevealMetrics` returns both counts on every day type, and the
+ * suite below pins that the sentence renders them. The narrow declaration is
+ * in `src/engine/types.ts`, which this wave does not own; hoisting the two
+ * fields onto `RevealMetrics` would let this alias collapse to `RevealPayload`
+ * and change nothing else.
+ */
+export type RevealPayloadFull = RevealPayload & Pick<RevealMetricsFull, 'sigTrueOutcome' | 'sigOtherOutcome'>;
 
 /** Figure-number separator. Punctuation, like the decimal point, and for the
  * same reason: it is notation the About page pins as language-independent. */
@@ -156,7 +177,7 @@ function Figure({ number, caption, footnote, children }: { number: string; capti
 
 export function Reveal() {
   const { content, copy, t } = useLocale();
-  const payload = useGameStore((s) => s.reveal);
+  const payload = useGameStore((s) => s.reveal) as RevealPayloadFull | null;
   const call = useGameStore((s) => s.call);
   const published = useGameStore((s) => s.published);
   const scenarioIndex = useGameStore((s) => s.scenarioIndex);
@@ -207,13 +228,44 @@ export function Reveal() {
         })
       : interpolate(copy['reveal.truthNull'], { beta: { text: (0).toFixed(3), numeral: true } });
 
+  // T18/gr6-003: Prereg Mode is the one mode whose block-3 verbs are different
+  // in kind. The player committed sight-unseen and ran exactly what they
+  // declared, so "explored" and "published" are both false about them.
+  const isPrereg = mode === 'prereg';
+
   // 3 — the accounting (§2.7.3), every figure computed from the payload.
-  const accounting1 = interpolate(copy['reveal.accounting1'], {
-    total: { text: formatCount(payload.totalPaths), numeral: true },
-    sig: { text: formatCount(payload.sigPaths), numeral: true, sig: true },
-    sigPct: { text: formatPercent(payload.sigFraction, 1), numeral: true, sig: true },
-  });
-  const exploredKey: CopyKey = published === null ? 'reveal.accounting2Abandoned' : 'reveal.accounting2';
+  //
+  // gr6-001: DAY-TYPED. The effect variant separates hits on the outcome the
+  // truth line just declared real from hits on the other three; the null
+  // variant names the confound About discloses instead of blaming chance for
+  // all of it. Branching is safe here for the same reason the truth line above
+  // branches: the day type has already been disclosed, one paragraph up.
+  //
+  // R1.3's loud colour stays on the HEADLINE PAIR ({sig}, {sigPct}) only. The
+  // split counts are numerals (R2.4) but not red: R1.3 sanctions "the Act II
+  // accounting figures for p < .05" as one place, not as a licence to make
+  // four of the sentence's five numbers shout.
+  const accounting1 =
+    payload.dayType === 'effect'
+      ? interpolate(copy['reveal.accounting1Effect'], {
+          total: { text: formatCount(payload.totalPaths), numeral: true },
+          sig: { text: formatCount(payload.sigPaths), numeral: true, sig: true },
+          sigPct: { text: formatPercent(payload.sigFraction, 1), numeral: true, sig: true },
+          trueSig: { text: formatCount(payload.sigTrueOutcome), numeral: true },
+          otherSig: { text: formatCount(payload.sigOtherOutcome), numeral: true },
+        })
+      : interpolate(copy['reveal.accounting1'], {
+          total: { text: formatCount(payload.totalPaths), numeral: true },
+          sig: { text: formatCount(payload.sigPaths), numeral: true, sig: true },
+          sigPct: { text: formatPercent(payload.sigFraction, 1), numeral: true, sig: true },
+        });
+  // gr6-003: MODE-TYPED, then path-typed. Prereg wins over the published/
+  // abandoned split because it is a statement about a different act.
+  const exploredKey: CopyKey = isPrereg
+    ? 'reveal.accounting2Prereg'
+    : published === null
+      ? 'reveal.accounting2Abandoned'
+      : 'reveal.accounting2';
   const accounting2 = interpolate(copy[exploredKey], {
     k: { text: formatCount(payload.playerExplored), numeral: true },
   });
@@ -221,6 +273,11 @@ export function Reveal() {
     k: { text: formatCount(payload.playerExplored), numeral: true },
     pHitPct: { text: formatPercent(payload.pHitAtK, 0), numeral: true },
   });
+  // gr6-002: the sentence above prices a UNIFORM RANDOM explorer, and the
+  // player was not one — they read a p-value after every turn. Withheld in
+  // Prereg Mode (nothing was followed) and at k = 1 (publishing the default is
+  // not a search, so there is no search to characterise).
+  const directed = !isPrereg && payload.playerExplored > 1 ? t('reveal.accounting3Directed') : null;
   // §3.7's honest form: m peeks make the true path count ~(m+1)x larger.
   const surcharge =
     payload.peeks === 0
@@ -232,8 +289,15 @@ export function Reveal() {
 
   // 4 — the verdict (§2.7.4). Only a retraction carries a subline; §4.5's
   // bank rotates by puzzle number, so the day decides which one, not chance.
+  //
+  // gr6-003: NEVER IN PREREG MODE. Every line in that bank is written for a
+  // player who hacked ("The journal has issued a correction", "Your co-authors
+  // have asked to be listed as 'consulted'"); a preregistered analysis that
+  // landed on RETRACTED did nothing to be corrected for, and §2.8 already
+  // supplies the right sentence for it (reveal.preregFalsePositive, hoisted
+  // above the stamp below).
   const subline =
-    payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0
+    !isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0
       ? content.retractionSublines[puzzleNumber % content.retractionSublines.length]
       : undefined;
 
@@ -274,41 +338,27 @@ export function Reveal() {
           <p className="ph-reveal__statement">{accounting1}</p>
           <p className="ph-reveal__statement">{accounting2}</p>
           <p className="ph-reveal__statement">{accounting3}</p>
+          {directed === null ? null : <p className="ph-reveal__statement">{directed}</p>}
           {surcharge === null ? null : <p className="ph-reveal__statement">{surcharge}</p>}
           {/* The figure is role="img", so its recipe callout reaches neither a
               screen reader nor the tab key -- and §7.4's callout abbreviates
               the outcome to Y-notation anyway. This is the one place the
-              published recipe exists as real text, in full labels. */}
+              published recipe exists as real text, in full labels.
+              gr6-003: the VERB is mode-typed. The data-role stays
+              `published-recipe` in both modes — it addresses the line's slot in
+              the accounting, not its wording, and renaming it would break every
+              probe and e2e selector that reads the reveal's recipe. */}
           {published === null ? null : (
             <p className="ph-reveal__published-recipe" data-role="published-recipe">
-              {t('reveal.publishedRecipe', { recipe: recipeLabel(published, scenario.outcomeLabels, copy) })}
+              {t(isPrereg ? 'reveal.preregisteredRecipe' : 'reveal.publishedRecipe', {
+                recipe: recipeLabel(published, scenario.outcomeLabels, copy),
+              })}
             </p>
           )}
         </div>
       </Block>
 
       <Block name="stamp" index={3}>
-        {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
-            a plain echo of the day's manuscript, built from store state --
-            the Published screen owns the real JournalCover. */}
-        <div className="ph-reveal__cover">
-          <div className="ph-reveal__cover-card" data-role="cover-echo">
-            {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
-                never a second literal — see src/ui/masthead.ts. */}
-            <p className="ph-reveal__cover-vol">
-              {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
-            </p>
-            <p className="ph-reveal__cover-title">{scenario.question}</p>
-          </div>
-          <div className="ph-reveal__stamp">
-            <Stamp
-              kind={payload.stamp}
-              label={t(STAMP_LABEL[payload.stamp])}
-              subline={subline}
-              animate={!reducedMotion}
-            />
-          </div>
-        </div>
         {/* T18 (§2.8's own parenthetical: "a real 5% false positive —
             teachable"): a preregistered commit that lands on RETRACTED on a
             NULL day did nothing wrong — this is exactly what a 5% false-
@@ -317,30 +367,87 @@ export function Reveal() {
             introduces (RETRACTED with no CALL step at all): every OTHER
             RETRACTED case (Hacking Mode, or a prereg commit on an effect day
             that hit the wrong outcome, §2.7.4) keeps the plain stamp with no
-            added line, unchanged from before this task. */}
-        {mode === 'prereg' && payload.dayType === 'null' && payload.stamp === 'RETRACTED' ? (
+            added line, unchanged from before this task.
+
+            gr6-003 MOVED IT ABOVE THE STAMP, and this is the ONE deviation
+            from §2.7's block ORDER in the whole screen — mode-scoped, and
+            ruled as an exception rather than a new default (controller,
+            2026-08-06, ruling (c)). The reason is sequence, not layout: a
+            player who did the honest thing was shown a red RETRACTED and only
+            afterwards told it was not their fault. A frame that arrives after
+            the verdict is not a frame. */}
+        {isPrereg && payload.dayType === 'null' && payload.stamp === 'RETRACTED' ? (
           <p className="ph-reveal__statement">{t('reveal.preregFalsePositive')}</p>
         ) : null}
+        {/* gr2-015 / controller ruling (c): THE BEAT GETS AIR. Measured at
+            1088, the signature moment was 8% of the page height with no rest
+            either side, reached by accident on the way to Fig. 2. §2.7's block
+            ORDER is untouched (that was the alternative, and it reverses the
+            argument the accounting builds toward); the stamp simply gets a
+            block of its own to land in. Reveal.css carries the padding and the
+            scroll snap. */}
+        <div className="ph-reveal__stamp-beat">
+          {/* The stamp slams onto a cover, not onto the page (§2.7.4). This is
+              a plain echo of the day's manuscript, built from store state --
+              the Published screen owns the real JournalCover. */}
+          <div className="ph-reveal__cover">
+            <div className="ph-reveal__cover-card" data-role="cover-echo">
+              {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
+                  never a second literal — see src/ui/masthead.ts. */}
+              <p className="ph-reveal__cover-vol">
+                {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
+              </p>
+              <p className="ph-reveal__cover-title">{scenario.question}</p>
+            </div>
+            <div className="ph-reveal__stamp">
+              <Stamp kind={payload.stamp} label={t(STAMP_LABEL[payload.stamp])} animate={!reducedMotion} />
+            </div>
+          </div>
+          {/* gr6-059: THE SUBLINE, HORIZONTAL, BENEATH THE CARD.
+              It used to be a rotated <text> node inside the stamp's own SVG,
+              drawn at -12deg across the second line of the day's question — so
+              Act II's only voice on this screen was also its least readable
+              string, and both it and the question were crossed through. It is
+              also what made the stamp paint outside the window (see Stamp.tsx's
+              geometry note: a 49-character mono line is 556 user units wide in
+              a 320-unit viewBox). Out here it is ordinary prose, read once, in
+              reading order, after the verdict it comments on. */}
+          {subline === undefined ? null : (
+            <p className="ph-reveal__stamp-subline" data-role="stamp-subline">
+              {subline}
+            </p>
+          )}
+        </div>
       </Block>
 
-      <Block name="call" index={4}>
-        {/* Prereg Mode never visits the CALL screen (§2.8: the prereg score
-            rows replace it entirely) — `call` stays null for the whole day,
-            so this block already renders nothing on a prereg reveal, with no
-            mode check needed: it was already gated on the right thing. */}
-        {call === null ? null : (
+      {/* 5 — the call resolution (§2.7.5).
+          Prereg Mode never visits the CALL screen (§2.8: the prereg score rows
+          replace it entirely), so `call` stays null for the whole day.
+          gr6-003: the WHOLE SECTION is now conditional, not just its contents.
+          It used to render as an empty <section data-block="call"> on every
+          prereg reveal — an element in the block sequence, in the accessibility
+          tree, and carrying `.ph-fade + .ph-fade`'s --space-40, announcing a
+          beat that does not exist. Five blocks on a prereg day is the honest
+          count; §2.7's ORDER is unchanged, and so is every hacking day. */}
+      {call === null ? null : (
+        <Block name="call" index={4}>
           <p className="ph-reveal__statement">
             {t(callIsCorrect(call, payload.dayType) ? 'reveal.callCorrect' : 'reveal.callIncorrect')}
           </p>
-        )}
-      </Block>
+        </Block>
+      )}
 
       {/* 6 — §2.7.6's grouped view, on BOTH day types: an effect day shows
           significance clustering on the true outcome, a null day shows the
           same thinly-scattered hits everywhere. "The single most important
           educational graphic in the game" teaches by the contrast, which
           means it has to be there on the days with nothing to cluster. */}
-      <Block name="fig2" index={5}>
+      {/* w1-r-009: the index is DOM ORDER, which Reveal.css's own note says it
+          is — so with the call block conditional it has to close the gap on a
+          prereg day rather than leave a one-step hole in the ramp at 4.
+          (staggerStyle caps at 2, so this is invisible in the common case and
+          exactly the kind of thing that rots into a false comment.) */}
+      <Block name="fig2" index={call === null ? 4 : 5}>
         <Figure number={t('reveal.fig2')} caption={t('reveal.groupedCaption')} footnote={null}>
           <SpecCurve points={points} grouped outcomeLabels={scenario.outcomeLabels} copy={copy} />
         </Figure>

@@ -994,7 +994,8 @@ could be lifted into `it`s unaltered. The allow-lists themselves are the law:
 1. R1.3's allow-list is four places plus one derivation. A line-oriented scan
    cannot see which rule a hit sits in; the `it` is selector-granular, which is
    where the law actually
-   is: `.ph-stamp__mark--red`'s three descendants (place 1),
+   is: `.ph-stamp__mark--red`'s two descendants (place 1 — border and label;
+   the subline is horizontal HTML in `--ink` since gr6-059),
    `.ph-speccurve__threshold` and `…__threshold-label` (place 2),
    `.ph-speccurve__dot--published` / `…__key-dot--published` / `…__ring` /
    `…__key-ring` / `…__leader` (place 3), `.ph-num--sig` (place 4), and

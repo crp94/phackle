@@ -449,3 +449,66 @@ describe('T33 — the one-row spec legend enumerates all six knobs', () => {
     ]);
   });
 });
+
+// --- GR6 W1: the day-typed / mode-typed accounting keys ---------------------
+//
+// The per-locale suites already assert that IT and ES carry exactly English's
+// token set in every value (`uses exactly the same interpolation tokens as
+// English in every copy value`), so parity x3 follows from pinning ENGLISH's
+// own set here. That is the half nothing covered: a token dropped from the
+// SOURCE would propagate to all three locales in agreement and render a
+// silently wrong sentence rather than a visibly raw {token}.
+
+describe('GR6 W1 — the reveal accounting keys carry exactly the tokens the screen binds', () => {
+  // Sorted lexicographically, which is why `{sigPct}` precedes `{sig}`: 'P'
+  // sorts before '}'. Written out rather than re-sorted at the assertion so
+  // the expectation is a literal to read, not a computation to trust.
+  const EXPECTED: Record<string, string[]> = {
+    // gr6-001: the null variant keeps §2.7.3's three headline figures.
+    'reveal.accounting1': ['{sigPct}', '{sig}', '{total}'],
+    // gr6-001: the effect variant adds the split the engine now computes.
+    'reveal.accounting1Effect': ['{otherSig}', '{sigPct}', '{sig}', '{total}', '{trueSig}'],
+    'reveal.accounting2': ['{k}'],
+    'reveal.accounting2Abandoned': ['{k}'],
+    // gr6-003: prereg's own framing, same count token.
+    'reveal.accounting2Prereg': ['{k}'],
+    'reveal.accounting3': ['{k}', '{pHitPct}'],
+    // gr6-002: prose only — it characterises the search, it quotes no figure.
+    'reveal.accounting3Directed': [],
+    'reveal.publishedRecipe': ['{recipe}'],
+    'reveal.preregisteredRecipe': ['{recipe}'],
+  };
+
+  it.each(Object.entries(EXPECTED))('%s', (key, tokens) => {
+    const value = enContent.copy[key as keyof typeof enContent.copy];
+    expect(value, `${key} is not in the English catalog`).toBeDefined();
+    expect([...new Set(value.match(/\{\w+\}/g) ?? [])].sort()).toEqual(tokens);
+  });
+
+  // Controller ruling (a), 2026-08-06: the null-day accounting names the
+  // confound About discloses, and never offers chance as the sole cause.
+  // w1-r-001 added the other half of the constraint: it may not claim the
+  // confound explains the COUNT either. Measured by permuting treatment within
+  // 188 accepted null days, the confounded excess is 4.8 of ~94 hits (paired
+  // t = 1.11), because §3.3's rejection sampler discards the confounded tail.
+  // So the string must name the confound as a property of the DESIGN — in
+  // About's own words, which is the terminology lock — while attributing the
+  // count to the threshold.
+  it('names the confound as About does, and blames neither cause for the count', () => {
+    const value = enContent.copy['reveal.accounting1'];
+    expect(value).not.toMatch(/by chance alone/i);
+    // About: "a treatment confounded with age and income".
+    expect(value).toMatch(/confounded with age and income/);
+    expect(enContent.copy['about.mechanism']).toMatch(/confounded with age and income/);
+    expect(value).toMatch(/never randomly assigned/);
+    // The retracted overclaim, in any of the shapes it could come back as.
+    expect(value).not.toMatch(/the rest are confounding|mostly confounding|the rest is confounding/i);
+  });
+
+  // gr6-001: the effect variant must keep the pedagogy, not just the counts.
+  it('says on an effect day that a p-value cannot tell the two families apart', () => {
+    const value = enContent.copy['reveal.accounting1Effect'];
+    expect(value).not.toMatch(/by chance alone/i);
+    expect(value).toMatch(/p-value/);
+  });
+});

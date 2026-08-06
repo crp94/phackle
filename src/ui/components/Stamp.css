@@ -3,11 +3,21 @@
   display: inline-block;
 }
 
+/* w1-r-010: `overflow: hidden`, not `visible`.
+   It used to be `visible` because it had to be: the filter region was declared
+   as 140% of the group's bounding box and painted far outside the viewport, so
+   clipping would have sheared the stamp. Stamp.tsx pins the region to the
+   viewBox now and sizes the label to fit it, which means painted ink is a
+   subset of the viewport by construction and this declaration changes nothing
+   today. It is here so that containment does not rest on ONE mechanism: if a
+   future edit re-enlarges the filter region, the SVG viewport still clips at
+   the element's own box instead of putting red ink through the window edge.
+   `width` is untouched, per gr4-005's own scoping. */
 .ph-stamp__mark {
   display: block;
   width: min(100%, 320px);
   height: auto;
-  overflow: visible;
+  overflow: hidden;
   transform: rotate(-12deg);
   transform-origin: 50% 50%;
 }
@@ -25,45 +35,48 @@
   letter-spacing: var(--tracking-label);
 }
 
-.ph-stamp__subline {
-  font-family: var(--font-mono);
-  font-weight: var(--weight-regular);
-  font-size: var(--text-15);
+/* gr6-077: THE THREE COLOUR PAIRS, UNGROUPED. Each verdict used to be two
+   rules: one that set `stroke` AND `fill` on the border and the label
+   together, and a second that immediately took the border's fill back to
+   `none` — six rules doing three rules' work, and every one of them saying
+   something the rule above had just said differently.
+   Nothing computes differently after the ungrouping. The border's `fill: none`
+   was never the override's to give: `.ph-stamp__border` above already declares
+   it (with the stroke-width the frame needs), so the per-verdict rule only
+   ever has to name the ONE property that varies, which is the colour. The
+   label keeps both `stroke` and `fill` deliberately — the hairline stroke is
+   what keeps the letterforms reading at display scale once the displacement
+   filter has chewed their edges — and now says so instead of inheriting it
+   from a selector list it shared with a shape that wanted the opposite.
+   The `.ph-stamp__subline` selectors are gone with the subline itself: it is
+   set as horizontal HTML beneath the cover card now (gr6-059). */
+.ph-stamp__mark--red .ph-stamp__border {
+  stroke: var(--sig-red);
 }
 
-.ph-stamp__mark--red .ph-stamp__border,
-.ph-stamp__mark--red .ph-stamp__label,
-.ph-stamp__mark--red .ph-stamp__subline {
+.ph-stamp__mark--red .ph-stamp__label {
   stroke: var(--sig-red);
   fill: var(--sig-red);
 }
 
-.ph-stamp__mark--red .ph-stamp__border {
-  fill: none;
+.ph-stamp__mark--ink .ph-stamp__border {
+  stroke: var(--ink);
 }
 
-.ph-stamp__mark--ink .ph-stamp__border,
-.ph-stamp__mark--ink .ph-stamp__label,
-.ph-stamp__mark--ink .ph-stamp__subline {
+.ph-stamp__mark--ink .ph-stamp__label {
   stroke: var(--ink);
   fill: var(--ink);
 }
 
-.ph-stamp__mark--ink .ph-stamp__border {
-  fill: none;
-}
-
 /* DESIGN.md R1.5 exception (§0 registry): the REPLICATED verdict stamp is the
    one sanctioned display-scale --assist-green, parallel to R1.3's red entry. */
-.ph-stamp__mark--green .ph-stamp__border,
-.ph-stamp__mark--green .ph-stamp__label,
-.ph-stamp__mark--green .ph-stamp__subline {
+.ph-stamp__mark--green .ph-stamp__border {
   stroke: var(--assist-green);
-  fill: var(--assist-green);
 }
 
-.ph-stamp__mark--green .ph-stamp__border {
-  fill: none;
+.ph-stamp__mark--green .ph-stamp__label {
+  stroke: var(--assist-green);
+  fill: var(--assist-green);
 }
 
 /* R5.4: single 450ms slam (scale + rotate, one overshoot) on the mark, plus a
