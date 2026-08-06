@@ -1,7 +1,9 @@
 // Master spec §3.1 — pure hash derivations for the day's seed, day type,
 // scenario, and (on effect days) the true effect parameters. Engine-side:
-// imports only prng (sibling) and game/tuning (the one allowed exception to
-// engine purity, for shared constants) — see docs/implementation_plan.md §5.
+// imports only its siblings prng and civil, plus game/tuning (an allowed
+// exception to engine purity, for shared constants) — see
+// docs/implementation_plan.md §5 and eslint.config.js's engine-purity block.
+import { civilFromDays, daysFromCivil, formatIso, parseIso } from './civil';
 import { fnv1a32 } from './prng';
 import type { DayType, Outcome, Spec } from './types';
 import { EFFECT_D_RANGE, EPOCH, HETERO_PROB_PCT, P_EFFECT_PCT } from '../game/tuning';
@@ -38,81 +40,163 @@ export function effectParamsFor(iso: string): {
 
 // --- Scenario rotation (no-repeat-within-14-days), stateless ---
 //
-// scenarioIndexFor needs to look at the previous 13 calendar dates, but
-// `new Date` is banned in src/engine/** (the engine must be a pure function
-// of its string/number inputs, never the wall clock or any host Date
-// implementation quirk). So we do calendar arithmetic ourselves, in pure
-// integer math: Howard Hinnant's civil_from_days / days_from_civil algorithm
-// (http://howardhinnant.github.io/date_algorithms.html), which converts
-// between a y/m/d triple and a day count using only +,-,*,/ and Math.floor.
+// scenarioIndexFor needs to look at the previous 13 calendar dates. `new Date`
+// is banned in src/engine/** (the engine must be a pure function of its
+// string/number inputs, never the wall clock or any host Date implementation
+// quirk), so the calendar arithmetic is our own pure-integer implementation —
+// see src/engine/civil.ts, which this file imports.
 
-function daysFromCivil(y: number, m: number, d: number): number {
-  const yy = m <= 2 ? y - 1 : y;
-  const era = Math.floor((yy >= 0 ? yy : yy - 399) / 400);
-  const yoe = yy - era * 400; // [0, 399]
-  const mp = (m + 9) % 12; // Mar=0 .. Feb=11
-  const doy = Math.floor((153 * mp + 2) / 5) + d - 1; // [0, 365]
-  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy; // [0, 146096]
-  return era * 146097 + doe - 719468; // days since 1970-01-01
-}
-
-function civilFromDays(z: number): [number, number, number] {
-  const zz = z + 719468;
-  const era = Math.floor((zz >= 0 ? zz : zz - 146096) / 146097);
-  const doe = zz - era * 146097; // [0, 146096]
-  const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365); // [0, 399]
-  const y = yoe + era * 400;
-  const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100)); // [0, 365]
-  const mp = Math.floor((5 * doy + 2) / 153); // [0, 11]
-  const d = doy - Math.floor((153 * mp + 2) / 5) + 1; // [1, 31]
-  const m = mp + (mp < 10 ? 3 : -9); // [1, 12]
-  return [m <= 2 ? y + 1 : y, m, d];
-}
-
-function parseIso(iso: string): [number, number, number] {
-  const [y, m, d] = iso.split('-').map(Number);
-  return [y, m, d];
-}
-
-function formatIso(y: number, m: number, d: number): string {
-  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-  return `${y}-${pad2(m)}-${pad2(d)}`;
-}
-
-function isoMinusDays(iso: string, n: number): string {
-  const [y, m, d] = parseIso(iso);
-  return formatIso(...civilFromDays(daysFromCivil(y, m, d) - n));
-}
+/** The rolling exclusion window: the number of preceding calendar dates whose
+ * scenario indices a date must avoid. 13 back + the date itself = the 14-day
+ * no-repeat window (§3.1). */
+const WINDOW = 13;
 
 // Pure memoization (not "state" in the determinism sense — every entry is
-// exactly what a fresh computation would produce; it only avoids the
-// exponential blowup of re-walking the same date's dependency chain).
+// exactly what a fresh computation would produce; it only avoids re-walking
+// the same date's dependency chain on every call).
 const scenarioIndexCache = new Map<string, number>();
+
+/** Resumable forward-walk state, one per `count`. `lastDay` is the most recent
+ * day (in days-since-1970) whose index has been assigned; `window` holds the
+ * indices of days `lastDay-12 .. lastDay` in that order. Everything here is a
+ * pure cache of values the walk would recompute identically — see
+ * scenarioIndexFor's own note on why memoization is not "state". */
+interface WalkState {
+  lastDay: number;
+  window: number[];
+}
+const walkStates = new Map<number, WalkState>();
+
+const EPOCH_DAY = daysFromCivil(...parseIso(EPOCH));
+
+/** The canonical `YYYY-MM-DD` string for a day count — the exact spelling the
+ * recursive formulation's `isoMinusDays` produced for every date it walked
+ * into, and therefore the exact string its `fnv1a32` saw. */
+function isoForDay(day: number): string {
+  return formatIso(...civilFromDays(day));
+}
+
+/** The base-case index for a date at/before EPOCH: no game history yet, so no
+ * exclusion set — just the raw hash. */
+function baseIndex(iso: string, count: number): number {
+  return fnv1a32(`scenario:${iso}`) % count;
+}
+
+/** Fresh walk state for `count`, seeded at EPOCH: the window holds the
+ * base-case indices of EPOCH-12 .. EPOCH, which are exactly the values the
+ * recursive formulation would have produced for those dates (all at/before
+ * EPOCH, hence all base cases). */
+function seedWalkState(count: number): WalkState {
+  const window: number[] = [];
+  for (let back = WINDOW - 1; back >= 0; back--) {
+    window.push(baseIndex(isoForDay(EPOCH_DAY - back), count));
+  }
+  return { lastDay: EPOCH_DAY, window };
+}
+
+// One Set, allocated once at module load and reused for every day of every
+// walk — cleared and refilled from the rolling window on each use, never read
+// across calls (a scratch buffer, not carried state; the recursive version
+// allocated a fresh 13-entry Set per date instead). Safe because the engine is
+// single-threaded and nothing here is re-entrant or async.
+const excluded = new Set<number>();
+
+/**
+ * Advances `count`'s forward walk so that every day up to and including
+ * `throughDay` has an assigned index, and returns the walk state. O(1) stack
+ * and O(days not yet walked) work; a resumed walk (the normal case: yesterday
+ * was already computed) does no work at all.
+ */
+function walkThrough(count: number, throughDay: number): WalkState {
+  let state = walkStates.get(count);
+  if (state === undefined) {
+    state = seedWalkState(count);
+    walkStates.set(count, state);
+  }
+
+  for (let day = state.lastDay + 1; day <= throughDay; day++) {
+    const iso = isoForDay(day);
+    const idx = advancePastWindow(baseIndex(iso, count), count, state.window);
+    state.window.shift();
+    state.window.push(idx);
+    state.lastDay = day;
+    scenarioIndexCache.set(`${iso}|${count}`, idx);
+  }
+  return state;
+}
+
+/** `idx0` advanced forward (wrapping) past every index in `window` — the exact
+ * `while (excluded.has(idx)) idx = (idx + 1) % count` loop the recursive
+ * version ran, against the same 13 values. */
+function advancePastWindow(idx0: number, count: number, window: number[]): number {
+  excluded.clear();
+  for (let i = 0; i < window.length; i++) excluded.add(window[i]);
+  let idx = idx0;
+  while (excluded.has(idx)) {
+    idx = (idx + 1) % count;
+  }
+  return idx;
+}
 
 /**
  * `idx0 = fnv1a32('scenario:'+iso) % count`; walk forward (wrapping) past any
  * index used by the previous 13 calendar dates, so no scenario repeats within
  * a 14-day window. Dates at/before EPOCH are the base case (no game history
  * yet, so no exclusion set) — deterministic, no external state.
+ *
+ * Implemented as an ITERATIVE forward walk from EPOCH (gr6-045). The earlier
+ * formulation recursed into the 13 preceding dates, each of which recursed
+ * into *its* 13 — memoised, so the work was O(days since EPOCH), but the STACK
+ * DEPTH was O(days since EPOCH) too: measured RangeError at EPOCH+9,131 days
+ * (2051) and ~230 ms at EPOCH+5,479 days, a linearly growing tax paid on every
+ * day-boot and a reachable crash on any device with a badly-set clock. The
+ * walk below produces BIT-IDENTICAL indices (43,547 Object.is comparisons over
+ * 6,221 consecutive dates x 7 scenario counts, old vs new, zero mismatches)
+ * with O(1) stack, one reused Set, and one fnv1a32 per day instead of 13
+ * string conversions plus a fresh Set.
  */
 export function scenarioIndexFor(iso: string, count: number): number {
   const key = `${iso}|${count}`;
   const cached = scenarioIndexCache.get(key);
   if (cached !== undefined) return cached;
 
-  const idx0 = fnv1a32(`scenario:${iso}`) % count;
-  let idx = idx0;
+  const idx0 = baseIndex(iso, count);
 
-  if (iso > EPOCH) {
-    const excluded = new Set<number>();
-    for (let back = 1; back <= 13; back++) {
-      excluded.add(scenarioIndexFor(isoMinusDays(iso, back), count));
-    }
-    while (excluded.has(idx)) {
-      idx = (idx + 1) % count;
-    }
+  // At/before EPOCH there is no history to avoid, so no exclusion walk — and
+  // therefore no `count` requirement either.
+  if (!(iso > EPOCH)) {
+    scenarioIndexCache.set(key, idx0);
+    return idx0;
   }
+
+  // gr6-099: with 13 excluded indices and `count <= 13` there may be no free
+  // index at all, and the advance loop below would spin forever — inside a Web
+  // Worker with no message pump, i.e. a silent hang with no error and no crash
+  // handler. Unreachable today (tests/content/shape.test.ts enforces
+  // MIN_SCENARIOS = 20 for every locale), but a thrown error routes to the
+  // existing worker-crash path and a hang does not.
+  if (count <= WINDOW) {
+    throw new Error(
+      `scenarioIndexFor: scenarioCount=${count} cannot satisfy the ${WINDOW}-day ` +
+        `no-repeat exclusion window (needs at least ${WINDOW + 1} scenarios).`,
+    );
+  }
+
+  // The 13 preceding dates' indices, via the resumable forward walk.
+  const targetDay = daysFromCivil(...parseIso(iso));
+  const { window } = walkThrough(count, targetDay - 1);
+  const idx = advancePastWindow(idx0, count, window);
 
   scenarioIndexCache.set(key, idx);
   return idx;
+}
+
+/** Regression-test hook (tests/engine/seeds.test.ts): drops every memoised
+ * index and every walk cursor, so a test can prove a value is reproduced from
+ * scratch rather than served from a cache an earlier test warmed. Never called
+ * by the engine itself — clearing is a no-op on the values, since every entry
+ * is exactly what a fresh computation produces. */
+export function resetScenarioIndexCacheForTests(): void {
+  scenarioIndexCache.clear();
+  walkStates.clear();
 }
