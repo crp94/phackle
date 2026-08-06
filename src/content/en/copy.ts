@@ -364,7 +364,9 @@ export type CopyKey =
   | 'reveal.callCorrect'
   | 'reveal.callIncorrect'
   // T18 addition: §2.8's own parenthetical for the prereg sig+null row ("a
-  // real 5% false positive — teachable") — the one-line explanation the
+  // real 5% false positive — teachable"; the parenthetical is quoted here as
+  // the spec wrote it, but the RATE is not 5% in this DGP — see the value's own
+  // note further down, gr6-009) — the one-line explanation the
   // reveal owes a player who preregistered honestly and still landed on
   // RETRACTED (§2.7.4's stamp logic has no other way to say "this was not a
   // mistake"). Rendered only for mode:'prereg', dayType:'null', stamp:
@@ -1139,11 +1141,45 @@ export const copy: Record<CopyKey, string> = {
   'reveal.nullReported': 'NULL REPORTED',
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
-  // T18 addition: §2.8's own parenthetical, spelled out — a preregistered
-  // analysis, run exactly once, is still expected to land here about one time
-  // in twenty. Clinical register (Act II), not an apology.
+  // T18 addition: §2.8's own parenthetical, spelled out. Clinical register
+  // (Act II), not an apology.
+  //
+  // GR6 gr6-009 / RULING §1(a), COPY-HONEST — "about 5%" WAS FALSE, AND THE
+  // REPLACEMENT NUMBERS ARE RE-MEASURED AFTER §1(d)'s ACCEPTANCE PREDICATE.
+  //
+  // A prereg commitment is judged at the FULL sample (store.ts's preregCommit
+  // walks the whole N_SCHEDULE before its single runSpec), and the treatment is
+  // assigned from the same latents the outcomes load on (dgp.ts: X is built
+  // from L1 and L4; Y1 loads on both), so at N = 400 a single preregistered
+  // analysis of a null day rejects well above its nominal alpha. Measured on
+  // this tree over 591 ACCEPTED NULL days (500 calibration-seed days plus the
+  // 91 null days among 120 consecutive real dates from 2026-08-11), alpha = .05,
+  // N = 400:
+  //     the lab default spec (what the prereg form opens on)  18.6% / 25.3%
+  //     uniform over all 1,792 specs                           7.5% /  8.2%
+  //     the same outcome WITH both covariates                  6.4% /  9.9%
+  //     by outcome family Y1/Y2/Y3/Y4                    10.0 / 6.2 / 9.2 / 4.5%
+  // (cal-seed population first, real-date population second; pooled default
+  // rate 116/591 = 19.6%, se 1.6pp.) The line now quotes the two figures that
+  // bracket what a player can actually have committed — the grid-wide 8% and
+  // the default's one-in-five — and names the cause, because a rate this far
+  // above alpha is not bad luck, it is confounding.
+  //
+  // WHAT §1(d) CHANGED, since this had to be re-measured for exactly that
+  // reason: the acceptance predicate rejects days whose lab default is already
+  // significant at N=200, which drags the SAME spec's N=400 rate down with it.
+  // GR2 measured 28% before it; the pooled figure after it is 19.6%. Still
+  // four times alpha, still not 5%.
+  //
+  // CONSISTENT WITH reveal.truthNull's own accounting (gr6-001, W1), which is
+  // about a different quantity and must not be read as contradicting this one:
+  // that line counts hits across all 1,792 specs at N = 200, where the
+  // confounding excess is 4.8 paths (5% of hits, paired t = 1.11, i.e. nil).
+  // This line is about ONE spec at N = 400 — the most confounded one, at the
+  // sample size that gives the confound the power to show. Both are measured,
+  // and they say what they say about the populations they name.
   'reveal.preregFalsePositive':
-    'This is not a mistake: a preregistered analysis, run exactly once, still finds a false positive about 5% of the time. Today was one of those days.',
+    'This is not a mistake, and it is not the 5% the threshold advertises: the treatment here is tangled up with the same factors the outcomes respond to. At the full sample, a preregistered analysis lands here about 8% of the time, and about one in five when it is the plain unadjusted default. Today was one of those days.',
 
   // §2.9 share-string human words (the emoji grid, puzzle number and URL stay
   // identical across locales — only these two words are ever localized).

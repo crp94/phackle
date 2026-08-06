@@ -402,8 +402,14 @@ export const copy: Record<CopyKey, string> = {
   'reveal.nullReported': 'RESULTADO NULO',
   'reveal.callCorrect': 'Tu veredicto fue correcto.',
   'reveal.callIncorrect': 'Tu veredicto fue erróneo.',
+  // GR6 gr6-009 / ruling §1(a): "alrededor del 5%" was false and is replaced by
+  // the two re-measured figures — see en/copy.ts's own note for the measurement
+  // (591 accepted null days, N = 400: 7.5-8.2% across the grid, 18.6-25.3% for
+  // the spec the prereg form opens on). Sentence case throughout, the opening
+  // exculpation and the "Hoy tocó" closer both kept: the correction is to the
+  // number and to naming the confounding, not to the voice.
   'reveal.preregFalsePositive':
-    'Esto no es un fallo tuyo: un análisis preregistrado, ejecutado exactamente una vez, sigue dando un falso positivo alrededor del 5% de las veces. Hoy tocó.',
+    'Esto no es un fallo tuyo, y tampoco es el 5% que promete el umbral: aquí el tratamiento está enredado con los mismos factores a los que responden los resultados. Con la muestra completa, un análisis preregistrado acaba aquí alrededor del 8% de las veces, y cerca de una de cada cinco cuando es el análisis por defecto, sin controles. Hoy tocó.',
 
   // The share grid's third line. T37 fix round 1 (controller ruling, see
   // share.ts's §2.9 deviation note): it now reads
