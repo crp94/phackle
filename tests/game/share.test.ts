@@ -323,8 +323,8 @@ describe('§1(i) — the fork run is read as groups of five, and line 1 says wha
   // rule the walk uses, not by arithmetic performed here.
   function logWithForks(k: number, terminal: 'submit' | 'abandon' = 'submit'): PlayerAction[] {
     const log: PlayerAction[] = [view(spec(), false, 0)];
-    for (let i = 0; i < k; i++) log.push(view(spec({ outcome: (i % 2) + 1 }), true, i + 1));
-    log.push(terminal === 'submit' ? submit(spec({ outcome: (k % 2) + 1 }), k + 1) : abandon(k + 1));
+    for (let i = 0; i < k; i++) log.push(view(spec({ outcome: i % 2 === 0 ? 1 : 2 }), true, i + 1));
+    log.push(terminal === 'submit' ? submit(spec({ outcome: k % 2 === 0 ? 1 : 2 }), k + 1) : abandon(k + 1));
     return log;
   }
 
