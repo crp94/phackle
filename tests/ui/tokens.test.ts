@@ -501,7 +501,7 @@ describe('gr6-058 the analytics disclosure and the analytics integration', () =>
  * GR6 gr6-054 — THE SIX LAWS THAT WERE ENFORCED BY A HUMAN REMEMBERING TO RUN
  * SIX SHELL COMMANDS.
  *
- * DESIGN.md §10 assigned R1.3, R2.2/R3.1-usage, R3.4, R4.5, R4.7 and R6.5 to
+ * DESIGN.md §10 assigned R1.3, R2.2, R3.1-usage, R3.4, R4.5, R4.7 and R6.5 to
  * "Tier C — grep" and listed the commands. Nothing ran them. Tier C was the
  * only band in the document claiming *mechanical* decidability with no
  * mechanism — and the rules in it are exactly the ones a fix wave breaks by
@@ -510,8 +510,15 @@ describe('gr6-058 the analytics disclosure and the analytics integration', () =>
  * time all six still held on the merits; what was missing was the guard, and a
  * missing guard on a passing rule is the kind that rots quietly.
  *
- * TWO OF THE SIX COMMANDS WERE ALSO UNRUNNABLE AS WRITTEN, and this file is
- * written to the corrected semantics rather than the literal shell:
+ * THE SIX `it` TITLES BELOW ARE VERBATIM FROM DESIGN.md §10. The document names
+ * them so that "a reviewer greps `tokens.test.ts` for these six strings and
+ * finds six or finds the debt" — the titles are the tripwire on the wave that
+ * owes the tests, so they are quoted exactly and must not be prettified. The
+ * dagger block in §10 is what makes these seven rules tier A; this file is what
+ * makes that claim true.
+ *
+ * TWO OF THE SIX COMMANDS WERE UNRUNNABLE AS WRITTEN, and this file is written
+ * to the corrected semantics rather than the literal shell:
  *
  *   1. `grep -rn '<select' src/ui` printed a hit — `SpecControls.tsx:2`, which
  *      is R6.5's OWN COMMENT explaining that a fork is never a `<select>`. A
@@ -522,22 +529,18 @@ describe('gr6-058 the analytics disclosure and the analytics integration', () =>
  *
  *   2. The raw-pixel enumeration returned 28 hits against a closed list that
  *      admitted only 23 of them: four `@media (min-width: 768px)` preludes —
- *      R3.4's own mandated breakpoint, which the list forgot — and one hit
- *      inside a prose comment. Under a literal reading §10 declared five
- *      violations of its own law. So: `@media` prelude lines are excluded from
- *      the raw-px scan (a breakpoint is not a size or a space; it is R3.4's
- *      subject and is enforced by its own test below), and the 768px value is
- *      legal by construction rather than by an entry on a list of strokes.
+ *      R3.4's own mandated breakpoint, which the list simply forgot — and one
+ *      hit inside a prose comment. Under a literal reading §10 declared five
+ *      violations of its own law. §10 now names 768px as the FOURTH ENTRY IN
+ *      THE ALLOW-LIST rather than stripping `@media` preludes, and it says why:
+ *      a general prelude strip would silence R2.2/R3.1 on a 1024px breakpoint,
+ *      which is both an illegal raw pixel AND a second breakpoint and must
+ *      therefore fire TWICE. This file reproduces that mechanism exactly.
  *
- * SHAPE. Four of the six must find nothing. The other two ENUMERATE: every hit
- * must map to a closed allow-list, and — for R1.3 — every entry on the list
- * must still have a hit, so a deleted place fails as loudly as an added one
- * (the "pairs, not counts" discipline `motion.test.ts` arrived at: a count says
- * how many and cannot say which).
- *
- * The §10 prose that retires the shell block and moves these five rule ids
- * from tier C to tier A is DESIGN.md's own half of gr6-054 and is not made
- * here — this file only has to be true.
+ * SHAPE. Four of the six must find nothing. The other two ENUMERATE against a
+ * closed allow-list — and R1.3's is asserted in BOTH directions, so a deleted
+ * place fails as loudly as an added one (the "pairs, not counts" discipline
+ * `motion.test.ts` arrived at: a count says how many and cannot say which).
  */
 
 const ALL_UI_FILES = [...uiSourceFiles, TOKENS_PATH];
@@ -565,6 +568,8 @@ interface Hit {
   line: number;
   /** The matched text, trimmed — what a reviewer needs to see in the failure. */
   text: string;
+  /** The whole (comment-blanked) line the hit sits on, trimmed. */
+  lineText: string;
   /** First capture group, when the pattern has one. */
   captured?: string;
 }
@@ -577,7 +582,13 @@ function tierC(files: string[], pattern: RegExp): Hit[] {
     const lines = blankComments(readFileSync(file, 'utf8')).split('\n');
     lines.forEach((lineText, index) => {
       for (const match of lineText.matchAll(new RegExp(pattern.source, pattern.flags.replace('g', '') + 'g'))) {
-        hits.push({ file: rel, line: index + 1, text: match[0].trim(), captured: match[1] });
+        hits.push({
+          file: rel,
+          line: index + 1,
+          text: match[0].trim(),
+          lineText: lineText.trim(),
+          captured: match[1],
+        });
       }
     });
   }
@@ -586,8 +597,82 @@ function tierC(files: string[], pattern: RegExp): Hit[] {
 
 const show = (hits: Hit[]) => hits.map((h) => `${h.file}:${h.line}: ${h.text}`);
 
+/* -------------------------------------------- R1.3: selectors, not files */
+
+interface CssUse {
+  file: string;
+  line: number;
+  /** Innermost non-at-rule selector list, whitespace-normalised. */
+  selector: string;
+  /** The declaration this hit sits in (`property: value`), whitespace-normalised. */
+  declaration: string;
+}
+
+const normalise = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+/**
+ * Find every DECLARATION containing `needle`, together with the selector whose
+ * rule it sits in.
+ *
+ * A LINE-ORIENTED SCAN CANNOT DECIDE R1.3, and DESIGN.md §10 says so directly:
+ * the shell filter it ships is file-granular "because a line-oriented scan
+ * cannot see which rule a hit sits in", which leaves the likeliest way R1.3 is
+ * ever broken — a *fifth* red added to a selector inside a file already on the
+ * allow-list — passing silently. Reproduced before this parser existed: a
+ * `.ph-reveal__probe-fifth-red { color: var(--sig-red) }` appended to
+ * `Reveal.css` was green. Promoting R1.3 to tier A is what obliges the `it` to
+ * be selector-granular; this is that.
+ *
+ * A brace-tracking walk rather than a regex, because the selector a declaration
+ * belongs to is a nesting fact and no line pattern can recover it. At-rule
+ * preludes are pushed onto the stack too (so `}` pops correctly inside a
+ * `@media` block) and then skipped when naming the innermost selector, since
+ * `@media (min-width: 768px)` is not where a colour law lives.
+ *
+ * Non-CSS files are walked with the same parser on purpose: a `var(--sig-red)`
+ * inside a JSX style object has NO selector, so it can never match the
+ * allow-list and always reds — which is the right answer, an inline red being
+ * a fifth place with no name.
+ */
+function parseDeclarations(source: string, file: string, needle: RegExp): CssUse[] {
+  const uses: CssUse[] = [];
+  const stack: string[] = [];
+  let buffer = '';
+  let bufferLine = 1;
+  let line = 1;
+
+  const innermostSelector = () => [...stack].reverse().find((s) => !s.startsWith('@')) ?? '';
+
+  for (const ch of blankComments(source)) {
+    if (ch === '\n') line++;
+    if (ch === '{') {
+      stack.push(normalise(buffer));
+      buffer = '';
+      continue;
+    }
+    if (ch === '}' || ch === ';') {
+      const declaration = normalise(buffer);
+      if (declaration && needle.test(declaration)) {
+        uses.push({ file, line: bufferLine, selector: innermostSelector(), declaration });
+      }
+      if (ch === '}') stack.pop();
+      buffer = '';
+      continue;
+    }
+    if (buffer.trim() === '' && ch.trim() !== '') bufferLine = line;
+    buffer += ch;
+  }
+  return uses;
+}
+
+function declarationsContaining(files: string[], needle: RegExp): CssUse[] {
+  return files.flatMap((file) =>
+    parseDeclarations(readFileSync(file, 'utf8'), relative(ROOT, file).split(/[\\/]/).join('/'), needle),
+  );
+}
+
 describe('DESIGN §10 tier C', () => {
-  it('R4.5 — no `border` shorthand anywhere under src/ui (hairlines, never a four-sided box)', () => {
+  it('R4.5 — no element declares a border on all four sides', () => {
     expect(show(tierC(ALL_UI_FILES, /border:\s/g))).toEqual([]);
 
     // Guards the guard: the longhands R4.5 mandates must survive, and the
@@ -596,14 +681,14 @@ describe('DESIGN §10 tier C', () => {
     expect(probe.match(/border:\s/g)).toEqual(['border: ']);
   });
 
-  it('R4.7 — no raw `z-index` number anywhere under src/ui (the ladder, never 9999)', () => {
+  it('R4.7 — stacking uses the ladder, never a raw z-index', () => {
     expect(show(tierC(ALL_UI_FILES, /\bz-index:\s*[0-9]/g))).toEqual([]);
 
     const probe = 'a { z-index: var(--z-modal); }\nb { z-index: 9999; }\nc { zIndex: 3 }';
     expect(probe.match(/\bz-index:\s*[0-9]/g)).toEqual(['z-index: 9']);
   });
 
-  it('R6.5 — no `<select` anywhere under src/ui (every fork is a segmented radiogroup)', () => {
+  it('R6.5 — every fork is a radiogroup, never a <select>', () => {
     // The literal §10 command reds on R6.5's own explanatory comment in
     // SpecControls.tsx. Blanking comments is what makes this runnable — and
     // the second assertion proves the blanking did not simply blank the world.
@@ -616,7 +701,7 @@ describe('DESIGN §10 tier C', () => {
     expect(probe.match(/<select/g), 'a real <select> must still be found').toEqual(['<select']);
   });
 
-  it('R3.4 — exactly one breakpoint exists, and it is 768px', () => {
+  it('R3.4 — one breakpoint exists, and it is 768px', () => {
     const breakpoints = tierC(ALL_UI_FILES, /@media[^{]*\(min-width:\s*([^)]+)\)/g);
     const wrong = breakpoints.filter((hit) => hit.captured?.trim() !== '768px');
     expect(show(wrong)).toEqual([]);
@@ -626,78 +711,167 @@ describe('DESIGN §10 tier C', () => {
     expect(breakpoints.length).toBeGreaterThan(0);
   });
 
-  it('R1.3 — `--sig-red` appears in exactly its four places, plus R1.3a\'s derived band', () => {
+  it('R1.3 — every var(--sig-red) selector is one of the four places', () => {
     /**
-     * The enumeration, as an allow-list keyed by the file each place lives in.
-     * Keyed by file rather than by line so an edit above a use cannot red this
-     * test for a reason that is not R1.3's subject; both directions are
-     * asserted, so a NEW file reaching for the loud colour and a place quietly
-     * deleted from the reveal fail identically.
+     * THE ALLOW-LIST IS BY SELECTOR, NOT BY FILE, and DESIGN.md §10 is explicit
+     * about why: "Any other selector is a fifth red, including one added to a
+     * file already on the list." A file-granular list — which is all the shell
+     * scan can express — passes the likeliest real violation there is.
+     *
+     * Each key is one selector as it appears in the stylesheet (comma-separated
+     * lists are split, whitespace normalised). The value names which of R1.3's
+     * four places it serves, so a failure can say what the rule thought this
+     * selector was for.
      */
     const PLACES: Record<string, string> = {
-      'src/ui/components/Stamp.css': 'the RETRACTED stamp',
-      'src/ui/charts/SpecCurve.css':
-        'the p = .05 threshold rule and its label; the published path point and its leader line',
-      'src/ui/screens/Reveal.css': 'the Act II accounting figures for p < .05',
-      'src/ui/theme/tokens.css': "R1.3a's --sig-band, mixed and registered here rather than inline",
+      // Place 1 — the RETRACTED stamp: `.ph-stamp__mark--red`'s three descendants.
+      '.ph-stamp__mark--red .ph-stamp__border': 'place 1, the RETRACTED stamp (border)',
+      '.ph-stamp__mark--red .ph-stamp__label': 'place 1, the RETRACTED stamp (label)',
+      '.ph-stamp__mark--red .ph-stamp__subline': 'place 1, the RETRACTED stamp (subline)',
+      // Place 2 — the p = .05 threshold rule and its label.
+      '.ph-speccurve__threshold': 'place 2, the p = .05 threshold rule',
+      '.ph-speccurve__threshold-label': 'place 2, the p = .05 threshold label',
+      // Place 3 — the published path point, its ring (R6.3: never hue alone),
+      // its key twins and its leader line.
+      '.ph-speccurve__dot--published': 'place 3, the published path point',
+      '.ph-speccurve__key-dot--published': 'place 3, the published path point in the key',
+      '.ph-speccurve__ring': 'place 3, the published point ring',
+      '.ph-speccurve__key-ring': 'place 3, the published point ring in the key',
+      '.ph-speccurve__leader': 'place 3, the leader line',
+      // Place 4 — the Act II accounting figures for p < .05.
+      '.ph-num--sig': 'place 4, the Act II accounting figures for p < .05',
     };
+    /** R1.3a: not a fifth place — a derivation, and only this one. */
+    const DERIVATION = { file: 'src/ui/theme/tokens.css', property: '--sig-band' };
 
-    const uses = tierC(ALL_UI_FILES, /var\(--sig-red\)/g);
+    const uses = declarationsContaining(ALL_UI_FILES, /var\(--sig-red\)/);
 
-    const unsanctioned = uses.filter((hit) => !(hit.file in PLACES));
+    // The parser must actually be finding uses; a silent zero would pass every
+    // assertion below.
+    expect(uses.length, 'the --sig-red scan found nothing at all — the parser is broken').toBeGreaterThan(0);
+
+    const derivations = uses.filter(
+      (use) => use.file === DERIVATION.file && use.declaration.startsWith(`${DERIVATION.property}:`),
+    );
+    const inRules = uses.filter((use) => !derivations.includes(use));
+
+    /** One entry per selector in a comma-separated list, so each is judged alone. */
+    const claimed = inRules.flatMap((use) =>
+      use.selector.split(',').map((part) => ({ ...use, part: normalise(part) })),
+    );
+
+    const unsanctioned = claimed.filter((hit) => !(hit.part in PLACES));
     expect(
-      show(unsanctioned),
-      'A FIFTH LOUD-COLOUR USE: --sig-red carries four meanings in Act II and dilutes with every ' +
-        'extra one. If this is genuinely a new place, DESIGN.md R1.3 has to name it first.',
+      unsanctioned.map((h) => `${h.file}:${h.line}: ${h.part || '(no selector)'} { ${h.declaration} }`),
+      'A FIFTH LOUD-COLOUR USE: --sig-red carries exactly four meanings in Act II and dilutes with ' +
+        'every extra one. Being inside a file that already holds one of the four is not a licence — ' +
+        'DESIGN.md R1.3 names SELECTORS. If this is genuinely a new place, the document says so first.',
     ).toEqual([]);
 
-    const emptied = Object.keys(PLACES).filter((file) => !uses.some((hit) => hit.file === file));
+    // Both directions, so a place quietly deleted fails as loudly as one added:
+    // a rule that claims four places and has three is over-counting.
+    const emptied = Object.keys(PLACES).filter((selector) => !claimed.some((hit) => hit.part === selector));
     expect(
       emptied,
-      'A SANCTIONED --sig-red PLACE NO LONGER USES IT: the rule now over-counts. Either the place ' +
-        'moved (update this list) or a meaning was lost (that is the bug).',
+      'A SANCTIONED --sig-red SELECTOR NO LONGER USES IT: either the selector was renamed (update ' +
+        'this list) or one of R1.3\'s four meanings was lost from the product (that is the bug).',
     ).toEqual([]);
+
+    // R1.3a is exactly one derivation, in exactly one file.
+    expect(
+      derivations.map((d) => `${d.file}: ${d.declaration}`),
+      'R1.3a sanctions ONE derived colour from --sig-red (--sig-band, in tokens.css). A second ' +
+        'derivation is a new loud colour wearing a disguise, and §0 has to register it first.',
+    ).toHaveLength(1);
+
+    // GUARDS THE GUARD, and this is the assertion the whole fix turns on: the
+    // parser must attribute each declaration to the rule it is ACTUALLY in —
+    // inside an at-rule, after a multi-selector rule, and without leaking the
+    // previous rule's selector into the next one. A file-granular scan cannot
+    // tell these four apart; that is exactly why it passed a fifth red.
+    const probeCss = [
+      '/* a comment naming var(--sig-red) must not count */',
+      '.ph-num--sig {',
+      '  color: var(--sig-red);',
+      '}',
+      '.a,',
+      '.b {',
+      '  fill: var(--sig-red);',
+      '}',
+      '@media (min-width: 768px) {',
+      '  .c { stroke: var(--sig-red); }',
+      '}',
+      '.d { color: var(--ink); }',
+    ].join('\n');
+    const probe = parseDeclarations(probeCss, 'probe.css', /var\(--sig-red\)/);
+    expect(probe.map((p) => `${p.selector} | ${p.declaration}`)).toEqual([
+      '.ph-num--sig | color: var(--sig-red)',
+      '.a, .b | fill: var(--sig-red)',
+      '.c | stroke: var(--sig-red)',
+    ]);
+    expect(probe.map((p) => p.line), 'a failure must point at the right line').toEqual([3, 7, 10]);
   });
 
-  it('R2.2/R3.1 — the only raw pixel values in use are the strokes DESIGN.md names by hand', () => {
+  it('R2.2 / R3.1 — every raw pixel value is one this document names', () => {
     /**
-     * §10's closed list, read literally: the 1px hairline (R4.4), the 2px
-     * selection underline (R4.6), the 2px underline offset (R6.2), R5.3's two
-     * pinned travel distances (6px scene, 2px quick) and the 1px clipped box of
-     * `.ph-visually-hidden` (R6.6) — an idiom's own value, not a size.
+     * §10's closed list, as a list of the DECLARATIONS it names rather than a
+     * set of bare numbers — because that is how the document writes it, and
+     * because `padding: 2px` is not made legal by `border-block-end: 2px`
+     * being on the list. The four entries are exactly the four alternatives in
+     * §10's own filter, so this `it` and the shell block accept the same set:
      *
-     * Anything else is a size or a space and belongs on a closed scale, which
-     * is what the `--space-*`/`--text-*` assertions above pin. Note this scan
-     * cannot reach a transform argument (`translateY(6px)` has no digit
-     * straight after a colon); R5.3's two-distance rule is what closes that
-     * gap, enforced by motion.test.ts over keyframe bodies.
+     *   1. the 2px selection underline (R4.6)
+     *   2. the 2px underline offset (R6.2)
+     *   3. the 1px clipped box of `.ph-visually-hidden` (R6.6) — an idiom's own
+     *      value, not a size
+     *   4. `@media (min-width: 768px)` — R3.4's one breakpoint
+     *
+     * WHY 768px IS AN ALLOW-LIST ENTRY AND NOT A PRELUDE STRIP. The first
+     * version of this test excluded every `@media` prelude line wholesale. That
+     * is a real weakening and §10 now names it: a 1024px breakpoint is BOTH an
+     * illegal raw pixel AND a second breakpoint, so it must fire TWICE — once
+     * here and once on R3.4 — and a general strip silences the first of those
+     * for nothing. Allow-listing the one legal prelude keeps both scans live.
+     *
+     * The 1px hairline (R4.4) and R5.3's 6px/2px travel are on §10's prose list
+     * but appear in no declaration this scan can reach: the hairline ships as
+     * `var(--hairline)`, and a travel distance lives inside `translateY(6px)`,
+     * which has no digit straight after a colon. R5.3's two-distance rule is
+     * what closes that gap, enforced by motion.test.ts over keyframe bodies.
      */
-    const LEGAL_PX = new Set([1, 2, 6]);
+    const LEGAL_DECLARATIONS: RegExp[] = [
+      /border-block-end: 2px solid/,
+      /text-underline-offset: 2px/,
+      /(?:inline|block)-size: 1px/,
+      /@media \(min-width: 768px\)/,
+    ];
 
     // tokens.css is excluded — it is where the scales are DECLARED, which is
     // the one place a pixel value is supposed to be typed (§10's own
-    // `--exclude=tokens.css`). `@media` prelude lines are excluded because a
-    // breakpoint is not a size: it is R3.4's subject, tested above, and §10's
-    // closed list forgot to name it — the defect this correction fixes.
-    const rawPx = tierC(uiSourceFiles, /:\s*(\d+)px/g).filter((hit) => !/@media/.test(hit.text));
-    const mediaPreludes = new Set(
-      tierC(uiSourceFiles, /@media[^{]*\(min-width:\s*\d+px/g).map((hit) => `${hit.file}:${hit.line}`),
-    );
-    const offending = rawPx.filter(
-      (hit) => !mediaPreludes.has(`${hit.file}:${hit.line}`) && !LEGAL_PX.has(Number(hit.captured)),
-    );
+    // `--exclude=tokens.css`).
+    const rawPx = tierC(uiSourceFiles, /:\s*(\d+)px/g);
+    const offending = rawPx.filter((hit) => !LEGAL_DECLARATIONS.some((legal) => legal.test(hit.lineText)));
 
     expect(
-      show(offending),
-      'A RAW PIXEL VALUE THAT IS NOT ONE OF THE NAMED STROKES: sizes and spaces come off the closed ' +
-        'scales (--space-*, --text-*). If a new stroke is genuinely needed, DESIGN.md §10 names it first.',
+      offending.map((h) => `${h.file}:${h.line}: ${h.lineText}`),
+      'A RAW PIXEL VALUE THAT IS NOT ONE OF THE STROKES DESIGN.md NAMES: sizes and spaces come off ' +
+        'the closed scales (--space-*, --text-*). If a new stroke is genuinely needed, §10 names it ' +
+        'first — and a second breakpoint is a design failure, not a new stroke.',
     ).toEqual([]);
 
-    // Guards the guard, in both directions: a real violation is caught, and the
-    // @media exclusion does not swallow a violation that shares its line.
-    const probe = ':root { padding: 12px }\n@media (min-width: 768px) { .a { gap: 40px } }';
-    const probeHits = [...probe.matchAll(/:\s*(\d+)px/g)].map((m) => Number(m[1]));
-    expect(probeHits).toEqual([12, 768, 40]);
-    expect(probeHits.filter((value) => !LEGAL_PX.has(value))).toEqual([12, 768, 40]);
+    // Guards the guard, in both directions: the legal declarations pass, a
+    // plain size does not, and — the point of this fix — a rogue breakpoint is
+    // caught HERE as well as by R3.4.
+    const legal = [
+      'border-block-end: 2px solid var(--ink);',
+      'text-underline-offset: 2px;',
+      'inline-size: 1px;',
+      '@media (min-width: 768px) {',
+    ];
+    const illegal = ['padding: 12px;', 'gap: 40px;', '@media (min-width: 1024px) {', 'border-block-end: 3px solid;'];
+    const caught = (line: string) =>
+      /:\s*\d+px/.test(line) && !LEGAL_DECLARATIONS.some((allowed) => allowed.test(line));
+    expect(legal.filter(caught), 'a named stroke must not be reported').toEqual([]);
+    expect(illegal.filter(caught), 'every unnamed raw pixel must be reported').toEqual(illegal);
   });
 });
