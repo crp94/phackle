@@ -413,3 +413,210 @@ describe('DESIGN.md documents the tokens it governs', () => {
     expect(undocumented).toEqual([]);
   });
 });
+
+/* ====================================================== DESIGN §10 tier C */
+
+/**
+ * GR6 gr6-054 — THE SIX LAWS THAT WERE ENFORCED BY A HUMAN REMEMBERING TO RUN
+ * SIX SHELL COMMANDS.
+ *
+ * DESIGN.md §10 assigned R1.3, R2.2/R3.1-usage, R3.4, R4.5, R4.7 and R6.5 to
+ * "Tier C — grep" and listed the commands. Nothing ran them. Tier C was the
+ * only band in the document claiming *mechanical* decidability with no
+ * mechanism — and the rules in it are exactly the ones a fix wave breaks by
+ * accident: a stray `border:` shorthand, a raw `z-index: 9999`, a second
+ * breakpoint reached for because one pane got taller. Run by hand at review
+ * time all six still held on the merits; what was missing was the guard, and a
+ * missing guard on a passing rule is the kind that rots quietly.
+ *
+ * TWO OF THE SIX COMMANDS WERE ALSO UNRUNNABLE AS WRITTEN, and this file is
+ * written to the corrected semantics rather than the literal shell:
+ *
+ *   1. `grep -rn '<select' src/ui` printed a hit — `SpecControls.tsx:2`, which
+ *      is R6.5's OWN COMMENT explaining that a fork is never a `<select>`. A
+ *      permanently-red checklist item trains the reviewer to skip it. Comments
+ *      are therefore blanked before every scan below, the same way R1.7's
+ *      colour scan already does it (a comment must be able to NAME the thing
+ *      it forbids).
+ *
+ *   2. The raw-pixel enumeration returned 28 hits against a closed list that
+ *      admitted only 23 of them: four `@media (min-width: 768px)` preludes —
+ *      R3.4's own mandated breakpoint, which the list forgot — and one hit
+ *      inside a prose comment. Under a literal reading §10 declared five
+ *      violations of its own law. So: `@media` prelude lines are excluded from
+ *      the raw-px scan (a breakpoint is not a size or a space; it is R3.4's
+ *      subject and is enforced by its own test below), and the 768px value is
+ *      legal by construction rather than by an entry on a list of strokes.
+ *
+ * SHAPE. Four of the six must find nothing. The other two ENUMERATE: every hit
+ * must map to a closed allow-list, and — for R1.3 — every entry on the list
+ * must still have a hit, so a deleted place fails as loudly as an added one
+ * (the "pairs, not counts" discipline `motion.test.ts` arrived at: a count says
+ * how many and cannot say which).
+ *
+ * The §10 prose that retires the shell block and moves these five rule ids
+ * from tier C to tier A is DESIGN.md's own half of gr6-054 and is not made
+ * here — this file only has to be true.
+ */
+
+const ALL_UI_FILES = [...uiSourceFiles, TOKENS_PATH];
+
+/**
+ * Blank comments WITHOUT collapsing lines, so a failure can still name the line
+ * the offender is on. Every non-newline character inside a comment becomes a
+ * space; `stripComments` above is fine for match-or-not scans but shifts line
+ * numbers, and a design-law failure whose message points at the wrong line is
+ * a failure a reviewer argues with instead of fixing.
+ *
+ * The `[^:]` guard on the line-comment arm is what spares `url(http://…)` —
+ * the same guard `stripComments` uses.
+ */
+function blankComments(text: string): string {
+  const blank = (match: string) => match.replace(/[^\n]/g, ' ');
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .replace(/(^|[^:])(\/\/[^\n]*)/g, (_all, lead: string, comment: string) => lead + blank(comment));
+}
+
+interface Hit {
+  /** Repo-relative path, forward slashes. */
+  file: string;
+  line: number;
+  /** The matched text, trimmed — what a reviewer needs to see in the failure. */
+  text: string;
+  /** First capture group, when the pattern has one. */
+  captured?: string;
+}
+
+/** Run one Tier-C scan over a file set, with comments blanked. */
+function tierC(files: string[], pattern: RegExp): Hit[] {
+  const hits: Hit[] = [];
+  for (const file of files) {
+    const rel = relative(ROOT, file).split(/[\\/]/).join('/');
+    const lines = blankComments(readFileSync(file, 'utf8')).split('\n');
+    lines.forEach((lineText, index) => {
+      for (const match of lineText.matchAll(new RegExp(pattern.source, pattern.flags.replace('g', '') + 'g'))) {
+        hits.push({ file: rel, line: index + 1, text: match[0].trim(), captured: match[1] });
+      }
+    });
+  }
+  return hits;
+}
+
+const show = (hits: Hit[]) => hits.map((h) => `${h.file}:${h.line}: ${h.text}`);
+
+describe('DESIGN §10 tier C', () => {
+  it('R4.5 — no `border` shorthand anywhere under src/ui (hairlines, never a four-sided box)', () => {
+    expect(show(tierC(ALL_UI_FILES, /border:\s/g))).toEqual([]);
+
+    // Guards the guard: the longhands R4.5 mandates must survive, and the
+    // shorthand it bans must not.
+    const probe = 'a { border-block-start: var(--hairline); }\nb { border: 1px solid var(--rule); }';
+    expect(probe.match(/border:\s/g)).toEqual(['border: ']);
+  });
+
+  it('R4.7 — no raw `z-index` number anywhere under src/ui (the ladder, never 9999)', () => {
+    expect(show(tierC(ALL_UI_FILES, /\bz-index:\s*[0-9]/g))).toEqual([]);
+
+    const probe = 'a { z-index: var(--z-modal); }\nb { z-index: 9999; }\nc { zIndex: 3 }';
+    expect(probe.match(/\bz-index:\s*[0-9]/g)).toEqual(['z-index: 9']);
+  });
+
+  it('R6.5 — no `<select` anywhere under src/ui (every fork is a segmented radiogroup)', () => {
+    // The literal §10 command reds on R6.5's own explanatory comment in
+    // SpecControls.tsx. Blanking comments is what makes this runnable — and
+    // the second assertion proves the blanking did not simply blank the world.
+    expect(show(tierC(ALL_UI_FILES, /<select/g))).toEqual([]);
+
+    const probe = blankComments('// never a <select> — a dropdown\nconst x = <select id="fork" />;');
+    const [commentLine, codeLine] = probe.split('\n');
+    expect(commentLine.trim(), 'the comment must be blanked, so R6.5 stops reding on its own prose').toBe('');
+    expect(codeLine, 'blanking must not touch code on other lines').toBe('const x = <select id="fork" />;');
+    expect(probe.match(/<select/g), 'a real <select> must still be found').toEqual(['<select']);
+  });
+
+  it('R3.4 — exactly one breakpoint exists, and it is 768px', () => {
+    const breakpoints = tierC(ALL_UI_FILES, /@media[^{]*\(min-width:\s*([^)]+)\)/g);
+    const wrong = breakpoints.filter((hit) => hit.captured?.trim() !== '768px');
+    expect(show(wrong)).toEqual([]);
+
+    // A second breakpoint is a design failure, not a fix — so the rule is only
+    // meaningful while the one breakpoint is actually used somewhere.
+    expect(breakpoints.length).toBeGreaterThan(0);
+  });
+
+  it('R1.3 — `--sig-red` appears in exactly its four places, plus R1.3a\'s derived band', () => {
+    /**
+     * The enumeration, as an allow-list keyed by the file each place lives in.
+     * Keyed by file rather than by line so an edit above a use cannot red this
+     * test for a reason that is not R1.3's subject; both directions are
+     * asserted, so a NEW file reaching for the loud colour and a place quietly
+     * deleted from the reveal fail identically.
+     */
+    const PLACES: Record<string, string> = {
+      'src/ui/components/Stamp.css': 'the RETRACTED stamp',
+      'src/ui/charts/SpecCurve.css':
+        'the p = .05 threshold rule and its label; the published path point and its leader line',
+      'src/ui/screens/Reveal.css': 'the Act II accounting figures for p < .05',
+      'src/ui/theme/tokens.css': "R1.3a's --sig-band, mixed and registered here rather than inline",
+    };
+
+    const uses = tierC(ALL_UI_FILES, /var\(--sig-red\)/g);
+
+    const unsanctioned = uses.filter((hit) => !(hit.file in PLACES));
+    expect(
+      show(unsanctioned),
+      'A FIFTH LOUD-COLOUR USE: --sig-red carries four meanings in Act II and dilutes with every ' +
+        'extra one. If this is genuinely a new place, DESIGN.md R1.3 has to name it first.',
+    ).toEqual([]);
+
+    const emptied = Object.keys(PLACES).filter((file) => !uses.some((hit) => hit.file === file));
+    expect(
+      emptied,
+      'A SANCTIONED --sig-red PLACE NO LONGER USES IT: the rule now over-counts. Either the place ' +
+        'moved (update this list) or a meaning was lost (that is the bug).',
+    ).toEqual([]);
+  });
+
+  it('R2.2/R3.1 — the only raw pixel values in use are the strokes DESIGN.md names by hand', () => {
+    /**
+     * §10's closed list, read literally: the 1px hairline (R4.4), the 2px
+     * selection underline (R4.6), the 2px underline offset (R6.2), R5.3's two
+     * pinned travel distances (6px scene, 2px quick) and the 1px clipped box of
+     * `.ph-visually-hidden` (R6.6) — an idiom's own value, not a size.
+     *
+     * Anything else is a size or a space and belongs on a closed scale, which
+     * is what the `--space-*`/`--text-*` assertions above pin. Note this scan
+     * cannot reach a transform argument (`translateY(6px)` has no digit
+     * straight after a colon); R5.3's two-distance rule is what closes that
+     * gap, enforced by motion.test.ts over keyframe bodies.
+     */
+    const LEGAL_PX = new Set([1, 2, 6]);
+
+    // tokens.css is excluded — it is where the scales are DECLARED, which is
+    // the one place a pixel value is supposed to be typed (§10's own
+    // `--exclude=tokens.css`). `@media` prelude lines are excluded because a
+    // breakpoint is not a size: it is R3.4's subject, tested above, and §10's
+    // closed list forgot to name it — the defect this correction fixes.
+    const rawPx = tierC(uiSourceFiles, /:\s*(\d+)px/g).filter((hit) => !/@media/.test(hit.text));
+    const mediaPreludes = new Set(
+      tierC(uiSourceFiles, /@media[^{]*\(min-width:\s*\d+px/g).map((hit) => `${hit.file}:${hit.line}`),
+    );
+    const offending = rawPx.filter(
+      (hit) => !mediaPreludes.has(`${hit.file}:${hit.line}`) && !LEGAL_PX.has(Number(hit.captured)),
+    );
+
+    expect(
+      show(offending),
+      'A RAW PIXEL VALUE THAT IS NOT ONE OF THE NAMED STROKES: sizes and spaces come off the closed ' +
+        'scales (--space-*, --text-*). If a new stroke is genuinely needed, DESIGN.md §10 names it first.',
+    ).toEqual([]);
+
+    // Guards the guard, in both directions: a real violation is caught, and the
+    // @media exclusion does not swallow a violation that shares its line.
+    const probe = ':root { padding: 12px }\n@media (min-width: 768px) { .a { gap: 40px } }';
+    const probeHits = [...probe.matchAll(/:\s*(\d+)px/g)].map((m) => Number(m[1]));
+    expect(probeHits).toEqual([12, 768, 40]);
+    expect(probeHits.filter((value) => !LEGAL_PX.has(value))).toEqual([12, 768, 40]);
+  });
+});

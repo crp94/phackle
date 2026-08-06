@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "e2e:report": "playwright show-report",
+    "bundle": "tsx scripts/check-bundle.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "cal": "tsx scripts/simulate_calibration.ts"
