@@ -306,7 +306,7 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     // must never unlock anything, and a re-visit must never re-evaluate —
     // idempotence is inherited from the SAME check saveDay already uses, not
     // reimplemented.
-    unlockedToday = unlockAchievements({
+    const earnedToday = unlockAchievements({
       log,
       resultLog,
       history: state.history,
@@ -315,6 +315,33 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
       mode,
       stamp,
     });
+
+    // gr6-019 — WHAT AN AWARD CEREMONY IS ALLOWED TO CELEBRATE.
+    //
+    // `evaluateAchievements` applies "newly earned" logic to exactly four of
+    // the eleven ids (first_blood, first_retraction, monk, true_detective);
+    // the other seven simply re-report their condition, which is correct for
+    // a predicate and wrong for a ceremony. The Summary rendered the raw
+    // return value as "UNLOCKED TODAY", so an informed caller measured over
+    // 32 consecutive days got Subgroup Safari on 30 of them, Well Actually on
+    // 22 and HARKing on 13 — 21 "unlocks" in week one from an 11-item set.
+    // The day's one warm beat, and the screen's only entrance animation, was
+    // worthless by day three. Meanwhile the Stats wall (fed by the merge-only
+    // saveAchievements, where the first date wins) was quietly correct all
+    // along, so the two disagreed on screen.
+    //
+    // The filter is against `state.achievements` — the snapshot taken BEFORE
+    // this call's own merge-save, the same pre-today reading `history` already
+    // uses for exactly this reason — so "no prior unlock date" means precisely
+    // "the wall did not already have this one".
+    //
+    // Passing the FILTERED list to saveAchievements is not a second decision:
+    // saveAchievements is merge-only ("an id that already has an unlock date
+    // keeps that date forever"), so every id removed here is one it would have
+    // discarded anyway. Persistence is byte-identical either way; only the
+    // ceremony changes. Repeat conditions keep earning score and flavour —
+    // they just stop being applauded.
+    unlockedToday = earnedToday.filter((id) => state.achievements[id] === undefined);
     saveAchievements(unlockedToday, puzzleIso);
   }
 
