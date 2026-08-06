@@ -488,7 +488,7 @@ describe('generateDataset — row-order generation / prefix property', () => {
   // partial generation with an effect would silently break the prefix property
   // this describe exists to pin. The guard makes the trap unreachable.
   it('generateRows throws when an effect is requested at any n other than 400', () => {
-    const effect = { outcome: 0, d: 0.25 } as Parameters<typeof generateRows>[2];
+    const effect: Parameters<typeof generateRows>[2] = { outcome: 0, d: 0.25, hetero: null };
     for (const n of [200, 250, 399, 401]) {
       expect(() => generateRows(1, n, effect)).toThrow();
     }
