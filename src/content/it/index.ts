@@ -590,7 +590,7 @@ export const content: LocaleContent = {
     // sincerity. Il Cinguettio del Mattino carries four of them because it is
     // the one masthead at this tier with no generic entries.
     {
-      text: 'Un intero trimestre fiscale di canale di poesia aziendale è stato valutato alla cieca da ex studenti di Lettere. La giuria è pagata in pizza, cosa che gli autori dichiarano.',
+      text: 'Un intero trimestre fiscale del canale di poesia aziendale è stato valutato alla cieca da ex studenti di Lettere. La giuria è pagata in pizza, cosa che gli autori dichiarano.',
       outlet: 'Il Cinguettio del Mattino',
       tier: 1,
       scenarioIds: ['standing-desk-poetry'],
@@ -810,7 +810,7 @@ export const content: LocaleContent = {
       scenarioIds: ['full-moon-meetings'],
     },
     {
-      text: "Ai passanti di tre città hanno chiesto prima la strada e poi il telescopio. Stanno aggiungendo una quarta città, quindi occhio a chi ti ferma.",
+      text: "Ai passanti di tre città hanno chiesto prima la strada e poi del telescopio. Stanno aggiungendo una quarta città, quindi occhio a chi ti ferma.",
       outlet: 'Lo Scroll Quotidiano',
       tier: 2,
       scenarioIds: ['telescope-directions'],
