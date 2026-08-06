@@ -8,13 +8,20 @@
 // (defaulting to the app's real singleton, src/game/store.ts's useGameStore)
 // purely so tests can seed an isolated fake store instead of touching that
 // real singleton -- see tests/ui/briefing.test.tsx's makeFakeStoreHook.
+import { useEffect, useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore, type UseGameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { pickGrantwellEmail } from '../../game/briefing';
 import { loadState } from '../../game/storage';
+import { msToNextLocalMidnight } from '../../game/daily';
 import { EmailCard } from '../components/EmailCard';
 import './Briefing.css';
+
+/** Same cadence Summary.tsx refreshes its own countdown at, and for the same
+ * reason: a plain text update on an interval, not a CSS animation, so it is
+ * not a motion site under DESIGN.md R5.2 at all. */
+const COUNTDOWN_REFRESH_MS = 30_000;
 
 export interface BriefingProps {
   /** Defaults to the app's real singleton store hook. Tests inject an
@@ -29,6 +36,15 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const puzzleNumberValue = useStore((s) => s.puzzleNumber);
   const openData = useStore((s) => s.openData);
   const chooseMode = useStore((s) => s.chooseMode);
+
+  // The finished-day countdown below (gr6-008). Mounted unconditionally
+  // because hooks must be: it is one 30s text refresh, and on the ordinary
+  // "day still to play" path nothing reads it.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), COUNTDOWN_REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
 
   // Behind the app-level loading gate (src/ui/App.tsx never mounts a screen
   // until content resolves) -- this narrows the type and is a safety net,
@@ -51,14 +67,50 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   // (Summary.tsx's own `alreadySaved`) that already blocks a double SCORE —
   // this is the separate UI-layer guard against double ENTRY.
   const state = loadState();
-  const unlocked = state.achievements.first_retraction !== undefined;
   const today = state.history[iso];
   const hackPlayedToday = today?.hack !== undefined;
   const preregPlayedToday = today?.prereg !== undefined;
+
+  // gr6-008 — THE ONE-PLAY-PER-DAY RULE, MOVED TO WHERE IT BELONGS.
+  //
+  // This guard used to live only inside the chooser below, which only exists
+  // once `first_retraction` is unlocked. So it was absent for every player on
+  // day one, and absent PERMANENTLY for the honest player — who by definition
+  // never publishes and therefore never earns a retraction. Measured on the
+  // production build: finish an honest day, reload, and "OPEN THE DATA" was
+  // enabled again; the replay walked the whole day a second time and landed
+  // on a Summary whose saveDay/saveAchievements are skipped by `alreadySaved`,
+  // showing a score, a streak and a share string that were never recorded,
+  // with no message. A "one play per day" rule that only exists for players
+  // who cheat is the wrong way round.
+  //
+  // The guard is expressed as "is any mode still PLAYABLE today", not as
+  // "which achievements are unlocked". That framing is deliberate and
+  // load-bearing for what is coming: the owner has ruled that Prereg Mode
+  // will unlock on the first COMPLETED day rather than the first retraction
+  // (W12). That change edits exactly one line here — `preregAvailable`'s
+  // first conjunct — and cannot reopen a finished day, because widening WHO
+  // may play prereg never widens whether TODAY's prereg attempt is still
+  // unspent.
+  const preregAvailable = state.achievements.first_retraction !== undefined;
+  const hackPlayable = !hackPlayedToday;
+  const preregPlayable = preregAvailable && !preregPlayedToday;
+  const dayFinished = !hackPlayable && !preregPlayable;
+
   // The chooser itself only makes sense while there is still a choice left
   // to make today: once prereg is filed, "Open Data" (below) is the only
   // thing left to do, exactly the pre-unlock experience.
-  const showChooser = unlocked && !preregPlayedToday;
+  const showChooser = preregAvailable && !preregPlayedToday;
+
+  // What the day actually produced, for the finished state's share line.
+  // Prereg wins a same-date tie: achievements.ts's chronologicalCalls already
+  // pins "hack precedes prereg" as this codebase's ordering for a double
+  // play, so prereg is the later of the two and therefore the one the player
+  // just came from.
+  const finishedRecord = today?.prereg ?? today?.hack;
+  const msLeft = msToNextLocalMidnight(now);
+  const hoursLeft = Math.floor(msLeft / 3_600_000);
+  const minutesLeft = Math.floor((msLeft % 3_600_000) / 60_000);
 
   return (
     <article className="ph-briefing">
@@ -77,7 +129,26 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
       <p className="ph-briefing__cover-story">{scenario.coverStory}</p>
       <EmailCard from={t('briefing.emailFrom')} subject={t('briefing.emailSubject')} body={grantwellBody} />
 
-      {showChooser ? (
+      {dayFinished ? (
+        /* The day's finished state — the same shape the chooser's disabled
+           branch already showed, promoted to a state of the screen itself:
+           what happened, and when the next one arrives. No CTA of any kind,
+           because there is nothing left to press.
+           TODO-W2: `briefing.alreadyPlayedToday` and `summary.nextIn` are
+           reused verbatim rather than inventing keys under a frozen catalog;
+           a briefing-register pair would read better here. */
+        <div className="ph-briefing__finished" data-testid="briefing-finished">
+          <p className="ph-briefing__chooser-status">{t('briefing.alreadyPlayedToday')}</p>
+          {finishedRecord ? (
+            <p className="ph-briefing__finished-share" data-testid="briefing-finished-share">
+              {finishedRecord.shareString}
+            </p>
+          ) : null}
+          <p className="ph-briefing__finished-countdown" data-testid="briefing-finished-countdown">
+            {t('summary.nextIn', { hours: hoursLeft, minutes: minutesLeft })}
+          </p>
+        </div>
+      ) : showChooser ? (
         <div className="ph-briefing__chooser" data-testid="mode-chooser">
           <p className="ph-briefing__chooser-intro">{t('briefing.modeChooserIntro')}</p>
           <div className="ph-briefing__chooser-options">
