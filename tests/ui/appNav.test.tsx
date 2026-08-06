@@ -14,6 +14,7 @@ import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import App from '../../src/ui/App';
 import { ScreenRouter } from '../../src/ui/ScreenRouter';
 import { useGameStore, type GameStore } from '../../src/game/store';
+import { copy as enCopy } from '../../src/content/en/copy';
 import type { EngineClient } from '../../src/engine/protocol';
 import type { PathResult, Spec } from '../../src/engine/types';
 
@@ -52,7 +53,9 @@ describe('App header nav — stats/legend/about, a local page-state (not the gam
   it('Legend: clicking the nav button swaps <main> to the Legend page', async () => {
     await renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Legend' }));
-    expect(screen.getByText('How to read a shared result.')).toBeTruthy();
+    // W2/gr6-030: looked up, not retyped -- the assertion is "the Legend page
+    // rendered", not "the Legend page says this exact sentence".
+    expect(screen.getByText(enCopy['legend.intro'])).toBeTruthy();
     expect(screen.queryByTestId('game-child')).toBeNull();
   });
 
