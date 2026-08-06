@@ -2,26 +2,92 @@
 // CopyKey is the completeness contract: every locale's `copy` field is typed
 // `Record<CopyKey, string>`, so an untranslated key fails `tsc` rather than
 // silently falling back at runtime. This file is the source of truth for the
-// *set* of keys — UI tasks (T14-T18) may add keys here as screens are built;
-// IT/ES fill in their own translations of the full set in T19/T20.
+// *set* of keys: a new key is added HERE first, and `it/copy.ts` and
+// `es/copy.ts` do not compile until both carry it.
 //
 // Register: Act I (briefing/lab/published/call) is enthusiast-sincere — the
-// game is never in on the joke until the reveal. Act II (reveal/summary/stats)
+// game is never in on the joke until Act II. Act II (reveal/summary/stats)
 // is clinical, deadpan. about/legend/errors/a11y are plain and precise. Never
 // smug anywhere.
 //
-// {param} tokens are interpolated by t() (src/i18n/t.ts). Journal names, press
-// outlet-independent DOIs, and statistical decimals are handled by content
-// modules, not by this catalog.
+// {token}s are interpolated by t() (src/i18n/t.ts). Journal names, press
+// outlets, DOIs, and the scenario corpus are handled by content modules
+// (src/content/*/index.ts), not by this catalog.
+//
+// ---------------------------------------------------------------------------
+// EN-US CONVENTION CONTRACT (GR6 gr6-086). Both target locales have carried
+// one of these since T37; the SOURCE locale never did, so its own conventions
+// lived as thirty scattered per-key notes and a translator had no single place
+// to read what they were transcreating FROM. These are the rules this file
+// follows. They are as binding as the IT/ES ones, and several are compiled.
+//
+//   1. ACTIONS ARE VERB PHRASES: "Open the data", "Face the truth", "Submit
+//      for publication", "Reload". Option cards and stamps are NOUN phrases
+//      ("A real effect", "NULL REPORTED"): a claim the player selects is not
+//      a command they issue.
+//   2. SENTENCE CASE EVERYWHERE except proper nouns, mode names ("Prereg
+//      Mode"), stamps and the two masthead formulas. "Editor's Pick" is a
+//      journal's own title-cased furniture, not this catalog's style.
+//   3. REGISTER IS SECOND-PERSON AND IMPERSONAL ABOUT ITSELF. The app says
+//      "you"; it never says "we" outside `about.dataDisclosure`, where the
+//      subject is genuinely the people who would have held the data.
+//   4. STATISTICAL NOTATION IS NOT PROSE, AND IS IDENTICAL IN ALL THREE
+//      LOCALES: decimal POINT always, and a LEADING ZERO always — `p < 0.05`,
+//      `p = 0.049`, `α = 0.05`. `about.decimalNote` states this rule on the
+//      About page; the notation keys are asserted byte-identical across
+//      locales in the shape suites. There are no carve-outs left: the last
+//      one (`α = .05`, held open only while the Armitage footnote was
+//      master-spec-verbatim) closed when owner ruling (b) amended that string.
+//   5. US SPELLING IN PROSE ("analyze", "behavior", "story"). SI units keep
+//      their international forms in the scenario corpus (`metres`, `litres`):
+//      those are units, not prose.
+//   6. ONE TOKEN, ONCE. No value repeats a `{token}`. NOTE WHAT IS AND IS NOT
+//      THE REASON: `t()` itself replaces EVERY occurrence (`t.ts:33` is a
+//      global regex), so a repeated token would NOT render raw through `t()`.
+//      The rule stands on two other grounds, both real. (a) Several sites
+//      substitute with a LITERAL `String.replace`, which rewrites the first
+//      occurrence only — `SpecCurve.tsx:212`, `published.ts:97`, and the UI
+//      suites' own line-builders — so at those sites a repeat WOULD leave a
+//      raw `{token}` on screen. (b) The cross-locale parity guards compare
+//      token SETS, so a duplicate present in one locale and absent in another
+//      is invisible to them; the no-repeat rule is what makes set comparison
+//      sufficient, and each locale suite asserts it directly.
+//   7. COUNT-BEARING STRINGS MUST READ AT THEIR TOKEN'S FLOOR, not at the
+//      value you happened to test with. The floors are tabulated in the
+//      standing plural-safety note further down this file.
+//   8. ONE NAME PER CONCEPT, and the name is the one the player can see. The
+//      screen the game ends on is "the truth", never "the reveal" (gr6-028);
+//      a move is a "fork" (gr6-030); the streak is the "streak". Developer
+//      vocabulary is allowed in KEY names, which only developers read.
+//   9. NUMBERING: `Vol. {volume}, No. {issue}` for chrome, `#n` for the share
+//      string, and nothing else (gr6-026).
+//  10. EM DASHES ARE BUDGETED, not banned, and the budget is not zero
+//      anywhere. The COMPILED law is two rules, applied identically to all
+//      three locales (tests/content/validators.ts:143-145): at most one U+2014
+//      per string, and at least 2,500 characters of corpus per dash. Italian
+//      carries one extra rule Spanish does not — a RATCHET, dashes(it) <=
+//      dashes(en) (it.shape.test.ts) — so Italian can never out-dash its own
+//      source. Measured: 3 dashes in en, 3 in it, 1 in es, every locale
+//      several times inside the density floor. Among copy VALUES the only
+//      dash in any locale is stats.noData's "no data" mark; the rest are
+//      press blurbs. (Dash COUNTS are quoted and character counts are not, on
+//      purpose: the counts move only when someone adds a dash, whereas the
+//      corpus length moves on every copy edit — twice in this round alone —
+//      and always in the direction that buys headroom.) The
+//      round convention of "IT/ES budget 0" is a good habit and is NOT a
+//      compiled rule; do not cite it as one.
+// ---------------------------------------------------------------------------
 export type CopyKey =
   | 'nav.title'
   | 'nav.tagline'
-  | 'nav.puzzleNumber'
   | 'nav.about'
   | 'nav.stats'
   | 'nav.legend'
   | 'nav.play'
-  | 'nav.localeToggle'
+  // GR6 gr6-017: the skip link. Visible-on-focus chrome, not an aria-only
+  // string, which is why it lives in `nav.` beside the other header controls
+  // rather than in `a11y.`.
+  | 'nav.skipToContent'
   // The three language names are ENDONYMS: each locale is named in its own
   // language, so the value is identical in all three catalogs by design (the
   // same "proper noun, not prose" bucket as 'nav.title'). They are the
@@ -50,6 +116,14 @@ export type CopyKey =
   | 'briefing.playHacking'
   | 'briefing.playPrereg'
   | 'briefing.alreadyPlayedToday'
+  // GR6 gr6-008 (copy half): the Briefing's own finished-day state. W6 landed
+  // the state by reusing `briefing.alreadyPlayedToday` (a chooser-button status
+  // line) and `summary.nextIn` (an Act II countdown), and flagged both as
+  // stand-ins. These two are the briefing-register pair: the screen is a
+  // journal cover, so the next puzzle is the next ISSUE, which is the word
+  // `briefing.vol` already prints two lines above.
+  | 'briefing.finishedToday'
+  | 'briefing.finishedNextIn'
   | 'email.from'
   | 'email.subject'
   | 'lab.outcome'
@@ -62,9 +136,23 @@ export type CopyKey =
   | 'lab.reportNull'
   | 'lab.nLabel'
   | 'lab.collectMore'
+  // GR6 gr6-025: optional stopping is §2.4's "crown jewel" and measured dead
+  // content — `one_more_batch` unlocked twice in 96 player-days, because the
+  // button reads as "more data" and a hill-climber is almost never stuck. This
+  // is the missing half of what it does: more data is the ONE move that
+  // visibly improves the estimate's precision. Act-I sincere, like every other
+  // methods note; the indictment stays in Act II.
+  | 'lab.collectMoreHint'
   | 'lab.peekFootnote'
   | 'lab.peekFootnoteArmitage'
   | 'lab.insufficient'
+  // GR6 gr6-061: SUBMIT's `disabled` flip is reported to assistive tech only
+  // when focus arrives at the button, so a player turning knobs by keyboard
+  // hears the new p-value and nothing about the state change that matters.
+  // Rendered as a visually-hidden status beside SUBMIT while `canSubmit`. The
+  // DIAL is deliberately not made chattier — its live-region calibration is
+  // measured correct (GR4).
+  | 'lab.canPublish'
   // T14 additions: SpecControls' six radiogroups need one visible label per
   // option, on top of the per-group headings (lab.outcome/subgroup/etc.
   // above, all pre-existing). Outcome and the two covariate NAMES come from
@@ -145,6 +233,13 @@ export type CopyKey =
   // this one quiet line, next to it, says where to find one. Sincere
   // register, --muted, never louder than the trail itself.
   | 'lab.forkTrailHint'
+  // GR6 gr6-029: the ForkTrail popover's trigger used to render `nav.legend`,
+  // so the word "Legend" named two different affordances three times in twenty
+  // words on one screen — the header page name, this trigger, and a sentence
+  // between them pointing at the one the player is NOT standing next to. Both
+  // affordances stay (measured: same 7 rows, different questions); the trigger
+  // gets its own name, which asks the question the player actually has.
+  | 'lab.forkTrailKey'
   | 'published.faceTruth'
   | 'published.simulatedPress'
   | 'published.editorsPick'
@@ -229,9 +324,19 @@ export type CopyKey =
   | 'reveal.pValueTiny'
   // T16 additions: the localized spec-recipe vocabulary the SpecCurve's
   // published callout and hover tooltips are built from (§7.4's example
-  // reads "Y₂ · Age<40 · +Income · |z|>2.5 · log · one-tailed"). These are
-  // the COMPACT figure forms, deliberately terser than the Lab's segmented
-  // control labels: a callout has one line, a button has a whole row.
+  // reads "Y₂ · Age<40 · +Income · |z|>2.5 · log · one-tailed").
+  //
+  // gr6-086 — WHAT THE MIRROR ACTUALLY IS, since the old note here overstated
+  // it. These are not uniformly "terser than the Lab's labels": in English
+  // four of the seven subgroup forms are BYTE-IDENTICAL to their Lab siblings
+  // (ExpHigh, ExpLow, Urban, Rural), because those labels are already one
+  // short line and shortening them further would only invent a second name for
+  // one thing. The rule is: a recipe callout gets one line, so a form that is
+  // ALREADY one line is reused verbatim, and only the ones that are not get a
+  // compact variant ('All participants' → 'Everyone', 'Age < 40' → 'Age<40').
+  // Italian and Spanish apply the same rule to their OWN labels and therefore
+  // diverge from English about WHICH keys need a variant (IT: 'Area urbana' →
+  // 'Urbano'), which is correct and is not a parity break.
   | 'reveal.subgroupAll'
   | 'reveal.subgroupAgeLt40'
   | 'reveal.subgroupAgeGe40'
@@ -290,6 +395,11 @@ export type CopyKey =
   // achievement-gated) Prereg Mode upsell body line — see Summary.tsx.
   | 'summary.invoiceTitle'
   | 'summary.preregUpsell'
+  // GR6 gr6-062: the day used to end on an upsell with no route to the honours
+  // board it had just added to. Shaped like `reveal.toSummary` ("See the
+  // invoice") on purpose — same act, same beat, one grammar for "go and look
+  // at the thing this screen just changed".
+  | 'summary.viewStats'
   // T17 review fix (Important #1): shown when shareViaNavigator's whole
   // fallback chain rejects (no share API AND a failing clipboard write) —
   // share.ts's own doc comment says a rejection is "not swallowed... so the
@@ -317,8 +427,13 @@ export type CopyKey =
   | 'stats.currentStreak'
   | 'stats.maxStreak'
   | 'stats.callAccuracy'
-  | 'stats.avgScore'
   | 'stats.close'
+  // GR6 gr6-035: the Stats screen's empty state was eleven censored blocks and
+  // six em dashes with not one sentence in it, and a nav page is one tap from
+  // every screen — so a curious first-timer reaches it on day one, before
+  // playing anything. One key, one sentence, rendered under the title only
+  // when `played === 0`.
+  | 'stats.emptyState'
   // T17 additions: rolling call accuracy, the always-both-panels prereg-vs-
   // hacking success-rate comparison (§2.8's α lesson), the fork histogram,
   // and the achievement wall's locked-entry aria text. See Stats.tsx.
@@ -333,6 +448,22 @@ export type CopyKey =
   | 'stats.locked'
   | 'about.title'
   | 'about.intro'
+  // GR6 gr6-036: About was seven unsignposted paragraphs. Read as an essay it
+  // has a real argument in the right order — what this is → how it really
+  // works → none of this is real → your data is yours → read these instead →
+  // vocabulary — and six of those turns were invisible because nothing marked
+  // them. Four short headings, in the page's own plain register. The mapping
+  // these four are FOR (About.tsx renders it; see the hand-off note in the
+  // record below):
+  //   sectionHowItWorks → about.mechanism, about.frozenFork
+  //   sectionNotReal    → about.syntheticDisclaimer, about.decimalNote
+  //   sectionYourData   → about.dataDisclosure
+  //   sectionPriorArt   → about.priorArt + the five citations
+  // `about.intro` stands alone above them as the standfirst.
+  | 'about.sectionHowItWorks'
+  | 'about.sectionNotReal'
+  | 'about.sectionYourData'
+  | 'about.sectionPriorArt'
   | 'about.mechanism'
   | 'about.frozenFork'
   | 'about.syntheticDisclaimer'
@@ -354,12 +485,13 @@ export type CopyKey =
   | 'legend.unexplored'
   | 'legend.significant'
   | 'legend.published'
-  | 'legend.trueEffect'
   // T17 additions: the §2.9 share-grid emoji table (Legend screen). Distinct
-  // from the 5 SpecCurve chart-legend keys just above (explored/unexplored/
-  // significant/published/trueEffect, T16's figure legend) — this is the
-  // OTHER legend, for the emoji share string (share.ts's FORK_EMOJI + the 5
-  // terminal/prefix glyphs), hence the 'emoji' infix to keep the two apart.
+  // from the 4 SpecCurve chart-legend keys just above (explored/unexplored/
+  // significant/published, T16's figure legend) — this is the OTHER legend,
+  // for the emoji share string (share.ts's FORK_EMOJI + the 5 terminal/prefix
+  // glyphs), hence the 'emoji' infix to keep the two apart.
+  // (gr6-026: there were five. `legend.trueEffect` is gone — the SpecCurve
+  // never had a true-effect row to label, so the key was never rendered.)
   | 'legend.intro'
   | 'legend.emojiSpec'
   | 'legend.emojiSubgroup'
@@ -373,6 +505,10 @@ export type CopyKey =
   | 'legend.emojiCallIncorrect'
   | 'errors.workerCrash'
   | 'errors.storageOff'
+  // GR6 gr6-007: `errors.workerCrash` has promised "Reloading usually fixes
+  // it" since T6 and the app has never offered a control that does it. This is
+  // that control's label.
+  | 'errors.reload'
   | 'a11y.localeToggle'
   // T33: the theme control's group label, and the masthead's own accessible
   // name. The masthead one OPENS with the wordmark on purpose — the visible
@@ -395,17 +531,48 @@ export type CopyKey =
   | 'a11y.loading';
 
 export const copy: Record<CopyKey, string> = {
+  // KEPT DELIBERATELY THOUGH NOTHING RENDERS IT (final review's dead-key
+  // roster): the wordmark is the product's name, `copyFreeze.test.ts` uses it
+  // as its own guards-the-guard fixture, and a catalog that cannot name the
+  // app is worse than one carrying a four-character string. Rostered as KEPT
+  // in that suite, so the defined→used sweep does not have to guess.
   'nav.title': 'P-hackle',
+  // gr6-026 / gr6-037: the single best one-line description of the product,
+  // transcreated into three languages and rendered NOWHERE. It is About's
+  // standfirst (gr6-036 gives it the slot, directly under the h1 and above
+  // `about.intro`), and §1(i)'s share-string hook is the second place it will
+  // earn. RENDERING IS BOOKED FOR W7 (About.tsx belongs to that wave this
+  // round); until it lands the key is rostered as PENDING in
+  // tests/content/copyFreeze.test.ts, which fails the day it is used and the
+  // roster entry is not removed.
   'nav.tagline': 'A daily game about the garden of forking paths.',
-  'nav.puzzleNumber': 'Puzzle #{n}',
+  // gr6-026: `nav.puzzleNumber` ('Puzzle #{n}') is DELETED. Nothing rendered
+  // it, and it was a third numbering form in a product that had already ruled
+  // on two — `Vol. {volume}, No. {issue}` for chrome (briefing.vol) and `#n`
+  // for the share string (share.ts, deliberately locale-invariant). Nothing
+  // else.
   'nav.about': 'About',
   'nav.stats': 'Stats',
   // T37 (audit §5.11): renders BOTH as a header nav page name and as the
   // ForkTrail popover's trigger button (ForkTrail.tsx). It must read as a page
   // NAME in both places, so do not translate it as a verb in either.
+  // gr6-029 RETIRES THE SECOND JOB: the trigger takes `lab.forkTrailKey`
+  // ("What these mean"), so this key goes back to being the page name and
+  // nothing else. The double duty put three tokens of "Legend" within one
+  // glance on the Lab, naming two affordances, with a sentence between them
+  // pointing at the one the player was not standing next to. Until W7 lands
+  // that one-line swap in ForkTrail.tsx:170 the old wording is still on
+  // screen; the instruction above stands either way.
   'nav.legend': 'Legend',
   'nav.play': 'Play',
-  'nav.localeToggle': 'Language',
+  // gr6-026: `nav.localeToggle` is DELETED. The visible control is a pair of
+  // endonym buttons and its group label is `a11y.localeToggle`, which holds
+  // the same word; nothing ever looked this key up.
+  // gr6-017: nine chrome tab stops stand between the top of every screen and
+  // the one control the screen is for. `<main>` is already focusable
+  // (`tabindex="-1"`, T22), so the link is the whole fix. Names the
+  // DESTINATION, because that is what a skip link is read as.
+  'nav.skipToContent': 'Skip to the main content',
   'nav.localeNameEn': 'English',
   'nav.localeNameIt': 'Italiano',
   'nav.localeNameEs': 'Español',
@@ -448,6 +615,17 @@ export const copy: Record<CopyKey, string> = {
   'briefing.playHacking': 'Play Hacking Mode',
   'briefing.playPrereg': 'Play Prereg Mode',
   'briefing.alreadyPlayedToday': 'Already played today',
+  // gr6-008 (copy half) — the Briefing's finished-day state, in the Briefing's
+  // own register. `briefing.alreadyPlayedToday` is a status line under a
+  // disabled chooser button and reads as a refusal; this is the whole screen
+  // saying the day is done, above the share string it then shows. TRUE ON BOTH
+  // PATHS: a player who reported a null result finished the day too, so the
+  // sentence names the day, never a publication.
+  'briefing.finishedToday': "Today's puzzle is finished. Here is how it went.",
+  // The countdown, in the masthead's vocabulary rather than the invoice's:
+  // `briefing.vol` prints "Vol. 1, No. 11" two lines above, so the next puzzle
+  // is the next ISSUE. Same two tokens as `summary.nextIn`, same floors.
+  'briefing.finishedNextIn': 'The next issue arrives in {hours}h {minutes}m.',
 
   'email.from': 'From:',
   'email.subject': 'Subject:',
@@ -465,6 +643,16 @@ export const copy: Record<CopyKey, string> = {
   'lab.reportNull': 'Report null result',
   'lab.nLabel': 'n = {n}',
   'lab.collectMore': 'Collect {n} more',
+  // gr6-025 — what the button is FOR, beside the button. Measured, peeking is
+  // a fallback nobody reaches: a hill-climber on six knobs finds significance
+  // in a median of 3 evaluations and is therefore never stuck, so §2.4's crown
+  // jewel and its Armitage footnote are seen by a small minority of players.
+  // The honest attraction is precision: n moves and the CoefPlot's interval
+  // narrows with it, and nothing on the screen said so. Sincere, factual, no
+  // wink — the surcharge at the reveal is where this gets paid for, and Act I
+  // must not flinch first. Vocabulary matches `lab.coefPlotCaption`'s own
+  // "95% CI" so the sentence points at a thing the player can already see.
+  'lab.collectMoreHint': 'A bigger sample narrows the 95% CI on your estimate.',
   // Two footnotes, in order. The first press gets the sincere one: collecting
   // more data is what a diligent lab does, and the logging detail is planted
   // here to be collected at the reveal. From the 2nd press (§2.4; the UI task
@@ -473,9 +661,64 @@ export const copy: Record<CopyKey, string> = {
   // wink. It is meant to be easy to miss. Do not make it louder, and do not
   // add a second wink anywhere else in Act I.
   'lab.peekFootnote': 'Collecting more data is what a careful lab does. Every batch is logged for the methods section.',
+  // ------------------------------------------------------------------
+  // CONTROLLER RE-RULING, 2026-08-06 (w2-r-001) — a DOCUMENTED DEVIATION from
+  // the master spec's verbatim text (docs/implementation_plan.md §2.4).
+  //
+  // Owner ruling (b) said to insert "equally spaced", on the premise that this
+  // game's peeks are not. THAT PREMISE IS FALSE: `N_SCHEDULE` is
+  // 200→250→300→350→400, i.e. equally spaced with Δn = 50, so the inserted
+  // words distinguished nothing and the sentence stayed as wrong as before.
+  //
+  // The condition the 14% actually depends on is EQUAL FRACTIONS OF TOTAL
+  // INFORMATION — Armitage's five looks sit at 80/160/240/320/400, so the
+  // first look sees a fifth of the data. This game's first look sees a HALF.
+  // Two-sided repeated significance testing at α = 0.05, simulated as a
+  // Brownian walk (1,000,000 trials per schedule; the reviewer's independent
+  // 2,000,000-trial run agrees to the second decimal):
+  //     Armitage's design (80/160/240/320/400)   14.172%
+  //     five equal unit groups (1..5)            14.199%
+  //     THIS GAME (200/250/300/350/400)          11.174%
+  //     at the footnote's first appearance       8.681%   (200/250/300)
+  //     a single look                             5.023%
+  //
+  // So the string now states THE CITATION'S FACT ABOUT A DESIGN, and states
+  // the condition that fact depends on: five tests, one after each of five
+  // equal batches. It is deliberately IMPERSONAL — no "your", no "peeks" — and
+  // that is a correctness requirement, not a style choice. The old wording
+  // read as a description of the player's own action, and as such it was
+  // unreachable: `N_SCHEDULE` allows a maximum of FOUR peeks, the footnote
+  // renders from the second, and this readership's real inflation is 8.7-11.2%.
+  // A future pass must not "simplify" it back toward the second person.
+  //
+  // The alternative the re-ruling weighed and did not take was printing the
+  // game's own 11.2%: stronger pedagogy, but it replaces a published figure
+  // with a simulated one that then needs its own provenance on screen.
+  //
+  // gr6-027: `α = .05` became `α = 0.05` in the same edit. The leading-zero
+  // carve-out for this string was conditional in its own terms — the backlog
+  // grants it "only while the Armitage line stays spec-verbatim" — and this
+  // line is no longer spec-verbatim. about.decimalNote now states the rule out
+  // loud ("a leading zero on every one"), which this was the last string to
+  // break. The ES header's rule 2 quoted `α = .05` as a worked example and
+  // moves with it.
+  // ------------------------------------------------------------------
   'lab.peekFootnoteArmitage':
-    'Fun fact: peeking five times at α = .05 inflates your false-positive rate to ~14% (Armitage, 1969).',
-  'lab.insufficient': 'n < 30. Not enough data to analyze.',
+    'Fun fact: testing after each of five equal batches of data turns α = 0.05 into a false-positive rate of ~14% (Armitage, 1969).',
+  // gr6-096: the old value opened `n < 30.` and thereby asserted a cause it
+  // could not know. `MIN_CELL` is one of two reasons a cell is unanalysable
+  // (the other is a singular XᵀX), and it is the one that never binds: 0 of
+  // 215,040 enumerated points hit it. So the string named the wrong cause on
+  // every occasion it could actually render. It now reports the state and
+  // stops. Same defect class as w1-r-004's "you followed the p-value".
+  // w2-r-007: "cut" is engine vocabulary (`DataCut`), not a word this screen
+  // ever teaches. Both locales had already reached for "subsample"/"submuestra";
+  // English follows them, and about.frozenFork already uses the word.
+  'lab.insufficient': 'Not enough data to analyze this subsample.',
+  // gr6-061 — the SUBMIT-became-possible announcement. Read once, by a live
+  // region, at the moment it becomes true, so it opens with the fact and then
+  // says what the fact permits. `0.05` carries its leading zero (gr6-027).
+  'lab.canPublish': 'Below 0.05. You can submit this for publication.',
 
   // Subgroup radiogroup options (master spec §2.4's own table wording).
   'lab.subgroupAll': 'All participants',
@@ -517,11 +760,17 @@ export const copy: Record<CopyKey, string> = {
   // T31 FIX ROUND (subsumed-welcome rewrites, done opportunistically while
   // already in this block for findings 2/4): plainer wording for two of the
   // six notes, still Act-I sincere, still no judgement of the choice.
-  'lab.explain.outcome': 'Which of the four things you measured this analysis tries to explain.',
-  'lab.explain.subgroup': 'Restrict the sample to one group of participants before fitting.',
+  // GR6 gr6-034: "fit"/"fitting" was unglossed jargon in three of these six,
+  // and in no glossary — an intransitive statistical verb a smart 15-year-old
+  // does not have, on the screen they spend the whole session on. The three
+  // notes are rewritten in words that need nothing looked up, and the outcome
+  // note goes with them: "which of the four things you measured" was doing the
+  // work of a definition without being one.
+  'lab.explain.outcome': 'The measurement this analysis tries to explain. There are four to choose from.',
+  'lab.explain.subgroup': 'Run the analysis on one group of participants instead of on everybody.',
   'lab.explain.covariates': 'Also account for background differences between people when comparing the two groups.',
-  'lab.explain.exclusion': 'Remove statistical outliers from the current sample before fitting.',
-  'lab.explain.transform': 'Fit the outcome on its own scale, or on a log scale.',
+  'lab.explain.exclusion': 'Drop the most extreme values from the sample before the analysis runs.',
+  'lab.explain.transform': 'Measure the outcome on its own scale, or compress its large values onto a log scale.',
   'lab.explain.tails': 'Test for an effect in either direction, or only in the predicted one.',
 
   // T31 — the first-run intro: four steps, one short sentence each,
@@ -534,11 +783,18 @@ export const copy: Record<CopyKey, string> = {
   // the infinitive where its instructions take the tú-imperative. So: same
   // beat, same NOUN ("the truth"); each locale sets the mood its own UI
   // conventions require.
+  // GR6 gr6-033: step 1 used to say "Read the brief", which is the one step of
+  // four that CANNOT be performed from where it is printed — the panel renders
+  // inside the Lab, after the Briefing is gone — and it mis-described what the
+  // player had just done. It now points at the question that is still on
+  // screen, above the controls. Step 4 gains the call: §2.6's binary verdict is
+  // the game's whole point and the four steps used to fold it into "face the
+  // truth", so a first-timer was never told it was coming.
   'lab.howThisWorks.title': 'How to play',
-  'lab.howThisWorks.step1': "Read the brief: today's question, and the data you have been given.",
+  'lab.howThisWorks.step1': "Start from the question at the top: that is what today's data is supposed to answer.",
   'lab.howThisWorks.step2': 'Adjust the analysis until the big number drops below 0.05.',
   'lab.howThisWorks.step3': 'Submit your finding for publication.',
-  'lab.howThisWorks.step4': 'Face the truth about what you found.',
+  'lab.howThisWorks.step4': 'Face the truth about what you found, and say whether you believe it.',
   'lab.howThisWorks.dismiss': 'Got it',
 
   // T31 — the dial's explainer. Plain words: what the number means, and what
@@ -555,7 +811,12 @@ export const copy: Record<CopyKey, string> = {
   'lab.coefPlotAxis': 'Estimated effect ({unit})',
   'lab.coefPlotZero': 'no effect',
   'lab.cutControl': 'Comparison group',
-  'lab.cutLegendIncluded': 'Analysed: {n}',
+  // gr6-068: 'Analysed' was the corpus's only British spelling in prose that
+  // renders in the SAME COLUMN as lab.insufficient's "analyze" — one screen,
+  // one verb, two orthographies, both out of this catalog. The corpus default
+  // is US prose. `metres`/`litres` in the scenario bank stay: they are SI
+  // units, not prose, and they read as international beside the euro figures.
+  'lab.cutLegendIncluded': 'Analyzed: {n}',
   'lab.cutLegendExcluded': 'Excluded: {n}',
   'lab.cutLegendMean': 'Group mean',
 
@@ -565,13 +826,40 @@ export const copy: Record<CopyKey, string> = {
   // T37 (audit §5.6): "has the key" is an English idiom, and "key" for a chart
   // legend has no cognate in either target language. It means "the explanation
   // of the symbols" -- do not translate the noun literally.
-  'lab.forkTrailHint': 'Each symbol is a move you made. The Legend page has the key.',
+  // GR6 gr6-029/gr6-032: the idiom is now gone from English too. It survived
+  // the T37 audit as an instruction rather than as a fix, and Spanish shipped
+  // the exact calque the instruction warned against ("la clave está en…", i.e.
+  // "the ANSWER is on the Legend page"). A sentence that needs a translator
+  // note in three languages is a sentence to rewrite, not to annotate. The
+  // replacement says what the Legend page does — it lists the symbols — and
+  // needs no idiom in any locale.
+  'lab.forkTrailHint': 'Each symbol is one move you made. The Legend page lists them all.',
+  // gr6-029 — the ForkTrail popover's trigger, which used to render
+  // `nav.legend`. It is not a page name and must not read as one: it is the
+  // question a player looking at a row of unfamiliar glyphs actually has.
+  // Keeping BOTH affordances is deliberate (GR4 measured them rendering the
+  // same 7 rows and answering different questions: "what do these mean, here,
+  // now" versus "take me to the reference page").
+  'lab.forkTrailKey': 'What these mean',
 
   'published.faceTruth': 'Face the truth',
   'published.simulatedPress': 'SIMULATED PRESS',
   'published.editorsPick': "Editor's Pick",
   'published.doiPrefix': 'DOI:',
   'published.authors': 'You, et al.',
+  // W6 asked (TODO-W2 at Summary.tsx:189) whether the Summary should get its
+  // own invoice-register wording instead of reusing this string, e.g.
+  // "Career points +25 - separate account". DECLINED, and recorded here
+  // rather than left open. W6's own reason for the stand-in is the better
+  // argument: the Summary line exists to AGREE with the number the Published
+  // screen printed two screens earlier, and reusing the identical string is
+  // the strongest form of that agreement — a second key would let the two
+  // drift silently, and the drift would land on the one figure §2.8 says is
+  // never a summand of the score. The register objection also does not hold:
+  // gr6-018 deliberately renders career as its own LINE beside the total, not
+  // as an invoice row, so it is not sitting among labelled rows asking to be
+  // labelled like one. (The proposed wording also carried an em dash into a
+  // locale pair that would then have to work around it.)
   'published.careerPoints': '+{n} career points',
   // T32 (third play-test: "What's the attention score? I don't understand"):
   // the badge parodies an altmetric counter, and the parody only lands if the
@@ -585,15 +873,49 @@ export const copy: Record<CopyKey, string> = {
   // ALTMETRIC_SCORE_RANGE_BY_TIER), so the English plural is unconditionally
   // safe here. A locale whose number agreement differs must still check that
   // floor rather than assume it. (2) ONE TOKEN ONLY: t() and the tests
-  // substitute {n} with String.replace, which rewrites the FIRST occurrence
-  // only — a translation that repeats {n} would render the second one raw.
-  'published.altmetricScore': 'Mentioned {n} times online already',
+  // substitute {n} with String.replace. `t()` itself replaces EVERY occurrence
+  // (t.ts:33 is a /g regex); the SITES that use a literal String.replace do
+  // only the first — see the ONE TOKEN, ONCE note in the header.
+  // gr6-065: the adverb used to trail the prepositional phrase ("Mentioned 659
+  // times online already"), which reads as translated-into-English on the one
+  // screen whose whole job is to sound like a real press office. English
+  // fronts it. Same token, one occurrence, plural still safe at the tier-1
+  // floor of 40. (Italian already fronted it: "Già menzionato…".)
+  'published.altmetricScore': 'Already mentioned {n} times online',
+  // gr6-086 / final-011, PARTIAL — the token here is the one `{n}` in the whole
+  // catalog that is a PERCENTAGE rather than a count (altmetricPercentile()
+  // returns a top-N% figure), and it should be `{pct}`. The rename is a VALUE
+  // change plus its binding site, and the binding site is
+  // `src/ui/screens/Published.tsx:285` (`t('published.altmetricPercentile',
+  // { n: … })`), which this wave does not own. BOOKED FOR W7: rename the token
+  // in all three catalogs and the param at that one call site, in one commit.
+  // Until then this comment is the disclosure, not a plan.
   'published.altmetricPercentile': 'Top {n}% of all research outputs, all time',
 
   // §2.6 verbatim: the call is conspiratorial, not accusatory — Act I's last
   // beat, and the hinge into Act II. "Noise I dressed up" is the player's own
   // admission to make; the game does not make it for them.
-  'call.title': 'Before you see the reveal…',
+  // ------------------------------------------------------------------
+  // GR6 gr6-028 — "THE REVEAL" IS DEVELOPER VOCABULARY AND IS NOW GONE FROM
+  // PLAYER COPY, IN ALL THREE LOCALES.
+  //
+  // The screen is never called that anywhere the player can see. It is entered
+  // by a button that says "Face the truth" (published.faceTruth), it leaves by
+  // one that says "See the invoice" (reveal.toSummary), and the how-to-play
+  // panel calls it "the truth" (lab.howThisWorks.step4). Five strings used the
+  // word anyway, one of them the first line of the modal that hinges Act I into
+  // Act II. GR3 named two; the other three are the same defect and moved with
+  // them, because the IT/ES convention contracts PIN the term ("la
+  // rivelazione" / "la revelación") and an amendment that left three strings
+  // behind would be a contract that lies:
+  //   call.title, prereg.intro, prereg.locked,
+  //   about.priorArtSpecCurve, about.priorArtOptionalStopping.
+  // The replacement vocabulary is the one the product already owns: "the
+  // truth", and for About, "the day" (the chart the day ends on). The `reveal.`
+  // KEY PREFIX is unchanged — it is developer vocabulary in a place developers
+  // read, which is exactly where it belongs.
+  // ------------------------------------------------------------------
+  'call.title': 'Before you find out…',
   // T37 (audit §5.9): call.real and call.noise sit on <button>s, but they are
   // CLAIMS the player selects, not actions they perform. Option titles, not
   // commands -- never verbify them in translation.
@@ -643,8 +965,9 @@ export const copy: Record<CopyKey, string> = {
   //      subject is a mass noun, so the verb never has to switch. Used by
   //      reveal.peekSurcharge.
   //   c. LABEL-COLON-COUNT: "Forks: {forks}". No grammar downstream of the
-  //      colon at all. Used by stats.forkHistogramBar and, in the locales,
-  //      summary.streak and the accounting lines.
+  //      colon at all. Used by stats.forkHistogramBar, summary.streak (in all
+  //      three locales since gr6-066 — English was the last holdout), and the
+  //      accounting lines in IT/ES.
   //
   // What does NOT work, and was tried: a bare parenthesised count after a
   // plural head noun ("Your data-peeks (1) make …") keeps the plural verb and
@@ -662,6 +985,13 @@ export const copy: Record<CopyKey, string> = {
   //            unconditionally and the streak counts today, so day one is 1.
   //   {n}      (published.altmetricScore)  >= 40 -- the tier-1 floor.
   //   {n}      (reveal.omittedFootnote)    >= 1  -- rendered only when > 0.
+  //   {n}      (published.altmetricPercentile) is NOT A COUNT -- it is a
+  //            percentage, the one overloaded use of {n} in this catalog, and
+  //            it should be {pct}. Booked for W7 with its binding site; see
+  //            the key's own note. Plural agreement is not at issue, but a
+  //            locale reading this table must not assume a count.
+  //   {hours}/{minutes} (summary.nextIn, briefing.finishedNextIn) >= 0 -- both
+  //            render at midnight-minus-a-minute, so "0h 1m" is reachable.
   //   {total}/{sig} (accounting1)          {sig} may legitimately be 0.
   //   share.forksWord/share.streakWord: the share grid used to read
   //   "{n} forks", with n as low as 0 or 1 and no way to inflect the noun.
@@ -828,7 +1158,24 @@ export const copy: Record<CopyKey, string> = {
   'summary.share': 'Share',
   'summary.copied': 'Copied to clipboard',
   'summary.nextIn': 'Next puzzle in {hours}h {minutes}m',
-  'summary.streak': '{n} day streak',
+  // gr6-066: the last English string still using the counted-noun shape the
+  // T37 ruling replaced everywhere else. It rendered "1 day streak" on day
+  // one, which is the commonest day it renders at all, and it disagreed with
+  // the pasted share string ("Streak: 1") one tap away. Label-colon-count, the
+  // form both locales and share.ts already use — and now the Summary, the
+  // Stats page and the share string all say one word.
+  'summary.streak': 'Streak: {n}',
+  // RETIRED, PENDING ONE EDIT THIS WAVE DOES NOT OWN. W6 (gr6-020) deleted the
+  // permanently-disabled "Try Prereg Mode" button this string labelled, so the
+  // key is dead: no literal reference survives anywhere in src/ui or src/game
+  // (probed). It is NOT deleted here only because two assertions in
+  // `tests/ui/summary.test.tsx` (:285, :837) still name it to pin the CTA's
+  // absence, and `tests/ui/**` belongs to W7 this round — deleting the key
+  // would red their `tsc`. BOOKED FOR W7: re-pin those two assertions
+  // structurally (the prereg block contains no <button>), then delete this key
+  // from all three catalogs and from the reserved roster in
+  // tests/content/copyFreeze.test.ts, which fails the day the key becomes
+  // reachable again.
   'summary.playPrereg': 'Try Prereg Mode',
 
   // §2.8 scoring-table row labels for the Summary "fee invoice" breakdown —
@@ -845,7 +1192,26 @@ export const copy: Record<CopyKey, string> = {
 
   // T17 additions — see the CopyKey union above.
   'summary.invoiceTitle': 'Invoice',
-  'summary.preregUpsell': 'Preregistration is unlocked: commit to one analysis before you see the data.',
+  // GR6 gr6-020, the copy half. The block that announces Prereg Mode used to
+  // end in a dead button, and the sentence above it described the mode without
+  // ever saying where the door was — so the one screen that explains Prereg
+  // Mode offered no route into it. W6 removed the button; this string now
+  // carries the destination, because "tomorrow" is a sentence, not a control.
+  // "before you see a single number" is prereg.intro's own wording (the same
+  // phrase reveal.accounting2Prereg uses), so the mode is described in one
+  // vocabulary across all three places that describe it.
+  // DEVIATION from gr6-020's suggested sentence ("Tomorrow's briefing will let
+  // you choose it…"): the door is named by its MOMENT, not by the screen. Two
+  // of the three locales have no non-colliding noun for the Briefing — ES's
+  // nearest, "el informe", is already `lab.reportNull`'s noun ("Informar de un
+  // resultado nulo") — and inventing one in two languages to carry a
+  // signpost is a worse trade than naming the moment, which every locale says
+  // identically and which is the thing the player has to act on.
+  'summary.preregUpsell': 'Preregistration is unlocked. Tomorrow you can choose it before you see a single number.',
+  // gr6-062 — the route to the honours board the day just added to. Mirrors
+  // `reveal.toSummary` ("See the invoice") in shape and register: Act II names
+  // the destination and makes no comment on the player going there.
+  'summary.viewStats': 'See your stats',
   'summary.shareFailed': "Couldn't share this result.",
   // T38 — Act II's one warm beat, and it stays award-ceremony-clinical: it
   // names the day and stops. The citations it introduces are already dry
@@ -856,22 +1222,32 @@ export const copy: Record<CopyKey, string> = {
   // §7.3: "the same SpecControls but rendered as a preregistration form" —
   // manuscript register, sincere-bureaucratic, no wink. The player sets every
   // knob below with no data in front of them at all.
+  // gr6-028: "There is no reveal to peek at first" named a screen the player
+  // has never heard of, in the one mode whose entire lesson is that you commit
+  // before you look.
   'prereg.intro':
-    'Declare your full analysis before you see a single number. Every choice below is final the moment you submit. There is no reveal to peek at first, and no second attempt today.',
+    'Declare your full analysis before you see a single number. Every choice below is final the moment you submit. There is nothing to look at first, and no second attempt today.',
   // §7.3's own pinned wording ("I solemnly commit") — the checkbox label,
   // played completely straight.
   'prereg.commit': 'I solemnly commit to running and reporting this exact specification, whatever it shows.',
   'prereg.submit': 'Submit preregistration',
-  'prereg.locked': 'Locked in. No more changes until the reveal.',
+  // gr6-028: "until the reveal" → the beat the player was actually promised.
+  'prereg.locked': 'Locked in. No more changes before you face the truth.',
 
   'stats.title': 'Your stats',
   'stats.played': 'Played',
   'stats.currentStreak': 'Current streak',
   'stats.maxStreak': 'Max streak',
   'stats.callAccuracy': 'Call accuracy',
-  'stats.avgScore': 'Average score',
+  // gr6-026: `stats.avgScore` ('Average score') is DELETED. The Stats screen
+  // has never had an average-score row — `statsAgg.ts` computes no such
+  // figure — so the key was a label for a statistic that does not exist.
   // ACTION, not a state adjective -- see summary.share's note (audit §5.8).
   'stats.close': 'Close',
+  // gr6-035 — the day-one empty state. Act II register: it says what the
+  // screen is and what fills it, and does not congratulate, encourage or
+  // apologize. Rendered under the title only when `played === 0`.
+  'stats.emptyState': 'Nothing here yet. Every figure on this page starts filling in after your first day.',
 
   // T17 additions — see the CopyKey union above.
   'stats.callAccuracyLast20': 'Last 20 calls',
@@ -888,29 +1264,109 @@ export const copy: Record<CopyKey, string> = {
   'stats.locked': 'Locked achievement',
 
   'about.title': 'About P-hackle',
+  // gr6-036 — the four section headings. Short, plain, and honest about what
+  // each section is; "None of this is real" is the page's own best sentence
+  // promoted to a signpost. Sentence case, like every other heading in the
+  // catalog.
+  //
+  // HAND-OFF, BOOKED FOR W7 (About.tsx is that wave's file this round): render
+  // these as four <h2>s in the order above the CopyKey union documents, move
+  // `about.decimalNote` under `about.sectionNotReal`, and put `nav.tagline`
+  // between the <h1> and `about.intro` as the standfirst. Until that lands the
+  // four keys and the tagline are rostered PENDING in
+  // tests/content/copyFreeze.test.ts.
+  'about.sectionHowItWorks': 'How it works',
+  'about.sectionNotReal': 'None of this is real',
+  'about.sectionYourData': 'Your data',
+  'about.sectionPriorArt': 'Where this comes from',
   'about.intro':
     'Every day, P-hackle deals you a synthetic dataset and a ridiculous hypothesis. The toolbox is real: outcome switching, subgroup shopping, optional stopping. These are the same researcher degrees of freedom used, accidentally or otherwise, in real published research.',
+  // ------------------------------------------------------------------
+  // GR6 gr6-004 (blocker, `scientific`) — THE REJECTION SAMPLER IS NOW
+  // DISCLOSED, BECAUSE THIS PARAGRAPH OPENS BY CLAIMING COMPLETENESS.
+  //
+  // "Everything under the hood is real" is true of the machinery and was
+  // silent on the one mechanism that most changes how the numbers should be
+  // read: days are REJECTION SAMPLED. `acceptNullDay` (engine/day.ts) redraws
+  // until sigCount(enumerateCurve(data, 200)) lands in NULL_SIG_BAND;
+  // `acceptEffectDay` redraws until the canonical spec clears p < 0.15 at
+  // N=200 and p < 0.05 at N=400. Measured over 300 unconditioned raw draws of
+  // each type, 42% of null draws and 26% of effect draws are discarded
+  // (gr1a-004) — and the discarded tails are precisely the ones that would
+  // make the reveal's headline count look unusual, or make the day's true
+  // effect undetectable.
+  //
+  // WRITTEN TO AGREE WITH reveal.accounting1, per the W1 review's controller
+  // note. That line says "a 0.05 threshold lets about one in twenty through on
+  // its own"; one in twenty of 1,792 is ~89.6, and the band [30, 180] is drawn
+  // around it. So the two screens now tell one story: the count you see is
+  // what the threshold produces, and the band is what keeps the day from being
+  // an outlier in either direction. Nothing here contradicts accounting1 and
+  // nothing here softens it.
+  //
+  // TWO NUMBERS ARE QUOTED AND BOTH ARE PINNED. "between 30 and 180" is
+  // NULL_SIG_BAND (src/game/tuning.ts) and "1792" is allSpecs().length; the
+  // English value is asserted against both in tests/content/shape.test.ts, so
+  // a tuning change that leaves this sentence behind is a red test rather than
+  // a quiet lie. The DISCARD RATES (42%/26%) are deliberately NOT in the
+  // string: they are a consequence of the band rather than a declared
+  // constant, and W11's §1(d) predicate will move them. "1792" carries no
+  // thousands separator, in any locale, because that is exactly how the reveal
+  // prints the same figure one screen earlier (`formatCount` is
+  // `String(Math.round(v))`), and the two must be recognisable as one number.
+  //
+  // w2-r-002 — THE BAND HAS AN n, AND THE SENTENCE NOW SAYS IT. The first
+  // draft closed on "the count you are shown at the end of the day is never
+  // wildly small", which is an absolute the engine does not honour: the band
+  // is enforced against `sigCount(enumerateCurve(data, 200))` and the REVEAL
+  // enumerates at `state.n`, which a peeking player has moved. Measured over
+  // 21 consecutive accepted null days, 21/21 sit in the band at n=200 and
+  // 8/21 (38%) sit OUTSIDE it at n=400 — including a day that goes 37 → 5,
+  // which is 0.3% of the grid, and one that goes 83 → 384. The claim is
+  // therefore scoped to the opening sample, where it is exactly true, and the
+  // drift gets its own clause. This wave also ships `lab.collectMoreHint`
+  // specifically to make collecting more data attractive (gr6-025), so the
+  // player this sentence would have misled is the one the Lab now recruits.
+  //
+  // w2-r-008 — THE EFFECT-DAY GATE HAS TWO HALVES and the string named one.
+  // `acceptEffectDay` requires p < 0.15 at N=200 AND p < 0.05 at N=400 on the
+  // canonical spec (behind a p < 0.3 precheck at 200). "both in that opening
+  // sample and in the full sample of 400" discloses the shape of the gate
+  // without printing three thresholds nobody can act on.
+  // ------------------------------------------------------------------
   'about.mechanism':
-    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty.",
+    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty. The days themselves are filtered before you play them: a null day is redrawn until between 30 and 180 of the 1792 possible analyses reach p < 0.05 in the opening sample of 200, and an effect day is redrawn until the real effect is detectable both in that opening sample and in the full sample of 400. That filter is a thumb on the scale, and it is disclosed for the same reason as everything else here: what a 0.05 threshold turns up on its own sits inside that band, so the sample you start with always has something in it to find. The band is checked at 200 and nowhere else, so once you collect more data the count moves, sometimes a long way.",
   'about.frozenFork':
     'One analytical choice is frozen rather than offered: outlier z-scores are computed on the transformed outcome, within the filtered subsample. That is itself a fork, and freezing it is itself a decision. It is disclosed here because the forks you cannot see are the ones that do the damage.',
   'about.syntheticDisclaimer':
     'Nothing in this game is a finding. The participants do not exist, the data is generated in your browser, and the journals, DOIs, press outlets, headlines and quotes are all invented. That is why the press cards carry a SIMULATED PRESS watermark. The scenarios are deliberately absurd and deliberately harmless: no medical, nutritional or public-health claim appears anywhere in them, because a screenshot travels further than its caption.',
-  'about.decimalNote': 'Statistical notation always uses a decimal point (p = 0.049), in every language.',
+  // GR6 gr6-027 + gr6-036: this key had two problems at once. It was a
+  // one-line typesetting note wedged between "a screenshot travels further
+  // than its caption" and the analytics paragraph, stopping the essay dead;
+  // and in ENGLISH it was very nearly vacuous, because an English reader was
+  // never going to expect a comma. It now (a) belongs under a heading (§
+  // about.sectionNotReal, where the other "what you are looking at is a
+  // construction" facts live) and (b) earns its place by stating the SECOND
+  // convention as well — the leading zero, which is the rule gr6-027 makes
+  // true across the whole catalog and which this sentence is the only place
+  // that says out loud.
+  'about.decimalNote':
+    'Statistics here are set the way journals set them, in every language: a decimal point, never a comma (p = 0.049), and a leading zero on every one.',
   'about.dataDisclosure':
     "Analytics are anonymous, cookieless page counts (Vercel Web Analytics). No cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser's local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.",
   'about.priorArt':
     'P-hackle is a small game standing on a large literature. It borrows its central demonstration, and most of its methods, from work worth reading directly:',
   'about.priorArtFiveThirtyEight':
     'Aschwanden & King (2015), "Hack Your Way to Scientific Glory," FiveThirtyEight. The interactive that owns this idea. It uses real data and offers no ground truth; P-hackle adds a known data-generating process, a daily seed, and the real-or-noise call.',
+  // gr6-028: "the chart in the reveal" → the chart the day ends on.
   'about.priorArtSpecCurve':
-    'Simonsohn, Simmons & Nelson. Specification curve analysis: the chart in the reveal is, essentially, their figure.',
+    'Simonsohn, Simmons & Nelson. Specification curve analysis: the chart the day ends on is, essentially, their figure.',
   'about.priorArtForkingPaths':
     'Gelman & Loken. The garden of forking paths: no fishing expedition is required for this to happen, only an analysis that adapts to the data you happened to see.',
   'about.priorArtFalsePositive':
     'Simmons, Nelson & Simonsohn (2011), "False-Positive Psychology." The inventory of researcher degrees of freedom that this toolbox implements, one button at a time.',
   'about.priorArtOptionalStopping':
-    'Armitage, McPherson & Rowe (1969). Testing repeatedly as data accumulates inflates the false-positive rate on its own, which is why every extra batch you collect is counted against you at the reveal.',
+    'Armitage, McPherson & Rowe (1969). Testing repeatedly as data accumulates inflates the false-positive rate on its own, which is why every extra batch you collect is counted against you when you face the truth.',
   'about.glossaryTitle': 'Glossary',
   'about.contact': 'Questions or bug reports welcome.',
 
@@ -931,12 +1387,23 @@ export const copy: Record<CopyKey, string> = {
   // three locales (the shape suites' SHARED_WITH_EN roster).
   'legend.significant': 'p < 0.05',
   'legend.published': 'The one you published',
-  'legend.trueEffect': 'True effect',
+  // gr6-026: `legend.trueEffect` ('True effect') is DELETED. SpecCurve builds
+  // its chart legend from four rows and has no true-effect mark to label; the
+  // key had no call site, literal or dynamic.
 
   // T17 additions — the §2.9 share-grid emoji table; see the CopyKey union
   // above for why these are 'emoji'-infixed and distinct from the 5 keys
   // just above (T16's SpecCurve chart legend).
-  'legend.intro': 'How to read a shared result.',
+  // GR6 gr6-030: the Legend explained every glyph and not the WORD. "Forks" is
+  // the one content word the share string prints (share.forksWord), and the
+  // concept carried four names across the product — Forks (Lab trail, Stats,
+  // share), "specification change" (here), "possible analyses" / "explored {k}
+  // of them" (reveal), "paths" (nav.tagline, glossary). The 🍴 row now DEFINES
+  // the term it is the picture of, and this intro says how the trail and the
+  // counts relate, which is the other half a stranger holding a share string
+  // has to work out.
+  'legend.intro':
+    'How to read a shared result. The trail is one symbol per move; the counts under it are the same moves, added up.',
   // T29 fix round: 🍴 is now the ONLY in-trail glyph for a spec change —
   // share.ts's FORK_EMOJI collapsed subgroup/exclusion/tails onto it, and the
   // Legend deduplicates by glyph, so this one row is the only place the key
@@ -944,8 +1411,13 @@ export const copy: Record<CopyKey, string> = {
   // the order Spec declares them (src/engine/types.ts). The three keys below
   // it are no longer rendered anywhere; they stay in the union because every
   // locale's Record<CopyKey, string> must still be total.
+  // The parenthetical is COMPILED, not decorative: findMissingSpecKnobs
+  // (tests/content/validators.ts) requires every locale's enumeration to
+  // contain that locale's own lab.outcome / lab.subgroup / lab.covariates /
+  // lab.exclusion / lab.transform / reveal.tailsOne verbatim. Reword the
+  // sentence around it freely; do not drop a knob out of it.
   'legend.emojiSpec':
-    'Any specification change (outcome, subgroup, covariates, outlier exclusion, transform or one-tailed switch)',
+    'A fork: any change to the specification (outcome, subgroup, covariates, outlier exclusion, transform or one-tailed switch)',
   'legend.emojiSubgroup': 'Subgroup filter change',
   'legend.emojiExclusion': 'Outlier exclusion change',
   'legend.emojiTails': 'Switched to one-tailed',
@@ -964,14 +1436,24 @@ export const copy: Record<CopyKey, string> = {
 
   'errors.workerCrash': "Something went wrong generating today's puzzle. Reloading usually fixes it.",
   'errors.storageOff': "Your browser is blocking local storage, so progress won't be saved between visits.",
+  // gr6-007 — the control `errors.workerCrash` has always promised. One word,
+  // because the sentence above it already said what pressing it does.
+  'errors.reload': 'Reload',
 
   // T37 (audit §5.4, adopted as a value change): this labels a role="group"
   // (App.tsx's LocaleToggle), not a button. A group label NAMES the group; it
   // is not an action. 'Change language' had a screen reader announcing
-  // "Change language, group". nav.localeToggle already holds exactly this
-  // word, in every locale.
+  // "Change language, group".
+  // gr6-026: this used to point at nav.localeToggle for the same word. That
+  // key is gone (dead: the visible control is a pair of endonym buttons, and
+  // nothing ever rendered it), so this key now owns the word outright.
   'a11y.localeToggle': 'Language',
-  'a11y.themeToggle': 'Change theme',
+  // GR6 gr6-067 / final-004: this labels a role="group" too (App.tsx's
+  // ThemeToggle), and it was an action phrase — a screen reader announced
+  // "Change theme, group". Exactly the WRONG-FUNCTION class T36/T37 fixed for
+  // the locale group one control to its right, missed because only one of the
+  // two was in that audit's scope. A group label NAMES its group.
+  'a11y.themeToggle': 'Theme',
   'a11y.backToGame': "P-hackle: back to today's puzzle",
   // T22 (value change): dropped "with your published specification
   // highlighted". It was false on the abandon path — nothing is published

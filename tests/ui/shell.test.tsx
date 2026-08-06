@@ -17,6 +17,7 @@ import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
 import { useReducedMotion } from '../../src/ui/hooks/useReducedMotion';
+import { copy as enCopy } from '../../src/content/en/copy';
 
 /**
  * jsdom has no matchMedia (brief note). This fakes one MediaQueryList per
@@ -312,7 +313,10 @@ describe('theme toggle', () => {
     );
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
 
-    const group = screen.getByRole('group', { name: 'Change theme' });
+    // W2/gr6-067: the group's accessible name is a11y.themeToggle, and it is
+    // now the noun 'Theme' -- looked up rather than retyped, so the next
+    // wording pass does not red a test about GROUPING.
+    const group = screen.getByRole('group', { name: enCopy['a11y.themeToggle'] });
     expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['Paper', 'Dark']);
   });
 });

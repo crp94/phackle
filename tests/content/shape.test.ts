@@ -4,6 +4,20 @@
 // — and therefore re-registering — this file's own tests. See gr6-106.
 import { describe, expect, it } from 'vitest';
 import { content as enContent } from '../../src/content/en';
+// w1b-003: the terminology-lock block at the bottom of this file was
+// EN-ONLY, which is the root cause of the whole w1b class — IT's and ES's
+// locks existed as source comments certifying constraints their own strings
+// did not satisfy, and nothing compiled the difference. Both locales are now
+// under the same assertions, so this class of drift is caught rather than
+// re-found. The per-locale suites keep everything that needs a lexicon; what
+// belongs here is what is CROSS-LOCALE by nature: a term that must be
+// identical to its own About page, and a notation that must be identical to
+// English.
+import { content as itContent } from '../../src/content/it';
+import { content as esContent } from '../../src/content/es';
+import { copy as enCopy } from '../../src/content/en/copy';
+import { NULL_SIG_BAND } from '../../src/game/tuning';
+import { allSpecs } from '../../src/engine/specGrid';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 import {
@@ -510,5 +524,259 @@ describe('GR6 W1 — the reveal accounting keys carry exactly the tokens the scr
     const value = enContent.copy['reveal.accounting1Effect'];
     expect(value).not.toMatch(/by chance alone/i);
     expect(value).toMatch(/p-value/);
+  });
+
+  // w1b-008: W1's review forced two WORDING fixes that nothing pins, so they
+  // could be undone by a future pass with a green suite. Both are about the
+  // same discipline — the game may not assert more than it knows.
+  it('keeps r-003\'s single-p-value hedge, which Fig. 2\'s caption contradicts as an absolute', () => {
+    // "Nothing in a p-value distinguishes the two" collided with
+    // reveal.groupedCaption ("Real effects cluster. Noise scatters.") two
+    // blocks below on the SAME screen, over the figure the code calls the most
+    // important educational graphic in the game. It is ONE p-value, read
+    // alone, that cannot tell them apart.
+    expect(enContent.copy['reveal.accounting1Effect']).toMatch(/A single p-value/);
+    expect(enContent.copy['reveal.accounting1Effect']).not.toMatch(/Nothing in a p-value/i);
+    // The caption it must not contradict is still the one it was reconciled
+    // against; if that moves, this pin should be re-read rather than deleted.
+    expect(enContent.copy['reveal.groupedCaption']).toMatch(/cluster/i);
+  });
+
+  it('keeps r-004\'s conditional, because the engine never measures how the player searched', () => {
+    // The first draft asserted "you did not search at random: you followed the
+    // p-value" as a fact about the player, while gating only on
+    // `mode === 'hack' && playerExplored > 1`. Same defect class as gr6-096.
+    const value = enContent.copy['reveal.accounting3Directed'];
+    expect(value).toMatch(/^If you followed the p-value,/);
+    expect(value).not.toMatch(/You did not search at random/);
+  });
+});
+
+// --- w1b-003 / w1b-004: the cross-locale locks, compiled for all three ------
+
+describe('GR6 W2 — terminology and notation locks hold in every locale, not just English', () => {
+  const LOCALES = [
+    // The lock is per locale: each catalog's accounting line must name the
+    // confound in ITS OWN About page's words, because that is the only sense
+    // in which "the same term" means anything to a reader of that language.
+    // `retiredTerm` and `streakTerm` are the same idea for gr6-028 and
+    // gr6-031 — a rule about vocabulary, whose vocabulary is per language.
+    {
+      name: 'en',
+      content: enContent,
+      confound: 'confounded with age and income',
+      retiredTerm: /\breveal(s|ed|ing)?\b/i,
+      streakTerm: 'streak',
+      armitageCondition: /five equal batches of data/,
+      secondPerson: /\byour\b/i,
+    },
+    {
+      name: 'it',
+      content: itContent,
+      confound: 'confondimento da età e reddito',
+      retiredTerm: /rivelazion/i,
+      streakTerm: 'Serie',
+      armitageCondition: /cinque lotti uguali di dati/,
+      secondPerson: /\b(tuo|tua|tuoi|tue)\b/i,
+    },
+    {
+      name: 'es',
+      content: esContent,
+      confound: 'confundido con la edad y la renta',
+      retiredTerm: /revelaci/i,
+      streakTerm: 'Racha',
+      armitageCondition: /cinco lotes iguales de datos/,
+      secondPerson: /\btus?\b/i,
+    },
+  ] as const;
+
+  it.each(LOCALES)('$name: reveal.accounting1 names the confound in about.mechanism\'s exact words', ({ content, confound }) => {
+    expect(content.copy['about.mechanism']).toContain(confound);
+    expect(content.copy['reveal.accounting1']).toContain(confound);
+  });
+
+  it.each(LOCALES)('$name: reveal.accounting1 never blames chance alone, and never blames the confound for the count', ({ content }) => {
+    const value = content.copy['reveal.accounting1'];
+    // The retracted overclaim in each locale's own words — the shapes it could
+    // plausibly come back as, not a translation of one English phrase.
+    expect(value).not.toMatch(/by chance alone|per puro caso|por puro azar/i);
+    expect(value).not.toMatch(
+      /the rest are confounding|le altre sono confondimento|el resto viene de la confusión/i
+    );
+    // It must still say the threshold does this on its own: the one claim
+    // measurement supports, and the sentence About was written to agree with.
+    expect(value).toMatch(/on its own|da sola|por sí solo/i);
+  });
+
+  // w1b-004 — NOTATION IS IDENTICAL, not merely similar. `legend.significant`
+  // renders inside Fig. 1 one block above reveal.accounting1's own threshold,
+  // so a locale drifting to `p < .05` would put both forms on one screen —
+  // gr3-015's defect in its sharpest possible form, which is exactly how it
+  // was found. `toBe` rather than a regex: this is a notation string, and the
+  // IT/ES suites' SHARED_WITH_EN rosters already claim it is shared.
+  it.each(['legend.significant', 'lab.pBelow', 'reveal.pValueTiny', 'reveal.pValue', 'lab.pEquals'] as const)(
+    '%s is byte-identical in it and es (notation is not prose)',
+    (key) => {
+      expect(itContent.copy[key]).toBe(enCopy[key]);
+      expect(esContent.copy[key]).toBe(enCopy[key]);
+    }
+  );
+
+  // w2-r-005: the first version of this regex required TWO digits after the
+  // point and a word boundary after them, so it caught `p < .05` and missed
+  // `p = .049` — including inside about.decimalNote, the string whose whole
+  // job is to promise the leading zero. Broadened to "a point that starts a
+  // number and is not itself preceded by a word character or another point",
+  // which is the actual rule. Measured against all three catalogs: zero false
+  // positives (`0.05`, `|z| > 2.5`, `Fig. 1`, `Vol. 1, No. 11`, `et al.`, a
+  // full stop followed by a space and a digit — none match).
+  //
+  // SCOPE IS THE COPY CATALOG, deliberately. Sweeping the scenario corpus too
+  // would fire on one string per locale, and it is the same joke each time:
+  // Grantwell's "a p-value of .06 is just a p-value of .05 with poor time
+  // management". That is a character writing sloppily in an email, not the
+  // app's own notation, and `src/content/*/index.ts` is W3's file. BOOKED FOR
+  // W3 with that reading attached, not silently swept here.
+  it('every locale writes a decimal with its leading zero', () => {
+    const LEADING_ZERO = /(?<![\d\w.])\.\d/;
+    for (const { name, content } of LOCALES) {
+      const offenders = Object.entries(content.copy).filter(([, v]) => LEADING_ZERO.test(v));
+      expect(offenders, `${name} has a decimal without its leading zero`).toEqual([]);
+    }
+  });
+
+  // --- w2-r-003: the three contract locks this wave WROTE but did not compile.
+  // Each one is a rule a source comment states as binding; a rule that is only
+  // stated is the exact shape of defect w1b-003 was the root cause of, and the
+  // reviewer confirmed all three by reverting them against a green suite.
+
+  it.each(LOCALES)('$name: no value calls the last screen "the reveal" (gr6-028)', ({ content, retiredTerm }) => {
+    // The term is retired from PLAYER COPY only. The `reveal.` key prefix is
+    // developer vocabulary in a place only developers read, so this scans
+    // values and never keys.
+    const offenders = Object.entries(content.copy).filter(([, v]) => retiredTerm.test(v));
+    expect(offenders).toEqual([]);
+  });
+
+  // w2-r-001 — THE ARMITAGE FOOTNOTE IS ABOUT A DESIGN, NOT ABOUT THE PLAYER.
+  // Owner ruling (b) inserted "equally spaced" on a premise measurement
+  // falsified: N_SCHEDULE IS equally spaced (Δn = 50) and still inflates to
+  // 11.2%, not 14.2%, because the condition the citation's number depends on
+  // is equal FRACTIONS OF TOTAL INFORMATION. The controller re-ruling
+  // therefore states the citation's own condition, impersonally.
+  //
+  // The second-person ban is a CORRECTNESS pin, not a style one: addressed to
+  // the player, "five" is unreachable (N_SCHEDULE allows four peeks, and the
+  // footnote only appears from the second), and the readership's real
+  // inflation is 8.7-11.2%. Simplifying this back toward "your five peeks"
+  // reintroduces exactly the false claim the re-ruling removed.
+  it.each(LOCALES)('$name: the Armitage footnote names the citation\'s condition and never addresses the player (w2-r-001)', ({ content, armitageCondition, secondPerson }) => {
+    const value = content.copy['lab.peekFootnoteArmitage'];
+    expect(value).toMatch(armitageCondition);
+    expect(value).not.toMatch(secondPerson);
+    expect(value).not.toMatch(/equally spaced|equidistant|equidistanti|equidistantes/i);
+    // The figure and the citation are the two things ruling (b) required to
+    // survive every rewrite of this string.
+    expect(value).toContain('14%');
+    expect(value).toContain('(Armitage, 1969)');
+    // Notation follows the same law as everything else since gr6-027.
+    expect(value).toContain('α = 0.05');
+  });
+
+  it.each(LOCALES)('$name: the streak has ONE name, in all four places that name it (gr6-031)', ({ content, streakTerm }) => {
+    // summary.streak / stats.currentStreak / stats.maxStreak / share.streakWord.
+    // IT and ES each carried two names, one tap apart, after T37 re-authored
+    // two of the four and never cross-checked them.
+    const keys = ['summary.streak', 'stats.currentStreak', 'stats.maxStreak', 'share.streakWord'] as const;
+    const offenders = keys.filter((k) => !content.copy[k].toLowerCase().includes(streakTerm.toLowerCase()));
+    expect(offenders).toEqual([]);
+  });
+});
+
+// --- gr6-004: About's rejection-sampler disclosure quotes real constants ----
+
+describe('GR6 gr6-004 — About discloses the acceptance band, in numbers the engine actually uses', () => {
+  const [LO, HI] = NULL_SIG_BAND;
+  // w2-r-004 — the first version of this guard was CONTAINMENT-ONLY: it asked
+  // whether the digits 30, 180 and 1792 appeared somewhere in the paragraph.
+  // The reviewer broke it twice against a green suite — swapping the
+  // threshold to `p < 0.01` (the numbers all still appeared) and inverting the
+  // band's sense to "between 180 and 30" (ditto). A guard on a disclosure has
+  // to pin the RELATION, so each locale now supplies the exact span its own
+  // grammar builds, assembled from the constants rather than typed out.
+  const LOCALES = [
+    {
+      name: 'en',
+      content: enContent,
+      band: new RegExp(`between ${LO} and ${HI} of the ${allSpecs().length} `),
+      openingSample: /in the opening sample of 200\b/,
+      effectGate: /both in that opening sample and in the full sample of 400\b/,
+      drift: /checked at 200 and nowhere else/,
+      redraw: /redrawn/,
+    },
+    {
+      name: 'it',
+      content: itContent,
+      band: new RegExp(`fra ${LO} e ${HI} delle ${allSpecs().length} `),
+      openingSample: /sul campione iniziale di 200\b/,
+      effectGate: /sia su quel campione iniziale sia sul campione completo di 400\b/,
+      drift: /controllata a 200 e da nessun'altra parte/,
+      redraw: /riestratta/,
+    },
+    {
+      name: 'es',
+      content: esContent,
+      band: new RegExp(`entre ${LO} y ${HI} de los ${allSpecs().length} `),
+      openingSample: /en la muestra inicial de 200\b/,
+      effectGate: /tanto en esa muestra inicial como en la muestra completa de 400\b/,
+      drift: /se comprueba en 200 y en ningún otro sitio/,
+      redraw: /se vuelve a sortear/,
+    },
+  ] as const;
+
+  it.each(LOCALES)('$name: states the band as a span, in the right order, over the real grid size', ({ content, band }) => {
+    const value = content.copy['about.mechanism'];
+    // Ordered span assembled from NULL_SIG_BAND and allSpecs().length: a
+    // constant that moves, or a sentence that reverses, fails here.
+    expect(value).toMatch(band);
+    // No thousands separator on the grid size, in any locale.
+    expect(value).not.toMatch(/1[.,]792/);
+  });
+
+  it.each(LOCALES)('$name: the band is stated against the SAME threshold the Legend prints', ({ content }) => {
+    // Notation is locale-invariant (SHARED_WITH_EN), so English's own
+    // legend.significant is the right source for all three. This is what makes
+    // "p < 0.01 in About, p < 0.05 on the figure" impossible.
+    expect(content.copy['about.mechanism']).toContain(enCopy['legend.significant']);
+  });
+
+  // w2-r-002 / w2-r-008 — the band binds at n=200 and the reveal enumerates at
+  // state.n, so a peeking player can be shown a count outside it (measured:
+  // 8 of 21 accepted null days at n=400, one of them 37 -> 5). The sentence
+  // must carry its own n, must disclose that the count moves, and must name
+  // both halves of the effect-day gate rather than only the 400 one.
+  it.each(LOCALES)('$name: scopes the band to the opening sample, and says the count moves', ({ content, openingSample, drift }) => {
+    const value = content.copy['about.mechanism'];
+    expect(value).toMatch(openingSample);
+    expect(value).toMatch(drift);
+  });
+
+  it.each(LOCALES)('$name: discloses BOTH halves of the effect-day gate', ({ content, effectGate }) => {
+    expect(content.copy['about.mechanism']).toMatch(effectGate);
+  });
+
+  it.each(LOCALES)('$name: names the redraw, so "everything under the hood is real" is not left doing the work alone', ({ content, redraw }) => {
+    expect(content.copy['about.mechanism']).toMatch(redraw);
+  });
+
+  it('agrees with reveal.accounting1 rather than restating it: the band is around what the threshold does alone', () => {
+    // The controller note on the W1 review: gr6-004 must be written
+    // consistently with the merged accounting1. Both sentences now attribute
+    // the count to the threshold, in each locale's own words, and About adds
+    // the band around it.
+    for (const { name, content } of LOCALES) {
+      expect(content.copy['about.mechanism'], `${name} About`).toMatch(/on its own|da sola|por sí solo/i);
+      expect(content.copy['reveal.accounting1'], `${name} accounting1`).toMatch(/on its own|da sola|por sí solo/i);
+    }
   });
 });

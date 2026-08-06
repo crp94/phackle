@@ -332,8 +332,13 @@ describe('Spanish copy catalog', () => {
   });
 
   it('preserves every interpolation token, and repeats none of them', () => {
-    // t() substitutes with String.replace, which rewrites the FIRST occurrence
-    // only, so a translation that repeats {n} would render the second one raw.
+    // gr6-086 / gr1b-024: this comment used to say t() "rewrites the FIRST
+    // occurrence only". It does not — src/i18n/t.ts:33 is a global regex, so
+    // t() replaces every occurrence and a repeat would render the value twice
+    // rather than raw. The no-repeat half of this assertion stays for the two
+    // real reasons the file header now states: several call sites interpolate
+    // with a LITERAL String.replace and do only the first, and the set
+    // comparison on the line below cannot see a duplicate at all.
     for (const key of Object.keys(enCopy) as (keyof typeof enCopy)[]) {
       const expected = tokensOf(enCopy[key]);
       const actual = tokensOf(esCopy[key]);
@@ -360,6 +365,84 @@ describe('Spanish copy catalog', () => {
     for (const key of sampled) {
       expect(esCopy[key], key).not.toBe(enCopy[key]);
     }
+  });
+
+  // W2 — the spot check above samples six keys. Italian has always had the
+  // EXHAUSTIVE version of this (it.shape.test.ts's SHARED_WITH_EN roster);
+  // Spanish never did, so 220-odd keys were covered by a six-key sample and an
+  // English value left in place anywhere else would have shipped. Same shape
+  // as Italian's, with this locale's own roster: a value identical to English
+  // is a claim that the string is NOTATION, a PROPER NOUN or a SYMBOL, and
+  // that claim now has to be made here rather than assumed.
+  it('leaves nothing else in English: every other value differs from its English source', () => {
+    const SHARED_WITH_EN = new Set([
+      'nav.title',
+      // Endonyms: a language names itself in itself, so the value is the same
+      // string in all three catalogs by design (see the EN union's own note).
+      'nav.localeNameEn',
+      'nav.localeNameIt',
+      'nav.localeNameEs',
+      // The joke's realism depends on him being the same Prof. Grantwell in
+      // every language.
+      'briefing.emailFrom',
+      // Notation and symbols (header rule 2 / rule 8). Identical by law, and
+      // separately asserted byte-identical in shape.test.ts's cross-locale
+      // block for the five p-notation keys.
+      'lab.nLabel',
+      'lab.covariatesBoth',
+      'lab.exclusionZ3',
+      'lab.exclusionZ2_5',
+      'lab.exclusionZ2',
+      'lab.transformLog1p',
+      'lab.pEquals',
+      'lab.pBelow',
+      'published.doiPrefix',
+      'reveal.pValue',
+      'reveal.pValueTiny',
+      'reveal.exclusionZ3',
+      'reveal.exclusionZ25',
+      'reveal.exclusionZ2',
+      'reveal.transformLog',
+      'reveal.fig1',
+      'reveal.fig2',
+      'legend.significant',
+      'stats.noData',
+      // Spanish and English spell this one the same. It is a real Spanish
+      // word in the compact recipe register, not an untranslated leak — the
+      // Lab's own label ('Zona rural') is translated and differs.
+      'reveal.subgroupRural',
+    ]);
+
+    const untranslated = (Object.keys(enCopy) as (keyof typeof enCopy)[]).filter(
+      (k) => !SHARED_WITH_EN.has(k) && esCopy[k] === enCopy[k]
+    );
+    expect(untranslated).toEqual([]);
+  });
+});
+
+describe('Spanish calque bans (the ones this locale has actually shipped)', () => {
+  // w2-r-003 / gr6-032 — *la clave* was not a hypothetical risk: this locale
+  // shipped it, on the one key whose ENGLISH source comment names the trap
+  // ("'key' for a chart legend has no cognate in either target language"). In
+  // Spanish *la clave* is the answer or the cipher, so the sentence promised a
+  // solution rather than a glossary. The rewrite is only half a fix while the
+  // rule that motivated it lives in a comment, which is what let it ship the
+  // first time.
+  //
+  // Scoped to *la/una clave* as a NOUN PHRASE rather than the bare stem:
+  // "clave" is an ordinary Spanish adjective ("una pieza clave") and a legal
+  // noun elsewhere; the calque is specifically the definite noun phrase used
+  // as "the answer".
+  const CLAVE_CALQUE = /\b(la|una|las|unas)\s+claves?\b/i;
+
+  it('never sends the player to look for "la clave"', () => {
+    const offenders = Object.entries(esCopy).filter(([, v]) => CLAVE_CALQUE.test(v));
+    expect(offenders).toEqual([]);
+  });
+
+  it('guards the guard: catches the exact sentence this locale shipped, and spares the adjective', () => {
+    expect('Cada símbolo es un movimiento que hiciste. La clave está en la página Leyenda.').toMatch(CLAVE_CALQUE);
+    expect('una pieza clave del análisis').not.toMatch(CLAVE_CALQUE);
   });
 });
 
