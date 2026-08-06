@@ -24,13 +24,17 @@ import {
   generatePractice,
   hashCurve,
   hashRows,
+  LAB_DEFAULT_SPEC,
+  labDefaultGateApplies,
   pickBestEffectAttempt,
+  preferCleanDefault,
 } from '../../src/engine/day';
+import { DEFAULT_SPEC as STORE_DEFAULT_SPEC } from '../../src/game/store';
 import { fnv1a32 } from '../../src/engine/prng';
 import { daySeed } from '../../src/engine/seeds';
 import { puzzleNumber as gamePuzzleNumber } from '../../src/game/daily';
 import { MAX_ATTEMPTS, NULL_SIG_BAND } from '../../src/game/tuning';
-import { enumerateCurve, sigCount } from '../../src/engine/specGrid';
+import { enumerateCurve, sigCount, specKey } from '../../src/engine/specGrid';
 import type { CurvePoint } from '../../src/engine/specGrid';
 import type { PathResult, Spec } from '../../src/engine/types';
 
@@ -93,6 +97,46 @@ describe('generateDay — determinism', () => {
   });
 });
 
+// --- the lab default: one spec, two files (GR6 §1(d)) ---
+
+describe('LAB_DEFAULT_SPEC', () => {
+  it("is byte-for-byte src/game/store.ts's DEFAULT_SPEC — the spec a player actually starts on", () => {
+    // Same class of duplication, and the same reason, as the puzzleNumber
+    // cross-check above: engine purity lets src/engine/** import
+    // src/game/tuning.ts and nothing else from the game layer, and the store is
+    // a zustand store. The §1(d) acceptance gate is only meaningful if the spec
+    // it judges IS the one the Lab opens on, so the mirror is pinned here
+    // rather than trusted. A field added to one and not the other fails this.
+    expect(LAB_DEFAULT_SPEC).toEqual(STORE_DEFAULT_SPEC);
+    expect(Object.keys(LAB_DEFAULT_SPEC).sort()).toEqual(Object.keys(STORE_DEFAULT_SPEC).sort());
+  });
+});
+
+describe('labDefaultGateApplies — the boundary of §1(d)\'s one documented exception', () => {
+  it('applies on every null day (the trueOutcome argument cannot except one)', () => {
+    expect(labDefaultGateApplies('null', null)).toBe(true);
+    // A null day carrying a stray trueOutcome is not a thing day.ts builds,
+    // but the signature admits it and the exception must still not fire: it is
+    // an EFFECT-day exception, and reading it as "outcome 0" alone would
+    // silently exempt a quarter of the null days from the gate.
+    expect(labDefaultGateApplies('null', 0)).toBe(true);
+  });
+
+  it("does NOT apply on an effect day whose true outcome is the lab default's own", () => {
+    expect(labDefaultGateApplies('effect', LAB_DEFAULT_SPEC.outcome)).toBe(false);
+  });
+
+  it('applies on every other effect day — the false-positive-in-one-tap case §1(d) exists for', () => {
+    for (const outcome of [1, 2, 3] as const) {
+      expect(labDefaultGateApplies('effect', outcome)).toBe(true);
+    }
+    // and on an effect day with no true outcome recorded at all (verdictStamp
+    // resolves that case explicitly too): nothing to be the day's own truth,
+    // so nothing to except.
+    expect(labDefaultGateApplies('effect', null)).toBe(true);
+  });
+});
+
 // --- acceptance guarantee over 30 consecutive real calendar days (§3.3) ---
 
 describe('generateDay — acceptance guarantee over 30 consecutive days', () => {
@@ -112,6 +156,20 @@ describe('generateDay — acceptance guarantee over 30 consecutive days', () => 
       // an always-false field would pass here and fail there.
       expect(puzzle.capExhausted).toBe(false);
 
+      // GR6 §1(d) (gr2-013): on every day the gate applies to, the accepted
+      // day's LAB DEFAULT must not be significant at N=200. Before this
+      // predicate the measured rate over 120 consecutive real dates was 14/120
+      // (11.7%), and on such a day Act I is one tap with an empty fork trail.
+      // Asserted on null AND effect days here (not just null), so a predicate
+      // silently scoped back to one day type fails; the ONE documented
+      // exception is read from labDefaultGateApplies itself rather than
+      // re-spelled, so the test and the code can only disagree about the
+      // exception by disagreeing about that function.
+      if (labDefaultGateApplies(puzzle.dayType, puzzle.trueOutcome ?? null)) {
+        const defaultResult = runSpec(data, LAB_DEFAULT_SPEC, 200);
+        expect(defaultResult.valid && defaultResult.p < 0.05).toBe(false);
+      }
+
       if (puzzle.dayType === 'null') {
         expect(puzzle.trueOutcome).toBeUndefined();
         const sig = sigCount(enumerateCurve(data, 200));
@@ -126,6 +184,53 @@ describe('generateDay — acceptance guarantee over 30 consecutive days', () => 
         expect(p400).toBeLessThan(0.05);
       }
     }
+  });
+});
+
+// --- gr6-009: the number the prereg copy quotes, measured here ------------
+
+describe('the prereg false-positive rate the reveal copy quotes (gr6-009 / ruling §1(a))', () => {
+  it('keeps `reveal.preregFalsePositive`\'s "about one in five" true of the lab default at N=400 on null days', () => {
+    // WHAT THIS DEFENDS. The copy used to say "about 5%". It is not 5%: a
+    // prereg commitment is judged at the FULL sample (store.ts's preregCommit
+    // walks the whole N_SCHEDULE before its one runSpec), and X is assigned
+    // from the same latents Y1 loads on, so the plain default spec — the one
+    // the prereg form opens on — rejects far above alpha on days with no
+    // effect at all. Re-measured for W11 over 591 accepted null days (the
+    // calibration population plus 120 real dates): 18.6% and 25.3%, pooled
+    // 19.6%. The string now says "about one in five", and this is the assertion
+    // that makes that a measurement rather than a claim.
+    //
+    // THE WINDOW AND THE BAND. 90 consecutive dates (68 of them null on this
+    // seed set) measure 25.0%, se 5.3pp. The band is deliberately wide — this
+    // is a guard against the copy going stale, not a pin on a sample statistic
+    // — but both edges bite: at 0.10 the copy's "one in five" would be an
+    // overstatement worth rewording, and at 0.35 an understatement. A DGP or
+    // acceptance change that moves the rate out of it must re-measure the
+    // three locales' strings in the same commit.
+    //
+    // COST. One regression per date, no curve enumeration: this runs in
+    // milliseconds, which is why it can afford 90 real days.
+    const dates = consecutiveIsoDates('2026-09-01', 90);
+    let nullDays = 0;
+    let significant = 0;
+    for (const iso of dates) {
+      const { puzzle, data } = generateDay(iso, SCENARIO_COUNT);
+      if (puzzle.dayType !== 'null') continue;
+      nullDays++;
+      const result = runSpec(data, LAB_DEFAULT_SPEC, 400);
+      if (result.valid && result.p < 0.05) significant++;
+    }
+
+    expect(nullDays).toBeGreaterThan(50); // the sample is real, not a rounding
+    const rate = significant / nullDays;
+    expect(rate, `reveal.preregFalsePositive quotes "about one in five"; measured ${significant}/${nullDays}`)
+      .toBeGreaterThan(0.1);
+    expect(rate, `reveal.preregFalsePositive quotes "about one in five"; measured ${significant}/${nullDays}`)
+      .toBeLessThan(0.35);
+    // ...and it is emphatically not the 5% the string used to claim, which is
+    // the assertion the whole ruling turns on.
+    expect(rate).toBeGreaterThan(0.05 * 2);
   });
 });
 
@@ -145,6 +250,56 @@ describe('best-attempt fallback — direct unit tests of the scoring helpers', (
     });
     it('is the gap above the band when over it', () => {
       expect(bandDistance(200, [30, 180])).toBe(20);
+    });
+  });
+
+  describe('preferCleanDefault (§1(d)\'s cap preference)', () => {
+    it('keeps only the attempts whose lab default is non-significant when any exist', () => {
+      const candidates = [
+        { attempt: 0, defaultSig: true },
+        { attempt: 1, defaultSig: false },
+        { attempt: 2, defaultSig: true },
+        { attempt: 3, defaultSig: false },
+      ];
+      expect(preferCleanDefault(candidates)).toEqual([candidates[1], candidates[3]]);
+    });
+
+    it('returns every candidate, in order, when the gate rejected all of them', () => {
+      // The "can never be worse than before §1(d)" property: with nothing clean
+      // to prefer, the day type's own tie-break must still see the whole field.
+      const candidates = [
+        { attempt: 0, defaultSig: true },
+        { attempt: 1, defaultSig: true },
+      ];
+      expect(preferCleanDefault(candidates)).toEqual(candidates);
+    });
+
+    it('returns every candidate when the gate never applied (no attempt is marked)', () => {
+      const candidates = [
+        { attempt: 0, defaultSig: false },
+        { attempt: 1, defaultSig: false },
+      ];
+      expect(preferCleanDefault(candidates)).toEqual(candidates);
+    });
+
+    it('preserves attempt order, so the downstream tie-breaks still keep the earliest attempt', () => {
+      const candidates = [
+        { attempt: 0, defaultSig: true },
+        { attempt: 1, defaultSig: false },
+        { attempt: 2, defaultSig: false },
+      ];
+      expect(preferCleanDefault(candidates).map((c) => c.attempt)).toEqual([1, 2]);
+    });
+
+    it('composes with pickBestEffectAttempt: a clean attempt wins over a better-scoring dirty one', () => {
+      // The composition IS the effect-day fallback (see acceptEffectDay), and
+      // it is the composition that carries the ruling: attempt 0 has both the
+      // smallest p400 and a qualifying p200, and still must not be chosen.
+      const candidates = [
+        { attempt: 0, p200: 0.01, p400: 0.001, defaultSig: true },
+        { attempt: 1, p200: 0.1, p400: 0.04, defaultSig: false },
+      ];
+      expect(pickBestEffectAttempt(preferCleanDefault(candidates))).toEqual(candidates[1]);
     });
   });
 
@@ -372,19 +527,44 @@ describe('null-day precheck gates enumerateCurve', () => {
         // independent of whether the real underlying data's fixed
         // 256-subsample happens to contain a hit. Both entry points are
         // mocked for the reason given in the sibling test above (gr6-046).
-        runSpecCore: (): SpecCore => ({
-          n: 200,
-          beta: 1,
-          se: 0.1,
-          t: 8,
-          p: 0.0001,
-          ci: [0, 0],
-          excludedCount: 0,
-          valid: true,
-          filteredIdx: [],
-          transformedY: new Float64Array(0),
-          keptLocal: [],
-        }),
+        //
+        // §1(d): the mock is now SPEC-AWARE, because the same runSpecCore
+        // entry point serves two gates that want opposite verdicts here. The
+        // lab default has to come back NON-significant (otherwise §1(d)
+        // rejects the attempt before the precheck runs, and this test would
+        // "pass" its enumerateCurve assertion for the wrong reason -- or
+        // rather fail it, which is exactly how the ordering was verified);
+        // every other spec comes back significant so the precheck passes on
+        // its first probe. Keyed on specKey, never on object identity: day.ts
+        // builds its own object.
+        runSpecCore: (_data: unknown, spec: Spec): SpecCore =>
+          specKey(spec) === specKey(LAB_DEFAULT_SPEC)
+            ? {
+                n: 200,
+                beta: 0,
+                se: 1,
+                t: 0.1,
+                p: 0.9,
+                ci: [0, 0],
+                excludedCount: 0,
+                valid: true,
+                filteredIdx: [],
+                transformedY: new Float64Array(0),
+                keptLocal: [],
+              }
+            : {
+                n: 200,
+                beta: 1,
+                se: 0.1,
+                t: 8,
+                p: 0.0001,
+                ci: [0, 0],
+                excludedCount: 0,
+                valid: true,
+                filteredIdx: [],
+                transformedY: new Float64Array(0),
+                keptLocal: [],
+              },
         runSpec: (): PathResult => ({
           spec: {} as Spec,
           n: 200,
@@ -482,6 +662,15 @@ describe('generatePractice', () => {
       const { puzzle, data } = generatePractice(seed, SCENARIO_COUNT);
       expect(puzzle.attemptUsed).toBeGreaterThanOrEqual(0);
       expect(puzzle.attemptUsed).toBeLessThan(MAX_ATTEMPTS);
+
+      // §1(d) holds on the practice path too -- which matters beyond practice
+      // mode itself: scripts/simulate_calibration.ts builds all 1,000 of its
+      // days through generatePractice, so a gate that held only in
+      // generateDay would be certified by a suite that never ran it.
+      if (labDefaultGateApplies(puzzle.dayType, puzzle.trueOutcome ?? null)) {
+        const practiceDefault = runSpec(data, LAB_DEFAULT_SPEC, 200);
+        expect(practiceDefault.valid && practiceDefault.p < 0.05).toBe(false);
+      }
 
       if (puzzle.dayType === 'null') {
         const sig = sigCount(enumerateCurve(data, 200));
