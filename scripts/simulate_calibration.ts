@@ -143,7 +143,7 @@
 // seeded stream, so two runs of this script on the same tree produce
 // byte-identical output and a byte-identical p_hit_by_k.json.
 
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runSpec } from '../src/engine/analyze';
@@ -609,7 +609,46 @@ for (let k = 1; k <= P_HIT_MAX_K; k++) {
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const tablePath = join(scriptDir, '..', 'src', 'data', 'p_hit_by_k.json');
 const checksum = pHitTableChecksum();
-writeFileSync(tablePath, `${JSON.stringify({ checksum, pHit }, null, 2)}\n`);
+
+/**
+ * GR6 gr6-119 — `npm run cal` READS AS A VERIFICATION AND USED TO BEHAVE AS A
+ * GENERATOR.
+ *
+ * It unconditionally rewrote `src/data/p_hit_by_k.json`, a TRACKED source
+ * file. Harmless in practice — the whole script is seeded, so a clean tree
+ * regenerates byte-identically (`git status --short` empty afterwards, itself
+ * a genuine determinism confirmation) — but an owner who runs it to check a
+ * band and then `git add -A`s ships a silently regenerated table.
+ *
+ * So the default is now VERIFY: recompute the table, compare it against the
+ * committed bytes, and fail the run if they differ. `npm run cal -- --write`
+ * is the regeneration mode, which is what a deliberate DGP/tuning change uses
+ * (and what the §3.9 workflow uploads). CI runs the default and additionally
+ * asserts `git diff --exit-code src/data/p_hit_by_k.json`, so "the table is
+ * stale" becomes a red run here instead of a checksum throw at app boot in
+ * front of a player (`assertPHitTable` in src/engine/reveal.ts).
+ */
+const WRITE_TABLE = process.argv.includes('--write');
+const tableJson = `${JSON.stringify({ checksum, pHit }, null, 2)}\n`;
+let tableStatus: string;
+let tableStale = false;
+if (WRITE_TABLE) {
+  writeFileSync(tablePath, tableJson);
+  tableStatus = `WROTE ${tablePath} (--write)`;
+} else {
+  let committed: string | null;
+  try {
+    committed = readFileSync(tablePath, 'utf8');
+  } catch {
+    // Never generated (a fresh clone of a tree that lost the artifact) counts
+    // as stale, not as "nothing to compare".
+    committed = null;
+  }
+  tableStale = committed !== tableJson;
+  tableStatus = tableStale
+    ? `STALE — ${tablePath} does NOT match this run; regenerate with \`npm run cal -- --write\``
+    : `verified ${tablePath} (unchanged; re-run with \`-- --write\` to regenerate)`;
+}
 
 // ---- report ----
 
@@ -896,7 +935,7 @@ for (const candidate of [
 console.log('');
 
 console.log('P_HIT TABLE (P(>=1 significant path | k explored at random), null days)');
-console.log(`  wrote ${tablePath}`);
+console.log(`  ${tableStatus}`);
 console.log(`  checksum ${checksum} · ${nullDays.length} days x ${SUBSET_DRAWS_PER_DAY} draws = ${totalDraws} samples`);
 const shown = [1, 2, 3, 4, 5, 7, 10, 14, 20, 30, 40];
 console.log(`  k      ${shown.map((k) => String(k).padStart(6)).join('')}`);
@@ -904,15 +943,25 @@ console.log(`  pHit   ${shown.map((k) => pHit[k].toFixed(3).padStart(6)).join(''
 console.log('');
 
 const failed = bands.filter((b) => b.asserted && !b.pass);
-if (failed.length > 0) {
+if (failed.length > 0 || tableStale) {
   console.log(line);
-  console.log(`CALIBRATION FAILED — ${failed.length} band(s) out of target: ${failed.map((b) => b.id).join(', ')}`);
-  for (const band of failed) {
-    console.log(`  (${band.id}) ${band.what}: measured ${fixed(band.measured)}, target ${band.target}`);
+  if (failed.length > 0) {
+    console.log(`CALIBRATION FAILED — ${failed.length} band(s) out of target: ${failed.map((b) => b.id).join(', ')}`);
+    for (const band of failed) {
+      console.log(`  (${band.id}) ${band.what}: measured ${fixed(band.measured)}, target ${band.target}`);
+    }
+  }
+  // gr6-119: a stale table is a failure of the same kind as a missed band —
+  // the tree no longer describes what the engine does — and it is the one the
+  // player would otherwise meet as a thrown checksum on the reveal screen.
+  if (tableStale) {
+    console.log(`CALIBRATION FAILED — ${tablePath} is stale: this run's p_hit table is not the committed one.`);
+    console.log('  Regenerate deliberately with `npm run cal -- --write`, then commit the diff.');
   }
   console.log(line);
   process.exit(1);
 }
 console.log(line);
-console.log(`CALIBRATION PASSED — all ${bands.length} §3.9 bands within target. (§8.3: the balance sheet balances.)`);
+console.log(`CALIBRATION PASSED — all ${bands.length} §3.9 bands within target, p_hit table verified.`);
+console.log('(§8.3: the balance sheet balances.)');
 console.log(line);

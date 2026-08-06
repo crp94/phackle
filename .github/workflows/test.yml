@@ -7,6 +7,27 @@ on:
 permissions:
   contents: read
 
+# GR6 gr6-118. A push train used to run N full copies of this workflow that
+# immediately obsoleted each other; only the last one's answer is ever read.
+# Grouped per workflow AND per ref so a push to a branch never cancels main's
+# run, and vice versa.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ACTION PINNING — DECISION RECORDED, NOT LEFT UNSTATED (gr6-118).
+# `actions/checkout` and `actions/setup-node` are referenced by floating major
+# tag (@v4), not by commit SHA. SHA pinning defends against a compromised tag
+# being re-pointed at malicious code; the exposure it removes is proportional
+# to what a compromised job could reach. This repository is solo-owner, has NO
+# repository secrets, and every job runs with `permissions: contents: read`, so
+# the worst case is a poisoned build artifact that nothing publishes. Against
+# that, SHA pins cost a manual bump per action per release and go stale
+# silently. DECISION: floating major tags, first-party `actions/*` only, no
+# third-party actions anywhere in this directory (which is also why the
+# path-gate below is fifteen lines of bash rather than a marketplace filter).
+# Revisit the moment this repo gains a secret or a second maintainer.
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,3 +52,109 @@ jobs:
 
       - name: build
         run: npm run build
+
+      # GR6 gr6-116. `npm run build` succeeded and nothing read its output.
+      # This gzips every emitted asset, sums the initial-load set for one
+      # locale, prints the table either way and fails over a constant — see
+      # scripts/check-bundle.ts for why the budget has the headroom it has.
+      - name: bundle budget
+        run: npm run bundle
+
+  # GR6 gr6-055 — THE CALIBRATION SUITE NOW GATES A PUSH.
+  #
+  # calibration.yml's header claimed this suite was "expensive enough that it
+  # does not belong on every push". Measured on a clean clone at pinned Node:
+  # 42s unpinned, 33s on two cores (a runner's shape) — against `npm test` at
+  # 37.7s and `npm run e2e` at 15.8s plus its own build. It is the CHEAPEST of
+  # the three suites and it gets FASTER under core pressure, being
+  # single-threaded while parallel vitest suffers from contention. The premise
+  # was simply false, and `src/game/tuning.ts` and `src/engine/dgpConstants.ts`
+  # are exactly what a balance fix touches — so a band regression could land
+  # green and stay green for up to seven days on a cron nobody watches.
+  #
+  # Path-gated rather than unconditional: the four paths below are every input
+  # that can move a §3.9 band, so a copy edit or a CSS change does not pay 33s.
+  # The gate is hand-rolled bash on purpose — see the pinning decision above —
+  # and it FAILS SAFE: any situation where the base commit cannot be resolved
+  # (a new branch, a force push, a shallow fetch) runs calibration rather than
+  # skipping it. A gate that errs toward skipping is a gate that eventually
+  # skips the run that mattered.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      calibration: ${{ steps.filter.outputs.calibration }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: `git diff <base> <head>` needs both ends present, and
+          # the default depth-1 fetch has neither for anything but the tip.
+          fetch-depth: 0
+
+      - name: which paths changed
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "no resolvable base commit — running calibration (fail safe: run, never skip)"
+            echo "calibration=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" "${{ github.sha }}")"
+          echo "changed files:"
+          echo "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^(src/engine/|src/data/|src/game/tuning\.ts$|scripts/simulate_calibration\.ts$)'; then
+            echo "calibration=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "calibration=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  calibration:
+    needs: changes
+    if: needs.changes.outputs.calibration == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      # `shell: bash` is REQUIRED here and is not decoration (the T24 lesson).
+      # scripts/simulate_calibration.ts exits 1 the moment an asserted §3.9 band
+      # misses. GitHub Actions' UNSPECIFIED default shell is `bash -e {0}` with
+      # NO `pipefail`, so without this line `npm run cal | tee …` would report
+      # `tee`'s (near-always-zero) exit code and a real band failure would show
+      # GREEN. An explicit `shell: bash` is what adds `-o pipefail`.
+      - name: calibration (5 bands, 500 null + 500 effect synthetic days)
+        shell: bash
+        run: npm run cal | tee calibration-report.txt
+
+      # GR6 gr6-119, second half. `npm run cal` VERIFIES by default: it
+      # recomputes the p_hit table, compares it to the committed bytes and exits
+      # 1 on drift, so a stale table is a red CI run instead of an
+      # `assertPHitTable` throw in front of a player mid-reveal. This guard is
+      # the belt to that brace — it proves the run left the tree untouched, and
+      # so it is what reds if the script ever regresses to writing
+      # unconditionally.
+      - name: the calibration run must not have rewritten a tracked file
+        run: git diff --exit-code src/data/p_hit_by_k.json
+
+      - name: upload calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-report
+          path: |
+            calibration-report.txt
+            src/data/p_hit_by_k.json
+          retention-days: 90

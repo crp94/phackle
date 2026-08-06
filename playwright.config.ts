@@ -58,6 +58,42 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
+
+    // GR6 gr6-048 — THE CROSS-REALM SUITE USED TO SHIP ONE ENGINE.
+    //
+    // Four engine headers assert that the allowed op set (+ - * / sqrt exp log
+    // on f64) makes every client on Earth compute the same numbers. Of that
+    // set, `Math.exp` and `Math.log` are the ONLY two ECMA-262 leaves
+    // implementation-approximated rather than exactly specified — V8,
+    // SpiderMonkey and JavaScriptCore each ship their own and may differ by
+    // 1 ULP. `Math.log` sits inside `gaussPair` (prng.ts), so a 1-ULP
+    // difference perturbs every value in the dataset by ~1e-16 relative:
+    // invisible in continuous output, but able in principle to flip a discrete
+    // decision that sits within ~1e-15 of a boundary (`x[i] > 0`, a tertile
+    // cut, a `Math.round`, or a spec's p crossing .05 at a NULL_SIG_BAND edge,
+    // which would change the accepted dataset outright).
+    //
+    // With only `Desktop Chrome` declared, determinism.spec.ts's "browser vs
+    // browser" arm was two Chromium contexts and its "browser vs Node" arm had
+    // V8 on BOTH sides. The one divergence that is actually possible was the
+    // one thing the suite could not observe. These two projects convert the
+    // assumption into evidence.
+    //
+    // SCOPED TO determinism.spec.ts ON PURPOSE. This matrix exists to answer a
+    // numerical question, not to become a three-engine rendering suite: the
+    // other specs assert layout, focus order and storage policy, whose
+    // legitimate per-engine differences would turn a determinism guard into a
+    // flake generator. Measured added CI cost: see README's workflow table.
+    {
+      name: 'firefox',
+      testMatch: /determinism\.spec\.ts$/,
+      use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: 'webkit',
+      testMatch: /determinism\.spec\.ts$/,
+      use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } },
+    },
   ],
 
   webServer: {

@@ -11,6 +11,16 @@ on:
 permissions:
   contents: read
 
+# GR6 gr6-118, and this is the workflow that made the finding: each run is a
+# production build plus a preview server plus the whole spec set, and a push
+# train of three commits used to run three of them to completion when only the
+# last one's verdict would ever be looked at.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Action pinning: see the recorded decision in test.yml.
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -24,8 +34,15 @@ jobs:
 
       - run: npm ci
 
-      - name: install chromium (+ OS deps)
-        run: npx playwright install --with-deps chromium
+      # GR6 gr6-048: three engines, not one. playwright.config.ts runs the full
+      # spec set on chromium and e2e/determinism.spec.ts additionally on firefox
+      # and webkit — `Math.exp`/`Math.log` are implementation-approximated in
+      # ECMA-262, so V8, SpiderMonkey and JavaScriptCore are the only three
+      # places the cross-realm claim can actually be tested. The two extra
+      # engines are a one-time download on a cold cache; the extra specs
+      # themselves measured +8s of suite time locally (27.6s -> 35.6s).
+      - name: install browsers (+ OS deps)
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: e2e (playwright test — builds + previews the app itself)
         run: npm run e2e

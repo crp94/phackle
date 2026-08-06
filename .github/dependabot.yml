@@ -1,0 +1,51 @@
+# GR6 gr6-118.
+#
+# `npm ci` reported "found 0 vulnerabilities" on the day the review ran, and
+# nothing whatsoever kept it that way — there was no dependabot config, no
+# audit step and no schedule of any kind. This is the thing that keeps it true.
+#
+# WHY DEPENDABOT AND NOT AN `npm audit` STEP IN CI (the other half of the same
+# finding, decided rather than left open). An audit step fails a build for an
+# advisory published against a transitive dependency on a day when nothing in
+# this repository changed — a red run nobody caused and nobody can fix in that
+# commit. That is the shape of guard that gets `--audit-level` raised once,
+# then `|| true`'d, and then guards nothing. Dependabot raises the same
+# information as a pull request, which is where a dependency change belongs;
+# the PR then runs the full gate on its own. `npm ci`'s own vulnerability line
+# stays visible in every CI log as the passive backstop.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      # Monday, ahead of the calibration cron at 06:00 UTC, so a dependency
+      # bump and the balance-sheet check that would catch its numerical
+      # consequences land in the same working day rather than a week apart.
+      day: monday
+      time: '05:00'
+      timezone: Etc/UTC
+    # One PR per group rather than one per package: this tree has 530 packages
+    # and a stream of individual bumps is reviewed by nobody.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+      production-dependencies:
+        dependency-type: production
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+
+  # The workflows' own `actions/*` references. Floating major tags (@v4) are a
+  # deliberate decision recorded in test.yml, and dependabot is what surfaces a
+  # NEW major — the one case a floating minor tag will never pick up.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Etc/UTC
+    commit-message:
+      prefix: ci

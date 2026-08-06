@@ -875,23 +875,23 @@ decides whether a moment *deserves* a row — that is R8.3's question, and it is
 the only part of §5 a command cannot answer.
 
 **Tier C is retired** (2026-08-06), and with it the last band in this table that
-claimed mechanical decidability without a mechanism. Its six scans move into
+claimed mechanical decidability without a mechanism. Its six scans moved into
 `tests/ui/tokens.test.ts`, one `it` apiece; the seven rules they decide are
-marked † below.
+tier A below.
 
 | Tier | How it is decided | Rules |
 |---|---|---|
-| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts tests/ui/a11y.test.tsx` fails the build | R1.3†, R1.3a, R1.7, R2.2†, R3.1†, R3.4†, R4.2, R4.3, R4.5†, R4.7†, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R6.5†, R6.6, R6.7, R7.3 |
+| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts tests/ui/a11y.test.tsx` fails the build | R1.3, R1.3a, R1.7, R2.2, R3.1, R3.4, R4.2, R4.3, R4.5, R4.7, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R6.5, R6.6, R6.7, R7.3 |
 | **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R1.8, R2.1, R2.3, R2.5, R5.4, R7.4 |
 | **D — read the diff** | deterministic by inspection: the rule names the value, you check the line | R1.1, R1.2, R1.4, R1.5, R2.4, R2.6, R2.7, R2.8, R3.2, R3.3, R3.5, R3.6, R4.1, R4.4, R4.6, R6.2, R6.3, R6.4, R7.1, R7.2, R8.1, R8.2 |
 | **E — judgement** | the one rule in this document that taste decides | R8.3 |
 
-† **Promoted from tier C on 2026-08-06, ahead of the commit that compiles them.**
-R2.2 and R3.1 were tier B+C — the scale closed inside `tokens.css` by a test, a
-value typed anywhere else caught by a grep — and their grepped half joins the
-rest. **The debt is owed by wave W10 (backlog row gr6-054), it is paid into
-`tests/ui/tokens.test.ts`, and it is these six `it` titles** — one per scan
-below, comments stripped and both enumerations written as allow-lists:
+**Promoted from tier C on 2026-08-06; the compiling commit landed the same day
+(wave W10, backlog row gr6-054).** R2.2 and R3.1 were tier B+C — the scale
+closed inside `tokens.css` by a test, a value typed anywhere else caught by a
+grep — and their grepped half joined the rest. **The debt was paid into
+`tests/ui/tokens.test.ts` as these six `it` titles** — one per retired scan,
+comments stripped and both enumerations written as allow-lists:
 
 - `R4.5 — no element declares a border on all four sides`
 - `R4.7 — stacking uses the ladder, never a raw z-index`
@@ -900,29 +900,20 @@ below, comments stripped and both enumerations written as allow-lists:
 - `R1.3 — every var(--sig-red) selector is one of the four places`
 - `R2.2 / R3.1 — every raw pixel value is one this document names`
 
-Naming them is the tripwire: nothing mechanical fires if the wave that owes them
-ships without them, so a reviewer greps `tokens.test.ts` for these six strings
-and finds six or finds the debt. **Until that commit, these seven rules are
-decided by running the scan block below by hand, and that block is deleted in
-the same commit that adds the tests** — the way T35 deleted the two transition
-greps `motion.test.ts` subsumed, not left standing beside them. The dagger is
-not a softer tier. It is a date: this document is amended before the code that
-serves it (see "How to use this document"), so the claim is made here with its
-enforcer named, and a reader can tell exactly which commit owes what.
+Naming them is still the index: a reviewer greps `tokens.test.ts` for these six
+strings and finds six. The hand-run scan block that decided these rules in the
+interim was deleted in the same commit that added the tests — the way T35
+deleted the two transition greps `motion.test.ts` subsumed, not left standing
+beside them. R1.3's `it` is selector-granular, per point 1 below — a fifth
+`var(--sig-red)` added to a file already on the allow-list is a red, which is
+the gap the interim file-granular scan could not see and the likeliest way R1.3
+is ever broken.
 
-**One of the seven is thinner than the others in the meantime, and it is R1.3.**
-Its interim scan is file-granular (a shell scan cannot see which rule a hit sits
-in), so a *fifth* `var(--sig-red)` added to a selector in a file already on the
-allow-list — `Reveal.css`, say — passes it silently, which is the likeliest way
-R1.3 is ever broken. The other five scans have no such gap: they are property or
-token scans and see every hit. So R1.3's promotion is the one that genuinely
-depends on its `it` landing, and that `it` must be selector-granular, per point 1
-below. Until it exists, treat R1.3 as tier D as well — read the diff.
-
-**Tier A scope, stated precisely.** The seven rules marked † above — R1.3, R2.2,
-R3.1, R3.4, R4.5, R4.7 and R6.5 — are in tier A on the terms the † block sets
-out, and their scope is the scan block at the end of this section rather than
-the paragraphs here; everything below describes the checks that already exist.
+**Tier A scope, stated precisely.** The seven promoted rules — R1.3, R2.2,
+R3.1, R3.4, R4.5, R4.7 and R6.5 — are in tier A on the terms the promotion
+block sets out, and their scope is the allow-lists in points 1 and 2 at the end
+of this section rather than the paragraphs here; everything below describes the
+checks that already exist.
 R1.7 is complete: the test scans every
 `src/ui/**/*.{ts,tsx,css}` except `tokens.css` for hex, `rgb()`/`hsl()`, all 148
 CSS named colours except `transparent`/`currentColor`, and framework palette
@@ -980,47 +971,29 @@ a probe against `Reveal.css` walked straight through). What it cannot see:
 whether a moment *deserved* a row
 (tier E) and whether the movement looks right (a human, at 360 and 1088).
 
-**The † scans, and what was wrong with two of them.** These six commands sat
-here as "tier C — grep", to be run by a human and reconciled by eye. No workflow
-ran them and no test reproduced them, and two were unrunnable as written. `grep
--rn '<select' src/ui` printed a permanent hit — `components/SpecControls.tsx:2`,
-which is *the rule's own comment* citing R6.5 — and a checklist line that is
-always red teaches a reviewer to skip the block it sits in. The raw-px
-enumeration's closed list had the mirror-image fault: it forgot R3.4's own
-breakpoint, so the four `@media (min-width: 768px)` preludes in `src/ui` mapped
-to nothing on the list and, read literally, §10 declared four violations of a
-value §3 mandates. A comment in the prose of `App.css` (`body { margin: 8px }`,
-quoted while explaining why the margin is zeroed) made a fifth. Comments are the
-common cause both times — a comment may discuss a value, code may not — which is
-why `motion.test.ts` and `tokens.test.ts` have stripped them since T35, and why
-the corrected scans strip them here.
+**The retired scans, and what was wrong with two of them.** Six shell commands
+sat here as "tier C — grep", to be run by a human and reconciled by eye. No
+workflow ran them and no test reproduced them, and two were unrunnable as
+written. `grep -rn '<select' src/ui` printed a permanent hit —
+`components/SpecControls.tsx:2`, which is *the rule's own comment* citing R6.5 —
+and a checklist line that is always red teaches a reviewer to skip the block it
+sits in. The raw-px enumeration's closed list had the mirror-image fault: it
+forgot R3.4's own breakpoint, so the four `@media (min-width: 768px)` preludes
+in `src/ui` mapped to nothing on the list and, read literally, §10 declared four
+violations of a value §3 mandates. A comment in the prose of `App.css` (`body {
+margin: 8px }`, quoted while explaining why the margin is zeroed) made a fifth.
+Comments are the common cause both times — a comment may discuss a value, code
+may not — which is why `motion.test.ts` and `tokens.test.ts` have stripped them
+since T35, and why the six `it`s strip them now.
 
-**All six must print nothing.** The two enumerations subtract their allow-list
+**All six print nothing.** The two enumerations subtract their allow-list
 rather than asking a reader to check hits against a list, which is the same
-change of shape as `expect(offenders).toEqual([])`, and the reason they can be
-lifted into `it`s unaltered:
+change of shape as `expect(offenders).toEqual([])`, and the reason the scans
+could be lifted into `it`s unaltered. The allow-lists themselves are the law:
 
-```sh
-# `strip` blanks every comment while keeping line numbers — the shell twin of
-# the tests' own stripComments(); `scan` applies it file by file.
-strip() { perl -0777 -pe 's{/\*.*?\*/}{$& =~ s/[^\n]/ /gr}gse; s{(^|[^:])//[^\n]*}{$1}gm'; }
-scan()  { for f in $(find src/ui -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) | sort); do
-            strip < "$f" | grep -nE "$1" | sed "s|^|$f:|"; done; }
-
-scan 'border:[[:space:]]'                                                     # R4.5
-scan '\bz-index:[[:space:]]*[0-9]'                                            # R4.7
-scan '<select'                                                                # R6.5
-scan '@media \(min-width:' | grep -v '768px'                                  # R3.4
-
-scan 'var\(--sig-red\)' \
-  | grep -vE '^src/ui/(components/Stamp|charts/SpecCurve|screens/Reveal|theme/tokens)\.css:'   # R1.3
-scan ':[[:space:]]*[0-9]+px' | grep -v '^src/ui/theme/tokens\.css:' \
-  | grep -vE 'border-block-end: 2px solid|text-underline-offset: 2px|(inline|block)-size: 1px|@media \(min-width: 768px\)'   # R2.2 / R3.1 usage
-```
-
-1. R1.3's allow-list is four places plus one derivation. The filter above is
-   file-granular because a line-oriented scan cannot see which rule a hit sits
-   in; the `it` tightens it to the selectors, which is where the law actually
+1. R1.3's allow-list is four places plus one derivation. A line-oriented scan
+   cannot see which rule a hit sits in; the `it` is selector-granular, which is
+   where the law actually
    is: `.ph-stamp__mark--red`'s three descendants (place 1),
    `.ph-speccurve__threshold` and `…__threshold-label` (place 2),
    `.ph-speccurve__dot--published` / `…__key-dot--published` / `…__ring` /
@@ -1035,7 +1008,7 @@ scan ':[[:space:]]*[0-9]+px' | grep -v '^src/ui/theme/tokens\.css:' \
    **`768px`, R3.4's one breakpoint** — added to this list on 2026-08-06, having
    been missing from it since the list was written even though R3.4 mandates the
    value by name and four stylesheets type it. Note the mechanism, because the
-   `it` must reproduce this one and not a general one: `@media` preludes are
+   `it` reproduces this one and not a general one: `@media` preludes are
    **not** stripped before the scan. `@media (min-width: 768px)` is simply the
    fourth entry in the allow-list, alongside the three declarations, so the one
    legal prelude is allowed and every other prelude is a hit. A 1024px
@@ -1051,9 +1024,9 @@ scan ':[[:space:]]*[0-9]+px' | grep -v '^src/ui/theme/tokens\.css:' \
 The old `grep -rnE '\b(transition|animation):' src/ui` and
 `grep -rn 'transition: all' src/ui` rows are retired: both are now strictly
 subsumed by `motion.test.ts`, which counts those same declarations per file
-and rejects `all` as an un-tokenised property list. The six above are retired on
-the same terms and by the same test of "strictly subsumed" — one wave later, and
-not one commit before the `it`s exist.
+and rejects `all` as an un-tokenised property list. The six scans of this
+section were retired on the same terms and by the same test of "strictly
+subsumed" — one wave later, and not one commit before the `it`s existed.
 
 **Tier E — the one question a command cannot answer:** does anything other than
 the dial and the stamp ask to be looked at first? (R8.3)

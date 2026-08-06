@@ -26,52 +26,82 @@ import { enterLab, openApp, publishPinnedSpec } from './harness';
 // reason that has nothing to do with the bug. The inequality is what "no
 // horizontal scrollbar" actually means, and it is what fails when the bug
 // comes back.
-test.describe('(a) T33 — the header must not push the page sideways at 360px', () => {
-  test.use({ viewport: { width: 360, height: 780 } });
+//
+// GR6 gr6-114 — THE MATRIX, RESTORED TO THE ONE THE EVIDENCE COVERED.
+//
+// T33's fix round proved this property over 12 cells (3 locales x 2 widths x
+// {nav page, game screen}), and its own honest correction records that the cell
+// which ACTUALLY OVERFLOWED was `it / 360 / game` — 7px, from pre-existing
+// Italian label lengths on the game screen, not on About. The standing test
+// that came out of that round covered 2 of those 12 cells, and neither of them
+// was the one where the bug lived. `appNav.test.tsx:271` pins the CSS rule text
+// in jsdom, which catches the rule being deleted but not a new long label
+// pushing past it — jsdom has no layout, so it cannot measure a scrollWidth at
+// all.
+//
+// So: all three locales (English is not exempt — it is the control, and a
+// regression that hits EN hits everyone), both narrow widths, and both screens
+// per cell. 360 is the narrow-phone floor the law is written for; 390 is the
+// modern iPhone/Pixel width where the same row is only 30px less cramped and a
+// regression lands first for most real players.
+//
+// SIX TESTS, TWELVE MEASUREMENTS: each test boots once and measures both
+// screens, because the nav page and the game screen are two states of the same
+// header and the second is reached from the first for free. Twelve separate
+// boots would cost twelve seconds to learn nothing extra.
+const NARROW_WIDTHS = [360, 390] as const;
+const LOCALES = ['en', 'it', 'es'] as const;
 
-  for (const locale of ['it', 'es'] as const) {
-    test(`${locale}: About page at 360x780 does not scroll horizontally`, async ({ page }) => {
-      await openApp(page, { locale });
+/** documentElement.scrollWidth vs clientWidth — see the ASSERTION SHAPE note. */
+async function measureOverflow(page: Page) {
+  return page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+    innerWidth: window.innerWidth,
+    headerWidth: Math.ceil(document.querySelector('.ph-header')!.getBoundingClientRect().width),
+  }));
+}
 
-      await page.locator('.ph-header__nav .ph-seg').last().click();
-      await expect(page.locator('.ph-about')).toBeVisible();
-      // The nav grows by one item on a nav page — the "Play" return button,
-      // which is exactly the state the overflow was reported in.
-      await expect(
-        page.locator('.ph-seg--action'),
-        'THE WAY BACK TO THE GAME IS MISSING from a nav page.',
-      ).toBeVisible();
+for (const width of NARROW_WIDTHS) {
+  test.describe(`(a) T33 — the header must not push the page sideways at ${width}px`, () => {
+    test.use({ viewport: { width, height: 780 } });
 
-      const measured = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-        innerWidth: window.innerWidth,
-        headerWidth: Math.ceil(document.querySelector('.ph-header')!.getBoundingClientRect().width),
-      }));
+    for (const locale of LOCALES) {
+      test(`${locale}: nav page and game screen at ${width}x780 do not scroll horizontally`, async ({ page }) => {
+        await openApp(page, { locale });
 
-      expect(
-        measured.scrollWidth,
-        `THE PAGE SCROLLS SIDEWAYS IN ${locale.toUpperCase()} AT 360px: the document is ` +
-          `${measured.scrollWidth}px wide inside a ${measured.clientWidth}px viewport ` +
-          `(header ${measured.headerWidth}px). On a phone this drags the whole page under the ` +
-          'player\'s thumb. Measured: ' + JSON.stringify(measured),
-      ).toBeLessThanOrEqual(measured.clientWidth);
+        await page.locator('.ph-header__nav .ph-seg').last().click();
+        await expect(page.locator('.ph-about')).toBeVisible();
+        // The nav grows by one item on a nav page — the "Play" return button,
+        // which is exactly the state the overflow was reported in.
+        await expect(
+          page.locator('.ph-seg--action'),
+          'THE WAY BACK TO THE GAME IS MISSING from a nav page.',
+        ).toBeVisible();
 
-      // The same check on the game screen itself, where the header is
-      // narrowest but the content is widest.
-      await page.locator('.ph-seg--action').click();
-      await expect(page.locator('.ph-briefing')).toBeVisible();
-      const onGame = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-      }));
-      expect(
-        onGame.scrollWidth,
-        `THE BRIEFING SCROLLS SIDEWAYS IN ${locale.toUpperCase()} AT 360px: ` + JSON.stringify(onGame),
-      ).toBeLessThanOrEqual(onGame.clientWidth);
-    });
-  }
-});
+        const onAbout = await measureOverflow(page);
+        expect(
+          onAbout.scrollWidth,
+          `THE ABOUT PAGE SCROLLS SIDEWAYS IN ${locale.toUpperCase()} AT ${width}px: the document is ` +
+            `${onAbout.scrollWidth}px wide inside a ${onAbout.clientWidth}px viewport ` +
+            `(header ${onAbout.headerWidth}px). On a phone this drags the whole page under the ` +
+            "player's thumb. Measured: " + JSON.stringify(onAbout),
+        ).toBeLessThanOrEqual(onAbout.clientWidth);
+
+        // The game screen, where the header is narrowest but the content is
+        // widest — and the cell T33 actually caught the 7px overflow in.
+        await page.locator('.ph-seg--action').click();
+        await expect(page.locator('.ph-briefing')).toBeVisible();
+        const onGame = await measureOverflow(page);
+        expect(
+          onGame.scrollWidth,
+          `THE BRIEFING SCROLLS SIDEWAYS IN ${locale.toUpperCase()} AT ${width}px ` +
+            `(header ${onGame.headerWidth}px): ` + JSON.stringify(onGame),
+        ).toBeLessThanOrEqual(onGame.clientWidth);
+      });
+    }
+  });
+}
 
 // =========================================================================
 // (b) T22 — FOCUS RESTORE AFTER DISMISSING THE CALL OVERLAY
