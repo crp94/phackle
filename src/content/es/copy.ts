@@ -157,15 +157,21 @@ export const copy: Record<CopyKey, string> = {
   // The one wink Act I is allowed, verbatim in spirit: the citation obligation
   // (master spec §1.4) travels with it. Meant to be easy to miss; do not make
   // it louder, and do not add a second wink anywhere else in Act I.
-  // OWNER RULING (b) — desviación declarada del texto verbatim de la master
-  // spec. El 14,2% citado vale para CINCO ANÁLISIS INTERMEDIOS EQUIDISTANTES;
-  // con el calendario de este juego (200→250→300→350→400) la cifra es 11,1%.
-  // La condición se había caído y con ella la verdad de la frase. Repuesta;
-  // cifra y cita intactas. "Vistazos" es la palabra que el juego ya usa
-  // (reveal.peekSurcharge).
+  // NUEVA DECISIÓN DEL CONTROLLER (w2-r-001) — desviación declarada del texto
+  // verbatim de la master spec. La regla (b) pedía "equidistantes", pero su
+  // premisa era falsa: el calendario de este juego (200→250→300→350→400) SÍ es
+  // equidistante, Δn = 50, y aun así da 11,2% en lugar de 14,2%. La condición
+  // real es que los controles caigan en FRACCIONES IGUALES DE LA INFORMACIÓN
+  // TOTAL (Armitage: 80/160/240/320/400, el primero ve un quinto de los datos;
+  // aquí el primero ve la mitad). Medido con 1.000.000 de simulaciones por
+  // calendario: 14,172% Armitage · 11,174% este juego · 8,681% cuando la nota
+  // aparece por primera vez. La frase enuncia por tanto el hecho DE LA CITA,
+  // con la condición de la que depende, y es IMPERSONAL a propósito: no dice
+  // "tus vistazos", porque cinco vistazos aquí son inalcanzables (el máximo es
+  // cuatro). No devolverla a la segunda persona.
   // gr6-027: `α = .05` → `α = 0.05`. El cero delante ya no tiene excepciones.
   'lab.peekFootnoteArmitage':
-    'Dato curioso: cinco vistazos equidistantes con α = 0.05 inflan tu tasa de falsos positivos hasta cerca del 14% (Armitage, 1969).',
+    'Dato curioso: contrastar después de cada uno de cinco lotes de datos iguales convierte α = 0.05 en una tasa de falsos positivos de cerca del 14% (Armitage, 1969).',
   // gr6-096: la cadena antigua abría con `n < 30` y afirmaba así una causa que
   // no podía conocer. MIN_CELL es una de las dos razones por las que una celda
   // no es analizable, y es la que nunca ata (0 puntos de 215.040 enumerados).
@@ -478,8 +484,10 @@ export const copy: Record<CopyKey, string> = {
   // gr6-035 — el estado vacío del primer día: once bloques censurados y seis
   // rayas, sin una sola frase. Registro Acto II: dice qué es la pantalla y qué
   // la llena, sin animar ni disculparse.
-  'stats.emptyState':
-    'Aquí todavía no hay nada. Todas las cifras de esta página empiezan a llenarse después de tu primer día.',
+  // w2-r-011: "las cifras empiezan a llenarse" pone el reflexivo en cada cifra,
+  // que pasa a llenarse sola; en español lo que se llena es la PÁGINA. (El
+  // inglés conserva "every figure ... starts filling in", idiomático allí.)
+  'stats.emptyState': 'Aquí todavía no hay nada. Esta página empieza a llenarse después de tu primer día.',
 
   'stats.callAccuracyLast20': 'Últimos 20 veredictos',
   'stats.successRateTitle': 'Tasa de éxito: hacking frente a preregistro',
@@ -505,7 +513,7 @@ export const copy: Record<CopyKey, string> = {
   'about.intro':
     'Cada día, P-hackle te reparte un conjunto de datos sintéticos y una hipótesis ridícula. Las herramientas son reales: cambiar de variable de resultado, ir de compras por los subgrupos, parar de recoger datos cuando conviene. Son los mismos grados de libertad del investigador que se usan, por descuido o no, en investigación publicada de verdad.',
   'about.mechanism':
-    'Todo lo que hay bajo el capó es real. El conjunto de datos de cada día se simula a partir de un proceso generador declarado (ocho variables latentes correlacionadas, un tratamiento confundido con la edad y la renta, cuatro familias de variables de resultado) y se siembra con la fecha, de modo que todo el mundo analiza exactamente los mismos números. Las regresiones son mínimos cuadrados ordinarios. La curva de especificación se calcula ejecutando de verdad cada combinación de variable de resultado, subgrupo, conjunto de covariables, regla de exclusión, transformación y elección de colas: está enumerada, no muestreada, y no es un truco. La mayoría de los días el efecto real es exactamente cero. El resto de los días es pequeño y real, que es toda la dificultad. Los días mismos se filtran antes de que los juegues: un día nulo se vuelve a sortear hasta que entre 30 y 180 de los 1792 análisis posibles alcanzan p < 0.05, y un día con efecto hasta que el efecto real es detectable en la muestra completa de 400. Ese filtro es un dedo en la balanza, y se declara por la misma razón que todo lo demás de aquí: lo que un umbral de 0.05 deja pasar por sí solo cae dentro de esa banda, así que el recuento que ves al final del día nunca es absurdamente pequeño, y siempre hay algo que encontrar.',
+    'Todo lo que hay bajo el capó es real. El conjunto de datos de cada día se simula a partir de un proceso generador declarado (ocho variables latentes correlacionadas, un tratamiento confundido con la edad y la renta, cuatro familias de variables de resultado) y se siembra con la fecha, de modo que todo el mundo analiza exactamente los mismos números. Las regresiones son mínimos cuadrados ordinarios. La curva de especificación se calcula ejecutando de verdad cada combinación de variable de resultado, subgrupo, conjunto de covariables, regla de exclusión, transformación y elección de colas: está enumerada, no muestreada, y no es un truco. La mayoría de los días el efecto real es exactamente cero. El resto de los días es pequeño y real, que es toda la dificultad. Los días mismos se filtran antes de que los juegues: un día nulo se vuelve a sortear hasta que, en la muestra inicial de 200, entre 30 y 180 de los 1792 análisis posibles alcanzan p < 0.05, y un día con efecto hasta que el efecto real es detectable tanto en esa muestra inicial como en la muestra completa de 400. Ese filtro es poner el dedo en la balanza, y se declara por la misma razón que todo lo demás de aquí: lo que un umbral de 0.05 deja pasar por sí solo cae dentro de esa banda, así que en la muestra con la que empiezas siempre hay algo que encontrar. La banda se comprueba en 200 y en ningún otro sitio: en cuanto recoges más datos el recuento se mueve, a veces bastante.',
   'about.frozenFork':
     'Una decisión analítica está congelada en lugar de ofrecerse: las puntuaciones z de los atípicos se calculan sobre la variable de resultado ya transformada y dentro de la submuestra filtrada. Eso es en sí mismo una bifurcación, y congelarla es en sí misma una decisión. Se declara aquí porque las bifurcaciones que no ves son las que hacen daño.',
   'about.syntheticDisclaimer':
@@ -513,8 +521,10 @@ export const copy: Record<CopyKey, string> = {
   // gr6-027 + gr6-036: la nota enuncia ahora también la SEGUNDA convención, el
   // cero delante, que es la regla que gr6-027 vuelve cierta en todo el catálogo
   // y que esta es la única frase que dice en voz alta.
+  // w2-r-011: "se componen como las componen" repetía el verbo a dos palabras
+  // de distancia.
   'about.decimalNote':
-    'Las estadísticas de aquí se componen como las componen las revistas, en todos los idiomas: punto decimal, nunca coma (p = 0.049), y siempre con cero delante.',
+    'Las estadísticas de aquí se componen como en las revistas, en todos los idiomas: punto decimal, nunca coma (p = 0.049), y siempre con cero delante.',
   'about.dataDisclosure':
     'La analítica son recuentos de visitas anónimos y sin cookies (Vercel Web Analytics). Sin cookies, sin cuentas, sin datos personales, sin seguimiento entre sitios, sin banner que cerrar. Tus puntuaciones, rachas, historial e idioma viven en el almacenamiento local de tu navegador y no se envían a ninguna parte. Si borras los datos de tu navegador desaparecen para siempre, también para nosotros, que nunca los tuvimos.',
   'about.priorArt':

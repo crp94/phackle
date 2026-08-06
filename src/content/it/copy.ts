@@ -166,15 +166,21 @@ export const copy: Record<CopyKey, string> = {
   // allowed to know what it is looking at; it is meant to be easy to miss.
   'lab.peekFootnote':
     'Raccogliere altri dati è quello che fa un laboratorio diligente. Ogni lotto viene registrato per la sezione metodi.',
-  // OWNER RULING (b) — deviazione dichiarata dal testo verbatim della master
-  // spec. Il 14,2% citato vale per CINQUE ANALISI INTERMEDIE EQUIDISTANTI; con
-  // lo schema di questo gioco (200→250→300→350→400) la cifra è 11,1%. La
-  // condizione era caduta, e con lei la verità della frase. Rimessa;
-  // figura e citazione intatte. "Sbirciate" è la parola che il gioco usa già
-  // (reveal.peekSurcharge, legend.emojiPeek).
+  // RI-DECISIONE DEL CONTROLLER (w2-r-001) — deviazione dichiarata dal testo
+  // verbatim della master spec. La regola (b) chiedeva "equidistanti", ma la
+  // premessa era falsa: lo schema di questo gioco (200→250→300→350→400) È
+  // equidistante, Δn = 50, e dà comunque 11,2% invece di 14,2%. La condizione
+  // vera è che i controlli cadano a FRAZIONI UGUALI DELL'INFORMAZIONE TOTALE
+  // (Armitage: 80/160/240/320/400, il primo controllo vede un quinto dei dati;
+  // qui il primo ne vede la metà). Misura su 1.000.000 di simulazioni per
+  // schema: 14,172% Armitage · 11,174% questo gioco · 8,681% alla prima
+  // comparsa della nota. La frase enuncia quindi il fatto DELLA CITAZIONE, con
+  // la condizione da cui dipende, ed è IMPERSONALE di proposito: non dice
+  // "le tue sbirciate", perché cinque sbirciate qui non sono raggiungibili (il
+  // massimo è quattro). Non riportarla alla seconda persona.
   // gr6-027: `α = .05` → `α = 0.05`. Lo zero iniziale non ha più eccezioni.
   'lab.peekFootnoteArmitage':
-    'Curiosità: cinque sbirciate equidistanti con α = 0.05 gonfiano il tasso di falsi positivi fino a circa il 14% (Armitage, 1969).',
+    'Curiosità: fare un test dopo ciascuno di cinque lotti di dati uguali trasforma α = 0.05 in un tasso di falsi positivi di circa il 14% (Armitage, 1969).',
   // gr6-096: la vecchia stringa apriva con `n < 30` e affermava così una causa
   // che non poteva conoscere. MIN_CELL è una delle due ragioni per cui una
   // cella non è analizzabile, ed è quella che non vincola mai (0 punti su
@@ -494,8 +500,11 @@ export const copy: Record<CopyKey, string> = {
   // gr6-035 — lo stato vuoto del primo giorno: undici blocchi censurati e sei
   // lineette, senza una frase. Registro Atto II: dice che cos'è la schermata e
   // che cosa la riempie, senza incoraggiare né scusarsi.
-  'stats.emptyState':
-    "Qui non c'è ancora niente. Ogni cifra di questa pagina inizia a riempirsi dopo la tua prima giornata.",
+  // w2-r-011: "ogni cifra inizia a riempirsi" mette il riflessivo su una
+  // singola cifra, che quindi si riempie da sé; in italiano è la PAGINA che si
+  // riempie. (L'inglese tiene "every figure ... starts filling in", che è
+  // idiomatico lì e non ha il riflessivo che qui suona storto.)
+  'stats.emptyState': "Qui non c'è ancora niente. Questa pagina inizia a riempirsi dopo la tua prima giornata.",
 
   'stats.callAccuracyLast20': 'Ultimi 20 verdetti',
   // "contro" is combative; the comparison is neutral.
@@ -526,7 +535,7 @@ export const copy: Record<CopyKey, string> = {
   'about.intro':
     "Ogni giorno P-hackle ti serve un dataset sintetico e un'ipotesi ridicola. La cassetta degli attrezzi invece è vera: cambio dell'esito, caccia al sottogruppo, arresto opzionale. Sono gli stessi gradi di libertà del ricercatore che si usano, per distrazione o meno, nella ricerca davvero pubblicata.",
   'about.mechanism':
-    "Sotto il cofano è tutto vero. Il dataset di ogni giorno è simulato da un processo generatore dei dati dichiarato (otto variabili latenti correlate, un trattamento con confondimento da età e reddito, quattro famiglie di esiti) e inizializzato dalla data, così ogni giocatore al mondo analizza gli stessi numeri. Le regressioni sono minimi quadrati ordinari. La curva di specificazione è calcolata stimando davvero ogni combinazione di esito, sottogruppo, insieme di covariate, regola di esclusione, trasformazione e scelta delle code. È enumerata, non campionata, e non finta. Nella maggior parte dei giorni l'effetto vero è esattamente zero. Negli altri è piccolo e reale, ed è tutta lì la difficoltà. Anche le giornate sono filtrate prima che tu le giochi: una giornata nulla viene riestratta finché non arrivano a p < 0.05 fra 30 e 180 delle 1792 analisi possibili, e una giornata con effetto finché l'effetto vero non è rilevabile sul campione completo di 400. Quel filtro è un pollice sulla bilancia, ed è dichiarato per lo stesso motivo di tutto il resto qui: quello che una soglia di 0.05 fa passare da sola sta dentro quella banda, quindi il conteggio che vedi a fine giornata non è mai assurdamente piccolo, e qualcosa da trovare c'è sempre.",
+    "Sotto il cofano è tutto vero. Il dataset di ogni giorno è simulato da un processo generatore dei dati dichiarato (otto variabili latenti correlate, un trattamento con confondimento da età e reddito, quattro famiglie di esiti) e inizializzato dalla data, così ogni giocatore al mondo analizza gli stessi numeri. Le regressioni sono minimi quadrati ordinari. La curva di specificazione è calcolata stimando davvero ogni combinazione di esito, sottogruppo, insieme di covariate, regola di esclusione, trasformazione e scelta delle code. È enumerata, non campionata, e non finta. Nella maggior parte dei giorni l'effetto vero è esattamente zero. Negli altri è piccolo e reale, ed è tutta lì la difficoltà. Anche le giornate sono filtrate prima che tu le giochi: una giornata nulla viene riestratta finché, sul campione iniziale di 200, non arrivano a p < 0.05 fra 30 e 180 delle 1792 analisi possibili, e una giornata con effetto finché l'effetto vero non è rilevabile sia su quel campione iniziale sia sul campione completo di 400. Quel filtro fa pendere la bilancia, ed è dichiarato per lo stesso motivo di tutto il resto qui: quello che una soglia di 0.05 fa passare da sola sta dentro quella banda, quindi nel campione da cui parti c'è sempre qualcosa da trovare. La banda è controllata a 200 e da nessun'altra parte: appena raccogli altri dati il conteggio si muove, a volte parecchio.",
   'about.frozenFork':
     "Una scelta analitica è congelata invece che offerta: gli z-score degli outlier sono calcolati sull'esito trasformato, dentro il sottocampione già filtrato. Anche quella è una biforcazione, e congelarla è a sua volta una decisione. La dichiariamo qui perché le biforcazioni che non vedi sono quelle che fanno il danno.",
   'about.syntheticDisclaimer':
@@ -534,8 +543,10 @@ export const copy: Record<CopyKey, string> = {
   // gr6-027 + gr6-036: la nota adesso enuncia anche la SECONDA convenzione,
   // lo zero iniziale, che è la regola che gr6-027 rende vera in tutto il
   // catalogo e che questa è l'unica frase a dire ad alta voce.
+  // w2-r-011: "composte come le compongono" ripeteva il verbo a due parole di
+  // distanza.
   'about.decimalNote':
-    'Le statistiche qui sono composte come le compongono le riviste, in ogni lingua: punto decimale, mai virgola (p = 0.049), e sempre lo zero iniziale.',
+    'Le statistiche qui sono composte come sulle riviste, in ogni lingua: punto decimale, mai virgola (p = 0.049), e sempre lo zero iniziale.',
   'about.dataDisclosure':
     "Le statistiche di traffico sono conteggi di pagina anonimi e senza cookie (Vercel Web Analytics). Nessun cookie, nessun account, nessun dato personale, nessun tracciamento tra siti, nessun banner da chiudere. I tuoi punteggi, le serie, lo storico e la scelta della lingua vivono nella memoria locale del tuo browser e non vengono mai spediti da nessuna parte. Cancellare i dati del browser li elimina per sempre, anche da noi, che non li abbiamo mai avuti.",
   'about.priorArt':

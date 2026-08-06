@@ -420,6 +420,32 @@ describe('Spanish copy catalog', () => {
   });
 });
 
+describe('Spanish calque bans (the ones this locale has actually shipped)', () => {
+  // w2-r-003 / gr6-032 — *la clave* was not a hypothetical risk: this locale
+  // shipped it, on the one key whose ENGLISH source comment names the trap
+  // ("'key' for a chart legend has no cognate in either target language"). In
+  // Spanish *la clave* is the answer or the cipher, so the sentence promised a
+  // solution rather than a glossary. The rewrite is only half a fix while the
+  // rule that motivated it lives in a comment, which is what let it ship the
+  // first time.
+  //
+  // Scoped to *la/una clave* as a NOUN PHRASE rather than the bare stem:
+  // "clave" is an ordinary Spanish adjective ("una pieza clave") and a legal
+  // noun elsewhere; the calque is specifically the definite noun phrase used
+  // as "the answer".
+  const CLAVE_CALQUE = /\b(la|una|las|unas)\s+claves?\b/i;
+
+  it('never sends the player to look for "la clave"', () => {
+    const offenders = Object.entries(esCopy).filter(([, v]) => CLAVE_CALQUE.test(v));
+    expect(offenders).toEqual([]);
+  });
+
+  it('guards the guard: catches the exact sentence this locale shipped, and spares the adjective', () => {
+    expect('Cada símbolo es un movimiento que hiciste. La clave está en la página Leyenda.').toMatch(CLAVE_CALQUE);
+    expect('una pieza clave del análisis').not.toMatch(CLAVE_CALQUE);
+  });
+});
+
 describe('Spanish non-translation rules', () => {
   it('keeps statistical notation on the decimal POINT, never a comma', () => {
     const notation = [

@@ -61,9 +61,17 @@
 //      vocabulary is allowed in KEY names, which only developers read.
 //   9. NUMBERING: `Vol. {volume}, No. {issue}` for chrome, `#n` for the share
 //      string, and nothing else (gr6-026).
-//  10. EM DASHES ARE BUDGETED, not banned: at most one per string, and at
-//      least 2,500 characters of corpus per dash (tests/content/validators.ts).
-//      IT and ES run the same validator at a budget of zero.
+//  10. EM DASHES ARE BUDGETED, not banned, and the budget is not zero
+//      anywhere. The COMPILED law is two rules, applied identically to all
+//      three locales (tests/content/validators.ts:143-145): at most one U+2014
+//      per string, and at least 2,500 characters of corpus per dash. Italian
+//      carries one extra rule Spanish does not — a RATCHET, dashes(it) <=
+//      dashes(en) (it.shape.test.ts) — so Italian can never out-dash its own
+//      source. Measured today: en 3 dashes / 35,874 chars, it 3 / 41,232,
+//      es 1 / 41,264; among copy VALUES the only dash in any locale is
+//      stats.noData's "no data" mark, and the rest are press blurbs. The
+//      round convention of "IT/ES budget 0" is a good habit and is NOT a
+//      compiled rule; do not cite it as one.
 // ---------------------------------------------------------------------------
 export type CopyKey =
   | 'nav.title'
@@ -649,17 +657,39 @@ export const copy: Record<CopyKey, string> = {
   // wink. It is meant to be easy to miss. Do not make it louder, and do not
   // add a second wink anywhere else in Act I.
   'lab.peekFootnote': 'Collecting more data is what a careful lab does. Every batch is logged for the methods section.',
-  // OWNER RULING (b), 2026-08-06 — a DOCUMENTED DEVIATION from the master
-  // spec's verbatim text (docs/implementation_plan.md §2.4), taken knowingly.
-  // The cited 14.2% is exact for FIVE EQUALLY SPACED interim analyses;
-  // simulated at 400k trials the citation reproduces to 0.05pp (14.15%), while
-  // this game's own 200→250→300→350→400 schedule gives 11.11% (gr1a-005). The
-  // sentence was true about Armitage and false about the schedule the player
-  // had just used, because it dropped the condition the number depends on.
-  // The ruling took the smallest honest fix: restore the genericity, keep the
-  // figure and the citation untouched. "peeks" rather than "looks" because it
-  // is this game's own word for the move (reveal.peekSurcharge,
-  // legend.emojiPeek), so the footnote now names the thing the player pressed.
+  // ------------------------------------------------------------------
+  // CONTROLLER RE-RULING, 2026-08-06 (w2-r-001) — a DOCUMENTED DEVIATION from
+  // the master spec's verbatim text (docs/implementation_plan.md §2.4).
+  //
+  // Owner ruling (b) said to insert "equally spaced", on the premise that this
+  // game's peeks are not. THAT PREMISE IS FALSE: `N_SCHEDULE` is
+  // 200→250→300→350→400, i.e. equally spaced with Δn = 50, so the inserted
+  // words distinguished nothing and the sentence stayed as wrong as before.
+  //
+  // The condition the 14% actually depends on is EQUAL FRACTIONS OF TOTAL
+  // INFORMATION — Armitage's five looks sit at 80/160/240/320/400, so the
+  // first look sees a fifth of the data. This game's first look sees a HALF.
+  // Two-sided repeated significance testing at α = 0.05, simulated as a
+  // Brownian walk (1,000,000 trials per schedule; the reviewer's independent
+  // 2,000,000-trial run agrees to the second decimal):
+  //     Armitage's design (80/160/240/320/400)   14.172%
+  //     five equal unit groups (1..5)            14.199%
+  //     THIS GAME (200/250/300/350/400)          11.174%
+  //     at the footnote's first appearance       8.681%   (200/250/300)
+  //     a single look                             5.023%
+  //
+  // So the string now states THE CITATION'S FACT ABOUT A DESIGN, and states
+  // the condition that fact depends on: five tests, one after each of five
+  // equal batches. It is deliberately IMPERSONAL — no "your", no "peeks" — and
+  // that is a correctness requirement, not a style choice. The old wording
+  // read as a description of the player's own action, and as such it was
+  // unreachable: `N_SCHEDULE` allows a maximum of FOUR peeks, the footnote
+  // renders from the second, and this readership's real inflation is 8.7-11.2%.
+  // A future pass must not "simplify" it back toward the second person.
+  //
+  // The alternative the re-ruling weighed and did not take was printing the
+  // game's own 11.2%: stronger pedagogy, but it replaces a published figure
+  // with a simulated one that then needs its own provenance on screen.
   //
   // gr6-027: `α = .05` became `α = 0.05` in the same edit. The leading-zero
   // carve-out for this string was conditional in its own terms — the backlog
@@ -668,15 +698,19 @@ export const copy: Record<CopyKey, string> = {
   // loud ("a leading zero on every one"), which this was the last string to
   // break. The ES header's rule 2 quoted `α = .05` as a worked example and
   // moves with it.
+  // ------------------------------------------------------------------
   'lab.peekFootnoteArmitage':
-    'Fun fact: five equally spaced peeks at α = 0.05 inflate your false-positive rate to ~14% (Armitage, 1969).',
+    'Fun fact: testing after each of five equal batches of data turns α = 0.05 into a false-positive rate of ~14% (Armitage, 1969).',
   // gr6-096: the old value opened `n < 30.` and thereby asserted a cause it
   // could not know. `MIN_CELL` is one of two reasons a cell is unanalysable
   // (the other is a singular XᵀX), and it is the one that never binds: 0 of
   // 215,040 enumerated points hit it. So the string named the wrong cause on
   // every occasion it could actually render. It now reports the state and
   // stops. Same defect class as w1-r-004's "you followed the p-value".
-  'lab.insufficient': 'Not enough data to analyze this cut.',
+  // w2-r-007: "cut" is engine vocabulary (`DataCut`), not a word this screen
+  // ever teaches. Both locales had already reached for "subsample"/"submuestra";
+  // English follows them, and about.frozenFork already uses the word.
+  'lab.insufficient': 'Not enough data to analyze this subsample.',
   // gr6-061 — the SUBMIT-became-possible announcement. Read once, by a live
   // region, at the moment it becomes true, so it opens with the fact and then
   // says what the fact permits. `0.05` carries its leading zero (gr6-027).
@@ -809,6 +843,19 @@ export const copy: Record<CopyKey, string> = {
   'published.editorsPick': "Editor's Pick",
   'published.doiPrefix': 'DOI:',
   'published.authors': 'You, et al.',
+  // W6 asked (TODO-W2 at Summary.tsx:189) whether the Summary should get its
+  // own invoice-register wording instead of reusing this string, e.g.
+  // "Career points +25 - separate account". DECLINED, and recorded here
+  // rather than left open. W6's own reason for the stand-in is the better
+  // argument: the Summary line exists to AGREE with the number the Published
+  // screen printed two screens earlier, and reusing the identical string is
+  // the strongest form of that agreement — a second key would let the two
+  // drift silently, and the drift would land on the one figure §2.8 says is
+  // never a summand of the score. The register objection also does not hold:
+  // gr6-018 deliberately renders career as its own LINE beside the total, not
+  // as an invoice row, so it is not sitting among labelled rows asking to be
+  // labelled like one. (The proposed wording also carried an em dash into a
+  // locale pair that would then have to work around it.)
   'published.careerPoints': '+{n} career points',
   // T32 (third play-test: "What's the attention score? I don't understand"):
   // the badge parodies an altmetric counter, and the parody only lands if the
@@ -1263,9 +1310,28 @@ export const copy: Record<CopyKey, string> = {
   // thousands separator, in any locale, because that is exactly how the reveal
   // prints the same figure one screen earlier (`formatCount` is
   // `String(Math.round(v))`), and the two must be recognisable as one number.
+  //
+  // w2-r-002 — THE BAND HAS AN n, AND THE SENTENCE NOW SAYS IT. The first
+  // draft closed on "the count you are shown at the end of the day is never
+  // wildly small", which is an absolute the engine does not honour: the band
+  // is enforced against `sigCount(enumerateCurve(data, 200))` and the REVEAL
+  // enumerates at `state.n`, which a peeking player has moved. Measured over
+  // 21 consecutive accepted null days, 21/21 sit in the band at n=200 and
+  // 8/21 (38%) sit OUTSIDE it at n=400 — including a day that goes 37 → 5,
+  // which is 0.3% of the grid, and one that goes 83 → 384. The claim is
+  // therefore scoped to the opening sample, where it is exactly true, and the
+  // drift gets its own clause. This wave also ships `lab.collectMoreHint`
+  // specifically to make collecting more data attractive (gr6-025), so the
+  // player this sentence would have misled is the one the Lab now recruits.
+  //
+  // w2-r-008 — THE EFFECT-DAY GATE HAS TWO HALVES and the string named one.
+  // `acceptEffectDay` requires p < 0.15 at N=200 AND p < 0.05 at N=400 on the
+  // canonical spec (behind a p < 0.3 precheck at 200). "both in that opening
+  // sample and in the full sample of 400" discloses the shape of the gate
+  // without printing three thresholds nobody can act on.
   // ------------------------------------------------------------------
   'about.mechanism':
-    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty. The days themselves are filtered before you play them: a null day is redrawn until between 30 and 180 of the 1792 possible analyses reach p < 0.05, and an effect day is redrawn until the real effect is detectable in the full sample of 400. That filter is a thumb on the scale, and it is disclosed for the same reason as everything else here: what a 0.05 threshold turns up on its own sits inside that band, so the count you are shown at the end of the day is never wildly small, and there is always something for you to find.",
+    "Everything under the hood is real. Each day's dataset is simulated from a declared data-generating process (eight correlated latent variables, a treatment confounded with age and income, four outcome families) and seeded from the date, so every player in the world analyzes the same numbers. The regressions are ordinary least squares. The specification curve is computed by actually running every combination of outcome, subgroup, covariate set, exclusion rule, transform and tail choice. It is enumerated, not sampled, and not faked. On most days the true effect is exactly zero. On the rest it is small and real, which is the whole difficulty. The days themselves are filtered before you play them: a null day is redrawn until between 30 and 180 of the 1792 possible analyses reach p < 0.05 in the opening sample of 200, and an effect day is redrawn until the real effect is detectable both in that opening sample and in the full sample of 400. That filter is a thumb on the scale, and it is disclosed for the same reason as everything else here: what a 0.05 threshold turns up on its own sits inside that band, so the sample you start with always has something in it to find. The band is checked at 200 and nowhere else, so once you collect more data the count moves, sometimes a long way.",
   'about.frozenFork':
     'One analytical choice is frozen rather than offered: outlier z-scores are computed on the transformed outcome, within the filtered subsample. That is itself a fork, and freezing it is itself a decision. It is disclosed here because the forks you cannot see are the ones that do the damage.',
   'about.syntheticDisclaimer':
