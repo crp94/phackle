@@ -969,3 +969,57 @@ describe('T33 — the one-row spec legend enumerates all six knobs', () => {
     ]);
   });
 });
+
+// --- GR6 W1: the day-typed / mode-typed accounting keys ---------------------
+//
+// The per-locale suites already assert that IT and ES carry exactly English's
+// token set in every value (`uses exactly the same interpolation tokens as
+// English in every copy value`), so parity x3 follows from pinning ENGLISH's
+// own set here. That is the half nothing covered: a token dropped from the
+// SOURCE would propagate to all three locales in agreement and render a
+// silently wrong sentence rather than a visibly raw {token}.
+
+describe('GR6 W1 — the reveal accounting keys carry exactly the tokens the screen binds', () => {
+  // Sorted lexicographically, which is why `{sigPct}` precedes `{sig}`: 'P'
+  // sorts before '}'. Written out rather than re-sorted at the assertion so
+  // the expectation is a literal to read, not a computation to trust.
+  const EXPECTED: Record<string, string[]> = {
+    // gr6-001: the null variant keeps §2.7.3's three headline figures.
+    'reveal.accounting1': ['{sigPct}', '{sig}', '{total}'],
+    // gr6-001: the effect variant adds the split the engine now computes.
+    'reveal.accounting1Effect': ['{otherSig}', '{sigPct}', '{sig}', '{total}', '{trueSig}'],
+    'reveal.accounting2': ['{k}'],
+    'reveal.accounting2Abandoned': ['{k}'],
+    // gr6-003: prereg's own framing, same count token.
+    'reveal.accounting2Prereg': ['{k}'],
+    'reveal.accounting3': ['{k}', '{pHitPct}'],
+    // gr6-002: prose only — it characterises the search, it quotes no figure.
+    'reveal.accounting3Directed': [],
+    'reveal.publishedRecipe': ['{recipe}'],
+    'reveal.preregisteredRecipe': ['{recipe}'],
+  };
+
+  it.each(Object.entries(EXPECTED))('%s', (key, tokens) => {
+    const value = enContent.copy[key as keyof typeof enContent.copy];
+    expect(value, `${key} is not in the English catalog`).toBeDefined();
+    expect([...new Set(value.match(/\{\w+\}/g) ?? [])].sort()).toEqual(tokens);
+  });
+
+  // Controller ruling (a), 2026-08-06: the null-day accounting names the
+  // confound About discloses. "Chance" may appear; it may never be the only
+  // thing on offer. Measured basis: the plainest Y1 specification rejects at
+  // 18.2% against a nominal 5% (z = 24.9 on the mean beta) because treatment is
+  // built from the same latents the outcomes load on.
+  it('never offers chance as the sole explanation on a null day', () => {
+    const value = enContent.copy['reveal.accounting1'];
+    expect(value).not.toMatch(/by chance alone/i);
+    expect(value.toLowerCase()).toContain('confounding');
+  });
+
+  // gr6-001: the effect variant must keep the pedagogy, not just the counts.
+  it('says on an effect day that a p-value cannot tell the two families apart', () => {
+    const value = enContent.copy['reveal.accounting1Effect'];
+    expect(value).not.toMatch(/by chance alone/i);
+    expect(value).toMatch(/p-value/);
+  });
+});
