@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   PRESS_SALT_MARKER,
@@ -10,6 +8,7 @@ import {
   fakeDoi,
   pickJournal,
   pickPress,
+  pressForDay,
   substituteEffect,
 } from '../../src/game/published';
 import { content as enContent } from '../../src/content/en';
@@ -20,21 +19,10 @@ import { TIER_FORKS } from '../../src/game/tuning';
 const ISO = '2026-08-10';
 const TIERS = [1, 2, 3] as const;
 
-/**
- * The day's press exactly as src/ui/screens/Published.tsx assembles it: two
- * cards at the day's tier, plus a tier-3-only chyron, with the second and third
- * picks salting `iso` rather than passing an "exclude" list. That file is owned
- * by another task and is NOT edited here, so this helper is a MIRROR of it —
- * and the source-scan test at the bottom of this describe block is what keeps
- * the mirror honest: it reads Published.tsx and fails if the three call sites
- * ever stop using these exact seeds.
- */
-function pressForDay(press: PressBlurb[], tier: 1 | 2 | 3, scenarioId: string, iso: string): PressBlurb[] {
-  const card1 = pickPress(press, tier, scenarioId, iso);
-  const card2 = pickPress(press, tier, scenarioId, `${iso}#2`);
-  const chyron = tier === 3 ? pickPress(press, 3, scenarioId, `${iso}#chyron`) : null;
-  return chyron ? [card1, card2, chyron] : [card1, card2];
-}
+// gr6-091: `pressForDay` is now the shipped, audited function (see
+// src/game/published.ts) rather than a hand-kept mirror of three call-site
+// seeds guarded by a readFileSync scan over Published.tsx's source text. Every
+// property below is asserted against the real assembler's real output.
 
 const isBoundTo = (blurb: PressBlurb, scenarioId: string) => blurb.scenarioIds?.includes(scenarioId) ?? false;
 const boundAt = (scenarioId: string, tier: 1 | 2 | 3) =>
@@ -457,24 +445,97 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
   });
 
   /**
-   * The guarantee lives in pickPress, but it is only a guarantee about the
-   * SCREEN if the screen still seeds its three calls the way pressForDay above
-   * assumes. Published.tsx belongs to another task and is not edited here, so
-   * this reads its source instead -- the same regex-over-source-text idiom
-   * tests/content/copyFreeze.test.ts and tests/ui/tokens.test.ts already use.
+   * gr6-091 — what the retired source-scan was really protecting.
+   *
+   * That test read `src/ui/screens/Published.tsx` with a regex and asserted
+   * the three `pickPress(...)` call sites still spelled their seeds a
+   * particular way. It was the one test in this suite that broke on an
+   * innocent rename, and it pinned a SPELLING rather than a behaviour. The
+   * seeds now live in exactly one audited place, so the behaviour can be
+   * asserted directly: this is the day's press, and these are its rules.
    */
-  it('matches the three call sites src/ui/screens/Published.tsx actually uses', () => {
-    const source = readFileSync(
-      fileURLToPath(new URL('../../src/ui/screens/Published.tsx', import.meta.url)),
-      'utf8'
+  it('assembles the day the screen renders: an unsalted first pick, then salted follow-ups, chyron at tier 3 only', () => {
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const day = pressForDay(enContent.press, tier, scenario.id, iso);
+          expect(day).toHaveLength(tier === 3 ? 3 : 2);
+          // Slot 0 IS the unsalted pick — the one T39a's guarantee hangs off.
+          expect(day[0]).toEqual(pickPress(enContent.press, tier, scenario.id, iso));
+          // Slots 1..2 ARE the registered follow-up salts.
+          expect(day[1]).toEqual(pickPress(enContent.press, tier, scenario.id, `${iso}${PRESS_SALT_MARKER}2`));
+          if (tier === 3) {
+            expect(day[2]).toEqual(pickPress(enContent.press, 3, scenario.id, `${iso}${PRESS_SALT_MARKER}chyron`));
+          }
+        }
+      }
+    }
+  });
+
+  /**
+   * gr6-064 — two clippings from the same masthead, back to back, on the
+   * day's payoff screen. The previous distinctness guarantee was by TEXT, so
+   * two different headlines under one outlet satisfied it; on puzzle #11
+   * "NIGHTLY CHYRON NETWORK" headed both cards, against R5.2's own stated
+   * reason for staggering their entrance ("coverage arrives outlet by outlet,
+   * which is what coverage does").
+   *
+   * Asserted over every (scenario, tier, date) cell, with the pool's own
+   * capacity asserted first so a failure can only ever be a picker defect.
+   */
+  it('never runs two items from the same outlet on the same screen', () => {
+    for (const tier of TIERS) {
+      const outlets = new Set(
+        enContent.press.filter((p) => p.tier === tier && !p.scenarioIds?.length).map((p) => p.outlet)
+      );
+      expect(outlets.size, `tier ${tier} generic pool must carry 3 distinct outlets`).toBeGreaterThanOrEqual(3);
+    }
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const day = pressForDay(enContent.press, tier, scenario.id, iso);
+          const outlets = day.map((b) => b.outlet);
+          expect(
+            new Set(outlets).size,
+            `${scenario.id} @ tier ${tier} on ${iso} doubled an outlet: ${outlets.join(' | ')}`
+          ).toBe(outlets.length);
+        }
+      }
+    }
+  });
+
+  it('holds the outlet rule across a season of dates, not only the sampled five', () => {
+    const isos = ['01', '02', '03', '04'].flatMap((month) =>
+      Array.from({ length: 28 }, (_, d) => `2026-${month}-${String(d + 1).padStart(2, '0')}`)
     );
-    const calls = source.match(/pickPress\([^)]*\)/g) ?? [];
-    expect(calls).toHaveLength(3);
-    // The first pick is UNSALTED -- that is what makes it the day's guaranteed
-    // scenario-bound card. The other two carry PRESS_SALT_MARKER.
-    expect(calls[0]).toContain(', iso)');
-    expect(calls[0]).not.toContain(PRESS_SALT_MARKER);
-    expect(calls[1]).toContain(`\${iso}${PRESS_SALT_MARKER}2`);
-    expect(calls[2]).toContain(`\${iso}${PRESS_SALT_MARKER}chyron`);
+    let collisions = 0;
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of isos) {
+          const outlets = pressForDay(enContent.press, tier, scenario.id, iso).map((b) => b.outlet);
+          if (new Set(outlets).size !== outlets.length) collisions += 1;
+        }
+      }
+    }
+    expect(collisions).toBe(0);
+  });
+
+  /**
+   * gr6-064's second half — the weekly pair recurrence. The day's hash was
+   * `fnv1a32(day + tier)`, so the generic slots depended on the DATE alone and
+   * every scenario at a given tier ran the identical generic pair whenever two
+   * dates collided on the residue (GR2 caught 2026-08-12 and 2026-08-15).
+   * Salting the agnostic draw with the scenario id decorrelates the twenty
+   * scenarios from each other.
+   */
+  it('does not run the same generic pair for two different scenarios on the same date and tier', () => {
+    const genericOnly = enContent.scenarios.filter((sc) => enContent.press.every((p) => !isBoundTo(p, sc.id) || p.tier !== 2));
+    // The interesting cells are the ones with no bound blurb at this tier —
+    // where the WHOLE day is generic and the repetition was most visible.
+    expect(genericOnly.length).toBeGreaterThan(1);
+    const signatures = new Set(
+      genericOnly.map((sc) => pressForDay(enContent.press, 2, sc.id, ISO).map((b) => b.text).join('|'))
+    );
+    expect(signatures.size).toBeGreaterThan(1);
   });
 });
