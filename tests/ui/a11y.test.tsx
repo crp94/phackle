@@ -35,7 +35,7 @@ import { Summary } from '../../src/ui/screens/Summary';
 import { PValueDial } from '../../src/ui/components/PValueDial';
 import { ForkTrail } from '../../src/ui/components/ForkTrail';
 import { SpecCurve } from '../../src/ui/charts/SpecCurve';
-import { createGameStore, useGameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
+import { createGameStore, gameStore, useGameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
 import { copy } from '../../src/content/en/copy';
 import { content as en } from '../../src/content/en';
 import { t as translate } from '../../src/i18n/t';
@@ -163,6 +163,12 @@ afterEach(() => {
  * reports two banners. Real Chrome does: axe's landmark-no-duplicate-banner
  * is clean on the Lab, checked in the browser.) */
 async function renderShell() {
+  // gr6-007: App renders the boot-failure screen instead of the shell when a
+  // boot never produced a day, and jsdom has no `Worker`, so App's own boot
+  // attempt fails harmlessly into store.error on every render here. These
+  // tests are about the BOOTED shell's landmarks and focus behaviour; the
+  // boot-failure screen has its own coverage in shell.test.tsx.
+  gameStore.setState({ booted: true });
   render(
     <LocaleProvider>
       <App puzzleNumber={1}>
@@ -175,6 +181,7 @@ async function renderShell() {
 
 /** The app shell around the REAL router, driven by the REAL store. */
 async function renderGame() {
+  gameStore.setState({ booted: true }); // see renderShell above (gr6-007)
   render(
     <LocaleProvider>
       <Capture />

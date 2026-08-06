@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import App from '../../src/ui/App';
+import { gameStore } from '../../src/game/store';
 import { copy as enCopy } from '../../src/content/en/copy';
 
 let originalLocalStorage: PropertyDescriptor | undefined;
@@ -45,9 +46,22 @@ function installThrowingLocalStorage() {
   Object.defineProperty(window, 'localStorage', { value: throwing, configurable: true });
 }
 
+
+// gr6-007 — THE SHELL UNDER TEST IS THE BOOTED SHELL.
+//
+// App now renders the boot-failure screen INSTEAD of the shell when a boot
+// never produced a day (`storeError && !booted`), because the alternative was
+// a real-looking briefing for scenario #0 with a live CTA into a Lab that can
+// never compute. Every test in this file exercises the shell, and jsdom has
+// no `Worker`, so App's own boot attempt throws harmlessly into `store.error`
+// and would now take the page. Seeding `booted` says out loud what these
+// tests always assumed: the header, the nav and the screen slot are what a
+// player sees AFTER a day exists. The boot-failure screen has its own tests
+// (tests/ui/shell.test.tsx's "boot failure" block).
 beforeEach(() => {
   originalLocalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage');
   document.documentElement.removeAttribute('data-theme');
+  gameStore.setState({ booted: true });
 });
 
 afterEach(() => {

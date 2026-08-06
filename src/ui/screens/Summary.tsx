@@ -26,6 +26,7 @@ import { persistAndComputeSummary, type ComputedSummary } from '../../game/dayCo
 import { shareViaNavigator } from '../../game/share';
 import { msToNextLocalMidnight } from '../../game/daily';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
+import { useAppNav } from '../nav';
 import './Summary.css';
 
 // How long the clipboard-fallback "Copied to clipboard" toast stays up.
@@ -314,11 +315,13 @@ export interface SummaryScreenProps {
    * absent the "your stats" action is simply not rendered, never rendered
    * dead.
    *
-   * FLAGGED FOR THE W7 MERGE: nothing passes this yet. App.tsx ->
-   * ScreenRouter -> registry.ts is W7's chain, and the wiring there is
-   * `onViewStats={() => setPage('stats')}` threaded through as a prop on the
-   * 'summary' entry. Until that lands the action is dark, which is exactly
-   * what an unsupplied route should look like. */
+   * W7 WIRED IT (gr6-062 closed). The chain is not a prop threaded through
+   * `registry.ts` — that file types every screen as a bare `ComponentType`,
+   * so there is nowhere to thread one — but `src/ui/nav.ts`'s context, which
+   * App.tsx provides around <main> with `viewStats: () => setPage('stats')`.
+   * This prop stays as the explicit override the tests already use; the
+   * context is the fallback, and when NEITHER is supplied (a screen rendered
+   * outside the shell) the action is still simply not rendered. */
   onViewStats?: () => void;
 }
 
@@ -328,6 +331,11 @@ export interface SummaryScreenProps {
  * presentational `Summary` above. */
 export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) {
   const { content, copy, t } = useLocale();
+  // The shell's route, when there is a shell (see src/ui/nav.ts). An explicit
+  // prop still wins, which is what keeps every existing caller and test
+  // unchanged.
+  const nav = useAppNav();
+  const viewStats = onViewStats ?? nav?.viewStats;
   const mode = useGameStore((s) => s.mode);
   const practice = useGameStore((s) => s.practice);
   const puzzleNumber = useGameStore((s) => s.puzzleNumber);
@@ -402,7 +410,7 @@ export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) 
       career={computed.career}
       preregUnlocked={computed.preregUnlocked}
       preregPlayedToday={computed.preregPlayedToday}
-      onViewStats={onViewStats}
+      onViewStats={viewStats}
       // T38: ids -> the locale's OWN name/citation, resolved here (§2.11's
       // award ceremony is content, not chrome — see UnlockedAchievement).
       // Order is unlockAchievements' order, preserved end to end.

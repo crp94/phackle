@@ -342,6 +342,31 @@ describe('Published: "Face the truth" overlay', () => {
   }
   const fakeLoader = FakeCallScreen as CallScreenComponent;
 
+  /* gr6-014 — nothing locked the page behind the modal. Measured before the
+     fix: with the overlay up, the document scrolled 0 -> 250 and the dimmed
+     cover slid under the dialog. `inert` covers focus and hit-testing; it
+     says nothing about the scrolling element. */
+  it('locks the scrolling element while the overlay is up, and restores exactly what was there before', async () => {
+    document.documentElement.style.overflow = 'scroll'; // a pre-existing value, not the empty default
+    const { unmount } = renderPublished({}, fakeLoader);
+    await waitFor(() => expect(screen.getByText('Face the truth')).toBeTruthy());
+    expect(document.documentElement.style.overflow).toBe('scroll');
+
+    fireEvent.click(screen.getByText('Face the truth'));
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(document.documentElement.style.overflow).toBe('scroll');
+
+    // ...and the case closeCall alone cannot cover: the store swaps the
+    // screen out from under an OPEN overlay when makeCall resolves.
+    fireEvent.click(screen.getByText('Face the truth'));
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    unmount();
+    expect(document.documentElement.style.overflow).toBe('scroll');
+    document.documentElement.style.overflow = '';
+  });
+
   it('does not show any dialog before the CTA is clicked', async () => {
     renderPublished({}, fakeLoader);
     await waitFor(() => expect(screen.getByText('Face the truth')).toBeTruthy());

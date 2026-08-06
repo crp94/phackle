@@ -1,9 +1,14 @@
 /* R1.1, found by measuring during T29's matrix pass: --paper is the only
    surface in the product, and it was not reaching the viewport edge.
-   Nothing in this project loads a CSS reset — Tailwind is configured as a
-   Vite plugin but `@import "tailwindcss"` appears nowhere, so preflight
-   never runs — which left the user agent's own `body { margin: 8px }` in
-   force. Measured at 360x640: `.ph-app` at left 8, top 8, width 344, with
+   NOTHING IN THIS PROJECT LOADS A CSS RESET, and that is now a plain fact
+   rather than a near-miss: this comment used to explain the absence by
+   pointing at an inert Tailwind plugin ("configured as a Vite plugin but
+   `@import \"tailwindcss\"` appears nowhere, so preflight never runs"). GR6
+   gr6-090 removed the plugin and both packages outright (see vite.config.ts's
+   own note), so there is no longer a reset in the tree to be inert — the
+   design system in `src/ui/theme/tokens.css` is the only source of style, and
+   the user agent's own `body { margin: 8px }` is in force until this rule
+   zeroes it. Measured at 360x640: `.ph-app` at left 8, top 8, width 344, with
    `body`/`html` background `rgba(0,0,0,0)`, i.e. an 8px frame of the UA's
    CANVAS around every screen at every width. In dark theme that canvas is
    the UA's near-black, not `--paper` (#141821), and reads as a pale border;
@@ -89,6 +94,98 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
   border-style: none;
+}
+
+/* gr6-017 — THE SKIP LINK, hidden until it is focused.
+   Composed onto `.ph-visually-hidden` rather than re-typing its clip box:
+   §10's raw-pixel allow-list names that `1px` as "the idiom's own value, and
+   the ONLY place in src/ui it may appear", so the link borrows the idiom and
+   this rule only says what changes when it takes focus. Everything below is
+   a token — the padding is R6.4's tap target out of the §3 scale, the rule
+   under it is R4.4's hairline, and the ring is R6.1's, at the ordinary
+   positive offset (unlike R6.6's full-bleed <main>, this element is inset
+   and its ring lands on paper).
+   `position: absolute` with `inset-block-start`/`inset-inline-start` at 0
+   keeps it out of the header's flex flow entirely: a skip link that reserved
+   layout while hidden would push the masthead down on every screen.
+   Nothing transitions (R5.5): a focus affordance that fades in is a focus
+   affordance that is briefly absent. */
+.ph-skip-link:focus {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-overlay);
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  padding: var(--space-12) var(--space-16);
+  background: var(--paper);
+  border-block-end: var(--hairline);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ph-skip-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* gr6-007 — the boot-failure screen. A boot that never produced a day is not
+   an aside over a study, it is the absence of one, so it takes the page (see
+   App.tsx). Same manuscript register as every other quiet block in the
+   product: the page shell's own column and gutter, --ink prose, and a
+   hairline-underlined action. No fill (R4.1), no box (R4.5), no red — R1.3
+   reserves --sig-red for Act II's four places, and a failed boot is not one
+   of them. */
+.ph-boot-error {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-40) var(--space-24) var(--space-24);
+}
+
+.ph-boot-error__title {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+/* The same CTA treatment as .ph-published__cta / .ph-reveal__cta: R6.4's tap
+   target in scale padding, R2.7's uppercase label, R4.5's single hairline
+   underline. */
+.ph-boot-error__reload {
+  display: inline-block;
+  margin-block-start: var(--space-40);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  background: none;
+  border-style: none;
+  border-block-end: var(--hairline);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-boot-error__reload:hover {
+  text-decoration: underline;
+}
+
+.ph-boot-error__reload:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 /* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */

@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import SummaryScreen, { Summary, type UnlockedAchievement } from '../../src/ui/screens/Summary';
+import { AppNavContext } from '../../src/ui/nav';
 // gr6-081: the persistence moment moved out of the screen file it never belonged in.
 import { persistAndComputeSummary } from '../../src/game/dayComplete';
 import { scoreDay } from '../../src/game/scoring';
@@ -1220,5 +1221,55 @@ describe('SummaryScreen — the day that earns an award shows it, and only that 
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(saved.achievements.first_retraction).toBe('2026-08-10');
+  });
+});
+
+/* ==========================================================================
+   gr6-062's other half, and the one an explicit-prop test cannot see: the
+   SCREEN wrapper is the registry's 'summary' entry, and the registry types
+   every screen as a bare `ComponentType` — no props at all. So the wrapper
+   has to find the route itself, and src/ui/nav.ts's context is it (App.tsx
+   provides it around <main>). Driven through the same real store + real
+   SummaryScreen harness as the remount test above, because the action only
+   exists on a finished day.
+   Mutation-checked: deleting the `?? nav?.viewStats` fallback in Summary.tsx
+   leaves the whole rest of this file green and reds the first test here.
+   ========================================================================== */
+describe('SummaryScreen — the stats route comes from the shell context (gr6-062)', () => {
+  async function driveToFinishedDay() {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+  }
+
+  it('picks the route up from the context, with no prop at all', async () => {
+    await driveToFinishedDay();
+    const viewStats = vi.fn();
+    render(
+      <LocaleProvider>
+        <AppNavContext.Provider value={{ viewStats }}>
+          <SummaryScreen />
+        </AppNavContext.Provider>
+      </LocaleProvider>
+    );
+    const button = await screen.findByTestId('summary-stats-action');
+    fireEvent.click(button);
+    expect(viewStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no action at all when there is neither a prop nor a shell — never a dead control', async () => {
+    await driveToFinishedDay();
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    expect(screen.queryByTestId('summary-stats-action')).toBeNull();
   });
 });
