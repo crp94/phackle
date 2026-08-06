@@ -879,29 +879,31 @@ describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cann
  * gr6-070 + gr6-037 — the two banks this wave ADDED, and the invariants that
  * make them safe to wire.
  *
- * NEITHER IS RENDERED YET. `src/ui/screens/Briefing.tsx` still reads the
- * `briefing.emailSubject` copy key, and `src/ui/screens/Reveal.tsx` still emits
- * no subline on a NULL_REPORTED stamp; both files belong to W7 in this round
- * and this wave is barred from them. The banks are authored, shaped and pinned
- * here so that wiring them is a two-line change with the content already under
- * law, exactly as W2 handed its rostered keys forward. THE HAND-OFF, in the
- * words the wiring needs:
- *   - Briefing.tsx:193 — `subject={pickGrantwellEmail(content.grantwellSubjects, iso)}`.
- *     The SAME picker and the SAME iso as the body one line above: the banks are
- *     equal length, so one seed lands on the pair that was written together.
- *     `briefing.emailSubject` becomes dead and should be deleted in that commit.
- *   - Reveal.tsx:300 — the NULL_REPORTED branch of the same expression that
- *     already indexes `retractionSublines` by `puzzleNumber % length`.
- *     WITH THIS CONSTRAINT ATTACHED (w3-r-001), because it is the one thing
- *     about this bank that is not obvious from its name: the stamp is
+ * BOTH ARE NOW RENDERED (wired by W7, as handed off). The hand-off is kept
+ * below in the past tense rather than deleted, because the second half of it
+ * is a standing constraint on anyone who touches the wiring again — not a
+ * to-do that expired when the code landed.
+ *   - `Briefing.tsx` renders `pickGrantwellEmail(content.grantwellSubjects,
+ *     iso)` — the SAME picker and the SAME iso as the body one line above, over
+ *     banks of equal length, so one seed lands on the pair that was written
+ *     together. `briefing.emailSubject` was deleted from all three catalogs in
+ *     that commit. `tests/ui/briefing.test.tsx` pins the pairing across five
+ *     puzzle numbers, index for index — not merely that a subject renders.
+ *   - `Reveal.tsx` gives NULL_REPORTED its own bank, indexed by
+ *     `puzzleNumber % length` exactly as the retraction bank is.
+ *     WITH THIS CONSTRAINT STILL ATTACHED (w3-r-001), because it is the one
+ *     thing about this bank that is not obvious from its name: the stamp is
  *     DAY-TYPE-BLIND. `verdictStamp` returns NULL_REPORTED on `published ===
- *     null` alone, so an abandoned EFFECT day lands here too, one block under
+ *     null` alone, so an abandoned EFFECT day lands there too, one block under
  *     a `reveal.truthEffect` line that has just declared the effect real. The
- *     bank is authored to be true on both day types and needs no branch — but
- *     if a future change ever gives it one (a second, effect-day variant), the
- *     branch has to key on `payload.dayType`, NOT on the stamp, and the
- *     retraction bank's `!isPrereg` gate is not the relevant precedent here.
- *     Do not wire this bank behind a day-type assumption it does not make.
+ *     bank is authored to be true on both day types, so it is wired with NO
+ *     branch — and `tests/ui/reveal.test.tsx` asserts both day types get a
+ *     line and get the SAME line. If a future change ever gives it a branch (a
+ *     second, effect-day variant), that branch has to key on
+ *     `payload.dayType`, NOT on the stamp, and the retraction bank's
+ *     `!isPrereg` gate is not the relevant precedent: RETRACTED requires a
+ *     published spec, so its claims are scoped to that spec and true of it;
+ *     nothing scopes these.
  */
 describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines', () => {
   const LOCALE_CONTENT = [

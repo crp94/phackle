@@ -291,19 +291,44 @@ export function Reveal() {
           mult: { text: formatCount(payload.peeks + 1), numeral: true },
         });
 
-  // 4 — the verdict (§2.7.4). Only a retraction carries a subline; §4.5's
-  // bank rotates by puzzle number, so the day decides which one, not chance.
+  // 4 — the verdict (§2.7.4). §4.5's banks rotate by puzzle number, so the day
+  // decides which line, not chance.
   //
-  // gr6-003: NEVER IN PREREG MODE. Every line in that bank is written for a
-  // player who hacked ("The journal has issued a correction", "Your co-authors
-  // have asked to be listed as 'consulted'"); a preregistered analysis that
-  // landed on RETRACTED did nothing to be corrected for, and §2.8 already
-  // supplies the right sentence for it (reveal.preregFalsePositive, hoisted
-  // above the stamp below).
-  const subline =
-    !isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0
-      ? content.retractionSublines[puzzleNumber % content.retractionSublines.length]
-      : undefined;
+  // gr6-003: THE RETRACTION BANK IS NEVER USED IN PREREG MODE. Every line in
+  // it is written for a player who hacked ("The journal has issued a
+  // correction", "Your co-authors have asked to be listed as 'consulted'"); a
+  // preregistered analysis that landed on RETRACTED did nothing to be
+  // corrected for, and §2.8 already supplies the right sentence for it
+  // (reveal.preregFalsePositive, hoisted above the stamp below).
+  //
+  // gr6-037: NULL REPORTED NOW CARRIES ONE TOO. It was the only stamp that
+  // rendered with no subline at all — Act II's quietest moment and, until W3
+  // wrote this bank, its emptiest.
+  //
+  // THE CONSTRAINT W3 ATTACHED TO THIS WIRING (w3-r-001), because it is the
+  // one thing about the bank that its name does not tell you: THE STAMP IS
+  // DAY-TYPE-BLIND. `verdictStamp` (src/engine/reveal.ts) returns
+  // NULL_REPORTED on `published === null` alone, so an ABANDONED EFFECT DAY
+  // lands here too — one block under a `reveal.truthEffect` line that has
+  // just declared the effect real. Every line in the bank is therefore
+  // authored to be true on BOTH day types (each says what happened to the
+  // REPORT, never what the day contained), which is exactly why this needs no
+  // branch and gets none.
+  //
+  // IF A FUTURE CHANGE EVER GIVES IT ONE — a second, effect-day variant — the
+  // branch must key on `payload.dayType`, NEVER on the stamp, which cannot
+  // tell the two apart. And the retraction bank's `!isPrereg` gate above is
+  // NOT the precedent for that: RETRACTED requires a published spec, so its
+  // claims are scoped to that spec and true of it; nothing scopes these.
+  const subline = (() => {
+    if (!isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0) {
+      return content.retractionSublines[puzzleNumber % content.retractionSublines.length];
+    }
+    if (payload.stamp === 'NULL_REPORTED' && content.nullReportedSublines.length > 0) {
+      return content.nullReportedSublines[puzzleNumber % content.nullReportedSublines.length];
+    }
+    return undefined;
+  })();
 
   return (
     <div className="ph-reveal">

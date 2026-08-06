@@ -118,7 +118,6 @@ export const copy: Record<CopyKey, string> = {
   'briefing.correspondingAuthor': 'Autore corrispondente: tu',
   'briefing.vol': 'Vol. {volume}, n. {issue}',
   'briefing.emailFrom': 'Prof. R. Grantwell',
-  'briefing.emailSubject': 'Re: la scadenza',
   'briefing.goal': 'Il tuo compito: trovare un effetto statisticamente significativo (p < 0.05) e pubblicarlo.',
 
   'briefing.modeChooserIntro':

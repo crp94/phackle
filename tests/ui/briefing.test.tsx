@@ -67,12 +67,36 @@ describe('Briefing', () => {
   it("renders Prof. Grantwell's EmailCard with the correct from/subject/body, rotated by date", async () => {
     const iso = isoFromPuzzleNumber(1);
     const expectedBody = pickGrantwellEmail(enContent.grantwell, iso);
+    // gr6-070: the subject is DATA now, not the one `briefing.emailSubject`
+    // constant that used to sit over all twenty-two bodies. It comes off the
+    // parallel bank at the same index as the body, so the pair on screen is
+    // the pair that was written together.
+    const expectedSubject = pickGrantwellEmail(enContent.grantwellSubjects, iso);
 
     renderBriefing({ puzzleNumber: 1 });
 
     await waitFor(() => expect(screen.getByText('Prof. R. Grantwell')).toBeTruthy());
-    expect(screen.getByText('Re: the deadline')).toBeTruthy();
+    expect(screen.getByText(expectedSubject)).toBeTruthy();
     expect(screen.getByText(expectedBody)).toBeTruthy();
+  });
+
+  it('pairs the subject with ITS OWN body — index for index, not two independent rotations (gr6-070)', async () => {
+    // The defect is only visible across days: a subject bank rotated on its
+    // own seed would still pair correctly some of the time. This walks
+    // several puzzle numbers and requires the rendered pair to be at the same
+    // bank index every time.
+    for (const puzzleNumber of [1, 2, 3, 7, 13]) {
+      const iso = isoFromPuzzleNumber(puzzleNumber);
+      const bodyIndex = enContent.grantwell.indexOf(pickGrantwellEmail(enContent.grantwell, iso));
+      const subjectIndex = enContent.grantwellSubjects.indexOf(pickGrantwellEmail(enContent.grantwellSubjects, iso));
+      expect(subjectIndex, `puzzle ${puzzleNumber}: subject and body came off different indices`).toBe(bodyIndex);
+
+      renderBriefing({ puzzleNumber });
+      await waitFor(() => expect(screen.getByText('Prof. R. Grantwell')).toBeTruthy());
+      expect(screen.getByText(enContent.grantwellSubjects[bodyIndex])).toBeTruthy();
+      expect(screen.getByText(enContent.grantwell[bodyIndex])).toBeTruthy();
+      cleanup();
+    }
   });
 
   it('picks a different Grantwell line for a different puzzle number (different iso)', async () => {

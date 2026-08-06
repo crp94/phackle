@@ -190,7 +190,22 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
         {t('briefing.goal')}
       </p>
       <p className="ph-briefing__cover-story">{scenario.coverStory}</p>
-      <EmailCard from={t('briefing.emailFrom')} subject={t('briefing.emailSubject')} body={grantwellBody} />
+      {/* gr6-070 — ONE SUBJECT LINE FOR TWENTY-TWO BODIES. This read the
+          `briefing.emailSubject` copy key, so "Re: the deadline" sat over a
+          body about a rival lab, over a body about a dream, over every body
+          in the bank. W3 wrote a subject FOR each one, and the pairing is
+          index-for-index: the same picker and the same `iso` as the body one
+          line above, over two banks of equal length, so a single seed lands
+          on the pair that was written together. The equality is not an
+          assumption — tests/content/shape.test.ts asserts it in all three
+          locales, and asserts the pairing itself, not merely the count.
+          `briefing.emailSubject` is deleted in this same commit: a subject
+          line that is now data cannot also be copy. */}
+      <EmailCard
+        from={t('briefing.emailFrom')}
+        subject={pickGrantwellEmail(content.grantwellSubjects, iso)}
+        body={grantwellBody}
+      />
 
       {dayFinished ? (
         /* The day's finished state — the same shape the chooser's disabled

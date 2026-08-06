@@ -101,11 +101,14 @@ export type CopyKey =
   | 'briefing.openData'
   | 'briefing.correspondingAuthor'
   | 'briefing.vol'
-  // T15 additions: the Grantwell EmailCard's `from`/`subject` prop VALUES
-  // (email.from/email.subject, just above and below, are the generic
-  // "From:"/"Subject:" LABELS EmailCard renders itself — see EmailCard.tsx).
+  // T15 addition: the Grantwell EmailCard's `from` prop VALUE (email.from and
+  // email.subject, just above and below, are the generic "From:"/"Subject:"
+  // LABELS EmailCard renders itself — see EmailCard.tsx).
+  // gr6-070 retired this key's `subject` twin: one subject line sat over all
+  // twenty-two Grantwell bodies, so the subject is now DATA — a bank paired
+  // index-for-index with the bodies in content/<locale>/index.ts, picked by
+  // the same seed. A line written for its body cannot be a single constant.
   | 'briefing.emailFrom'
-  | 'briefing.emailSubject'
   // T31 (second play-test round): the goal strip. The one line that tells a
   // first-timer, before anything else, what they are being asked to do.
   | 'briefing.goal'
@@ -603,7 +606,6 @@ export const copy: Record<CopyKey, string> = {
   'briefing.correspondingAuthor': 'Corresponding author: You',
   'briefing.vol': 'Vol. {volume}, No. {issue}',
   'briefing.emailFrom': 'Prof. R. Grantwell',
-  'briefing.emailSubject': 'Re: the deadline',
   // T31: the goal strip, directly under the title card. Sincere and literal —
   // this is genuinely the task Act I is setting.
   'briefing.goal': 'Your task: find a statistically significant effect (p < 0.05) and publish it.',

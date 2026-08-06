@@ -112,7 +112,6 @@ export const copy: Record<CopyKey, string> = {
   // Untranslated by design: the joke's realism depends on him being the same
   // Prof. Grantwell in every language.
   'briefing.emailFrom': 'Prof. R. Grantwell',
-  'briefing.emailSubject': 'Re: lo del plazo',
   'briefing.goal': 'Tu tarea: encontrar un efecto estadísticamente significativo (p < 0.05) y publicarlo.',
 
   'briefing.modeChooserIntro':
