@@ -183,8 +183,15 @@ export function corpusProse(content: LocaleContent): ProseRow[] {
   return rows;
 }
 
-/** The corpus plus the copy catalog: every user-facing value in the locale. */
-function localeProse(content: LocaleContent): ProseRow[] {
+/**
+ * The corpus plus the copy catalog: every user-facing value in the locale.
+ * Exported since w3-r-003 — the apostrophe law was written over `corpusProse`
+ * and therefore stopped at the catalog's edge, which let a typographic quote
+ * into `copy` unchallenged (proved: a U+2019 planted in en/copy.ts survived a
+ * green suite). A notation rule about how the product TYPES has no business
+ * knowing which file a string lives in.
+ */
+export function localeProse(content: LocaleContent): ProseRow[] {
   const rows: ProseRow[] = [...corpusProse(content)];
   for (const [key, text] of Object.entries(content.copy)) {
     rows.push({ where: `copy["${key}"]`, text });
