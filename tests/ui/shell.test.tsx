@@ -13,6 +13,7 @@ import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
 import { gameStore } from '../../src/game/store';
 import { copy as enCopy } from '../../src/content/en/copy';
+import { copy as itCopy } from '../../src/content/it/copy';
 import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
@@ -238,6 +239,76 @@ describe('running header', () => {
     );
     await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
     expect(screen.getByText('Vol. 1, No. 12')).toBeTruthy();
+  });
+
+  // gr6-021 / gr6-022 — PRACTICE MODE IS VISIBLE, AND CLAIMS NO ISSUE NUMBER.
+  //
+  // Two ways in (daily.ts's isPractice), and both were invisible: every
+  // pre-EPOCH date, where `puzzleNumber` is negative and the masthead read
+  // "Vol. 1, No. -3"; and `?practice=1`, which does not expire at launch and
+  // printed the REAL day's number, so a practice session was typographically
+  // identical to the day it borrowed.
+  describe('practice mode (gr6-022)', () => {
+    afterEach(() => {
+      gameStore.setState({ practice: false, puzzleNumber: 0 });
+    });
+
+    it('prints an em dash where the issue number goes, and names the session beside it', async () => {
+      gameStore.setState({ booted: true, practice: true, puzzleNumber: -3 });
+      render(
+        <LocaleProvider>
+          <App puzzleNumber={-3} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+
+      expect(screen.getByText('Vol. 1, No. —')).toBeTruthy();
+      expect(screen.queryByText('Vol. 1, No. -3'), 'the masthead still prints a negative issue number').toBeNull();
+      expect(screen.getByTestId('app-practice-marker').textContent).toBe(enCopy['nav.practiceMode']);
+    });
+
+    it('the marker is absent, and the number present, on a real day (the guard is not "always on")', async () => {
+      gameStore.setState({ booted: true, practice: false, puzzleNumber: 12 });
+      render(
+        <LocaleProvider>
+          <App puzzleNumber={12} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+
+      expect(screen.getByText('Vol. 1, No. 12')).toBeTruthy();
+      expect(screen.queryByTestId('app-practice-marker')).toBeNull();
+    });
+
+    // The post-launch case, and the one `?practice=1` makes permanent: the
+    // puzzle number is POSITIVE and perfectly plausible here. Nothing about
+    // the number itself can distinguish this session; only the flag can.
+    it('suppresses a perfectly plausible POSITIVE issue number under ?practice=1', async () => {
+      gameStore.setState({ booted: true, practice: true, puzzleNumber: 42 });
+      render(
+        <LocaleProvider>
+          <App puzzleNumber={42} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+
+      expect(screen.queryByText('Vol. 1, No. 42'), 'a practice run is still wearing the real issue number').toBeNull();
+      expect(screen.getByText('Vol. 1, No. —')).toBeTruthy();
+    });
+
+    it('names the session in the active locale, not in English', async () => {
+      gameStore.setState({ booted: true, practice: true, puzzleNumber: -3 });
+      render(
+        <LocaleProvider>
+          <App puzzleNumber={-3} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByTestId('app-practice-marker')).toBeTruthy());
+      fireEvent.click(screen.getByRole('button', { name: 'Italiano' }));
+
+      await waitFor(() => expect(screen.getByTestId('app-practice-marker').textContent).toBe(itCopy['nav.practiceMode']));
+      expect(itCopy['nav.practiceMode']).not.toBe(enCopy['nav.practiceMode']);
+    });
   });
 });
 

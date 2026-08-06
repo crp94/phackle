@@ -22,7 +22,7 @@ import { content as enContent } from '../../src/content/en';
 import { MAX_STAGGER_STEPS } from '../../src/ui/hooks/useEnterOnce';
 import { t as translate } from '../../src/i18n/t';
 import type { PersistedState } from '../../src/game/storage';
-import { DEFAULT_SPEC, useGameStore } from '../../src/game/store';
+import { DEFAULT_SPEC, gameStore, useGameStore } from '../../src/game/store';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { localIsoDate } from '../../src/game/daily';
 import type { EngineClient } from '../../src/engine/protocol';
@@ -149,6 +149,46 @@ describe('Summary — streak strip and countdown', () => {
       />
     );
     expect(screen.getByText(t('summary.nextIn', { hours: 2, minutes: 0 }))).toBeTruthy();
+  });
+
+  // w6-r-006's SECOND INSTANCE, which that ruling found, named and left open:
+  // "Summary's own countdown has the identical bug". `now` is a live
+  // wall-clock read and the invoice belongs to the puzzle's own date, so a
+  // player who was mid-play at midnight and has since finished was told
+  // "Next puzzle in 23h 55m" about a puzzle that was already waiting.
+  it('SUPPRESSES the countdown when the day this invoice is for is no longer today', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 11, 0, 5, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+        puzzleIsToday={false}
+      />
+    );
+    expect(screen.queryByTestId('summary-countdown'), 'a countdown to a puzzle that is already here').toBeNull();
+    // Nothing else about the screen is withheld — this is one wrong number
+    // removed, not a degraded screen.
+    expect(screen.getByText(t('summary.streak', { n: 1 }))).toBeTruthy();
+    expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy();
+  });
+
+  it('defaults to showing it, so the ordinary day is untouched', () => {
+    render(
+      <Summary
+        t={t}
+        breakdown={[['summary.breakdownCallCorrect', 100]]}
+        score={100}
+        streak={1}
+        now={new Date(2026, 7, 10, 22, 0, 0, 0)}
+        shareText="x"
+        preregUnlocked={false}
+      />
+    );
+    expect(screen.getByTestId('summary-countdown')).toBeTruthy();
   });
 });
 
@@ -817,6 +857,56 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
       expect(Object.keys(saved.history)).toEqual(['2026-08-10']);
 
       second.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // W8 — the same straddle, asked about the SCREEN rather than about storage.
+  // The persistence half was fixed in T17 review round 2 (above); the
+  // countdown half is w6-r-006's recorded second instance, and this is the
+  // wrapper end of it: `SummaryScreen` must derive `puzzleIsToday` from the
+  // store's own `iso`, not assume it.
+  it('a summary finished after a real midnight prints no countdown at all (w6-r-006, second instance)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(new Date(2026, 7, 10, 23, 50, 0, 0)); // still the puzzle's own day
+      const ready = vi.fn();
+      const harness = render(
+        <LocaleProvider>
+          <DriveToSummary onReady={ready} />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(ready).toHaveBeenCalled());
+      harness.unmount();
+
+      // Before: the countdown is right, and printed.
+      const before = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+      expect(screen.getByTestId('summary-countdown')).toBeTruthy();
+      before.unmount();
+
+      // The player crossed midnight. The day they finished is still 2026-08-10
+      // and still correctly saved as 2026-08-10 — but it is not today.
+      vi.setSystemTime(new Date(2026, 7, 11, 0, 30, 0, 0));
+      expect(localIsoDate()).toBe('2026-08-11'); // the straddle is real
+      expect(gameStore.getState().iso).toBe('2026-08-10');
+
+      const after = render(
+        <LocaleProvider>
+          <SummaryScreen />
+        </LocaleProvider>
+      );
+      await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+      expect(
+        screen.queryByTestId('summary-countdown'),
+        'the invoice still counts down 23h to a puzzle the player could open now'
+      ).toBeNull();
+      after.unmount();
     } finally {
       vi.useRealTimers();
     }

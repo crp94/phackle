@@ -8,6 +8,40 @@
 // test.globals (so @testing-library/react's own automatic cleanup never runs).
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+
+/**
+ * W8 — the one seam between the shipped catalogs and this screen.
+ *
+ * `Published` reads its scenario from `useLocale().content`, which
+ * `LocaleProvider` fetches through `getContent`. Wrapping that ONE function is
+ * how a test can hand the screen a headline the corpus does not contain,
+ * without mocking React context, without a second Published harness, and
+ * without any test that does not opt in seeing anything different: while
+ * `headlineOverride.value` is null this is byte-for-byte the real loader, for
+ * every locale.
+ *
+ * `vi.hoisted` because a `vi.mock` factory may not close over an ordinary
+ * module-level binding — the same idiom, for the same reason, as
+ * tests/ui/router.test.tsx's `createEngineClient` mock.
+ */
+const headlineOverride = vi.hoisted(() => ({ value: null as string | null }));
+
+vi.mock('../../src/content', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/content')>();
+  return {
+    ...actual,
+    getContent: async (locale: Parameters<typeof actual.getContent>[0]) => {
+      const loaded = await actual.getContent(locale);
+      if (headlineOverride.value === null) return loaded;
+      return {
+        ...loaded,
+        scenarios: loaded.scenarios.map((s, i) =>
+          i === 0 ? { ...s, headline: headlineOverride.value as string } : s
+        ),
+      };
+    },
+  };
+});
 import { useStore as zustandUseStore } from 'zustand/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { createGameStore, gameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
@@ -104,6 +138,10 @@ beforeEach(() => {
   // whatever order the file runs in. (This replaced a navigator.language
   // override, which detectLocale no longer reads at all.)
   window.localStorage.clear();
+  // Same reasoning as the localStorage clear above: set here rather than
+  // reset in afterEach, so a fixture headline can never leak into a test
+  // that did not ask for one, whatever order the file runs in.
+  headlineOverride.value = null;
 });
 
 afterEach(() => {
@@ -143,20 +181,74 @@ describe('JournalCover', () => {
 });
 
 describe('Published: journal cover wiring', () => {
+  // W8, from W3's review (booking confirmed "TRUE AND STRONGER"): this test
+  // WAS VACUOUS. gr6-005 retired the `{effect}` token from all twenty
+  // headlines in all three locales, so `substituteEffect(headline, beta)`
+  // became a no-op returning its input, and W3's reviewer measured the
+  // consequence — severing `substituteEffect` in Published.tsx left the ENTIRE
+  // suite green on the head tree while it reds on the base. The coverage was
+  // genuinely gone, and the substitution path still ships (the corpus rule
+  // that LICENSES the token is still on the books; en/index.ts:25 says so).
+  //
+  // Retiring the test was the wrong answer for the same reason. So it is
+  // re-pinned against a FIXTURE headline that carries the token — injected at
+  // the content loader, which is the only seam between the catalogs and the
+  // screen — and it asserts the two things a no-op cannot do: the token is
+  // gone from the rendered cover, and the number that replaced it is the one
+  // derived from the store's beta.
   it('substitutes the {effect} token end-to-end from the store result beta', async () => {
-    // substituteEffect's own rounding/flooring contract is proven in
-    // isolation in tests/game/published.test.ts -- this proves the WIRING
-    // (store.result.beta reaches the headline), so it computes the expected
-    // string the same way Published itself does, rather than a hand-typed
-    // duplicate of the rounding arithmetic.
-    const expectedHeadline = substituteEffect(enContent.scenarios[0].headline, 24.6);
+    // A token-carrying headline of exactly the shape the corpus rule permits
+    // ("at most one {effect}, never {n}"). Not taken from the shipped corpus,
+    // deliberately: no headline there has one today, and a test that reads its
+    // input from the same place the component does could go quiet again the
+    // next time the corpus is re-cut — which is precisely how this one died.
+    headlineOverride.value = 'Cat Owners See {effect}% Higher Returns, Study Finds';
+
     renderPublished({ forks: 1, result: makeResult({ beta: 24.6 }) });
-    await waitFor(() => expect(screen.getByText(expectedHeadline)).toBeTruthy());
+
+    // substituteEffect's own rounding/flooring contract is proven in isolation
+    // in tests/game/published.test.ts; this proves the WIRING, so the expected
+    // string is computed the same way Published itself computes it rather than
+    // hand-typing a duplicate of the arithmetic.
+    const expected = substituteEffect(headlineOverride.value, 24.6);
+    expect(expected, 'the fixture lost its token — this test would be vacuous again').not.toBe(headlineOverride.value);
+    await waitFor(() => expect(screen.getByText(expected)).toBeTruthy());
+
+    // The two assertions a severed substituteEffect cannot survive.
+    expect(screen.queryByText(headlineOverride.value), 'the raw {effect} token is on the journal cover').toBeNull();
+    expect(screen.getByText(/\b25% Higher Returns\b/), 'the beta never reached the headline').toBeTruthy();
+  });
+
+  // The other half of the pin: the shipped corpus is token-free today, and a
+  // token-free headline must pass through untouched. Together these two say
+  // "the path works AND it is inert on the content that actually ships",
+  // which is the whole of what gr6-005 left behind.
+  it('leaves a token-free headline exactly as the corpus wrote it', async () => {
+    renderPublished({ forks: 1, result: makeResult({ beta: 24.6 }) });
+    await waitFor(() => expect(screen.getByText(enContent.scenarios[0].headline)).toBeTruthy());
+    expect(enContent.scenarios[0].headline).not.toContain('{effect}');
   });
 
   it('shows the fake DOI 10.1337/phk.{puzzleNumber}', async () => {
     renderPublished({ puzzleNumber: 42 });
     await waitFor(() => expect(screen.getByText(fakeDoi(42), { exact: false })).toBeTruthy());
+  });
+
+  // gr6-021 — THE DOI ON A PRACTICE DAY. Pre-EPOCH the puzzle number is
+  // negative and this cover registered "10.1337/phk.-3", on the one screen in
+  // the product whose entire job is to be believed; under `?practice=1` it
+  // registered the REAL day's DOI for a session that was never played on that
+  // day. Same rule as the masthead, from the same function.
+  it('registers no issue number in the DOI on a practice day', async () => {
+    renderPublished({ puzzleNumber: -3, practice: true });
+    await waitFor(() => expect(screen.getByText('10.1337/phk.—', { exact: false })).toBeTruthy());
+    expect(screen.queryByText('10.1337/phk.-3', { exact: false }), 'a negative DOI suffix shipped').toBeNull();
+  });
+
+  it('suppresses a plausible POSITIVE DOI under ?practice=1 too (the post-launch case)', async () => {
+    renderPublished({ puzzleNumber: 42, practice: true });
+    await waitFor(() => expect(screen.getByText('10.1337/phk.—', { exact: false })).toBeTruthy());
+    expect(screen.queryByText(fakeDoi(42), { exact: false }), 'a practice run wore the real issue DOI').toBeNull();
   });
 
   it('shows the inline career-points figure (R1.6: the one place --hack-gold-ink paints characters)', async () => {
