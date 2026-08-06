@@ -733,18 +733,37 @@ export const content: LocaleContent = {
   // The register is Act II's, unchanged: clinical, one sentence, never a
   // punchline, never smug. It is NOT congratulation — a line that praised the
   // player would break the voice and would also be the game telling them what
-  // to feel. What these say instead is what is TRUE about a null result, and
-  // the affirmation is left to the reader to notice: nobody will cite it, and
-  // it will still be true next year.
+  // to feel. What these say instead is what is TRUE, and the affirmation is
+  // left to the reader to notice.
+  //
+  // THE LAW THAT SHAPES EVERY LINE HERE (w3-r-001), and it is not the same law
+  // the retraction bank lives under. `verdictStamp` (src/engine/reveal.ts) is
+  // DAY-TYPE-BLIND at this stamp: `if (published === null) return
+  // 'NULL_REPORTED'`. About a quarter of days are effect days, and abandoning
+  // one — walking away from a real effect you never found — is exactly the
+  // honest path this bank exists to furnish. On that day the SAME SCREEN prints
+  // reveal.truthEffect one block above the stamp ("True effect on X: β = 0.29"),
+  // so a subline saying there was nothing to find contradicts the sentence
+  // directly above it, in the player's own field of view.
+  //
+  // The retraction bank is not precedent for this. RETRACTED requires a
+  // PUBLISHED spec, so its claims are scoped to that spec and are true of it.
+  // Nothing scopes a NULL REPORTED subline, so every line here must be true on
+  // BOTH day types — which means each says what happened to the REPORT, never
+  // what the day contained. The five that got this wrong were rewritten rather
+  // than the bank day-typed: one bank keeps the wiring one line (see the
+  // hand-off note in tests/content/shape.test.ts), and the five that were
+  // already right prove the register carries the constraint comfortably.
+  // tests/content/shape.test.ts holds a floor under it.
   nullReportedSublines: [
-    'The finding is that there was nothing to find. It has been filed.',
-    'No press release was issued. There was nothing to put in one.',
-    'Nobody will cite it, and it will still be true next year.',
-    'The dataset was fine. So was the analysis. That is the whole story.',
+    'The analysis found nothing. The paper says so, and has been filed.',
+    'The press release was never drafted. For this lab, that is a first.',
+    'Nobody will cite it, and nobody will ever have to retract it.',
+    'Nothing in it was wrong. That is the part nobody will believe.',
     'Prof. Grantwell has read the abstract twice, looking for the result.',
     'The journal has accepted it for the section nobody reads.',
     'Your co-authors have asked whether anything can be done. Nothing can.',
-    'The confidence interval contained zero, and you said so.',
+    'It has been read by two reviewers and one search engine.',
     'The university homepage has nothing to take down.',
     'This is what most of the literature would look like.',
   ],

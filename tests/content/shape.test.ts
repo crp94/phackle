@@ -882,6 +882,16 @@ describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cann
  *     `briefing.emailSubject` becomes dead and should be deleted in that commit.
  *   - Reveal.tsx:300 — the NULL_REPORTED branch of the same expression that
  *     already indexes `retractionSublines` by `puzzleNumber % length`.
+ *     WITH THIS CONSTRAINT ATTACHED (w3-r-001), because it is the one thing
+ *     about this bank that is not obvious from its name: the stamp is
+ *     DAY-TYPE-BLIND. `verdictStamp` returns NULL_REPORTED on `published ===
+ *     null` alone, so an abandoned EFFECT day lands here too, one block under
+ *     a `reveal.truthEffect` line that has just declared the effect real. The
+ *     bank is authored to be true on both day types and needs no branch — but
+ *     if a future change ever gives it one (a second, effect-day variant), the
+ *     branch has to key on `payload.dayType`, NOT on the stamp, and the
+ *     retraction bank's `!isPrereg` gate is not the relevant precedent here.
+ *     Do not wire this bank behind a day-type assumption it does not make.
  */
 describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines', () => {
   const LOCALE_CONTENT = [
@@ -915,6 +925,91 @@ describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines',
     // effective period is much longer than the count.
     expect(content.nullReportedSublines.length).toBeGreaterThanOrEqual(10);
     expect(new Set(content.nullReportedSublines).size).toBe(content.nullReportedSublines.length);
+  });
+
+  /**
+   * w3-r-001 — A FLOOR UNDER THE DAY-TYPE CONSTRAINT, and it is a floor and not
+   * an oracle, exactly like the praise scan below it.
+   *
+   * THE REAL RULE, which no regex can check: a NULL REPORTED subline may say
+   * what happened to the REPORT and may not say what the DAY CONTAINED. The
+   * stamp is day-type-blind (`verdictStamp`: `published === null` and nothing
+   * else), ~25% of days carry a real effect, and on an abandoned effect day
+   * this text renders one block under "True effect on X: β = 0.29".
+   *
+   * WHAT THIS CAN MECHANIZE is the two vocabularies the five bad lines reached
+   * for, in each locale's own words:
+   *   (a) THE TRUTH VOCABULARY. `reveal.truthEffect` and `reveal.truthNull`
+   *       already own "effect", "true" and "zero" on this screen, one block up.
+   *       A subline that reaches for them is competing with a sentence the
+   *       player can see, and it loses.
+   *   (b) THE EXISTENTIAL CLAIM. "there was nothing to find", "that is the
+   *       whole story" — an unscoped assertion about what the day held. These
+   *       are pinned as the shapes the review actually caught, so a revert is
+   *       caught even though a NEW phrasing of the same mistake would not be.
+   * A line can still get this wrong in words nobody listed. That is what the
+   * paragraph above the bank in each locale is for.
+   */
+  const DAY_TYPE_BLIND = [
+    {
+      name: 'en',
+      content: enContent,
+      // (a) truth vocabulary, (b) the caught shapes.
+      banned: [/\btrue\b/i, /\bzero\b/i, /\beffect\b/i, /\binterval\b/i, /there was nothing/i, /nothing to find/i, /the whole story/i],
+    },
+    {
+      name: 'it',
+      content: itContent,
+      banned: [/\bvero\b/i, /\bzero\b/i, /\beffetto\b/i, /\bintervallo\b/i, /non c'era niente/i, /non ci sarebbe stato niente/i, /tutta qui/i],
+    },
+    {
+      name: 'es',
+      content: esContent,
+      banned: [/\b(cierto|verdad)\b/i, /\bcero\b/i, /\befecto\b/i, /\bintervalo\b/i, /no había nada/i, /no habría habido nada/i, /la historia es esa/i],
+    },
+  ] as const;
+
+  it.each(DAY_TYPE_BLIND)('$name: says what happened to the report, never what the day contained', ({ content, banned }) => {
+    const offenders = content.nullReportedSublines.flatMap((s, i) =>
+      banned.filter((re) => re.test(s)).map((re) => `nullReportedSublines[${i}] matches ${re}: "${s}"`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('catches every line the review caught, in the locale that shipped it (guards the guard)', () => {
+    // All FIVE sentences this bank shipped before w3-r-001, verbatim, in all
+    // three locales. Each has to be rejected by its OWN locale's list — a list
+    // that only worked in English would be the w1b-003 defect all over again,
+    // and the first draft of this test caught 5/5 in English and 4/5 in the
+    // other two, which is precisely the asymmetry that check exists to expose.
+    const CAUGHT: Record<string, string[]> = {
+      en: [
+        'The finding is that there was nothing to find. It has been filed.',
+        'No press release was issued. There was nothing to put in one.',
+        'Nobody will cite it, and it will still be true next year.',
+        'The dataset was fine. So was the analysis. That is the whole story.',
+        'The confidence interval contained zero, and you said so.',
+      ],
+      it: [
+        "Il risultato è che non c'era niente da trovare. È stato archiviato.",
+        'Non è stato diramato nessun comunicato. Non ci sarebbe stato niente da metterci.',
+        "Non lo citerà nessuno, e l'anno prossimo sarà ancora vero.",
+        "Il dataset andava bene. Anche l'analisi. La storia è tutta qui.",
+        "L'intervallo di confidenza conteneva lo zero, e tu lo hai detto.",
+      ],
+      es: [
+        'El hallazgo es que no había nada que hallar. Ya está archivado.',
+        'No se envió ninguna nota de prensa. No habría habido nada que poner en ella.',
+        'No lo citará nadie, y el año que viene seguirá siendo cierto.',
+        'Los datos estaban bien. El análisis también. La historia es esa.',
+        'El intervalo de confianza contenía el cero, y tú lo dijiste.',
+      ],
+    };
+    for (const { name, banned } of DAY_TYPE_BLIND) {
+      for (const line of CAUGHT[name]) {
+        expect(banned.some((re) => re.test(line)), `${name} list misses: "${line}"`).toBe(true);
+      }
+    }
   });
 
   it.each(LOCALE_CONTENT)('$name: keeps the NULL REPORTED bank in Act II\'s register, not in congratulation', ({ content, name }) => {

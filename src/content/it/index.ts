@@ -786,17 +786,20 @@ export const content: LocaleContent = {
     'Questa è la versione di riferimento, adesso.',
   ],
   // gr6-037 — the NULL REPORTED sublines, same register as the retraction ones
-  // above and same reasoning as ../en/index.ts: what is TRUE about a null, said
-  // flatly, with the affirmation left for the reader to find.
+  // above and same reasoning as ../en/index.ts, including the constraint that
+  // shapes every line (w3-r-001): the stamp is day-type-blind, so on an
+  // abandoned EFFECT day this sits one block under "L'effetto vero su X:
+  // β = 0.29". Each line therefore says what happened to the REPORT, never what
+  // the day contained.
   nullReportedSublines: [
-    "Il risultato è che non c'era niente da trovare. È stato archiviato.",
-    'Non è stato diramato nessun comunicato. Non ci sarebbe stato niente da metterci.',
-    "Non lo citerà nessuno, e l'anno prossimo sarà ancora vero.",
-    "Il dataset andava bene. Anche l'analisi. La storia è tutta qui.",
+    "L'analisi non ha trovato niente. Il lavoro lo dice, ed è stato archiviato.",
+    'Il comunicato stampa non è mai stato scritto. Per questo laboratorio è una prima volta.',
+    'Non lo citerà nessuno, e nessuno dovrà mai ritirarlo.',
+    "Nel lavoro non c'è niente di sbagliato. È la parte che non crederà nessuno.",
     "Il Prof. Grantwell ha letto l'abstract due volte, cercando il risultato.",
     'La rivista lo ha accettato per la sezione che non legge nessuno.',
     'I tuoi coautori hanno chiesto se si può fare qualcosa. Non si può.',
-    "L'intervallo di confidenza conteneva lo zero, e tu lo hai detto.",
+    'Lo hanno letto due revisori e un motore di ricerca.',
     "La homepage dell'ateneo non ha niente da togliere.",
     'Ecco che aspetto avrebbe buona parte della letteratura.',
   ],
