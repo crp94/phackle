@@ -33,6 +33,12 @@
 //     at N = 200 with a "collect more" button, and a briefing that already
 //     announced the total would deflate the optional-stopping fiction before
 //     the player ever reached it.
+//  7. COVARIATES (gr6-040). Same rule as ../en/index.ts rule 7: the left label
+//     renames the engine's income control and must stay a plausible income
+//     proxy, and within that it should be the scenario's own rather than
+//     'Reddito familiare' fifteen days out of twenty. The Italian proxies are
+//     built on Italian furniture (fascia retributiva, franchigia bagaglio,
+//     permesso di sosta) rather than translated off the English ones.
 //
 // WHAT IS NOT ITALIAN, ON PURPOSE. Journal mastheads and DOIs (src/content/
 // journals.ts) stay English because that is where Italian academics actually
@@ -60,7 +66,7 @@ export const content: LocaleContent = {
         'Calma autovalutata durante un crollo',
       ],
       outcomeUnits: ['%', '% del benchmark', 'operazioni vincenti/settimana', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Tenuta davanti a una candela rossa' },
+      covariateLabels: { income: 'Dimensione del portafoglio', risk: 'Tenuta davanti a una candela rossa' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -77,7 +83,7 @@ export const content: LocaleContent = {
         'Profondità autovalutata',
       ],
       outcomeUnits: ['punti', 'metafore/strofa', 'testi/mese', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Propensione al rischio creativo' },
+      covariateLabels: { income: 'Fascia retributiva dei quadri', risk: 'Propensione al rischio creativo' },
       journalTags: ['workplace', 'creative'],
     },
     {
@@ -94,7 +100,7 @@ export const content: LocaleContent = {
         'Pazienza autovalutata in gara',
       ],
       outcomeUnits: ['s/km guadagnati', '% sopra la media di gara', 'concorrenti superati/gara', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Tendenza a partire troppo forte' },
+      covariateLabels: { income: 'Spesa in scarpe da corsa', risk: 'Tendenza a partire troppo forte' },
       journalTags: ['fitness', 'lifestyle'],
     },
     {
@@ -128,7 +134,7 @@ export const content: LocaleContent = {
         'Durezza valutata dalla controparte',
       ],
       outcomeUnits: ['migliaia di €', 'secondi', 'concessioni/trattativa', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disponibilità ad alzarsi dal tavolo' },
+      covariateLabels: { income: 'Budget del reparto', risk: 'Disponibilità ad alzarsi dal tavolo' },
       journalTags: ['nature', 'workplace'],
     },
     {
@@ -145,7 +151,7 @@ export const content: LocaleContent = {
         'Gelo percepito da chi riceve',
       ],
       outcomeUnits: ['punti indice', 'ore', 'ricorrenze/settimana', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disinvoltura nel rispondere a tutti' },
+      covariateLabels: { income: 'Bagni in casa', risk: 'Disinvoltura nel rispondere a tutti' },
       journalTags: ['wellness', 'communication'],
     },
     {
@@ -162,7 +168,7 @@ export const content: LocaleContent = {
         'Allineamento cosmico autovalutato',
       ],
       outcomeUnits: ['minuti risparmiati', 'metri', 'successi/settimana', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disinvoltura davanti a un cartello ambiguo' },
+      covariateLabels: { income: 'Fascia del permesso di sosta', risk: 'Disinvoltura davanti a un cartello ambiguo' },
       journalTags: ['superstition', 'lifestyle'],
     },
     {
@@ -196,7 +202,7 @@ export const content: LocaleContent = {
         'Convinzione autovalutata nella tesi',
       ],
       outcomeUnits: ['punti percentuali', '%', 'titoli/trimestre', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Convinzione che il cane sappia qualcosa' },
+      covariateLabels: { income: 'Spesa annua per il cane', risk: 'Convinzione che il cane sappia qualcosa' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -233,7 +239,7 @@ export const content: LocaleContent = {
         'Ordine mentale autovalutato',
       ],
       outcomeUnits: ['% degli arrivi', 'giorni', 'cartelle/mese', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Tolleranza per un badge di non letti' },
+      covariateLabels: { income: 'Budget per la cancelleria', risk: 'Tolleranza per un badge di non letti' },
       journalTags: ['productivity', 'workplace'],
     },
     {
@@ -250,7 +256,7 @@ export const content: LocaleContent = {
         'Calore della serata valutato dagli ospiti',
       ],
       outcomeUnits: ['€', 'minuti', 'richieste/cena', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Coraggio di provare una ricetta nuova sugli ospiti' },
+      covariateLabels: { income: 'Spesa mensile in vino', risk: 'Coraggio di provare una ricetta nuova sugli ospiti' },
       journalTags: ['music', 'lifestyle'],
     },
     {
@@ -267,7 +273,7 @@ export const content: LocaleContent = {
         'Fiducia nelle indicazioni valutata dal passante',
       ],
       outcomeUnits: ['%', 'parole', 'punti cardinali/conversazione', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disponibilità a consigliare una scorciatoia' },
+      covariateLabels: { income: 'Spesa mensile per gli hobby', risk: 'Disponibilità a consigliare una scorciatoia' },
       journalTags: ['astronomy', 'communication'],
     },
     {
@@ -301,7 +307,7 @@ export const content: LocaleContent = {
         'Percezione autovalutata di essere presi sul serio',
       ],
       outcomeUnits: ['€', 'parole', 'risoluzioni/trimestre', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disponibilità a chiedere un responsabile' },
+      covariateLabels: { income: 'Spesa annua con quel venditore', risk: 'Disponibilità a chiedere un responsabile' },
       journalTags: ['communication', 'general'],
     },
     {
@@ -318,7 +324,7 @@ export const content: LocaleContent = {
         'Preparazione valutata dal compagno di viaggio',
       ],
       outcomeUnits: ['litri', 'giorni', 'oggetti/viaggio', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disponibilità a viaggiare senza bagaglio in stiva' },
+      covariateLabels: { income: 'Classe di franchigia bagaglio', risk: 'Disponibilità a viaggiare senza bagaglio in stiva' },
       journalTags: ['lifestyle', 'general'],
     },
     {
@@ -352,7 +358,7 @@ export const content: LocaleContent = {
         'Affidabilità valutata dai colleghi',
       ],
       outcomeUnits: ['minuti di anticipo', 'giorni', 'appuntamenti/settimana', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Disinvoltura nel prendere una coincidenza al pelo' },
+      covariateLabels: { income: 'Spesa annua in calzini', risk: 'Disinvoltura nel prendere una coincidenza al pelo' },
       journalTags: ['lifestyle', 'workplace'],
     },
     {
@@ -375,7 +381,7 @@ export const content: LocaleContent = {
         'Soddisfazione autovalutata per le condizioni',
       ],
       outcomeUnits: ['punti base', '€', 'controproposte/pratica', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: "Disponibilità a lasciar scadere un'offerta" },
+      covariateLabels: { income: "Entità dell'anticipo", risk: "Disponibilità a lasciar scadere un'offerta" },
       journalTags: ['superstition', 'finance'],
     },
     {
@@ -392,7 +398,7 @@ export const content: LocaleContent = {
         'Padronanza autovalutata della situazione',
       ],
       outcomeUnits: ['€', 'minuti', 'progetti/anno', 'scala 1–10'],
-      covariateLabels: { income: 'Reddito familiare', risk: 'Voglia di iniziare prima di finire' },
+      covariateLabels: { income: 'Tariffa giornaliera da contratto', risk: 'Voglia di iniziare prima di finire' },
       journalTags: ['technology', 'creative'],
     },
   ],

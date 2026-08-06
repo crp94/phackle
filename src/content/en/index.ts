@@ -54,6 +54,17 @@
 //     stopping fiction before the player reaches it. Drop the number, or say
 //     recruitment is still running — and vary how, since fifteen identical
 //     "four hundred participants" openings were themselves a visible seam.
+//  7. COVARIATES (gr6-040). The two covariateLabels only RENAME the engine's
+//     two latent controls, so the left one has to stay a plausible INCOME
+//     PROXY — an expenditure, an asset, a budget, a pay band — or the
+//     regression the player is running stops meaning what the screen says it
+//     means. Within that constraint it should be the scenario's own: these
+//     labels are furniture on the one screen the player spends the whole
+//     session in, and 'Household income' stood on 15 of 20 days beside a
+//     bespoke right-hand label, so the radiogroup read as one funny option and
+//     one filing cabinet, every day, forever. The one-tailed DIRECTION
+//     contract (rule 4) does not reach here: a covariate is a control, not an
+//     outcome, and nothing about it is hypothesized.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -80,7 +91,7 @@ export const content: LocaleContent = {
         'Self-rated calm during a crash',
       ],
       outcomeUnits: ['%', '% of benchmark', 'winning trades/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to hold through a red candle' },
+      covariateLabels: { income: 'Portfolio size', risk: 'Willingness to hold through a red candle' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -97,7 +108,7 @@ export const content: LocaleContent = {
         'Self-assessed profundity',
       ],
       outcomeUnits: ['points', 'metaphors/stanza', 'submissions/month', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Appetite for creative risk-taking' },
+      covariateLabels: { income: 'Management pay band', risk: 'Appetite for creative risk-taking' },
       journalTags: ['workplace', 'creative'],
     },
     {
@@ -114,7 +125,7 @@ export const content: LocaleContent = {
         'Self-rated race-day patience',
       ],
       outcomeUnits: ['s/km gained', '% above race average', 'runners overtaken/race', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to go out too fast' },
+      covariateLabels: { income: 'Spend on running shoes', risk: 'Willingness to go out too fast' },
       journalTags: ['fitness', 'lifestyle'],
     },
     {
@@ -148,7 +159,7 @@ export const content: LocaleContent = {
         'Counterpart-rated toughness',
       ],
       outcomeUnits: ['€ thousands', 'seconds', 'concessions/negotiation', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to walk away' },
+      covariateLabels: { income: 'Departmental budget', risk: 'Willingness to walk away' },
       journalTags: ['nature', 'workplace'],
     },
     {
@@ -165,7 +176,7 @@ export const content: LocaleContent = {
         'Recipient-rated frostiness',
       ],
       outcomeUnits: ['index points', 'hours', 'instances/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to reply-all' },
+      covariateLabels: { income: 'Bathrooms in the household', risk: 'Willingness to reply-all' },
       journalTags: ['wellness', 'communication'],
     },
     {
@@ -182,7 +193,7 @@ export const content: LocaleContent = {
         'Self-rated cosmic alignment',
       ],
       outcomeUnits: ['minutes saved', 'metres', 'successes/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort with an ambiguous parking sign' },
+      covariateLabels: { income: 'Parking-permit tier', risk: 'Comfort with an ambiguous parking sign' },
       journalTags: ['superstition', 'lifestyle'],
     },
     {
@@ -216,7 +227,7 @@ export const content: LocaleContent = {
         'Self-rated conviction in the thesis',
       ],
       outcomeUnits: ['percentage points', '%', 'holdings/quarter', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Belief that the dog knows something' },
+      covariateLabels: { income: 'Annual spend on the dog', risk: 'Belief that the dog knows something' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -250,7 +261,7 @@ export const content: LocaleContent = {
         'Self-rated tidiness of mind',
       ],
       outcomeUnits: ['% of arrivals', 'days', 'folders/month', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort living with an unread badge' },
+      covariateLabels: { income: 'Office-supplies budget', risk: 'Comfort living with an unread badge' },
       journalTags: ['productivity', 'workplace'],
     },
     {
@@ -267,7 +278,7 @@ export const content: LocaleContent = {
         'Guest-rated warmth of the evening',
       ],
       outcomeUnits: ['€', 'minutes', 'requests/party', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to test a new recipe on guests' },
+      covariateLabels: { income: 'Monthly spend on wine', risk: 'Willingness to test a new recipe on guests' },
       journalTags: ['music', 'lifestyle'],
     },
     {
@@ -284,7 +295,7 @@ export const content: LocaleContent = {
         'Stranger-rated confidence in the directions',
       ],
       outcomeUnits: ['%', 'words', 'compass points/conversation', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to recommend a shortcut' },
+      covariateLabels: { income: 'Monthly spend on hobbies', risk: 'Willingness to recommend a shortcut' },
       journalTags: ['astronomy', 'communication'],
     },
     {
@@ -318,7 +329,7 @@ export const content: LocaleContent = {
         'Self-rated feeling of being taken seriously',
       ],
       outcomeUnits: ['€', 'words', 'resolutions/quarter', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to ask for a supervisor' },
+      covariateLabels: { income: 'Annual spend with the retailer', risk: 'Willingness to ask for a supervisor' },
       journalTags: ['communication', 'general'],
     },
     {
@@ -341,7 +352,7 @@ export const content: LocaleContent = {
         'Companion-rated preparedness',
       ],
       outcomeUnits: ['litres', 'days', 'items/trip', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to travel without checking a bag' },
+      covariateLabels: { income: 'Baggage-allowance tier', risk: 'Willingness to travel without checking a bag' },
       journalTags: ['lifestyle', 'general'],
     },
     {
@@ -375,7 +386,7 @@ export const content: LocaleContent = {
         'Colleague-rated dependability',
       ],
       outcomeUnits: ['minutes early', 'days', 'appointments/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort cutting a connection fine' },
+      covariateLabels: { income: 'Annual spend on socks', risk: 'Comfort cutting a connection fine' },
       journalTags: ['lifestyle', 'workplace'],
     },
     {
@@ -392,7 +403,7 @@ export const content: LocaleContent = {
         'Self-rated satisfaction with the terms',
       ],
       outcomeUnits: ['basis points', '€', 'counteroffers/application', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to let an offer expire' },
+      covariateLabels: { income: 'Deposit size', risk: 'Willingness to let an offer expire' },
       journalTags: ['superstition', 'finance'],
     },
     {
@@ -409,7 +420,7 @@ export const content: LocaleContent = {
         'Self-rated grip on the situation',
       ],
       outcomeUnits: ['€', 'minutes', 'projects/year', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to start before finishing' },
+      covariateLabels: { income: 'Contract day rate', risk: 'Willingness to start before finishing' },
       journalTags: ['technology', 'creative'],
     },
   ],

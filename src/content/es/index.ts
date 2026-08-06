@@ -40,6 +40,12 @@
 //     measurement behind the retirement, and the one condition under which the
 //     token may return, live at ../en/index.ts rule 5; es.shape.test.ts's
 //     headline token-contract check keeps this locale tied to it.
+//  8. COVARIATES (gr6-040). Same rule as ../en/index.ts rule 7: the left label
+//     renames the engine's income control, so it must stay a plausible income
+//     proxy, and within that it should belong to its own scenario rather than
+//     be 'Renta del hogar' on fifteen days out of twenty. The Spanish proxies
+//     are Spanish furniture (banda retributiva, franquicia de equipaje,
+//     permiso de aparcamiento), not translations of the English ones.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -64,7 +70,7 @@ export const content: LocaleContent = {
         'Calma autopercibida durante un desplome',
       ],
       outcomeUnits: ['%', '% del índice de referencia', 'operaciones ganadoras/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a aguantar una vela roja' },
+      covariateLabels: { income: 'Tamaño de la cartera', risk: 'Disposición a aguantar una vela roja' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -81,7 +87,7 @@ export const content: LocaleContent = {
         'Profundidad autoevaluada',
       ],
       outcomeUnits: ['puntos', 'metáforas/estrofa', 'envíos/mes', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Apetito por el riesgo creativo' },
+      covariateLabels: { income: 'Banda retributiva del mando', risk: 'Apetito por el riesgo creativo' },
       journalTags: ['workplace', 'creative'],
     },
     {
@@ -98,7 +104,7 @@ export const content: LocaleContent = {
         'Paciencia autopercibida el día de la carrera',
       ],
       outcomeUnits: ['s/km ganados', '% sobre el ritmo medio', 'corredores adelantados/carrera', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a salir demasiado fuerte' },
+      covariateLabels: { income: 'Gasto en zapatillas de correr', risk: 'Disposición a salir demasiado fuerte' },
       journalTags: ['fitness', 'lifestyle'],
     },
     {
@@ -132,7 +138,7 @@ export const content: LocaleContent = {
         'Dureza según la contraparte',
       ],
       outcomeUnits: ['miles de €', 'segundos', 'concesiones/negociación', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a levantarse de la mesa' },
+      covariateLabels: { income: 'Presupuesto del departamento', risk: 'Disposición a levantarse de la mesa' },
       journalTags: ['nature', 'workplace'],
     },
     {
@@ -149,7 +155,7 @@ export const content: LocaleContent = {
         'Frialdad percibida por el destinatario',
       ],
       outcomeUnits: ['puntos de índice', 'horas', 'apariciones/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a responder a todos' },
+      covariateLabels: { income: 'Baños que hay en casa', risk: 'Disposición a responder a todos' },
       journalTags: ['wellness', 'communication'],
     },
     {
@@ -166,7 +172,7 @@ export const content: LocaleContent = {
         'Alineación cósmica autopercibida',
       ],
       outcomeUnits: ['minutos ahorrados', 'metros', 'aciertos/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Comodidad ante una señal de aparcamiento ambigua' },
+      covariateLabels: { income: 'Categoría del permiso de aparcamiento', risk: 'Comodidad ante una señal de aparcamiento ambigua' },
       journalTags: ['superstition', 'lifestyle'],
     },
     {
@@ -200,7 +206,7 @@ export const content: LocaleContent = {
         'Convicción autopercibida en la tesis',
       ],
       outcomeUnits: ['puntos porcentuales', '%', 'posiciones/trimestre', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Convencimiento de que el perro sabe algo' },
+      covariateLabels: { income: 'Gasto anual en el perro', risk: 'Convencimiento de que el perro sabe algo' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -237,7 +243,7 @@ export const content: LocaleContent = {
         'Orden mental autopercibido',
       ],
       outcomeUnits: ['% de lo recibido', 'días', 'carpetas/mes', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Tolerancia a convivir con un aviso de no leídos' },
+      covariateLabels: { income: 'Presupuesto de material de oficina', risk: 'Tolerancia a convivir con un aviso de no leídos' },
       journalTags: ['productivity', 'workplace'],
     },
     {
@@ -254,7 +260,7 @@ export const content: LocaleContent = {
         'Calidez de la velada según los invitados',
       ],
       outcomeUnits: ['€', 'minutos', 'peticiones/cena', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a estrenar una receta con invitados' },
+      covariateLabels: { income: 'Gasto mensual en vino', risk: 'Disposición a estrenar una receta con invitados' },
       journalTags: ['music', 'lifestyle'],
     },
     {
@@ -271,7 +277,7 @@ export const content: LocaleContent = {
         'Confianza del desconocido en las indicaciones',
       ],
       outcomeUnits: ['%', 'palabras', 'puntos cardinales/conversación', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a recomendar un atajo' },
+      covariateLabels: { income: 'Gasto mensual en aficiones', risk: 'Disposición a recomendar un atajo' },
       journalTags: ['astronomy', 'communication'],
     },
     {
@@ -305,7 +311,7 @@ export const content: LocaleContent = {
         'Impresión autopercibida de que te toman en serio',
       ],
       outcomeUnits: ['€', 'palabras', 'resoluciones/trimestre', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a pedir un supervisor' },
+      covariateLabels: { income: 'Gasto anual con esa empresa', risk: 'Disposición a pedir un supervisor' },
       journalTags: ['communication', 'general'],
     },
     {
@@ -322,7 +328,7 @@ export const content: LocaleContent = {
         'Previsión según el acompañante',
       ],
       outcomeUnits: ['litros', 'días', 'objetos/viaje', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a viajar sin facturar' },
+      covariateLabels: { income: 'Categoría de franquicia de equipaje', risk: 'Disposición a viajar sin facturar' },
       journalTags: ['lifestyle', 'general'],
     },
     {
@@ -356,7 +362,7 @@ export const content: LocaleContent = {
         'Fiabilidad según los compañeros',
       ],
       outcomeUnits: ['minutos de antelación', 'días', 'citas/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Tolerancia a apurar un transbordo' },
+      covariateLabels: { income: 'Gasto anual en calcetines', risk: 'Tolerancia a apurar un transbordo' },
       journalTags: ['lifestyle', 'workplace'],
     },
     {
@@ -373,7 +379,7 @@ export const content: LocaleContent = {
         'Satisfacción autopercibida con las condiciones',
       ],
       outcomeUnits: ['puntos básicos', '€', 'contraofertas/solicitud', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a dejar caducar una oferta' },
+      covariateLabels: { income: 'Tamaño de la entrada', risk: 'Disposición a dejar caducar una oferta' },
       journalTags: ['superstition', 'finance'],
     },
     {
@@ -390,7 +396,7 @@ export const content: LocaleContent = {
         'Dominio autopercibido de la situación',
       ],
       outcomeUnits: ['€', 'minutos', 'proyectos/año', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a empezar algo antes de terminar lo anterior' },
+      covariateLabels: { income: 'Tarifa diaria por contrato', risk: 'Disposición a empezar algo antes de terminar lo anterior' },
       journalTags: ['technology', 'creative'],
     },
   ],
