@@ -86,7 +86,7 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
 
       {/* T22: no aria-label — not a dialog. See Stats.tsx's note. */}
       {onClose && (
-        <button type="button" className="ph-about__close ph-focusable" onClick={onClose}>
+        <button type="button" className="ph-about__close ph-close ph-focusable" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

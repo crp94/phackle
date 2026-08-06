@@ -120,6 +120,37 @@ body {
   padding: var(--space-40) var(--space-24) var(--space-24);
 }
 
+/* The overlay close button — the one the three nav pages (Stats, Legend,
+   About) end on. Written `class="ph-close ph-focusable"`, because R6.1's ring
+   is composed rather than restated (§9.1 spells this one out).
+
+   THE TRANSPARENT 2px BLOCK-END IS NOT PADDING BY ACCIDENT. It reserves R4.6's
+   underline, so the label does not shift by 2px the moment a sibling state
+   paints one — the same reserve `.ph-seg` and `.ph-radio` carry for the same
+   reason. And the `--space-12`/`--space-16` pair is what buys R6.4's >=44x44
+   target out of the §3 scale rather than out of a bigger font.
+
+   THE MARGIN IS NOT PART OF IT. Two of the three sites sit `--space-24` below
+   the block above them and one does not; §9.1's match-first test settles that
+   the same way it settles everything else — the margin is LAYOUT, it stays at
+   the call site, and the button is the utility. */
+.ph-close {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-close:hover {
+  text-decoration: underline;
+}
+
 /* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
    The screen change is the biggest state change in the product and, until
    this task, the only one with no beat at all: briefing -> lab -> published

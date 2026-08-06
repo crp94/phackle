@@ -99,19 +99,9 @@
   overflow-wrap: anywhere;
 }
 
+/* `.ph-close ph-focusable` (§9.1) is the button; this is the only thing about
+   it that is About's own — the --space-24 that sets it off from the closing
+   meta line. §9.1: the margin is layout and stays at the call site. */
 .ph-about__close {
-  font-family: var(--font-ui);
-  font-size: var(--text-15);
-  line-height: var(--leading-ui);
-  color: var(--ink);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
   margin-block-start: var(--space-24);
-  cursor: pointer;
-}
-
-.ph-about__close:hover {
-  text-decoration: underline;
 }

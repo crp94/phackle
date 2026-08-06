@@ -53,20 +53,6 @@
   color: var(--ink);
 }
 
-/* Same "instant hover, 2px --ink underline on state" idiom as App.css's
-   .ph-toggle/.ph-seg — no new interaction pattern invented. */
-.ph-legend__close {
-  font-family: var(--font-ui);
-  font-size: var(--text-15);
-  line-height: var(--leading-ui);
-  color: var(--ink);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
-  cursor: pointer;
-}
-
-.ph-legend__close:hover {
-  text-decoration: underline;
-}
+/* The close button is `.ph-close ph-focusable` (§9.1) and NOTHING else — the
+   only one of the three that carries no margin of its own, so it has no site
+   rule and writes no site class either. */
