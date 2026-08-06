@@ -194,11 +194,30 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * anything else, because it would take a half-hacked spec, a finished
    * summary or an open reveal away from the player at the exact moment they
    * came back to it. So the rollover is honoured at ONE resting state — the
-   * briefing, with nothing yet done (`log.length === 0`) — and ignored
-   * everywhere else. A player mid-day at midnight finishes the day they
-   * started, which is the courteous answer and also the one that loses no
-   * work; the store's own `alreadyPlayedToday`/finished-day logic picks the
-   * new day up on their next visit.
+   * briefing, with nothing yet done — and ignored everywhere else. A player
+   * mid-day at midnight finishes the day they started, which is the courteous
+   * answer and also the one that loses no work; the store's own
+   * `alreadyPlayedToday`/finished-day logic picks the new day up on their next
+   * visit.
+   *
+   * HOW "NOTHING YET DONE" IS TESTED, and why it is not `log.length === 0`
+   * (w7-r-003, found while writing this effect's first test). It WAS
+   * `log.length === 0`, and that condition can never hold: `store.boot()`
+   * seeds one free `VIEW_SPEC` entry for the default spec (§2.10 — logged so
+   * the fork trail has a first entry, never itself a fork), so a booted store
+   * has `log.length === 1` before the player has touched anything. The whole
+   * effect was therefore dead code — it never re-booted in ANY state, which
+   * no test noticed because no test existed.
+   *
+   * `screen === 'briefing'` alone is the correct and complete test, and it is
+   * stronger than the arithmetic it replaces: `'briefing'` is set in exactly
+   * one place in the entire store — `initialState()` — and no transition ever
+   * returns to it. Being on the briefing therefore MEANS the player has taken
+   * no action today; `openData()` leaves for the Lab and `chooseMode()` for
+   * Prereg, and neither has a way back. That includes the finished-day
+   * briefing, where a re-boot is not merely safe but wanted: the block is
+   * showing yesterday's result and the new day is exactly what should replace
+   * it.
    *
    * STILL OPEN, and narrowed by what W2 actually shipped: the mid-play case
    * has no affordance at all (no "a new puzzle is ready — reload" line). Two
@@ -222,7 +241,9 @@ export default function App({ puzzleNumber, children }: AppProps) {
       if (!client || !content) return;
       const state = gameStore.getState();
       if (!state.booted || state.iso === localIsoDate()) return;
-      if (state.screen !== 'briefing' || state.log.length > 0) return;
+      // See the ruling above: the briefing is the one state the player can be
+      // in having done nothing, because nothing ever navigates back to it.
+      if (state.screen !== 'briefing') return;
       void boot(client, localIsoDate(), {
         practice: isPractice(window.location.search),
         mode: state.mode,
