@@ -39,6 +39,12 @@
 //     'Reddito familiare' fifteen days out of twenty. The Italian proxies are
 //     built on Italian furniture (fascia retributiva, franchigia bagaglio,
 //     permesso di sosta) rather than translated off the English ones.
+//  8. HOW A COVER STORY OPENS AND CLOSES (gr6-041). Same law as ../en/index.ts
+//     rule 8: the closing logistics aside is 20 of 20 and stays, and the same
+//     five paragraphs open from method / person / mid-scene / objection / money
+//     here as in English. The Italian openers are written as Italian sentences
+//     rather than translated: "C'è un tavolino pieghevole al gate 14 e, sopra,
+//     le vacanze di qualcuno."
 //
 // WHAT IS NOT ITALIAN, ON PURPOSE. Journal mastheads and DOIs (src/content/
 // journals.ts) stay English because that is where Italian academics actually
@@ -53,7 +59,7 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: 'Avere un gatto migliora i rendimenti delle criptovalute?',
       coverStory:
-        "Una coorte pilota di piccoli investitori è stata reclutata per mettere alla prova un'ipotesi popolare sussurrata da anni nei forum di finanza personale: che avere un gatto eserciti un'influenza calmante e stabilizzatrice sul comportamento di portafoglio. I trader indipendenti registrano lo stato felino accanto a trenta giorni di operazioni, e il reclutamento nei forum è ancora aperto. Il lavoro è finanziato da una fondazione filantropica il cui fondatore possiede quattro gatti e, ci dicono, una prior molto forte.",
+        "Una fondazione filantropica con quattro gatti e una prior molto forte ci ha fatto una domanda: avere un gatto esercita davvero un'influenza calmante e stabilizzatrice sul comportamento di portafoglio? L'ipotesi si sussurra da anni nei forum di finanza personale e non l'ha mai verificata nessuno. I trader indipendenti registrano lo stato felino accanto a trenta giorni di operazioni, e il reclutamento nei forum è ancora aperto. La fondazione gradirebbe un aggiornamento settimanale.",
       treatmentLabel: 'Possiede un gatto',
       headline: 'Chi ha un gatto ottiene rendimenti superiori, rivela uno studio',
       // Same deliberate divergence from the master spec as the English module:
@@ -175,7 +181,7 @@ export const content: LocaleContent = {
       id: 'mechanical-keyboard-bugs',
       question: 'Le tastiere meccaniche riducono i bug mandati in produzione?',
       coverStory:
-        'La letteratura sul feedback tattile si ferma alla velocità di battitura e alla produzione non arriva mai. Con la collaborazione di undici team di sviluppo abbiamo incrociato diciotto mesi di ordini hardware con lo stesso periodo di ticket, trattando ogni cambio di switch come un esperimento naturale. Due partecipanti hanno cambiato tipo di switch a metà studio e sono stati, purtroppo, esclusi. Erano passati entrambi a qualcosa di più silenzioso.',
+        'Diciotto mesi di ordini hardware, incrociati riga per riga con diciotto mesi di ticket. Undici team di sviluppo ci hanno aperto entrambi gli archivi, e ogni cambio di switch che ci sta dentro è trattato come un esperimento naturale. La letteratura sul feedback tattile si ferma alla velocità di battitura; questo studio comincia dalla produzione. Due partecipanti hanno cambiato tipo di switch a metà studio e sono stati, purtroppo, esclusi. Erano passati entrambi a qualcosa di più silenzioso.',
       treatmentLabel: 'Scrive su una tastiera meccanica',
       headline: 'Tastiere meccaniche associate a rilasci più puliti',
       outcomeLabels: [
@@ -209,7 +215,7 @@ export const content: LocaleContent = {
       id: 'full-moon-meetings',
       question: 'Le riunioni durano di più con la luna piena?',
       coverStory:
-        "I dati di calendario sono il patrimonio comportamentale più sottoutilizzato dell'impresa moderna. Abbiamo estratto diciotto mesi di riunioni da una società di consulenza di medie dimensioni (orari di fine previsti, orari di fine effettivi, numero di presenti, incontri fissati a seguire) e li abbiamo uniti a un'effemeride lunare. L'ipotesi è stata proposta, in tutta serietà, dall'addetta al calendario, che in passato ci ha già visto giusto.",
+        "L'addetta al calendario aveva una teoria, e in passato ci aveva già visto giusto. Abbiamo estratto diciotto mesi di riunioni da una società di consulenza di medie dimensioni (orari di fine previsti, orari di fine effettivi, numero di presenti, incontri fissati a seguire) e li abbiamo uniti a un'effemeride lunare. I dati di calendario sono il patrimonio comportamentale più sottoutilizzato dell'impresa moderna; la luna è disponibile da parecchio più tempo. La società di consulenza ci ha poi chiesto quali delle sue riunioni pensiamo di nominare.",
       treatmentLabel: 'Tenuta con la luna piena',
       headline: "Le riunioni durano di più con la luna piena, rivela l'analisi",
       outcomeLabels: [
@@ -314,7 +320,7 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: 'Chi fa i puzzle prepara meglio la valigia?',
       coverStory:
-        "La ricerca sul ragionamento spaziale ha prodotto quarant'anni di rotazioni di cubi e quasi nessun bagaglio. La domanda l'abbiamo portata in un aeroporto regionale. Ai viaggiatori si chiede se abbiano completato un puzzle nell'ultimo anno e poi, con il loro permesso e un tavolino pieghevole, si misura il contenuto delle borse contro il volume della borsa. Un gate di partenza si rivela un ambiente di reclutamento insolitamente disponibile: lì nessuno ha altro da fare.",
+        "C'è un tavolino pieghevole al gate 14 e, sopra, le vacanze di qualcuno. Ai viaggiatori si chiede se abbiano completato un puzzle nell'ultimo anno e poi, con il loro permesso, si misura il contenuto delle borse contro il volume della borsa. Quarant'anni di rotazioni di cubi hanno prodotto quasi nessun bagaglio, ed è la lacuna che questo studio è venuto a colmare in aeroporto. Un gate di partenza si rivela un ambiente di reclutamento insolitamente disponibile: lì nessuno ha altro da fare.",
       treatmentLabel: 'Fa i puzzle',
       headline: 'Chi risolve i puzzle fa entrare di più nella stessa valigia, dicono i ricercatori',
       outcomeLabels: [
@@ -348,7 +354,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: 'Chi piega i calzini arriva prima?',
       coverStory:
-        "La ricerca sull'uso del tempo ha documentato il pendolarismo in un dettaglio straordinario e il cassetto dei calzini per niente. I partecipanti fotografano come tengono i calzini (piegati, arrotolati o sfusi), e noi incrociamo la classificazione con sei settimane di orari da calendario e da badge. Due codificatori indipendenti valutano le fotografie. Vanno d'accordo molto più spesso di quanto avessimo messo a bilancio, il che è una piccola crisi a sé.",
+        "L'obiezione ovvia è che non se ne accorgerebbe nessuno. Abbiamo misurato se qualcuno se ne accorge. I partecipanti fotografano come tengono i calzini (piegati, arrotolati o sfusi), e noi incrociamo la classificazione con sei settimane di orari da calendario e da badge; la ricerca sull'uso del tempo ha documentato il pendolarismo in un dettaglio straordinario e il cassetto dei calzini per niente. Due codificatori indipendenti valutano le fotografie. Vanno d'accordo molto più spesso di quanto avessimo messo a bilancio, il che è una piccola crisi a sé.",
       treatmentLabel: 'Piega i calzini',
       headline: 'Chi piega i calzini arriva prima, e i dati dei badge lo confermano',
       outcomeLabels: [

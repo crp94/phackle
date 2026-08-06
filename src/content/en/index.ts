@@ -65,6 +65,22 @@
 //     one filing cabinet, every day, forever. The one-tailed DIRECTION
 //     contract (rule 4) does not reach here: a covariate is a control, not an
 //     outcome, and nothing about it is hypothesized.
+//  8. HOW A COVER STORY OPENS AND CLOSES (gr6-041).
+//     THE CLOSER IS A LAW: one wry logistics aside per scenario, 20 of 20,
+//     every payload different ("He sends regards." / "Both had moved to
+//     something quieter." / "The consent forms, for once, were read in full.").
+//     It is the corpus's best recurring beat because the DEVICE repeats and the
+//     JOKE never does. Keep all twenty.
+//     THE OPENER IS NOT: sixteen of twenty opened on the same academic-gap
+//     sentence (the literature has studied A exhaustively and B not at all),
+//     and on a daily an identical first sentence becomes furniture inside two
+//     weeks. Five now enter from elsewhere — method (mechanical-keyboard),
+//     person (full-moon), mid-scene (jigsaw), objection (sock), money
+//     (cat-crypto) — leaving twelve. The gap sentence itself is not the
+//     problem and mostly survives further down the paragraph; being FIRST every
+//     time was. Two of the five needed new closers, because the material their
+//     new opener uses was their old closer: the device is preserved, the
+//     payload is new, and the count is still 20 of 20.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -74,7 +90,7 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: 'Does owning a cat improve cryptocurrency returns?',
       coverStory:
-        'A pilot cohort of retail investors was recruited to test a folk hypothesis long whispered in personal-finance forums: that cat ownership confers a calming, risk-steadying influence on portfolio behavior. Self-directed traders log their pet status alongside thirty days of trading activity, and recruitment through those forums is ongoing. The work is funded by a philanthropic trust whose founder owns four cats and, we are told, a very strong prior.',
+        'A philanthropic trust with four cats and a very strong prior asked us a question: does cat ownership confer a calming, risk-steadying influence on portfolio behavior? The folk hypothesis has been whispered in personal-finance forums for years and tested by nobody. Self-directed traders log their pet status alongside thirty days of trading activity, and recruitment through those forums is ongoing. The trust would like to be kept informed, weekly.',
       treatmentLabel: 'Owns a cat',
       headline: 'Cat Owners See Higher Returns, Study Finds',
       // DELIBERATE SPEC DIVERGENCE — do not "fix" back. The master spec (§2.4,
@@ -200,7 +216,7 @@ export const content: LocaleContent = {
       id: 'mechanical-keyboard-bugs',
       question: 'Do mechanical keyboards reduce bugs shipped?',
       coverStory:
-        'The tactile-feedback literature ends at typing speed and stops well short of production. With the cooperation of eleven engineering teams, we matched eighteen months of hardware procurement records to the same period of issue trackers, treating each switch changeover as a natural experiment. Two participants changed switch type mid-study and were, regrettably, dropped. Both had moved to something quieter.',
+        'Eighteen months of hardware procurement records, matched line by line to eighteen months of issue trackers. Eleven engineering teams opened both sets to us, and every switch changeover inside them is treated as a natural experiment. Typing speed is where the tactile-feedback literature stops; production is where this study starts. Two participants changed switch type mid-study and were, regrettably, dropped. Both had moved to something quieter.',
       treatmentLabel: 'Types on a mechanical keyboard',
       headline: 'Mechanical Keyboards Associated with Cleaner Releases',
       outcomeLabels: [
@@ -234,7 +250,7 @@ export const content: LocaleContent = {
       id: 'full-moon-meetings',
       question: 'Do meetings run longer under a full moon?',
       coverStory:
-        'Calendar data is the most underused behavioral dataset in the modern firm. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. The hypothesis was proposed, in complete earnest, by the calendar administrator, who has been right about things before.',
+        'The calendar administrator had a theory, and had been right about things before. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. Calendar data is the most underused behavioral dataset in the modern firm; the moon has been available for rather longer. The consultancy has since asked which of its meetings we intend to name.',
       treatmentLabel: 'Held under a full moon',
       headline: 'Meetings Now Run Measurably Longer Under a Full Moon, Analysis Finds',
       outcomeLabels: [
@@ -342,7 +358,7 @@ export const content: LocaleContent = {
       // volume rather than the percentage the old headline's frame implied.
       question: 'Do people who do jigsaw puzzles pack a better suitcase?',
       coverStory:
-        'Spatial-reasoning research has produced four decades of block-rotation tasks and almost no luggage. We took the question to a regional airport. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission and a folding table, have the contents of their bags measured against the volume of the bag. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.',
+        "There is a folding table at gate 14 and, on it, someone's holiday. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission, have the contents of their bags measured against the volume of the bag. Four decades of block-rotation tasks have produced almost no luggage, which is the gap this study came to the airport to fill. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.",
       treatmentLabel: 'Does jigsaw puzzles',
       headline: 'Puzzle Solvers Fit More Into the Same Suitcase, Researchers Find',
       outcomeLabels: [
@@ -376,7 +392,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: 'Do people who fold their socks arrive earlier?',
       coverStory:
-        'Time-use research has documented the commute in extraordinary detail and the sock drawer not at all. Participants photograph their sock storage (folded, rolled or loose), and we match the classification to six weeks of calendar and door-badge timestamps. Two independent coders score the photographs. They agree far more often than we budgeted for, which is its own small crisis.',
+        'The obvious criticism is that nobody would notice. We measured whether anybody did. Participants photograph their sock storage (folded, rolled or loose), and we match the classification to six weeks of calendar and door-badge timestamps; time-use research has documented the commute in extraordinary detail and the sock drawer not at all. Two independent coders score the photographs. They agree far more often than we budgeted for, which is its own small crisis.',
       treatmentLabel: 'Folds their socks',
       headline: 'Sock-Folders Arrive Earlier, and the Badge Data Agrees',
       outcomeLabels: [

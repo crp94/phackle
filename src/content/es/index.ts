@@ -46,6 +46,11 @@
 //     be 'Renta del hogar' on fifteen days out of twenty. The Spanish proxies
 //     are Spanish furniture (banda retributiva, franquicia de equipaje,
 //     permiso de aparcamiento), not translations of the English ones.
+//  9. HOW A COVER STORY OPENS AND CLOSES (gr6-041). Same law as ../en/index.ts
+//     rule 8: the closing logistics aside is 20 of 20 and stays; the same five
+//     paragraphs enter from method / person / mid-scene / objection / money.
+//     The Spanish openers are Spanish sentences, not translated ones ("Hay una
+//     mesa plegable en la puerta 14 y, encima, las vacaciones de alguien.").
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -55,7 +60,7 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: '¿Tener gato mejora la rentabilidad en criptomonedas?',
       coverStory:
-        'Se ha reclutado una cohorte piloto de inversores minoristas para poner a prueba una hipótesis popular que lleva años susurrándose en los foros de finanzas personales: que convivir con un gato ejerce una influencia calmante que estabiliza el apetito de riesgo de la cartera. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. El trabajo lo financia una fundación cuyo fundador tiene cuatro gatos y, según nos cuentan, una distribución a priori muy informativa.',
+        'Una fundación con cuatro gatos y una distribución a priori muy informativa nos hizo una pregunta: ¿convivir con un gato ejerce de verdad una influencia calmante que estabiliza el apetito de riesgo de la cartera? La hipótesis lleva años susurrándose en los foros de finanzas personales y no la ha comprobado nadie. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. La fundación agradecería un parte semanal.',
       treatmentLabel: 'Tiene gato',
       headline: 'Quienes tienen gato ganan más, según un estudio',
       // Same deliberate divergence as the English original: the cover story
@@ -179,7 +184,7 @@ export const content: LocaleContent = {
       id: 'mechanical-keyboard-bugs',
       question: '¿Los teclados mecánicos reducen los bugs que llegan a producción?',
       coverStory:
-        'La literatura sobre retroalimentación táctil termina en la velocidad de tecleo y no llega ni de lejos a producción. Con la colaboración de once equipos de ingeniería, cruzamos dieciocho meses de registros de compra de hardware con el mismo periodo de sus gestores de incidencias, tratando cada cambio de switch como un experimento natural. Dos participantes cambiaron de tipo de switch a mitad del estudio y hubo que descartarlos, muy a nuestro pesar. Los dos se habían pasado a algo más silencioso.',
+        'Dieciocho meses de registros de compra de hardware, cruzados línea a línea con dieciocho meses de gestores de incidencias. Once equipos de ingeniería nos abrieron los dos archivos, y cada cambio de switch que hay dentro se trata como un experimento natural. La literatura sobre retroalimentación táctil se detiene en la velocidad de tecleo; este estudio empieza en producción. Dos participantes cambiaron de tipo de switch a mitad del estudio y hubo que descartarlos, muy a nuestro pesar. Los dos se habían pasado a algo más silencioso.',
       treatmentLabel: 'Teclea en un teclado mecánico',
       headline: 'El teclado mecánico, asociado a versiones más limpias',
       outcomeLabels: [
@@ -213,7 +218,7 @@ export const content: LocaleContent = {
       id: 'full-moon-meetings',
       question: '¿Las reuniones se alargan más con luna llena?',
       coverStory:
-        'Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. La hipótesis la propuso, con toda seriedad, la persona que administra el calendario, que ya ha acertado otras veces.',
+        'Quien administra el calendario tenía una teoría, y ya había acertado otras veces. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna; la luna lleva disponible bastante más tiempo. La consultora nos ha preguntado después a cuáles de sus reuniones pensamos poner nombre.',
       treatmentLabel: 'Celebrada con luna llena',
       headline: 'Con luna llena las reuniones duran más, según un análisis',
       outcomeLabels: [
@@ -318,7 +323,7 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: '¿Quien hace puzles prepara mejor la maleta?',
       coverStory:
-        'Cuatro décadas de razonamiento espacial han producido incontables tareas de rotación de cubos y prácticamente nada de equipaje. Nosotros llevamos la pregunta a un aeropuerto regional. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso y una mesa plegable, se mide el contenido de su equipaje contra el volumen de la maleta. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
+        'Hay una mesa plegable en la puerta 14 y, encima, las vacaciones de alguien. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso, se mide el contenido de su equipaje contra el volumen de la maleta. Cuatro décadas de rotación de cubos no han producido prácticamente nada de equipaje, y esa es la laguna que este estudio ha venido a cubrir al aeropuerto. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
       treatmentLabel: 'Hace puzles',
       headline: 'Quien hace puzles mete más cosas en la misma maleta, según los autores',
       outcomeLabels: [
@@ -352,7 +357,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: '¿Quien dobla los calcetines llega antes?',
       coverStory:
-        'Del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Los participantes fotografían cómo guardan los suyos (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
+        'La objeción evidente es que no lo notaría nadie. Hemos medido si alguien lo notó. Los participantes fotografían cómo guardan los calcetines (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje; del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
       treatmentLabel: 'Dobla los calcetines',
       headline: 'Quien dobla los calcetines llega antes, y los datos de fichaje lo confirman',
       outcomeLabels: [
