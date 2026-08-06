@@ -414,6 +414,87 @@ describe('DESIGN.md documents the tokens it governs', () => {
   });
 });
 
+/* ============================================ disclosure / integration drift */
+
+/**
+ * GR6 gr6-058 — THE ABOUT PAGE DISCLOSES AN ANALYTICS SETUP THAT IS NOT IN THE
+ * TREE.
+ *
+ * `about.dataDisclosure` (all three locales) tells the player: "Analytics are
+ * anonymous, cookieless page counts (Vercel Web Analytics)." Today
+ * `@vercel/analytics` is in neither `dependencies` nor `devDependencies`, and
+ * nothing anywhere calls `inject()`. The sentence is currently a FALSE PRIVACY
+ * DISCLOSURE — harmless in the direction that matters (it over-discloses; no
+ * data is collected at all) but a disclosure the product cannot honour is
+ * exactly the kind of claim this game is about.
+ *
+ * The integration is scheduled for T25 (deploy day), so the fix is not to
+ * install the package now — it is to make sure the tree cannot QUIETLY stay
+ * self-contradicting. That needs two things, and only one of them lives here:
+ *
+ *   1. THE DEPLOY-CHECKLIST STEP (T25, unskippable). Verbatim, for the
+ *      checklist:
+ *
+ *        "Analytics disclosure — `about.dataDisclosure` in all three copy
+ *         files claims Vercel Web Analytics. Either `npm i @vercel/analytics`
+ *         and call `inject()` in `src/main.tsx`, or cut the parenthetical from
+ *         all three locales. Then un-`todo` the tripwire in
+ *         `tests/ui/tokens.test.ts` ('the analytics disclosure matches the
+ *         analytics integration') and confirm it is green. The About page may
+ *         not ship claiming a collector the bundle does not contain."
+ *
+ *   2. THE TRIPWIRE BELOW. It is written out in full and left as `todo`
+ *      RATHER THAN LIVE, because the only two ways to make it green today are
+ *      installing a package T25 owns or editing the copy files, which belong
+ *      to another wave. A test that is born red is a test the next agent
+ *      disables; a `todo` with the assertion spelled out beside it is a test
+ *      the next agent finishes. The moment either half of T25 lands, deleting
+ *      `.todo` is a one-word change.
+ *
+ * The companion assertion IS live, because it can be: it guards the OTHER
+ * direction of the same contradiction — a package installed and never wired —
+ * and it is vacuously true until T25, then real.
+ */
+describe('gr6-058 the analytics disclosure and the analytics integration', () => {
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  const declaresAnalytics = '@vercel/analytics' in { ...pkg.dependencies, ...pkg.devDependencies };
+  const COPY_FILES = ['en', 'it', 'es'].map((locale) => `src/content/${locale}/copy.ts`);
+
+  it.todo(
+    'the analytics disclosure matches the analytics integration (T25: install + inject, or cut the claim)',
+    // () => {
+    //   const claiming = COPY_FILES.filter((file) => /Vercel/i.test(readFileSync(join(ROOT, file), 'utf8')));
+    //   if (claiming.length > 0) {
+    //     expect(
+    //       declaresAnalytics,
+    //       `${claiming.join(', ')} disclose Vercel Web Analytics, but @vercel/analytics is not a ` +
+    //         'dependency. The About page is telling the player about a collector the bundle does ' +
+    //         'not contain.',
+    //     ).toBe(true);
+    //   }
+    // },
+  );
+
+  it('never ships an analytics package that nothing calls', () => {
+    // Vacuously true until T25 installs it; a real guard from that moment on.
+    // The "installed but unwired" half of this contradiction is the one that
+    // silently under-delivers, and it looks identical to a working setup from
+    // the outside — nothing on screen changes either way.
+    if (!declaresAnalytics) return; // nothing installed, nothing to wire — see the todo above
+    const claiming = COPY_FILES.filter((file) => /Vercel/i.test(readFileSync(join(ROOT, file), 'utf8')));
+    const main = readFileSync(join(ROOT, 'src/main.tsx'), 'utf8');
+    expect(
+      /@vercel\/analytics/.test(main) && /\binject\s*\(/.test(main),
+      '@vercel/analytics is installed but src/main.tsx never imports and calls inject(). An ' +
+        'analytics package with no call site collects nothing while the About page says it does ' +
+        `(${claiming.length} copy file(s) disclose it: ${claiming.join(', ') || 'none'}).`,
+    ).toBe(true);
+  });
+});
+
 /* ====================================================== DESIGN §10 tier C */
 
 /**

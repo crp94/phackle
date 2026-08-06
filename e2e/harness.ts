@@ -72,6 +72,13 @@ export interface HarnessOptions {
   achievements?: Record<string, string>;
   /** Skips the Lab's first-run "How to play" panel. */
   introSeen?: boolean;
+  /** Seeds career statistics. GR6 gr6-115/gr6-121: the Stats screen renders an
+   * empty-state paragraph until `forkHistogram` is non-empty, so a scan of a
+   * fresh browser never sees the histogram bars at all — and the bars are
+   * exactly what the axe run is there to check (T22 fixed an
+   * `aria-prohibited-attr` on them). Seeding is the only way to reach that
+   * markup without playing twenty days first. */
+  stats?: Record<string, unknown>;
   /** Makes every `window.localStorage` access throw, the way a browser with
    * site data blocked (or private-browsing lockout) does. */
   blockStorage?: boolean;
@@ -90,6 +97,7 @@ function freshPersistedState(opts: HarnessOptions) {
       preregDays: 0,
       hackDays: 0,
       forkHistogram: [],
+      ...(opts.stats ?? {}),
     },
     achievements: opts.achievements ?? {},
     settings: {
@@ -190,7 +198,12 @@ export async function installHarness(context: BrowserContext, opts: HarnessOptio
         },
       });
     });
-  } else if (opts.locale !== undefined || opts.achievements !== undefined || opts.introSeen !== undefined) {
+  } else if (
+    opts.locale !== undefined ||
+    opts.achievements !== undefined ||
+    opts.introSeen !== undefined ||
+    opts.stats !== undefined
+  ) {
     await context.addInitScript(
       (payload: { key: string; value: string }) => {
         try {

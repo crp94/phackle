@@ -614,10 +614,12 @@ if (WRITE_TABLE) {
   writeFileSync(tablePath, tableJson);
   tableStatus = `WROTE ${tablePath} (--write)`;
 } else {
-  let committed: string | null = null;
+  let committed: string | null;
   try {
     committed = readFileSync(tablePath, 'utf8');
   } catch {
+    // Never generated (a fresh clone of a tree that lost the artifact) counts
+    // as stale, not as "nothing to compare".
     committed = null;
   }
   tableStale = committed !== tableJson;
