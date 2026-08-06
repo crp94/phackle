@@ -1209,3 +1209,67 @@ describe('GR6 W3 w2-r-005 — the leading-zero law reaches the corpus, with one 
     }
   });
 });
+
+/**
+ * NOTATION, CORPUS-WIDE: the apostrophe is straight, and now something checks.
+ *
+ * Found by measuring rather than by a finding: W3's rendered re-read of the
+ * corpus turned up one U+2019 in `grantwell[15]` ("this year’s output"), sitting
+ * among twenty-one sibling emails that all use the straight one ("I've cleared
+ * my afternoon", "I don't want to alarm you"). It predates this wave — it is in
+ * the tree at W3's base commit — and nothing compiled the rule, because W2's
+ * apostrophe work was a one-time sweep of six ITALIAN escapes in the copy
+ * catalog, verified by rendering and never turned into a law.
+ *
+ * A single curly apostrophe is not a character voice, which is why this one is
+ * straightened rather than allow-listed the way grantwell[0]'s decimals are: the
+ * player cannot perceive it as characterization, and a reader who noticed it at
+ * all would read it as an encoding accident, because that is what it was. The
+ * distinction the two blocks draw between them is the whole rule — a deviation
+ * has to be legible AS a deviation to earn an entry.
+ *
+ * Scoped to the corpus, and to the marks that have a straight equivalent. The
+ * en dash in "1–10 scale" is a range, the em dash has its own budget, and the
+ * ACCENTS are the languages' own (È, PIÙ, Ó) and are not punctuation at all.
+ */
+describe('GR6 W3 — the corpus types its apostrophes and quotes straight', () => {
+  const CURLY: [string, string][] = [
+    ['U+2019 (right single quote)', '’'],
+    ['U+2018 (left single quote)', '‘'],
+    ['U+201C (left double quote)', '“'],
+    ['U+201D (right double quote)', '”'],
+  ];
+
+  it.each([
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ])('$name: uses no typographic quote mark anywhere in the corpus', ({ content }) => {
+    const offenders = corpusProse(content).flatMap((row) =>
+      CURLY.filter(([, ch]) => row.text.includes(ch)).map(([label]) => `${row.where} contains ${label}: "${row.text}"`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('catches each mark it claims to catch (guards the guard)', () => {
+    for (const [label, ch] of CURLY) {
+      const broken: LocaleContent = { ...enContent, grantwell: [`It is this year${ch}s problem.`, ...enContent.grantwell.slice(1)] };
+      const hit = corpusProse(broken).some((row) => row.where === 'grantwell[0]' && row.text.includes(ch));
+      expect(hit, `${label} is not detectable`).toBe(true);
+    }
+  });
+
+  it('leaves the marks that are not typographic quotes alone', () => {
+    // The en dash is a RANGE (every locale's "1–10 scale" / "scala 1–10"), and
+    // the accented capitals are Italian and Spanish, not punctuation. A guard
+    // that swept "non-ASCII" would fail the corpus on both.
+    expect(enContent.scenarios[0].outcomeUnits[3]).toContain('–');
+    for (const { content } of [{ content: itContent }, { content: esContent }]) {
+      const offenders = corpusProse(content).flatMap((row) =>
+        CURLY.filter(([, ch]) => row.text.includes(ch)).map(([label]) => `${row.where}: ${label}`)
+      );
+      expect(offenders).toEqual([]);
+    }
+    expect(itContent.press.some((p) => /È|PIÙ/.test(p.text))).toBe(true);
+  });
+});

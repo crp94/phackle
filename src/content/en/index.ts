@@ -461,7 +461,7 @@ export const content: LocaleContent = {
     'The ethics board approved the protocol. The data has not approved the hypothesis. Proceed anyway.',
     "I've drafted the press release and communications loved it. Two outlets have asked for the embargo date. All that is missing is the study.",
     'The industrial partners visit Thursday. They funded a discovery. Please have discovered something.',
-    'The postdoc line depends on this year’s output. I mention it as context, not pressure. It is also pressure.',
+    "The postdoc line depends on this year's output. I mention it as context, not pressure. It is also pressure.",
     'The sabbatical committee meets in June. A finding by May would be decisive. I want to be precise about that word.',
     "The provost has started saying 'research portfolio review'. Nobody will tell me what it means. I know that it means us.",
     'Grant year three of three. I don\'t want to alarm you, but I want to alarm you a little.',
