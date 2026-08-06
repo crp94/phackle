@@ -730,6 +730,18 @@ export const content: LocaleContent = {
   },
 
   glossary: [
+  // gr6-071 — ORDER IS AN ARGUMENT, and this list had it backwards. The entry
+  // below used to be LAST, while "false-positive rate" was used undefined in
+  // entry 1 (p-hacking) and again in entry 6 (optional stopping): a reader who
+  // arrived not knowing the term met it twice before it was defined, and had no
+  // reason to keep scrolling to find out. It is also the funniest entry in the
+  // list, which makes it a better first thing to read than a definition of the
+  // game's own title. Ordering only — not one character of any definition moved,
+  // and the same move is made identically in IT and ES.
+    {
+      term: 'α / false-positive rate',
+      def: 'The rate at which a test flags an effect that is not really there, conventionally capped at 5%. This game is engineered to blow straight past that cap.',
+    },
     {
       term: 'p-hacking',
       def: 'Analyzing data in ways that inflate the false-positive rate, then reporting only the analysis that crossed the significance threshold.',
@@ -757,10 +769,6 @@ export const content: LocaleContent = {
     {
       term: 'Preregistration',
       def: 'Committing to a hypothesis and analysis plan before seeing the data, so the analysis cannot adapt itself to the result.',
-    },
-    {
-      term: 'α / false-positive rate',
-      def: 'The rate at which a test flags an effect that is not really there, conventionally capped at 5%. This game is engineered to blow straight past that cap.',
     },
   ],
 
