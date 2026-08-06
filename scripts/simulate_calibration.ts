@@ -378,9 +378,31 @@ function simulateDay(index: number): SimDay {
 
   // --- informed caller (§3.9d) ---
   const familyCounts = [0, 0, 0, 0];
+  const familyValidCounts = [0, 0, 0, 0];
   for (let i = 0; i < PATH_COUNT; i++) {
+    if (curve[i].valid) familyValidCounts[SPECS[i].outcome]++;
     if (sig[i] === 1) familyCounts[SPECS[i].outcome]++;
   }
+
+  // gr6-103: familyDensities divides by the CONSTANT 448, which silently
+  // assumes every spec in the family produced a usable fit. That has held on
+  // every day ever enumerated (215,040 points, 0 invalid -- MIN_CELL has never
+  // bound and no OLS has come back singular), and the adopted call rule is
+  // calibrated against that denominator. If it ever stops holding, the
+  // densities below become incomparable to the thresholds tuned from them, and
+  // the failure would be a quiet drift in the reported accuracy rather than an
+  // error. Assert it instead.
+  for (let outcome = 0; outcome < 4; outcome++) {
+    if (familyValidCounts[outcome] !== FAMILY_SIZE) {
+      throw new Error(
+        `simulate_calibration: day ${index}, outcome family ${outcome} has ` +
+          `${familyValidCounts[outcome]} valid specs, not ${FAMILY_SIZE}. familyDensities divides by ` +
+          `${FAMILY_SIZE} unconditionally, so the density statistic (and every threshold calibrated ` +
+          `from it) is no longer meaningful. Fix the denominator before trusting this run.`,
+      );
+    }
+  }
+
   const familyShares = familyCounts.map((c) => (acceptedSig === 0 ? 0 : c / acceptedSig));
   const familyDensities = familyCounts.map((c) => c / FAMILY_SIZE);
 
