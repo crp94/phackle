@@ -772,7 +772,9 @@ const informational: Band[] = [
   // failure, tight enough that a real regression in either direction shows.
   twoSided('b-walk', `SINGLE-KNOB walk: median paths to first hit (daily mix) — the explorer the Lab affords`, 4, 24, weightedMedianWalk, false),
   twoSided('b-climb', 'GREEDY HILL-CLIMB: median paths to first hit (daily mix) — the competent player', 1, 8, weightedMedianClimb, false),
-  atMost('b-walk-miss', `single-knob walk finds nothing in ${WALK_MAX_STEPS} moves (daily mix)`, 0.2, walkMissRate, false),
+  // Id kept to 6 characters like every other row's: `printBandRow` pads the id
+  // column to 8, so a longer one silently un-aligns the whole table.
+  atMost('b-miss', `single-knob walk finds nothing in ${WALK_MAX_STEPS} moves (daily mix)`, 0.2, walkMissRate, false),
   twoSided('b-null', 'explorer median paths to first hit, null-only (band [4,16])', 4, 16, medianNullHit, false),
   twoSided('b-eff', 'explorer median paths to first hit, effect-only', 4, 16, median(effectHits), false),
   twoSided('d-share', '§3.9d literal family-SHARE rule (adjudicated out, never beats 0.750)', 0.75, 0.9, shareWeighted, false),

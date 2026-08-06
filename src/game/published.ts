@@ -156,8 +156,8 @@ export function fakeDoi(puzzleNumber: number): string {
 
 /**
  * The magnitude `{effect}` prints, as a string that is TRUE at the scale it is
- * given. Integers at or above 1 (24.6 -> "24.6"? no: "25", the T6 rounding rule,
- * unchanged); two significant figures below it (0.043 -> "0.043", 0.5 -> "0.5").
+ * given: whole numbers at or above 1 (24.6 -> "25", T6's rounding rule,
+ * unchanged), two significant figures below it (0.043 -> "0.043", 0.5 -> "0.5").
  *
  * THE FLOOR THIS REPLACES, AND WHY NEITHER OF THE OBVIOUS MOVES WAS TAKEN
  * (booked to W11 by W3's review, with w3-r-011's re-measured attribution).
