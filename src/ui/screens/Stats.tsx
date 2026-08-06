@@ -58,6 +58,40 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
         {t('stats.title')}
       </h1>
 
+      {/* gr6-035 — DAY ONE, ONE TAP FROM EVERY SCREEN, AND NOT A SENTENCE IN
+          IT. A player who opens Stats before finishing anything met eleven
+          censored blocks and six em-dashes: five zeros in the summary list,
+          two `stats.noData` dashes, both success panels dashed, an empty fork
+          histogram and a wall of blind stamps. Every one of those is correct
+          and none of them says what a reader is actually asking, which is
+          whether the page is broken.
+
+          One sentence, under the title, and ONLY at `played === 0`. It is a
+          note about the page rather than a replacement for it: the panels
+          stay exactly as they are underneath — §2.8's whole lesson is the
+          prereg-vs-hacking juxtaposition, and hiding the empty version of it
+          on day one would hide the shape the player is about to fill in.
+          `played` is already computed above for the summary list, so this
+          gates on the same number the first row prints and cannot disagree
+          with it.
+
+          Register is caption, not placeholder, and that is why this does NOT
+          reuse `.ph-stats__empty`: that class is the em-dash the histogram
+          prints when it has no data, and it is deliberately mono, tabular and
+          --text-22 because a dash standing in for a NUMERAL has to be set
+          like one (R2.4). This is a sentence, so it is set like one — UI face
+          at caption size, capped at --measure, --muted per R1.2's "captions
+          and footnotes, never --ink". It must not out-shout the <h1> above
+          it. No role="status" — nothing arrives here dynamically; the
+          screen is read from the top on arrival (App.tsx moves focus to
+          <main> on every swap), so it is reached in document order exactly as
+          a sighted player reaches it. */}
+      {played === 0 ? (
+        <p className="ph-stats__empty-state" data-testid="stats-empty-state">
+          {t('stats.emptyState')}
+        </p>
+      ) : null}
+
       <dl className="ph-stats__summary">
         <div className="ph-stats__stat">
           <dt className="ph-label">{t('stats.played')}</dt>

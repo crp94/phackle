@@ -35,6 +35,53 @@ function baseStats(overrides: Partial<PersistedStats> = {}): PersistedStats {
   };
 }
 
+/* gr6-035 — the day-one page, which was eleven censored blocks and six
+   em-dashes with no sentence in it and is reachable one tap from every
+   screen. */
+describe('Stats — the day-one note', () => {
+  it('says something in words before there is a single number to show', () => {
+    render(<Stats t={t} stats={baseStats()} history={{}} achievements={{}} achievementDefs={enContent.achievements} />);
+    const note = screen.getByTestId('stats-empty-state');
+    expect(note.textContent).toBe(enCopy['stats.emptyState']);
+  });
+
+  it('is a caption, not a numeral placeholder — it does NOT reuse the em-dash class', () => {
+    // `.ph-stats__empty` is mono/tabular/--text-22 because it stands in for a
+    // FIGURE. This is a sentence, and setting a sentence in the numeral face
+    // is exactly the R2.4 mistake the class boundary exists to prevent.
+    render(<Stats t={t} stats={baseStats()} history={{}} achievements={{}} achievementDefs={enContent.achievements} />);
+    const classes = screen.getByTestId('stats-empty-state').className.split(' ');
+    expect(classes).toContain('ph-stats__empty-state');
+    expect(classes).not.toContain('ph-stats__empty');
+  });
+
+  it('disappears the moment a single day has been played, in either mode', () => {
+    for (const played of [{ hackDays: 1 }, { preregDays: 1 }]) {
+      render(
+        <Stats
+          t={t}
+          stats={baseStats(played)}
+          history={{}}
+          achievements={{}}
+          achievementDefs={enContent.achievements}
+        />
+      );
+      expect(screen.queryByTestId('stats-empty-state')).toBeNull();
+      cleanup();
+    }
+  });
+
+  it('replaces nothing: both success panels still render on day one, because the juxtaposition IS the lesson', () => {
+    // §2.8. A note that hid the empty version of the prereg-vs-hacking
+    // comparison would hide the shape the player is about to fill in.
+    render(<Stats t={t} stats={baseStats()} history={{}} achievements={{}} achievementDefs={enContent.achievements} />);
+    expect(screen.getByTestId('stats-empty-state')).toBeTruthy();
+    expect(screen.getByTestId('success-panel-hack')).toBeTruthy();
+    expect(screen.getByTestId('success-panel-prereg')).toBeTruthy();
+    expect(screen.getAllByTestId('achievement-row').length).toBeGreaterThan(0);
+  });
+});
+
 describe('Stats — summary numbers', () => {
   it('renders played (hack+prereg days), current/max streak, and all-time call accuracy', () => {
     const stats = baseStats({ hackDays: 7, preregDays: 3, streak: 4, maxStreak: 9, callsCorrect: 6, callsTotal: 8 });

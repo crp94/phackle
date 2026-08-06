@@ -195,7 +195,6 @@ const ROSTER_KEPT: Record<string, string> = {
 const ROSTER_PENDING: Record<string, string> = {
   'nav.tagline':
     'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
-  'stats.emptyState': 'gr6-035 — Stats.tsx, under the title, rendered only when played === 0. W7.',
   'about.sectionHowItWorks': 'gr6-036 — About.tsx, <h2> over about.mechanism + about.frozenFork. W7.',
   'about.sectionNotReal': 'gr6-036 — About.tsx, <h2> over about.syntheticDisclaimer + about.decimalNote (which moves here). W7.',
   'about.sectionYourData': 'gr6-036 — About.tsx, <h2> over about.dataDisclosure. W7.',

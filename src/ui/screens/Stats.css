@@ -22,10 +22,28 @@
   margin: var(--space-40) 0 0;
 }
 
+/* The em-dash a panel prints when it has no number yet. Mono, tabular and
+   --text-22 because it stands in for a NUMERAL and has to be set like one
+   (R2.4) — it sits in the same column as the figures it is standing in for. */
 .ph-stats__empty {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-22);
+  color: var(--muted);
+  margin: var(--space-16) 0 0;
+}
+
+/* gr6-035 — the day-one note under the title, and a DIFFERENT thing from the
+   dash above: that is a missing numeral, this is a sentence about the page.
+   So it is set as prose in the caption register R1.2 names — UI face, caption
+   size, --muted, never --ink — and capped at --measure like every other run
+   of prose in the product (R2.8). No rule, no fill, no second colour: it is a
+   footnote, and the <h1> directly above it stays the loudest thing here. */
+.ph-stats__empty-state {
+  max-width: var(--measure);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
   color: var(--muted);
   margin: var(--space-16) 0 0;
 }
