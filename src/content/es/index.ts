@@ -62,7 +62,7 @@ export const content: LocaleContent = {
       coverStory:
         'Una fundación con cuatro gatos y una distribución a priori muy informativa nos hizo una pregunta: ¿convivir con un gato ejerce de verdad una influencia calmante que estabiliza el apetito de riesgo de la cartera? La hipótesis lleva años susurrándose en los foros de finanzas personales y no la ha comprobado nadie. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. La fundación agradecería un informe semanal.',
       treatmentLabel: 'Tiene gato',
-      headline: 'Quienes tienen gato ganan más, según un estudio',
+      headline: 'Quienes tienen gato obtienen mejores rendimientos, según un estudio',
       // Same deliberate divergence as the English original: the cover story
       // sells cats as risk-steadying, so MORE volatility and MORE trading
       // would argue against the claimed effect and break the one-tailed
@@ -218,7 +218,7 @@ export const content: LocaleContent = {
       id: 'full-moon-meetings',
       question: '¿Las reuniones se alargan más con luna llena?',
       coverStory:
-        'Quien administra el calendario tenía una teoría, y ya había acertado otras veces. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna; la luna lleva disponible bastante más tiempo. La consultora nos ha preguntado después a cuáles de sus reuniones pensamos poner nombre.',
+        'Quien administra el calendario tenía una teoría, y ya había acertado otras veces. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna; la luna lleva disponible bastante más tiempo. La consultora nos ha preguntado después a cuáles de sus reuniones pensamos señalar por su nombre.',
       treatmentLabel: 'Celebrada con luna llena',
       headline: 'Con luna llena las reuniones duran más, según un análisis',
       outcomeLabels: [
@@ -247,7 +247,7 @@ export const content: LocaleContent = {
         'Subcarpetas anidadas creadas',
         'Orden mental autopercibido',
       ],
-      outcomeUnits: ['% de lo recibido', 'días', 'carpetas/mes', 'escala 1–10'],
+      outcomeUnits: ['puntos porcentuales', 'días', 'carpetas/mes', 'escala 1–10'],
       covariateLabels: { income: 'Presupuesto de material de oficina', risk: 'Tolerancia a convivir con un aviso de no leídos' },
       journalTags: ['productivity', 'workplace'],
     },
@@ -323,7 +323,7 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: '¿Quien hace puzles prepara mejor la maleta?',
       coverStory:
-        'Hay una mesa plegable en la puerta 14 y, encima, las vacaciones de alguien. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso, se mide el contenido de su equipaje contra el volumen de la maleta. Cuatro décadas de rotación de cubos no han producido prácticamente nada de equipaje, y esa es la laguna que este estudio ha venido a cubrir al aeropuerto. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
+        'Hay una mesa plegable en la puerta 14 y, encima, las vacaciones de alguien. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso, se mide el contenido de su equipaje contra el volumen de la maleta. Cuatro décadas de rotación de cubos no han producido prácticamente nada de equipaje. Este estudio ha venido al aeropuerto a cubrir esa laguna. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
       treatmentLabel: 'Hace puzles',
       headline: 'Quien hace puzles mete más cosas en la misma maleta, según los autores',
       outcomeLabels: [
@@ -460,7 +460,7 @@ export const content: LocaleContent = {
     'pensando en voz alta',
     'junio',
     'una cosa rápida',
-    'sin asunto',
+    '(sin asunto)',
     'el intervalo',
     'Re: Re: Reviewer 2',
     'anoche',

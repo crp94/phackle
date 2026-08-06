@@ -31,10 +31,15 @@
 //         published spec's treatment effect in that outcome's OWN RAW UNITS,
 //         rounded and floored at 1 (src/game/published.ts's substituteEffect).
 //         Measured over 20 consecutive days from EPOCH, all 1,792 specs at both
-//         the opening and the full window: 71,680 of 71,680 valid paths round
-//         to 1. Not "usually" — every publishable path the game has. Median
-//         |beta| runs 0.04 to 0.08, so the floor did all the work and the
-//         number carried no information at all.
+//         the opening and the full window: 71,680 of 71,680 valid paths print
+//         1. Not "usually" — every publishable path the game has.
+//         THE SPLIT MATTERS (w3-r-011), because it says where the defect
+//         lives: 69,336 of those (96.7%) round to 0 and are lifted to 1 by the
+//         floor, and 2,344 (3.3%) round to 1 on their own. Median |beta| runs
+//         0.04 to 0.08. So the floor is not the bug — DELETING it would print
+//         "0" on 96.7% of paths, which is worse. The bug is that a raw-unit
+//         coefficient is not a headline number in any frame, and no rounding
+//         rule can make it one.
 //       - THE FRAME COULD NOT BE HONOURED ANYWAY. The frame is fixed per
 //         scenario, while the number comes from whichever of the four outcomes
 //         the player published, so a 1-10 self-rating could print as "€1 More
@@ -201,7 +206,7 @@ export const content: LocaleContent = {
       coverStory:
         'Urban mobility research models the parking search as a rational process. We wondered whether it is in fact a devotional one. Drivers install a logger that records every search from street entry to engine-off and report their morning app habits; those who read their star sign before driving are compared with those who do not. Neither group is told what we are looking for. Two have guessed anyway, and neither was close.',
       treatmentLabel: 'Reads a daily horoscope',
-      headline: 'Horoscope Readers Save Minutes Every Week Looking for Parking',
+      headline: 'Horoscope Readers Save Time Every Week Looking for Parking',
       outcomeLabels: [
         'Search time saved against the block average',
         'Distance advantage over the nearest legal alternative',
@@ -252,7 +257,7 @@ export const content: LocaleContent = {
       coverStory:
         'The calendar administrator had a theory, and had been right about things before. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. Calendar data is the most underused behavioral dataset in the modern firm; the moon has been available for rather longer. The consultancy has since asked which of its meetings we intend to name.',
       treatmentLabel: 'Held under a full moon',
-      headline: 'Meetings Now Run Measurably Longer Under a Full Moon, Analysis Finds',
+      headline: 'Meetings Run Longer Under a Full Moon, Analysis Finds',
       outcomeLabels: [
         'Overrun past the scheduled end',
         'Longest single tangent',
@@ -276,7 +281,7 @@ export const content: LocaleContent = {
         'Nested subfolders created',
         'Self-rated tidiness of mind',
       ],
-      outcomeUnits: ['% of arrivals', 'days', 'folders/month', '1–10 scale'],
+      outcomeUnits: ['percentage points', 'days', 'folders/month', '1–10 scale'],
       covariateLabels: { income: 'Office-supplies budget', risk: 'Comfort living with an unread badge' },
       journalTags: ['productivity', 'workplace'],
     },
@@ -303,7 +308,7 @@ export const content: LocaleContent = {
       coverStory:
         'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors. Assistants approach strangers in three cities, ask for directions to a landmark eight minutes away, record the answer verbatim, and only then, after a full debrief, ask whether the participant owns a telescope. Response rates are, to our genuine surprise, excellent, and a fourth city is being added. Telescope owners, in particular, are delighted to be asked.',
       treatmentLabel: 'Owns a backyard telescope',
-      headline: 'Telescope Owners Give Directions the Navigation App Cannot Match',
+      headline: 'Telescope Owners Give Better Directions Than the App',
       outcomeLabels: [
         'Route efficiency gain over the navigation app',
         'Landmark detail supplied per answer',
@@ -358,7 +363,7 @@ export const content: LocaleContent = {
       // volume rather than the percentage the old headline's frame implied.
       question: 'Do people who do jigsaw puzzles pack a better suitcase?',
       coverStory:
-        "There is a folding table at gate 14 and, on it, someone's holiday. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission, have the contents of their bags measured against the volume of the bag. Four decades of block-rotation tasks have produced almost no luggage, which is the gap this study came to the airport to fill. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.",
+        "There is a folding table at gate 14 and, on it, someone's holiday. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission, have the contents of their bags measured against the volume of the bag. Four decades of block-rotation tasks have produced almost no luggage. This study came to the airport to fill that gap. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.",
       treatmentLabel: 'Does jigsaw puzzles',
       headline: 'Puzzle Solvers Fit More Into the Same Suitcase, Researchers Find',
       outcomeLabels: [
@@ -499,7 +504,7 @@ export const content: LocaleContent = {
     'thinking out loud',
     'June',
     'quick one',
-    'no subject',
+    '(no subject)',
     'the interval',
     'Re: Re: Reviewer 2',
     'last night',

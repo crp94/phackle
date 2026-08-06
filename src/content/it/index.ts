@@ -244,7 +244,7 @@ export const content: LocaleContent = {
         'Sottocartelle annidate create',
         'Ordine mentale autovalutato',
       ],
-      outcomeUnits: ['% degli arrivi', 'giorni', 'cartelle/mese', 'scala 1–10'],
+      outcomeUnits: ['punti percentuali', 'giorni', 'cartelle/mese', 'scala 1–10'],
       covariateLabels: { income: 'Budget per la cancelleria', risk: 'Tolleranza per un badge di non letti' },
       journalTags: ['productivity', 'workplace'],
     },
@@ -320,7 +320,7 @@ export const content: LocaleContent = {
       id: 'jigsaw-suitcase-packing',
       question: 'Chi fa i puzzle prepara meglio la valigia?',
       coverStory:
-        "C'è un tavolino pieghevole al gate 14 e, sopra, le vacanze di qualcuno. Ai viaggiatori si chiede se abbiano completato un puzzle nell'ultimo anno e poi, con il loro permesso, si misura il contenuto delle borse contro il volume della borsa. Quarant'anni di rotazioni di cubi hanno prodotto quasi nessun bagaglio, ed è la lacuna che questo studio è venuto a colmare in aeroporto. Un gate di partenza si rivela un ambiente di reclutamento insolitamente disponibile: lì nessuno ha altro da fare.",
+        "C'è un tavolino pieghevole al gate 14 e, sopra, le vacanze di qualcuno. Ai viaggiatori si chiede se abbiano completato un puzzle nell'ultimo anno e poi, con il loro permesso, si misura il contenuto delle borse contro il volume della borsa. Quarant'anni di rotazioni di cubi non hanno prodotto quasi nessun bagaglio. Questo studio è venuto in aeroporto a colmare quella lacuna. Un gate di partenza si rivela un ambiente di reclutamento insolitamente disponibile: lì nessuno ha altro da fare.",
       treatmentLabel: 'Fa i puzzle',
       headline: 'Chi risolve i puzzle fa entrare di più nella stessa valigia, dicono i ricercatori',
       outcomeLabels: [
@@ -474,7 +474,7 @@ export const content: LocaleContent = {
     'pensieri sparsi',
     'giugno',
     'una cosa veloce',
-    'senza oggetto',
+    '(senza oggetto)',
     "l'intervallo",
     'Re: Re: Reviewer 2',
     'stanotte',
