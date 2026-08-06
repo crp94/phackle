@@ -164,27 +164,22 @@
    whole screen is built toward was 8% of the page with the same --space-40
    either side as a caption, so a player scrolling at reading speed went past
    it. §2.7 SPECIFIES this block order, so the ruled fix is rest rather than
-   resequencing: the beat keeps its place and gets a room of its own. */
+   resequencing: the beat keeps its place and gets a room of its own.
+
+   AIR ONLY, NO SCROLL SNAP (w1-r-007). The first attempt paired this padding
+   with `scroll-snap-align: center` here and `scroll-snap-type: y proximity` on
+   `:root:has(.ph-reveal)`. Both are gone. DESIGN.md R5.2 states that its table
+   of motion sites is EXHAUSTIVE and compiled (tests/ui/motion.test.ts), R5.5
+   that nothing outside that table animates, and there is no row for a scroll
+   snap — so it was a tenth motion site added without a lawbook entry, and the
+   compiled register could not see it: deleting its own reduced-motion guard
+   left motion.test.ts green. Wrapping it in `prefers-reduced-motion` was itself
+   the admission that it was motion. Ruling (c) said the stamp gets air, and
+   padding is air. If the snap is ever wanted it goes through W0/W10 as an R5.2
+   row plus a check that parses `scroll-snap` the way the existing one parses
+   animation identities. */
 .ph-reveal__stamp-beat {
   padding-block: var(--space-64);
-  scroll-snap-align: center;
-}
-
-/* The other half of the same ruling. `scroll-snap-type` has to sit on the
-   SCROLL CONTAINER, and this app's is the document (`.ph-app` is min-height
-   100vh with no overflow of its own) — so it is scoped with :has() to the one
-   screen that wants it rather than declared globally, which would put a snap
-   on the Lab and the Stats wall too. `proximity`, never `mandatory`: the
-   player keeps ordinary control of the scroll and is only settled onto the
-   beat when they were stopping near it anyway.
-   Reduced motion gets NO snap at all — a scroll that finishes somewhere other
-   than where it was released is exactly the kind of motion R5.6's readers
-   asked not to have — and a browser without :has() simply gets the air, which
-   is the substantive half. */
-@media (prefers-reduced-motion: no-preference) {
-  :root:has(.ph-reveal) {
-    scroll-snap-type: y proximity;
-  }
 }
 
 .ph-reveal__cover {
@@ -263,13 +258,29 @@
  * once, so the stamp, the volume line and the title were all hard to read and
  * the beat's only sentence was the worst of the three.
  *
- * Anchored to the block-end/inline-end corner with no inset, the mark's own
- * word lands in the cover's bottom padding — white space — and only the
- * frame's top edge grazes the title, which is a stamp hitting a corner rather
- * than a strikethrough. 50% rather than 60%: re-measured at both widths, 60%
- * put the word RETRACTED back across the question's second line at 768, where
- * the card is short (145px) and the title runs the full measure. At 360 the
- * mark is still 43% of the viewport, so R8.2's "oversized" survives the trim.
+ * Anchored to the block-end/inline-end corner with no inset, at 50% rather
+ * than 60% of the cover. At 360 the mark is still 43% of the viewport, so
+ * R8.2's "oversized" survives the trim.
+ *
+ * WHAT THIS ACHIEVES, AND WHAT IT DOES NOT (w1-r-012 — an earlier version of
+ * this comment claimed the 768 case was fixed; it is not). Measured on the
+ * production build, label ink against the title's box:
+ *
+ *   360   title 373-470, label ink 468-511   ->   2px of overlap. Clear.
+ *   768   title 399-464, label ink 425-494   ->  39px of the label's 69px
+ *                                                crosses the question's
+ *                                                second line.
+ *
+ * 768 is not solvable from here, and the reason is the card, not the offset:
+ * it is 145px tall with a 64px title at the full measure, leaving 25px of
+ * interior white space beneath it. No 69px label fits in 25px, and pushing the
+ * mark far enough down to clear the title (top at 464) puts its foot at 588,
+ * through the subline that starts at 553. A width-conditional placement would
+ * fix it and needs a breakpoint this stylesheet does not have.
+ * What gr2-016 asked for is nonetheless materially delivered at both widths:
+ * the mark no longer runs through "VOL. 1, NO. 5" or the title's FIRST line,
+ * and the subline — the string that finding called the least readable in the
+ * product — is out of the graphic entirely.
  */
 .ph-reveal__stamp {
   position: absolute;

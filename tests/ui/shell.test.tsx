@@ -319,6 +319,37 @@ describe('Stamp', () => {
     expect(region).toEqual(viewBox);
   });
 
+  // w1-r-011: pinning the region made it a hard CLIP, which exposed that the
+  // label had never fitted the box: NULL_REPORTED overran it in all three
+  // locales and rendered sheared ("RISULTATO NULLO" as "ULTATO NUL") — the
+  // stamp an HONEST player gets. The advance is an input now, not an output.
+  //
+  // This is the STRUCTURAL half of the guard, and it is all jsdom can do: jsdom
+  // has no text metrics at all, so the nine real strings are measured against
+  // the region in a real browser by e2e/stamp.spec.ts. Both are needed — this
+  // one catches the attribute being dropped, that one catches the constant
+  // drifting past the frame.
+  it('fixes the label\'s advance so no locale\'s verdict can overrun the frame', () => {
+    const { container } = render(<Stamp kind="NULL_REPORTED" label="RISULTATO NULLO" animate={false} />);
+    const svg = container.querySelector('.ph-stamp__mark')!;
+    const text = svg.querySelector('text.ph-stamp__label')!;
+
+    const textLength = Number(text.getAttribute('textLength'));
+    expect(textLength, 'the label sets no textLength, so its width is whatever the string happens to be').toBeGreaterThan(0);
+    expect(text.getAttribute('lengthAdjust')).toBe('spacingAndGlyphs');
+
+    // The advance must fit the region with the frame's own inset to spare:
+    // textLength is centred on x=160 (textAnchor="middle"), so it spans
+    // 160 +/- textLength/2, and that has to sit inside the filter region.
+    const [regionX, , regionW] = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    expect(160 - textLength / 2).toBeGreaterThanOrEqual(regionX);
+    expect(160 + textLength / 2).toBeLessThanOrEqual(regionX + regionW);
+    // And inside the inner frame rect (x=16, width=288), not merely inside the
+    // region: a label touching the region edge would sit on top of the border.
+    expect(160 - textLength / 2).toBeGreaterThanOrEqual(16);
+    expect(160 + textLength / 2).toBeLessThanOrEqual(16 + 288);
+  });
+
   it('animates when animate=true and motion is not reduced', () => {
     installMatchMedia({ '(prefers-reduced-motion: reduce)': false });
     const { container } = render(<Stamp kind="RETRACTED" label="RETRACTED" animate={true} />);

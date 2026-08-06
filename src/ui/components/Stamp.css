@@ -3,11 +3,21 @@
   display: inline-block;
 }
 
+/* w1-r-010: `overflow: hidden`, not `visible`.
+   It used to be `visible` because it had to be: the filter region was declared
+   as 140% of the group's bounding box and painted far outside the viewport, so
+   clipping would have sheared the stamp. Stamp.tsx pins the region to the
+   viewBox now and sizes the label to fit it, which means painted ink is a
+   subset of the viewport by construction and this declaration changes nothing
+   today. It is here so that containment does not rest on ONE mechanism: if a
+   future edit re-enlarges the filter region, the SVG viewport still clips at
+   the element's own box instead of putting red ink through the window edge.
+   `width` is untouched, per gr4-005's own scoping. */
 .ph-stamp__mark {
   display: block;
   width: min(100%, 320px);
   height: auto;
-  overflow: visible;
+  overflow: hidden;
   transform: rotate(-12deg);
   transform-origin: 50% 50%;
 }

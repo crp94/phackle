@@ -97,10 +97,16 @@ export const P_HIT_MAX_K = 40;
  * TWO VECTORS, one per day type (gr6-002). The table used to be a single
  * `pHit` built from ACCEPTED NULL DAYS ONLY (`simulate_calibration.ts` iterates
  * `nullDays`), and `buildRevealMetrics` quoted it on every day — so an effect
- * day's accounting read out a null day's number. Re-measured on the same
- * seeds, the gap at the commonest k is a factor of 2.3 (k = 5: 0.226 null
- * against 0.514 effect), which is not a rounding difference in a sentence the
+ * day's accounting read out a null day's number. In the SHIPPED table the gap
+ * at the commonest k is a factor of 2.72 (k = 5: pHitNull 0.2256 against
+ * pHitEffect 0.6136), which is not a rounding difference in a sentence the
  * reveal reads out loud as a headline percentage.
+ *
+ * (w1-r-006: this comment used to quote 0.514 / 2.3x. That is GR1a's original
+ * figure, measured over UNCONDITIONED effect draws; the shipped vector is
+ * simulated on ACCEPTED days — the population a player is actually served — and
+ * comes out higher. A doc comment must quote the number in the file it
+ * documents, so the backlog's "51% at k=5" is superseded by 61.4%.)
  *
  * EXPORTED DELIBERATELY (gr6-098), not by oversight: it is the parameter type
  * of `assertPHitTable` below, which is itself exported so a startup path or a
@@ -265,6 +271,15 @@ export function assertPHitTable(table: PHitTable): void {
  * than defaulted: the old single-argument signature silently answered every
  * caller with the null-day vector, and a default would preserve exactly that
  * failure mode for the next caller who forgets.
+ *
+ * KNOWN APPROXIMATION (w1-r-005, informational, pre-existing and unchanged by
+ * the two-vector split): both vectors are simulated at `CURVE_N = 200`
+ * (scripts/simulate_calibration.ts), while the reveal enumerates its curve at
+ * `state.n` — 250 to 400 once the player has peeked. A larger window makes hits
+ * easier, so on a peeked day this lookup slightly understates. The single null
+ * vector had exactly the same property; it is recorded here because W1 now owns
+ * the line, not because the split introduced it. reveal.peekSurcharge is the
+ * copy that addresses the same distortion from the other side.
  *
  * Deliberately a LOOKUP, never `1 - (1 - q)^k`: paths that share an outcome
  * column are strongly correlated, so the analytic form materially overstates

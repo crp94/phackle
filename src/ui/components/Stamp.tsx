@@ -59,6 +59,41 @@ const BOX_W = 320;
 const BOX_H = 160;
 const VIEW_BOX = `${-BLEED} ${-BLEED} ${BOX_W + 2 * BLEED} ${BOX_H + 2 * BLEED}`;
 
+/**
+ * THE LABEL FITS THE FRAME, in every locale, by construction (w1-r-011).
+ *
+ * Pinning the filter region to the viewBox made the region a hard CLIP on
+ * filter output — and that exposed a defect the old unbounded region had been
+ * hiding since the stamp was written: the label has never fitted the 320-unit
+ * box. Measured in the production build (geometry bbox in user units, which is
+ * what `getBBox` reports and what `getBoundingClientRect` cannot, since on a
+ * filtered element the latter returns the filter region):
+ *
+ *   RETRACTED        268.8   fits          RITIRATO           219.8  fits
+ *   REPLICATED       281.7   fits          REPLICATO          253.5  fits
+ *   NULL REPORTED    370.4   OVER by 13.2  RISULTATO NULLO    419.8  OVER by 37.9
+ *   RETRACTADO       305.3   fits          RESULTADO NULO     406.9  OVER by 31.4
+ *   REPLICADO        257.7   fits
+ *
+ * All three over-runs are NULL_REPORTED — the verdict an honest player gets for
+ * reporting a null result. Before the containment fix they painted outside the
+ * window; after it they were sheared ("RISULTATO NULLO" rendered as
+ * "ULTATO NUL"). Neither is shippable, and the choice between them is a false
+ * one: the real defect is fit.
+ *
+ * `textLength` + `lengthAdjust="spacingAndGlyphs"` makes the advance an input
+ * rather than an output, so no string in any future locale can reopen this.
+ * TEXT_W is set to RETRACTED's own measured advance (268.8 -> 268), so the
+ * signature label — the one the game is built around and the one on screen
+ * most often — renders within 0.3% of its natural width and every other verdict
+ * is set to match it. That is also why the numbers above are recorded here:
+ * the constant is a measurement, and a future font change invalidates it.
+ * The label-fit guard is `tests/ui/shell.test.tsx` (structure, all jsdom can
+ * see) and `e2e/stamp.spec.ts` (the nine real strings, measured in a real
+ * browser).
+ */
+const TEXT_W = 268;
+
 export function Stamp({ kind, label, animate }: StampProps) {
   // R5.6: JS-driven motion (this is one of the two, alongside ConfettiLayer)
   // must consult reduced-motion itself rather than lean solely on tokens.css
@@ -106,7 +141,15 @@ export function Stamp({ kind, label, animate }: StampProps) {
               stutter at its loudest moment. The text NODE is untouched, so it
               is still queryable and still the thing on screen — only its
               second trip through the accessibility tree is gone. */}
-          <text className="ph-stamp__label" x="160" y="92" textAnchor="middle" aria-hidden="true">
+          <text
+            className="ph-stamp__label"
+            x="160"
+            y="92"
+            textAnchor="middle"
+            textLength={TEXT_W}
+            lengthAdjust="spacingAndGlyphs"
+            aria-hidden="true"
+          >
             {label}
           </text>
         </g>

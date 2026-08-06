@@ -442,7 +442,12 @@ export function Reveal() {
           same thinly-scattered hits everywhere. "The single most important
           educational graphic in the game" teaches by the contrast, which
           means it has to be there on the days with nothing to cluster. */}
-      <Block name="fig2" index={5}>
+      {/* w1-r-009: the index is DOM ORDER, which Reveal.css's own note says it
+          is — so with the call block conditional it has to close the gap on a
+          prereg day rather than leave a one-step hole in the ramp at 4.
+          (staggerStyle caps at 2, so this is invisible in the common case and
+          exactly the kind of thing that rots into a false comment.) */}
+      <Block name="fig2" index={call === null ? 4 : 5}>
         <Figure number={t('reveal.fig2')} caption={t('reveal.groupedCaption')} footnote={null}>
           <SpecCurve points={points} grouped outcomeLabels={scenario.outcomeLabels} copy={copy} />
         </Figure>

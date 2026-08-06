@@ -1006,14 +1006,23 @@ describe('GR6 W1 — the reveal accounting keys carry exactly the tokens the scr
   });
 
   // Controller ruling (a), 2026-08-06: the null-day accounting names the
-  // confound About discloses. "Chance" may appear; it may never be the only
-  // thing on offer. Measured basis: the plainest Y1 specification rejects at
-  // 18.2% against a nominal 5% (z = 24.9 on the mean beta) because treatment is
-  // built from the same latents the outcomes load on.
-  it('never offers chance as the sole explanation on a null day', () => {
+  // confound About discloses, and never offers chance as the sole cause.
+  // w1-r-001 added the other half of the constraint: it may not claim the
+  // confound explains the COUNT either. Measured by permuting treatment within
+  // 188 accepted null days, the confounded excess is 4.8 of ~94 hits (paired
+  // t = 1.11), because §3.3's rejection sampler discards the confounded tail.
+  // So the string must name the confound as a property of the DESIGN — in
+  // About's own words, which is the terminology lock — while attributing the
+  // count to the threshold.
+  it('names the confound as About does, and blames neither cause for the count', () => {
     const value = enContent.copy['reveal.accounting1'];
     expect(value).not.toMatch(/by chance alone/i);
-    expect(value.toLowerCase()).toContain('confounding');
+    // About: "a treatment confounded with age and income".
+    expect(value).toMatch(/confounded with age and income/);
+    expect(enContent.copy['about.mechanism']).toMatch(/confounded with age and income/);
+    expect(value).toMatch(/never randomly assigned/);
+    // The retracted overclaim, in any of the shapes it could come back as.
+    expect(value).not.toMatch(/the rest are confounding|mostly confounding|the rest is confounding/i);
   });
 
   // gr6-001: the effect variant must keep the pedagogy, not just the counts.

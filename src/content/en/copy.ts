@@ -675,18 +675,40 @@ export const copy: Record<CopyKey, string> = {
   // GR6 gr6-001 (blocker, `scientific`) — WHY "BY CHANCE ALONE" IS GONE FROM
   // BOTH VARIANTS OF THIS LINE.
   //
-  // NULL DAYS. The DGP assigns treatment from the same latents the outcomes
-  // load on (dgp.ts: X = 1[0.3·L1 + 0.2·L4 + 0.94·ε > 0] while Y1 loads on L1
-  // and L4), and L1 has no covariate proxy on offer, so the association is not
-  // removable by any control the player has. Measured over 600 unconditioned
-  // null draws at N=200, the plainest Y1 spec has mean β = 0.182 (z = 24.9 on
-  // the mean) and rejects at 18.2%, i.e. 3.6x nominal. That is omitted-variable
-  // bias, not luck, and About already discloses it in as many words ("a
-  // treatment confounded with age and income"). Calling it "chance" taught the
-  // wrong name for the one mechanism the whole DGP was built to demonstrate,
-  // and contradicted the About page on the same day's screen. Controller
-  // ruling (a), 2026-08-06: the copy names the disclosed confound; "chance" may
-  // appear, but never as the sole explanation.
+  // NULL DAYS, AND THE CORRECTION W1's REVIEW FORCED (w1-r-001).
+  //
+  // The first attempt at this line said "Some are chance; the rest are
+  // confounding". The confounding is real in the DGP — treatment is assigned
+  // from the same latents the outcomes load on (dgp.ts: X = 1[0.3·L1 + 0.2·L4
+  // + 0.94·ε > 0] while Y1 loads on L1 and L4), L1 has no covariate proxy on
+  // offer, and the plainest Y1 specification rejects at 18.2% against a nominal
+  // 5% over 600 unconditioned draws. But that is ONE specification of 1,792,
+  // and the most confounded one, while this sentence's subject is the {sig}
+  // count over the whole grid.
+  //
+  // Measured properly, by permuting the treatment column within the accepted
+  // dataset (the exact null; same outcomes, same covariates, same correlation
+  // structure among the 1,792 tests), 4 permutations/day over 188 ACCEPTED null
+  // days at N=200:
+  //     observed     mean 94.46 hits (5.27% of 1,792)
+  //     permuted-X   mean 89.66 hits (5.00% of 1,792)
+  // The excess attributable to confounding is 4.8 paths — 5% of the hits, at a
+  // paired t of 1.11, i.e. indistinguishable from zero. On 90 of 188 accepted
+  // days chance alone produces AT LEAST as many hits as observed, so "the rest
+  // are confounding" described a negative quantity on half the days.
+  //
+  // The mechanism is §3.3's rejection sampler: NULL_SIG_BAND = [30, 180]
+  // straddles the nominal 89.6, so the confounded tail is exactly what gets
+  // discarded. On RAW draws the excess IS 25% of hits; on the days a player is
+  // actually served it is not. (About's own rejection-sampler disclosure is
+  // gr6-004, W2 — whatever it says must agree with this.)
+  //
+  // So the line now states three things that are all measured-true: the count
+  // is what the threshold alone produces, there is no effect, and the design is
+  // still not a clean test. Controller ruling (a) is satisfied — the confound
+  // is named, in About's own words, and chance is never offered as the sole
+  // cause — without claiming confounding explains the count, which ruling (a)
+  // never licensed.
   //
   // EFFECT DAYS. The line rendered unconditionally, one paragraph below
   // reveal.truthEffect's "True effect on X: β = ...". Measured over 200 effect
@@ -703,9 +725,15 @@ export const copy: Record<CopyKey, string> = {
   // elsewhere).
   // ------------------------------------------------------------------
   'reveal.accounting1':
-    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05. None of them found an effect, because there is none. Some are chance; the rest are confounding: the treatment was never randomly assigned, and it moves with age and income.',
+    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05. None of them found an effect, because there is none: a 0.05 threshold lets about one in twenty through on its own. None of them is a clean test either: the treatment was never randomly assigned, so it is confounded with age and income.',
+  // w1-r-003: the closing line was "Nothing in a p-value distinguishes the
+  // two", which is an absolute — and two blocks below, on this same screen,
+  // Fig. 2's caption says "Real effects cluster. Noise scatters." over the
+  // figure the code calls the most important educational graphic in the game.
+  // The p-values DO distinguish them in aggregate; that is the whole point of
+  // the grouped view. It is one p-value, read alone, that cannot.
   'reveal.accounting1Effect':
-    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05: {trueSig} on the outcome where the effect is real, {otherSig} on the outcomes where nothing is. Nothing in a p-value distinguishes the two.',
+    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05: {trueSig} on the outcome where the effect is real, {otherSig} on the outcomes where nothing is. A single p-value does not tell you which is which.',
   // ANAPHORA, load-bearing: "them" refers back to accounting1's "{total}
   // possible analyses", which Reveal.tsx always renders immediately above
   // (block "accounting", first <p>). That is what makes "{k} of them"
@@ -719,7 +747,10 @@ export const copy: Record<CopyKey, string> = {
   // accounting2, whose verb is Hacking Mode's. "and ran nothing else" rather
   // than "and ran that one" so the sentence survives a k the mode does not
   // currently produce (preregCommit passes exactly one spec today).
-  'reveal.accounting2Prereg': 'You committed to {k} of them before seeing any data, and ran nothing else.',
+  // "before seeing a single number" rather than "before seeing any data": a
+  // preregistering player HAS read a briefing, so "any data" overstated it.
+  // prereg.intro's own wording, which IT and ES had already followed.
+  'reveal.accounting2Prereg': 'You committed to {k} of them before seeing a single number, and ran nothing else.',
   'reveal.accounting3':
     'A researcher randomly exploring {k} of them finds at least one "significant" result about {pHitPct}% of the time.',
   // GR6 gr6-002: the honest second half of the sentence above. Measured, a
@@ -728,8 +759,16 @@ export const copy: Record<CopyKey, string> = {
   // "you were unlucky-lucky" to precisely the player who gamed the search best.
   // Directed search is what Gelman and Loken's garden is about, and the number
   // above is a floor for it, not an estimate of it.
+  // w1-r-004: CONDITIONAL, because the game does not know. The first draft
+  // asserted "you followed the p-value" as a fact about the player while gating
+  // only on `mode === 'hack' && playerExplored > 1`. The engine holds the
+  // explored list and the full curve and could verify a descent; it does not,
+  // so the sentence may not claim one. Same defect class the backlog books as
+  // gr6-096 (`lab.insufficient` asserts a cause it could not know).
+  // "a floor" rather than "a lower bound": the relation is an empirical
+  // expectation, not a proven bound.
   'reveal.accounting3Directed':
-    'You did not search at random: you followed the p-value. Directed search reaches significance sooner, so the figure above is a lower bound.',
+    'If you followed the p-value, you did not search at random. Directed search reaches significance sooner, so the figure above is a floor.',
   // §3.7's honest form: m peeks make the true number of analyses ≈ (m+1)×
   // larger. Not 5^m, and not a scolding.
   // Plural safety by SINGULAR HEAD NOUN: "data-peeking … makes". The old
@@ -882,7 +921,15 @@ export const copy: Record<CopyKey, string> = {
   'legend.title': 'Legend',
   'legend.explored': 'Specification you viewed',
   'legend.unexplored': "Specification you didn't view",
-  'legend.significant': 'p < .05',
+  // w1-r-008: the leading-zero form, and it had to land here in the same wave
+  // as reveal.accounting1's. SpecCurve renders this string as Fig. 1's
+  // threshold label, i.e. inside the reveal's SECOND block, one block above the
+  // accounting — so `p < .05` here against `p < 0.05` there is gr3-015's
+  // "present in five strings and absent in three, on the same screens" in its
+  // sharpest possible form. gr6-027 (W2) names both keys; W1 owns both files
+  // this round, so both move together. Notation, so it is identical in all
+  // three locales (the shape suites' SHARED_WITH_EN roster).
+  'legend.significant': 'p < 0.05',
   'legend.published': 'The one you published',
   'legend.trueEffect': 'True effect',
 

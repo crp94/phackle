@@ -310,10 +310,13 @@ describe('gr6-001 — the accounting names the right cause on each day type', ()
     const { container } = await mountReveal({ dayType: 'null', trueOutcome: null, trueBeta: 0 });
     const text = blockText(container, 'accounting');
     expect(text).toContain(t(copy, 'reveal.accounting1', { total: '1792', sig: '87', sigPct: '4.9' }));
-    // Controller ruling (a): "chance" may appear, never as the sole cause.
-    // About's own disclosure is "a treatment confounded with age and income".
-    expect(text).toContain('confounding');
+    // Controller ruling (a) + w1-r-001: the confound is named as a property of
+    // the DESIGN, in About's own words, and the COUNT is attributed to the
+    // threshold — measured, confounding accounts for ~5% of the hits on
+    // accepted null days, which is indistinguishable from zero.
+    expect(text).toMatch(/confounded with age and income/);
     expect(text).toMatch(/never randomly assigned/);
+    expect(text).not.toMatch(/the rest are confounding/i);
   });
 
   it('never runs the effect-day sentence on a null day', async () => {
