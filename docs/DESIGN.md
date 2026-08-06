@@ -12,7 +12,7 @@ Act II split made visual.
 **How to use this document.** Every rule below names an exact value or an exact
 token, and is decided by a test, a grep, or a look at the diff — not by taste.
 The single exception is R8.3, which is a judgement call and is labelled as one;
-§10 states the tier of each of the 49 rules exactly once. Cite rule ids in review
+§10 states the tier of each of the 51 rules exactly once. Cite rule ids in review
 ("violates R2.4"). Where a rule and your layout disagree, the rule wins; if the
 rule is wrong, change it here first, in a commit of its own.
 
@@ -41,7 +41,7 @@ in `tokens.css` and in this table.
 | Direction: the "**glowing** dial" | The dial is prominent by **size and colour only** — no shadow, no halo (R8.1) | R4.2 bans shadows; scale is the louder instrument anyway |
 | §7.2 lists `--assist-green` for "REPLICATED" among its uses, without restricting it to inline text | R1.5's inline-only (≤1em) rule gets one named exception: the REPLICATED verdict stamp renders in `--assist-green` at display scale, exactly parallel to R1.3's RETRACTED-stamp entry for `--sig-red` | A verdict stamp is a signature moment (R8.2), not the ambient chrome R1.5's "never a fill" discipline targets; direction A's single-loud-colour discipline governs chrome, not the verdict itself |
 | §7.2's dial prose ("colour interpolating from `--muted` toward `--sig-red` as p → .05") vs §2.4 ("color ramps toward green... crossing triggers a glow") | The Lab's `PValueDial` (R8.1's Act I signature, `--text-dial` scale) steps `--muted` → `--dial-step-1` → `-2` → `-3` → `--assist-green` as p crosses .5/.2/.1/.05, never `--sig-red` — R1.5 gets a **second** named exception (alongside the REPLICATED stamp) for the final, solid-green step; R1.8 is amended to match | §2.4 is explicit that reaching significance is *desirable* in Act I ("significance is DESIRABLE in Act I" per the T14 controller pin); `--sig-red` stays exactly R1.3's four Act II places (the RETRACTED stamp, the reveal's .05 threshold rule+label, the published path+leader line, the Act II accounting figures) — none of which is the Lab, so its grep-countable "four places" stays literally true only if the dial never touches red at all. A continuous opacity ramp toward the same two tokens was tried first and rejected: on a light-on-paper token, reducing opacity alpha-composites toward `--paper` and collapses contrast (1.60:1 at p=1.0 light, 1.70:1 dark) — see the T14 fix-round report for the exact numbers. Discrete, contrast-verified steps are what actually keeps R1.8's own "stays ≥4.5:1" claim true |
-| §7.3 "two-pane above, stacked below" — which R3.4 restated as `flex-direction: row-reverse` | The Lab's ≥768px layout is a **two-column grid**: question across row 1, dial (row 2) and results (row 3) in column 2, controls in column 1 spanning rows 2–3 (R3.4). Below 768px it is still one stacked column in DOM order, and the **dial block alone** is `position: sticky; top: 0` (R8.1) | T31 removed the mobile stickiness on measured evidence: the whole results pane grew to 998px on a 360×640 phone, and a sticky element taller than the viewport slides to the end of its containing block and paints over its sibling — the six knobs were unreachable. The cost was §2.4's live-dial mechanic. Restoring it needs the *dial alone* to be sticky as a direct child of `.ph-lab`, so its containing block spans the controls; `row-reverse` cannot then keep the dial and the results in one column with the controls spanning both rows, and a grid can. One breakpoint still, no new tokens, no fill |
+| §7.3 "two-pane above, stacked below" — which R3.4 restated as `flex-direction: row-reverse` | The Lab's ≥768px layout is a **two-column grid**: question across row 1, dial (row 2) and results (row 3) in column 2, controls in column 1 spanning rows 2–3 (R3.4). Below 768px it is still one stacked column in DOM order, with **at most two sticky children and no others** (R8.1): the **dial block** at `position: sticky; top: 0`, and — granted by the 2026-08-06 amendment, **not yet in the tree** — the **actions row** at `position: sticky; bottom: 0` | T31 removed the mobile stickiness on measured evidence: the whole results pane grew to 998px on a 360×640 phone, and a sticky element taller than the viewport slides to the end of its containing block and paints over its sibling — the six knobs were unreachable. The cost was §2.4's live-dial mechanic. Restoring it needs the *dial alone* to be sticky as a direct child of `.ph-lab`, so its containing block spans the controls; `row-reverse` cannot then keep the dial and the results in one column with the controls spanning both rows, and a grid can. One breakpoint still, no new tokens, no fill. The 2026-08-06 amendment adds the second sticky child at the opposite edge for the mirror-image reason — in this same stacked order both exit actions land ~1,400px *above* the last knob at 360 — and R8.1 carries its measurement, its constraints and the options it rejected |
 | §7.5 "Motion budget: confetti, stamp slam, p-value tick, scroll fades — **nothing else**" | A registered motion **system** (§5): one duration scale (`--dur-quick`/`--dur-scene`/`--dur-stagger`), one easing, and **nine** sanctioned sites — §7.5's four, plus the screen transition, the reveal-block stagger, the press-clipping entrance, the copy confirmation and (T38) the achievement-unlock lines. The list is still exhaustive, still compiled (`tests/ui/motion.test.ts`), and §7.5's own reduced-motion sentence is strengthened rather than relaxed: R5.6 makes "collapses all to opacity/instant" a parity guarantee with a no-content-behind-motion clause | Owner directive, third play-test round: "the UX/UI should be more animated, it reads a bit plain right now". §7.5's four-item list was written as a budget, and a budget can only be held by refusing — which is precisely how the product ended up with **no** beat on its single biggest state change, the screen swap, with R5.5 naming "page transitions" as forbidden. Replacing the enumeration with a scale keeps the restraint (a site is added by amending R5.2's table, and must still clear "a beat that tells the player something happened") while letting the moments that carry meaning actually carry it. Nothing was relaxed: raw durations, raw easings and layout-property animation are all newly **banned** by R5.1/R5.3, none of which §7.5 said anything about |
 | §7.4's three figure radii, read as the complete set | A **fourth** figure radius exists, `--dot-cut` (2px), declared in `tokens.css` and used only for the DataCut's analysed sample | §7.4's `--dot-all` (1.5px) is sized for the SpecCurve, where 1,792 points share one plate and the cloud is a texture. The DataCut draws ~200 points as the figure's entire subject in a 122×88px column; at 1.5px they read as haze, and at `--dot-explored` (4px) as a solid slab. 2px is the only value between them, and it is registered here rather than typed inline so R2.2/R3.1's "no raw px" grep stays true and the figure and its legend swatch can never drift |
 | §7.2 fixes **seven** colours | Exactly **six** are derived from them, all declared in `tokens.css`: `--hack-gold-ink` (from the gold hue, R1.6), `--sig-band` (`color-mix` of `--sig-red` at 6%, R4.1), `--scrim` (`color-mix` of `--ink` at 60%, R4.2's Call-modal backdrop), and `--dial-step-1`/`-2`/`-3` (PValueDial's stepped ramp, `color-mix(in srgb, var(--muted), var(--assist-green) 25/50/75%)`, computed offline and hardcoded as literal hex so `tests/ui/tokens.test.ts` can contrast-check them directly — R1.8). None counts as a new colour against R1.3 or R1.6; any seventh derivation must be added to this row first (R1.3a) | §7.5's contrast floor forces the first, §7.4's tint forces the second, R4.2's "separate the Call modal from the cover" backdrop forces the third, and R1.8's stepped Act-I ramp forces the last three — registering them keeps "one loud colour" and "seven fixed values" literally true |
@@ -321,9 +321,15 @@ keyword (`ease`, `linear`, `steps()`) may appear in a `transition` or
 - Do: `animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));`
   — the one sanctioned arithmetic in motion, and the only way to express a
   stagger without typing N delays by hand (R5.7).
-- Don't: `transition: opacity 200ms ease-in-out;` — three violations in one
-  declaration, and the raw duration is the serious one: it is the single
-  thing `prefers-reduced-motion` cannot reach (R5.6).
+- Don't: `transition: color 200ms ease-in-out;` — three violations in one
+  declaration (R5.1's raw duration, R5.1's bare keyword, and R5.3's `color`
+  outside `PValueDial.css`), and the raw duration is the serious one: it is
+  the single thing `prefers-reduced-motion` cannot reach (R5.6). The dial is
+  the one site that may transition `color` at all, and it ships this
+  declaration written the other way round: `transition: color
+  var(--dur-quick) var(--ease-out)`. (This example read `opacity` until
+  2026-08-06, which made its own count wrong: `opacity` is the property R5.3
+  most explicitly permits, so the third violation was not there to find.)
 - Don't: invent `--dur-toast`. A duration names a *class of moment*; two sites
   that mean the same thing are timed by the same token or they will drift.
 
@@ -358,6 +364,70 @@ deliberate: `src/ui/components/Stamp.css` describes the slam while site 4 in
 `Reveal.css` decides when it happens (the component knows what, the screen
 knows when), and every keyframe defined anywhere under `src/ui` must be
 referenced by some `animation:` declaration — also compiled.
+
+**How the Motion column is read, and what the two amendments below mean.** The
+column states what the stylesheets contain **today**, because `motion.test.ts`
+reconciles it against them in both directions and a cell naming an identity no
+file declares fails exactly as hard as an identity no cell names. So a change
+to this system lands in two steps and this document does the first one: the law
+**grants** an identity here, in prose, in a commit of its own; the register
+**records** it in the Motion cell — **and in every other cell of that row the
+change makes false** — in the same commit that writes it into the stylesheet.
+Grant 1 is the worked example: it moves four of row 2's cells, not one (Trigger
+to the band, Property by the new travel, Duration by the new token, Motion by
+the new identity). Only two of the ten are compiled: the parser reads the
+**File** and **Motion** cells and nothing else, so every remaining cell in this
+table is tier D — true because someone read the diff, and silently wrong the
+moment nobody does. Both grants below were made on 2026-08-06 and neither is in
+the tree yet. Nothing else about them is provisional — the shape, the tokens and
+the distances are fixed here, and an implementation that departs from them is
+out of law whatever it looks like.
+
+**Grant 1 — site 2 gets a second identity: `ph-dial-settle-band`.** The dial
+spends the *quiet* pair — 2px at `--dur-quick` — on every settled result alike,
+including the one crossing that carries the whole game. On the owner's amplify
+directive, and inside R8.1 (no glow, no halo, no pulse, no ring, no disc), a
+**band change** — a move between R1.8's five steps, which `PValueDial` already
+computes with `dialBand(p)` — settles at `translateY(-6px)`→0 for `--dur-scene`,
+the loud pair R5.3 already pins. **The sign is part of the grant.**
+`ph-dial-settle` drops the numeral in from above (`translateY(-2px)`→0) and the
+loud version is the same gesture at the scene distance; R5.3's own Do example is
+written positive because a *scene* rises into place, and an implementer who
+copies that sign here reverses Act I's signature without changing a single value
+this document could catch. A re-settle *within* the same band keeps
+`ph-dial-settle`'s −2px at `--dur-quick`. That is a second identity on one site,
+which is precisely how §5 says a site is changed: no new distance, no new
+duration, no new easing, no new token, no colour, no second keyframe body shape
+— and reduced motion still collapses both to one imperceptible frame, because
+both read the same scale (R5.6). The trigger narrows with it: site 2's key
+becomes the band, not `p`/`n`/`outcome` alone, or an inconsequential redraw
+gets the loud beat. **The illustrative "numeral weight-snap" is out of law and
+must not be implemented**: R2.4 makes every numeral mono and R2.3 says mono is
+never anything but 400, so the dial's weight is 400 and stays 400. A fix that
+snaps weight fails review on those two rules, not on this one.
+
+**Grant 2 — the entrance identities collapse to `ph-enter-scene` and
+`ph-enter-quick`.** Six `@keyframes` names carry two animations. The bodies of
+`ph-screen-enter` (site 1), `ph-block-enter` (3), `ph-clipping-enter` (5) and
+`ph-unlock-enter` (9) are identical — `opacity` 0→1 with `translateY(6px)`→0,
+R5.3's scene distance — and so are those of `ph-popover-enter` (6) and
+`ph-toast-enter` (7) at 2px. That is R5.3's two pinned distances retyped as
+literals in six places: the same defect §10's raw-px list exists to prevent, one
+indirection further down, and the reason the register is a list of *sites* and
+not a list of animations. The four scene entrances take the identity
+`ph-enter-scene`; the two quick ones take `ph-enter-quick`. Each shared body is
+defined once and fired from the stylesheets that own the sites — a third
+instance of the deliberate split described above, permitted on the same terms
+and by the same compiled rule (every keyframe defined is fired, every keyframe
+fired is defined).
+
+**The register still keeps one row per site.** A shared identity is not a
+shared row: sites 1, 3, 5 and 9 stay four rows and 6 and 7 stay two, because a
+row is a *moment the player experiences* and the Motion column is only its
+name. Only that column changes, in six cells. `motion.test.ts` loses no
+strictness in the process — its pairs are `(file, identity)`, so an unlisted
+`ph-enter-scene` appearing in a seventh stylesheet still fails the build, which
+is the property that made pairs beat counts in the first place.
 
 **R5.3 — Only `transform` and `opacity` animate.** They are the two properties
 a browser can composite without laying out or painting the page again, which
@@ -413,6 +483,66 @@ do with (T38 tightened this; the per-file version was probe-broken). And
 `matchMedia('(prefers-reduced-motion: reduce)')` itself** — via
 `src/ui/hooks/useReducedMotion.ts`, which is the single place that decision is
 made — because a token cannot reach a canvas or a `setTimeout`.
+
+**The entered flag has one name: `.ph-entered`** (granted 2026-08-06, not yet
+in the tree; §9's utility roster). One idea — "the observer has seen this
+element, so it is visible on its own account" — currently ships as three names,
+`.ph-fade--in`, `.ph-clipping--in` and `.ph-summary__unlock-item--in`, which is
+three chances for the next entrance to invent a fourth and two names too many
+for a rule that has to be read across five stylesheets. The three collapse into
+`.ph-entered`, composed onto the element beside its own base class.
+
+**This one has a cost the others do not, and the law states it rather than
+leaving it to be discovered.** `motion.test.ts`'s association check accepts a
+restorer only if its class carries a `--`, so a flag spelled `.ph-entered`
+satisfies no association and every guarded entrance goes red at once. The
+predicate is what moves, and it moves to exactly this — an explicit flag
+vocabulary, not a loosened test:
+
+```
+modifier.includes('--') || modifier === 'ph-entered'
+```
+
+**Deleting the `--` clause instead is the relaxation this rule forbids**, and it
+is forbidden because it is invisible: with that clause removed the suite is
+still green, so any co-written class at all would vouch for a hidden rule and
+T38's whole precision fix would be undone without one red test. The rename
+therefore lands with a guard that reds when the vocabulary is widened —
+
+```
+it('a co-written class that is not a modifier does NOT vouch', () => {
+  expect(unguardedHiddenRules(
+    '.ph-thing { opacity: 0; }\n.ph-other { opacity: 1; }',
+    new Set([pairKey('ph-thing', 'ph-other')])
+  )).toEqual(['.ph-thing has no restoring modifier']);
+});
+```
+
+— which passes against the predicate above and fails against the relaxed one.
+No guard, no rename.
+
+**And the cost is ten places, not one.** The three names are load-bearing
+wherever they are typed, and the rename is not done until all of them move in
+the one commit: the predicate itself; `motion.test.ts`'s stamp-split selector
+(`:307`), its Summary restorer assertion (`:457`), its `noRestore` mutation
+(`:474`), its `revealCss` orphan-probe baseline (`:466`) and its
+`COMPONENT_CLASS_PAIRS` expectations (`:501`–`:503`); `reveal.test.tsx:325`;
+`summary.test.tsx:954` and `:980`; R5.2's cells for sites 4 and 9; and this
+rule's own paragraph above. That count is a floor — it excludes the stylesheets
+and components doing the renaming, and the half-dozen comments in `Reveal.css`,
+`Published.css`, `Summary.css`, `Stamp.css` and `a11y.test.tsx` that explain the
+old names and would otherwise start teaching a class that no longer exists.
+
+**A shared flag may never be used bare as a descendant gate.** This is the trap
+the collapse creates and the reason it is a clause and not a footnote.
+`Reveal.css` gates the stamp on `.ph-fade--in .ph-stamp--animate` — T35's fix,
+which starts the 450ms slam at the intersection that reveals the block rather
+than at mount. That selector is safe only because `.ph-fade--in` names *one*
+entrance; `.ph-entered .ph-stamp--animate` would match a stamp inside **any**
+entered element — a press card, the chyron, an unlock line — and R8.2's
+once-only signature would become a pattern (R8.3). The gate keeps its scope by
+naming the base class too: `.ph-fade.ph-entered .ph-stamp--animate`. The same
+applies to any future descendant selector written off the shared flag.
 - Do: skip creating the confetti canvas entirely when the query matches.
 - Do: use `animation-fill-mode: backwards` on a staggered entrance so the
   from-state applies during the delay; never `forwards`/`both` on an element
@@ -573,22 +703,68 @@ automatically and keeps `--muted` captions on it at ≥4.62:1.
 **R8.1 — Act I's signature is the dial.** It is the largest thing on the Lab
 screen (`--text-dial`), it is the only element whose colour changes with state
 (R1.8), and it is prominent by size and colour alone — no shadow, no halo, no
-pulse. Below R3.4's breakpoint it is also the one **sticky** element on the
-screen (§0's Lab-layout row): §2.4's mechanic is watching this number move while
-you turn a knob, so the numeral and its n/df line — and nothing else, a
-**measured 153px at 360px wide** — stay pinned at `top: 0` while the controls
-scroll beneath. (153px, not the ~85px this rule first estimated: `--text-dial`
-clamps to 64px there and `p = 0.459` wraps to two lines in a 312px column, so
-2 × 64 + 26. That is 24% of a 640px phone, against the 998px whole-pane sticky
-it replaced.)
-- Do: give it the whole top of the results column with `--space-40` of air.
-- Do: keep the sticky block to the numeral and n/df. Its caption, the figures
-  and the buttons are static siblings.
+pulse. Below R3.4's breakpoint it is **sticky** (§0's Lab-layout row): §2.4's
+mechanic is watching this number move while you turn a knob, so the numeral and
+its n/df line — and nothing else, a **measured 153px at 360px wide** — stay
+pinned at `top: 0` while the controls scroll beneath. (153px, not the ~85px this
+rule first estimated: `--text-dial` clamps to 64px there and `p = 0.459` wraps to
+two lines in a 312px column, so 2 × 64 + 26. That is 24% of a 640px phone,
+against the 998px whole-pane sticky it replaced.)
+
+**Exactly one other element in the product may be sticky, and this rule names
+it.** Until 2026-08-06 this rule read "it is also the one sticky element on the
+screen"; the clause is amended, not waived, and the amendment is a list of one:
+the Lab's **actions row**, below R3.4's breakpoint, `position: sticky; bottom: 0`,
+on `--paper`, with a `border-block-start: var(--hairline)` and nothing else — no
+fill (R4.1), no shadow (R4.2), no second colour, no motion (R5.5), on the same
+`--z-sticky` rung as the dial (R4.7). The two pin to opposite edges, so they
+collide only if they are allowed to grow into each other — which is exactly what
+the sum-budget in the Do bullets below forbids, and why that budget is a
+condition of this grant rather than advice attached to it. The actions row's
+height is not yet measured; until it is recorded here, "they can never collide"
+is a claim nobody has checked.
+
+The reason is measured, twice and by two independent lanes. Below 768px the Lab
+stacks in DOM order — question, dial, results, controls (R3.4) — so both exit
+actions sit at the foot of the *results* block, above every knob. At 360×640:
+`Submit for publication` at document y 1486, the last knob (One-tailed) at 2894,
+in a document 3009 tall; measured again at 360×740, the scroll-back is 1408px,
+about 1.9 screens. The one-tailed switch is at once the most effective hack in
+the game and the furthest control from the action it enables, so the player who
+plays the lesson well is the player punished hardest for it. The sticky dial
+tells them they have won and then takes them nowhere. A signature that announces
+a result while the button that spends it is ~1,400px away is not restraint; it
+is a dead end, and the fix is one property on one element inside the breakpoint
+that already exists.
+- Do: give the dial the whole top of the results column with `--space-40` of air.
+- Do: keep the sticky dial block to the numeral and n/df. Its caption, the
+  figures and the buttons are static siblings.
+- Do: hoist the sticky actions row to a **direct child of `.ph-lab`**, exactly as
+  the dial was hoisted and for exactly the same reason: left inside
+  `.ph-lab__results` its containing block ends where that block ends, so it would
+  stop sticking at the precise scroll position where the knobs begin — the
+  distance it exists to close.
+- Do: keep it short, and record its measured height here the way the dial's
+  153px is recorded, in the commit that lands it. Two sticky edges spend
+  viewport at both ends of a 640px phone, and the 153px lesson applies to their
+  sum, not to either one alone.
+- Do: make it static at and above 768px. The grid already puts the knobs and the
+  actions on screen together there, so there is nothing for stickiness to buy —
+  the same argument that makes the dial static above the breakpoint.
 - Don't: add a glow, a ring, or a background disc to make it feel special.
 - Don't: make the whole results pane sticky, or fold the caption into the dial
   block — a sticky element taller than the viewport slides to the end of its
   containing block and paints over the controls (§0's row states the measured
   numbers).
+- Don't: render the actions row a second time at the foot of the controls. Two
+  buttons with one meaning is a duplication the accessibility tree cannot
+  explain away, and it was the option rejected in favour of this one.
+- Don't: close the distance by moving the controls above the results instead.
+  That buries the dial and re-opens the exact defect T31 measured and §0's
+  Lab-layout row exists to record.
+- Don't: read this as a general licence. The count is two, both on one screen,
+  both named above. A third sticky element anywhere in the product is an
+  amendment to this rule, argued here first, in a commit of its own.
 
 **R8.2 — Act II's signature is the RETRACTED stamp.** Oversized, rotated −12°,
 distressed via an inline SVG filter (no image assets), one 450ms slam (R5.4),
@@ -628,6 +804,63 @@ retypes their values.
 | Figures (§7.4 + T29 §0) | `--dot-all` (1.5px) `--dot-explored` (4px) `--dot-published` (6px) `--dot-cut` (2px) |
 | Stacking | `--z-sticky` `--z-overlay` `--z-modal` `--z-stamp` |
 
+### §9.1 The utility layer
+
+Five idioms in this document are not tokens — they are *combinations* of tokens
+that mean one thing — and each is currently retyped at every site that needs it:
+R6.1's focus ring in 22 places, R2.7's uppercase label in 20, a close button in
+3, the page shell in 4 disagreeing spellings, and the entered flag under 3
+different names. That defeats every instrument §10 has. A rule retyped 22 times
+turns the grep meant to check it into 22 hits a reviewer can only verify by
+reading 22 rules, and the one that has drifted is the one that looks like the
+others. These are the names those idioms carry, declared once in
+`src/ui/App.css` (granted 2026-08-06; the consolidation itself is a later
+commit).
+
+| Utility | Carries | Owned by |
+|---|---|---|
+| `.ph-focusable` | `:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }` — the ring and nothing else | R6.1 |
+| `.ph-label` | `text-transform: uppercase; letter-spacing: var(--tracking-label);` — the pair, never one without the other | R2.7 |
+| `.ph-page` | the page shell: `max-width: var(--page-max); margin-inline: auto; padding: var(--space-24);` | R3.1, R3.5 |
+| `.ph-page--titled` | the same shell with `--space-40` above and `--space-24` on the other three sides | R3.1, R3.5 |
+| `.ph-close` | the overlay close button, exactly: `font-family: var(--font-ui); font-size: var(--text-15); line-height: var(--leading-ui); color: var(--ink); background: none; border-style: none; border-block-end: 2px solid transparent; padding: var(--space-12) var(--space-16); cursor: pointer;` plus `:hover { text-decoration: underline; }` and R6.1's ring by composing `.ph-focusable`. The transparent 2px block-end is not padding-by-accident: it reserves R4.6's underline so the label does not shift when a sibling state paints one, and the `--space-12`/`--space-16` pair is what makes R6.4's ≥44px target out of the §3 scale | R4.6, R6.1, R6.4 |
+| `.ph-entered` | the one entered flag, replacing `.ph-fade--in`, `.ph-clipping--in` and `.ph-summary__unlock-item--in` (R5.6 states what landing it costs) | R5.6 |
+
+Four constraints, and they are what make this a consolidation rather than a
+redesign.
+
+1. **Composition is a multi-class `className`, written by the component** —
+   `class="ph-page ph-page--titled"`, `class="ph-close ph-focusable"`. No
+   `@apply`, no preprocessor, no mixin, no `:is()` list of every consumer
+   maintained in `App.css`. The stylesheet says what the idiom *is*; the
+   component says which elements *are* one.
+2. **No new token, and no changed value.** Every declaration above already
+   exists verbatim at the sites it replaces. The token table above is unchanged
+   by this section and stays the complete list of `tokens.css`.
+3. **A utility is adopted only where the value already matches it**, which is
+   how constraint 2 survives contact with the page-shell spellings. `.ph-page`
+   covers the five shells that already agree **in the three declarations the
+   utility carries** (`.ph-about`, `.ph-legend`, `.ph-stats`, `.ph-summary`,
+   `.ph-lab` — the last of which additionally lays its children out with
+   `display: flex`, and keeps that, because a utility replaces the declarations
+   it names and nothing else); `.ph-page--titled` covers the two that already
+   spell "40 above, 24 around" (`.ph-briefing`, `.ph-prereg`). Two sites are
+   **not** on the shell, for two different reasons. `.ph-call` is not a page at
+   all: it is capped at `--measure` rather than R3.5's `--page-max` because it is
+   the Call modal's column — modal chrome, sized by R2.8's measure, and counting
+   it as a fourth "page-shell spelling" was a category error. `.ph-reveal` *is* a
+   page and pads 40 at both block ends, which is a real disagreement about the
+   bottom edge; it is left open deliberately, to be ruled when the consolidation
+   is done and against a 360 shot, because the answer is which one looks right at
+   the foot of Act II and this document cannot settle that from a value table.
+   The same match-first test settles `.ph-close`: the three close buttons are
+   identical except that two carry `margin-block-start: var(--space-24)`, so the
+   margin is layout and stays at the call site while the button is the utility.
+4. **The exceptions stay exceptions.** R6.6's screen container is *not*
+   `.ph-focusable` — it declares the ring at a negated offset for the reason
+   R6.6 gives, and a utility that quietly straightened that out would put the
+   ring in the gutter.
+
 ---
 
 ## §10 Review checklist
@@ -641,16 +874,56 @@ document and reconciles it against the stylesheets. Judgement is still what
 decides whether a moment *deserves* a row — that is R8.3's question, and it is
 the only part of §5 a command cannot answer.
 
+**Tier C is retired** (2026-08-06), and with it the last band in this table that
+claimed mechanical decidability without a mechanism. Its six scans move into
+`tests/ui/tokens.test.ts`, one `it` apiece; the seven rules they decide are
+marked † below.
+
 | Tier | How it is decided | Rules |
 |---|---|---|
-| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts tests/ui/a11y.test.tsx` fails the build | R1.3a, R1.7, R4.2, R4.3, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R6.6, R6.7, R7.3 |
+| **A — compiled** | `npx vitest run tests/ui/tokens.test.ts tests/ui/motion.test.ts tests/ui/a11y.test.tsx` fails the build | R1.3†, R1.3a, R1.7, R2.2†, R3.1†, R3.4†, R4.2, R4.3, R4.5†, R4.7†, R5.1, R5.2, R5.3, R5.5, R5.6, R5.7, R6.1, R6.5†, R6.6, R6.7, R7.3 |
 | **B — compiled where it is *defined*, read where it is *used*** | the test pins the token in `tokens.css`; a reviewer confirms the consuming file uses it | R1.6, R1.8, R2.1, R2.3, R2.5, R5.4, R7.4 |
-| **B+C — compiled where it is *defined*, grepped where it is *used*** | the test closes the scale inside `tokens.css`; the raw-px grep below catches a value typed anywhere else | R2.2, R3.1 |
-| **C — grep** | one of the commands below | R1.3, R3.4, R4.5, R4.7, R6.5 |
 | **D — read the diff** | deterministic by inspection: the rule names the value, you check the line | R1.1, R1.2, R1.4, R1.5, R2.4, R2.6, R2.7, R2.8, R3.2, R3.3, R3.5, R3.6, R4.1, R4.4, R4.6, R6.2, R6.3, R6.4, R7.1, R7.2, R8.1, R8.2 |
 | **E — judgement** | the one rule in this document that taste decides | R8.3 |
 
-**Tier A scope, stated precisely.** R1.7 is complete: the test scans every
+† **Promoted from tier C on 2026-08-06, ahead of the commit that compiles them.**
+R2.2 and R3.1 were tier B+C — the scale closed inside `tokens.css` by a test, a
+value typed anywhere else caught by a grep — and their grepped half joins the
+rest. **The debt is owed by wave W10 (backlog row gr6-054), it is paid into
+`tests/ui/tokens.test.ts`, and it is these six `it` titles** — one per scan
+below, comments stripped and both enumerations written as allow-lists:
+
+- `R4.5 — no element declares a border on all four sides`
+- `R4.7 — stacking uses the ladder, never a raw z-index`
+- `R6.5 — every fork is a radiogroup, never a <select>`
+- `R3.4 — one breakpoint exists, and it is 768px`
+- `R1.3 — every var(--sig-red) selector is one of the four places`
+- `R2.2 / R3.1 — every raw pixel value is one this document names`
+
+Naming them is the tripwire: nothing mechanical fires if the wave that owes them
+ships without them, so a reviewer greps `tokens.test.ts` for these six strings
+and finds six or finds the debt. **Until that commit, these seven rules are
+decided by running the scan block below by hand, and that block is deleted in
+the same commit that adds the tests** — the way T35 deleted the two transition
+greps `motion.test.ts` subsumed, not left standing beside them. The dagger is
+not a softer tier. It is a date: this document is amended before the code that
+serves it (see "How to use this document"), so the claim is made here with its
+enforcer named, and a reader can tell exactly which commit owes what.
+
+**One of the seven is thinner than the others in the meantime, and it is R1.3.**
+Its interim scan is file-granular (a shell scan cannot see which rule a hit sits
+in), so a *fifth* `var(--sig-red)` added to a selector in a file already on the
+allow-list — `Reveal.css`, say — passes it silently, which is the likeliest way
+R1.3 is ever broken. The other five scans have no such gap: they are property or
+token scans and see every hit. So R1.3's promotion is the one that genuinely
+depends on its `it` landing, and that `it` must be selector-granular, per point 1
+below. Until it exists, treat R1.3 as tier D as well — read the diff.
+
+**Tier A scope, stated precisely.** The seven rules marked † above — R1.3, R2.2,
+R3.1, R3.4, R4.5, R4.7 and R6.5 — are in tier A on the terms the † block sets
+out, and their scope is the scan block at the end of this section rather than
+the paragraphs here; everything below describes the checks that already exist.
+R1.7 is complete: the test scans every
 `src/ui/**/*.{ts,tsx,css}` except `tokens.css` for hex, `rgb()`/`hsl()`, all 148
 CSS named colours except `transparent`/`currentColor`, and framework palette
 utility classes (`text-red-500`), with comments stripped. R1.3a is complete for
@@ -707,37 +980,80 @@ a probe against `Reveal.css` walked straight through). What it cannot see:
 whether a moment *deserved* a row
 (tier E) and whether the movement looks right (a human, at 360 and 1088).
 
-**Tier C — these four must print nothing:**
+**The † scans, and what was wrong with two of them.** These six commands sat
+here as "tier C — grep", to be run by a human and reconciled by eye. No workflow
+ran them and no test reproduced them, and two were unrunnable as written. `grep
+-rn '<select' src/ui` printed a permanent hit — `components/SpecControls.tsx:2`,
+which is *the rule's own comment* citing R6.5 — and a checklist line that is
+always red teaches a reviewer to skip the block it sits in. The raw-px
+enumeration's closed list had the mirror-image fault: it forgot R3.4's own
+breakpoint, so the four `@media (min-width: 768px)` preludes in `src/ui` mapped
+to nothing on the list and, read literally, §10 declared four violations of a
+value §3 mandates. A comment in the prose of `App.css` (`body { margin: 8px }`,
+quoted while explaining why the margin is zeroed) made a fifth. Comments are the
+common cause both times — a comment may discuss a value, code may not — which is
+why `motion.test.ts` and `tokens.test.ts` have stripped them since T35, and why
+the corrected scans strip them here.
+
+**All six must print nothing.** The two enumerations subtract their allow-list
+rather than asking a reader to check hits against a list, which is the same
+change of shape as `expect(offenders).toEqual([])`, and the reason they can be
+lifted into `it`s unaltered:
 
 ```sh
-grep -rnE 'border:\s' src/ui                                                  # R4.5
-grep -rnE '\bz-index:\s*[0-9]' src/ui                                         # R4.7
-grep -rn '<select' src/ui                                                     # R6.5
-grep -rnE '@media \(min-width:' src/ui | grep -v '768px'                      # R3.4
+# `strip` blanks every comment while keeping line numbers — the shell twin of
+# the tests' own stripComments(); `scan` applies it file by file.
+strip() { perl -0777 -pe 's{/\*.*?\*/}{$& =~ s/[^\n]/ /gr}gse; s{(^|[^:])//[^\n]*}{$1}gm'; }
+scan()  { for f in $(find src/ui -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) | sort); do
+            strip < "$f" | grep -nE "$1" | sed "s|^|$f:|"; done; }
+
+scan 'border:[[:space:]]'                                                     # R4.5
+scan '\bz-index:[[:space:]]*[0-9]'                                            # R4.7
+scan '<select'                                                                # R6.5
+scan '@media \(min-width:' | grep -v '768px'                                  # R3.4
+
+scan 'var\(--sig-red\)' \
+  | grep -vE '^src/ui/(components/Stamp|charts/SpecCurve|screens/Reveal|theme/tokens)\.css:'   # R1.3
+scan ':[[:space:]]*[0-9]+px' | grep -v '^src/ui/theme/tokens\.css:' \
+  | grep -vE 'border-block-end: 2px solid|text-underline-offset: 2px|(inline|block)-size: 1px|@media \(min-width: 768px\)'   # R2.2 / R3.1 usage
 ```
 
-**Tier C — these two enumerate; every hit must map to a closed list:**
-
-```sh
-grep -rn 'var(--sig-red)' src/ui                                              # R1.3
-grep -rnE ':\s*[0-9]+px' src/ui --exclude=tokens.css                          # R2.2 / R3.1 usage
-```
-
-1. Every hit of the first is one of R1.3's four places, or `--sig-band` (R1.3a).
+1. R1.3's allow-list is four places plus one derivation. The filter above is
+   file-granular because a line-oriented scan cannot see which rule a hit sits
+   in; the `it` tightens it to the selectors, which is where the law actually
+   is: `.ph-stamp__mark--red`'s three descendants (place 1),
+   `.ph-speccurve__threshold` and `…__threshold-label` (place 2),
+   `.ph-speccurve__dot--published` / `…__key-dot--published` / `…__ring` /
+   `…__key-ring` / `…__leader` (place 3), `.ph-num--sig` (place 4), and
+   `--sig-band`'s own `color-mix` in `tokens.css` (R1.3a). Any other selector is
+   a fifth red, including one added to a file already on the list.
 2. The only legal raw pixel values are the strokes this document names by hand:
    the 1px hairline (R4.4), the 2px selection underline (R4.6), the 2px underline
-   offset (R6.2), R5.3's two pinned travel distances (6px scene, 2px quick), and
-   the `1px` box of R6.6's `.ph-visually-hidden` (a clipped box, not a size —
-   the idiom's own value, and the only place in `src/ui` it may appear).
-   Anything else is a size or a space that belongs on a scale. Note this grep
-   does not reach a transform argument (`translateY(6px)` has no digit straight
-   after the colon); R5.3's two-distance rule is what closes that gap, and
-   `motion.test.ts` enforces it by scanning keyframe bodies.
+   offset (R6.2), R5.3's two pinned travel distances (6px scene, 2px quick), the
+   `1px` box of R6.6's `.ph-visually-hidden` (a clipped box, not a size — the
+   idiom's own value, and the only place in `src/ui` it may appear), and
+   **`768px`, R3.4's one breakpoint** — added to this list on 2026-08-06, having
+   been missing from it since the list was written even though R3.4 mandates the
+   value by name and four stylesheets type it. Note the mechanism, because the
+   `it` must reproduce this one and not a general one: `@media` preludes are
+   **not** stripped before the scan. `@media (min-width: 768px)` is simply the
+   fourth entry in the allow-list, alongside the three declarations, so the one
+   legal prelude is allowed and every other prelude is a hit. A 1024px
+   breakpoint therefore fires **twice** — once on R3.4's scan and once here —
+   which is the correct answer for a value that is both an illegal raw pixel and
+   a second breakpoint. A general prelude strip would silence the second of
+   those and weaken this scan for nothing. Anything else
+   is a size or a space that belongs on a scale. Note this scan does not reach a
+   transform argument (`translateY(6px)` has no digit straight after the colon);
+   R5.3's two-distance rule is what closes that gap, and `motion.test.ts`
+   enforces it by scanning keyframe bodies.
 
 The old `grep -rnE '\b(transition|animation):' src/ui` and
 `grep -rn 'transition: all' src/ui` rows are retired: both are now strictly
 subsumed by `motion.test.ts`, which counts those same declarations per file
-and rejects `all` as an un-tokenised property list.
+and rejects `all` as an un-tokenised property list. The six above are retired on
+the same terms and by the same test of "strictly subsumed" — one wave later, and
+not one commit before the `it`s exist.
 
 **Tier E — the one question a command cannot answer:** does anything other than
 the dial and the stamp ask to be looked at first? (R8.3)
