@@ -67,18 +67,9 @@
    --dur-stagger to 0ms under prefers-reduced-motion, and Block() additionally
    starts visible there, so nothing is ever waiting on a scroll — or on a
    delay — that a reduced-motion reader did not ask for. */
-@keyframes ph-block-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene` — it was
+   character-identical to three others. This screen still owns WHEN it
+   fires, which is the whole of site 3. */
 .ph-fade {
   display: block;
   opacity: 0;
@@ -86,7 +77,7 @@
 
 .ph-fade--in {
   opacity: 1;
-  animation: ph-block-enter var(--dur-scene) var(--ease-out) backwards;
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 

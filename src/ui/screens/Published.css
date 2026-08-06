@@ -97,18 +97,8 @@
    IntersectionObserver, or if the node never mounts (R5.6's
    no-content-behind-motion clause). `backwards` supplies the from-state
    during the stagger delay and does not persist afterwards. */
-@keyframes ph-clipping-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene`. This screen
+   still owns WHEN it fires, which is the whole of site 5. */
 .ph-press-card,
 .ph-chyron {
   opacity: 0;
@@ -116,7 +106,7 @@
 
 .ph-clipping--in {
   opacity: 1;
-  animation: ph-clipping-enter var(--dur-scene) var(--ease-out) backwards;
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 

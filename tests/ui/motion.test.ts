@@ -229,7 +229,7 @@ describe('R5.1 — the motion scale is closed and lives only in tokens.css', () 
     expect(timingValues(bad).filter((v) => /\bcubic-bezier\s*\(|(?<![\w-])ease-in-out(?![\w-])/.test(v))).toHaveLength(2);
     expect(shorthandDecls(bad).filter((v) => /(?<![\w-])all(?![\w-])/.test(v))).toHaveLength(1);
     // ...and does not fire on the legal form.
-    const good = `.e { animation: ph-screen-enter var(--dur-scene) var(--ease-out); }
+    const good = `.e { animation: ph-enter-scene var(--dur-scene) var(--ease-out); }
       .f { animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger)); }`;
     expect(timingValues(good).filter((v) => /(?<![\w-])\d+(?:\.\d+)?m?s\b/.test(v))).toEqual([]);
     expect(timingValues(good).filter((v) => /\bcubic-bezier\s*\(/.test(v))).toEqual([]);

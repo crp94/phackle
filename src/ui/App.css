@@ -44,7 +44,29 @@ body {
    lasts — long before the player can open the overlay — and .ph-lab's
    sticky dial (R8.1) is likewise only affected during that same window,
    which is before anything has been scrolled. */
-@keyframes ph-screen-enter {
+/* gr6-087 / DESIGN.md R5.2's GRANT 2 — THE TWO SHARED ENTRANCE BODIES,
+   DEFINED HERE, ONCE, AND FIRED FROM THE STYLESHEETS THAT OWN THE SITES.
+   Six `@keyframes` names carried two animations: `ph-screen-enter` (site 1),
+   `ph-block-enter` (3), `ph-clipping-enter` (5) and `ph-unlock-enter` (9)
+   were character-identical at R5.3's scene distance, and `ph-popover-enter`
+   (6) and `ph-toast-enter` (7) were identical at its quick one. That is
+   R5.3's two pinned distances retyped as literals in six places — the same
+   defect §10's raw-px list exists to prevent, one indirection down, and the
+   reason the register is a list of SITES rather than a list of animations.
+   The register still keeps one row per site: a shared identity is not a
+   shared row, because a row is a moment the player experiences and the
+   Motion column is only its name.
+   This is the third instance of the deliberate definition/firing split §5
+   permits (Stamp.css/Reveal.css is the first, PValueDial the second in
+   spirit), and it is safe on the same terms: every keyframe defined under
+   src/ui is referenced by some `animation:` declaration and vice versa, which
+   motion.test.ts compiles corpus-wide. App.css is the home because it is the
+   one stylesheet the shell always imports, so neither body can be missing
+   from a build that fires it.
+
+   R5.3's SCENE distance. Fired by sites 1 (here), 3 (Reveal.css), 5
+   (Published.css) and 9 (Summary.css). */
+@keyframes ph-enter-scene {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -56,8 +78,22 @@ body {
   }
 }
 
+/* R5.3's QUICK distance, the other pinned one. Fired by site 6 (the
+   fork-trail popover) and site 7 (the share toast). */
+@keyframes ph-enter-quick {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ph-screen {
-  animation: ph-screen-enter var(--dur-scene) var(--ease-out);
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out);
 }
 
 /* T22 (DESIGN.md R6.6) — the screen container is the SPA route change's focus

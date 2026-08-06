@@ -125,24 +125,14 @@
    technology is unaffected either way — the live region announces on insert,
    which has nothing to do with how the pixels arrive — and with no base
    `opacity: 0` the text is present even if the animation never runs (R5.6). */
-@keyframes ph-toast-enter {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-quick`. This screen
+   still owns WHEN it fires, which is the whole of site 7. */
 .ph-summary__toast {
   font-family: var(--font-ui);
   font-size: var(--text-13);
   color: var(--muted);
   margin: var(--space-8) 0 0;
-  animation: ph-toast-enter var(--dur-quick) var(--ease-out);
+  animation: ph-enter-quick var(--dur-quick) var(--ease-out);
 }
 
 /* --- T38: the day's award ceremony ---------------------------------------
@@ -205,18 +195,8 @@
    entered-now under reduced motion, without an IntersectionObserver, and if
    the node never mounts. `backwards` supplies the from-state during the
    stagger delay without persisting a transform afterwards. */
-@keyframes ph-unlock-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene`. This screen
+   still owns WHEN it fires, which is the whole of site 9. */
 .ph-summary__unlock-item {
   display: flex;
   flex-direction: column;
@@ -228,7 +208,7 @@
 
 .ph-summary__unlock-item--in {
   opacity: 1;
-  animation: ph-unlock-enter var(--dur-scene) var(--ease-out) backwards;
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 

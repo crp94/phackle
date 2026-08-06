@@ -94,20 +94,10 @@
    `min(var(--measure), 100%)` caps it at the column's own width. Both bounds
    are needed: --measure alone overflowed the viewport, and 100% alone would
    let a wide desktop column stretch the rows past R2.6's measure. */
-@keyframes ph-popover-enter {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-quick`. This component
+   still owns WHEN it fires, which is the whole of site 6. */
 .ph-fork-trail__popover {
-  animation: ph-popover-enter var(--dur-quick) var(--ease-out);
+  animation: ph-enter-quick var(--dur-quick) var(--ease-out);
   position: absolute;
   inset-block-end: 100%;
   inset-inline-start: 0;
