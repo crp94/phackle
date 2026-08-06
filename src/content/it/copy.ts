@@ -120,8 +120,12 @@ export const copy: Record<CopyKey, string> = {
   'briefing.emailFrom': 'Prof. R. Grantwell',
   'briefing.goal': 'Il tuo compito: trovare un effetto statisticamente significativo (p < 0.05) e pubblicarlo.',
 
+  // §1(j): "un tentativo per modalità" prometteva due partite al giorno; la
+  // regola è una sola partita e una sola modalità (v. Briefing.tsx). Stessa
+  // struttura in tre frasi brevi; "una sola" ripetuto perché in italiano è
+  // l'unico modo naturale di dire "one X, one Y" senza suonare telegrafico.
   'briefing.modeChooserIntro':
-    'La preregistrazione è sbloccata. Scegli come giocare oggi. Un tentativo per modalità.',
+    'La preregistrazione è sbloccata. Scegli come giocare oggi. Una sola partita, una sola modalità.',
   // T37: sentence case (rule 3) — Italian does not capitalise a common noun
   // mid-sentence — and one name for the mode, "Preregistrazione", which is
   // what prereg.title, summary.preregUpsell, briefing.modeChooserIntro and

@@ -114,8 +114,12 @@ export const copy: Record<CopyKey, string> = {
   'briefing.emailFrom': 'Prof. R. Grantwell',
   'briefing.goal': 'Tu tarea: encontrar un efecto estadísticamente significativo (p < 0.05) y publicarlo.',
 
+  // §1(j): "un intento por modo" prometía dos partidas al día; la regla es un
+  // solo intento y un solo modo (v. Briefing.tsx). Misma estructura en tres
+  // frases breves; "un solo" repetido porque en español la elipsis ("un
+  // intento, un modo") se lee como enumeración, no como restricción.
   'briefing.modeChooserIntro':
-    'El preregistro está desbloqueado. Elige cómo quieres jugar hoy. Un intento por modo.',
+    'El preregistro está desbloqueado. Elige cómo quieres jugar hoy. Un solo intento, un solo modo.',
   'briefing.playHacking': 'Jugar en modo Hacking',
   'briefing.playPrereg': 'Jugar en modo Preregistro',
   'briefing.alreadyPlayedToday': 'Ya has jugado hoy',

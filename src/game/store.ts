@@ -162,7 +162,9 @@ export interface GameStore {
   makeCall(v: 'real' | 'noise'): Promise<void>;
   finishReveal(): void;
   /** T18: the briefing's mode chooser (§2.2 "prereg unlocked: choose mode
-   * first"), visible only once achievements.first_retraction exists.
+   * first"), visible once a day has been completed and today's own mode is
+   * still unspent (§1(j)(1) moved the gate off achievements.first_retraction;
+   * see game/dayComplete.ts's `preregUnlockedBy`).
    * Guarded to only fire from 'briefing' (mirrors openData's own guard).
    * 'prereg' is the only value the real UI ever passes (Prereg.tsx's screen
    * is reached ONLY this way, never via openData) — the Briefing chooser's

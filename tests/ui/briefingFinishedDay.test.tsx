@@ -181,27 +181,56 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
     expect(openData).toHaveBeenCalledTimes(1);
   });
 
-  it('a hack day finished by a player who HAS unlocked prereg is not finished at all — the chooser still offers the other mode', async () => {
+  // §1(j) — THE SAME-DAY REOPENING DECISION, WHICH IS "NO", PINNED.
+  //
+  // W6 shipped the opposite of this assertion and named it W12's decision to
+  // make: with prereg unlocked, a spent hack day left the chooser standing
+  // with prereg live, so the player could play the same puzzle twice. Between
+  // the two plays sits Act II — day type, true outcome, the whole enumerated
+  // curve with every significant path marked — and `scorePrereg` is a
+  // function of `(preregSig, dayType)` alone, so the second play is a
+  // guaranteed 150 (`preregSigEffect`) for anyone who paid attention. The
+  // day's mode is chosen once. The reasoning lives at Briefing.tsx's
+  // `preregAvailable`; this is its guard.
+  it('a hack day spent today FINISHES the day even with prereg unlocked — the second mode is not a second attempt', async () => {
     seed(
       freshV1({
-        history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } },
-        achievements: { first_retraction: '2026-08-01' },
+        history: {
+          '2026-08-01': { hack: record({ stamp: 'NULL_REPORTED' }) },
+          [ISO]: { hack: record({ stamp: 'RETRACTED' }) },
+        },
       })
     );
     renderBriefing();
 
-    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
-    expect(screen.queryByTestId('briefing-finished')).toBeNull();
-    const hackButton = screen.getByRole('button', { name: enCopy['briefing.playHacking'] });
-    expect(hackButton.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: enCopy['briefing.playPrereg'] }).hasAttribute('disabled')).toBe(false);
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+    expect(screen.queryByTestId('mode-chooser')).toBeNull();
+    expect(screen.queryByRole('button', { name: enCopy['briefing.playPrereg'] })).toBeNull();
+    expect(screen.queryByRole('button', { name: enCopy['briefing.openData'] })).toBeNull();
   });
 
+  // The state that still HAS a choice in it: unlocked, and today untouched.
+  // Without this the file could pass by never rendering a chooser at all.
+  it('a completed day in history and nothing spent today: the chooser, with both modes live', async () => {
+    seed(freshV1({ history: { '2026-08-01': { hack: record({ stamp: 'NULL_REPORTED' }) } } }));
+    renderBriefing();
+
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
+    expect(screen.queryByTestId('briefing-finished')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: enCopy['briefing.playHacking'] }).hasAttribute('disabled')
+    ).toBe(false);
+    expect(
+      screen.getByRole('button', { name: enCopy['briefing.playPrereg'] }).hasAttribute('disabled')
+    ).toBe(false);
+  });
+
+  // Still reachable, but only from storage a past build wrote (or a hand
+  // edit): §1(j) makes a live app spend at most one mode per date.
   it('BOTH modes spent: the finished state takes over from the all-disabled chooser', async () => {
     seed(
       freshV1({
         history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }), prereg: record({ mode: 'prereg' }) } },
-        achievements: { first_retraction: '2026-08-01' },
       })
     );
     renderBriefing();
@@ -210,26 +239,29 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
     expect(screen.queryByTestId('mode-chooser')).toBeNull();
   });
 
-  it('prereg played but hacking still available: the plain CTA, exactly as before', async () => {
-    seed(
-      freshV1({
-        history: { [ISO]: { prereg: record({ mode: 'prereg' }) } },
-        achievements: { first_retraction: '2026-08-01' },
-      })
-    );
-    const { openData } = renderBriefing();
+  // Was "prereg played but hacking still available: the plain CTA". Same
+  // decision, mirrored: a spent prereg day does not hand the player Hacking
+  // Mode as a consolation second attempt at the same puzzle.
+  it('prereg spent today finishes the day too — hacking is not offered afterwards', async () => {
+    seed(freshV1({ history: { [ISO]: { prereg: record({ mode: 'prereg' }) } } }));
+    renderBriefing();
 
-    await waitFor(() => expect(screen.getByText(enCopy['briefing.openData'])).toBeTruthy());
-    expect(screen.queryByTestId('briefing-finished')).toBeNull();
-    fireEvent.click(screen.getByText(enCopy['briefing.openData']));
-    expect(openData).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+    expect(screen.queryByRole('button', { name: enCopy['briefing.openData'] })).toBeNull();
+    expect(screen.queryByTestId('mode-chooser')).toBeNull();
   });
 
   it('a record under a DIFFERENT date never blocks today', async () => {
     seed(freshV1({ history: { '2026-01-01': { hack: record() } } }));
     renderBriefing();
-    await waitFor(() => expect(screen.getByText(enCopy['briefing.openData'])).toBeTruthy());
+    // §1(j)(1): that other date is also what unlocks the chooser now, so the
+    // "today is still playable" evidence is the chooser rather than the bare
+    // CTA. Both modes live, and no finished block.
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
     expect(screen.queryByTestId('briefing-finished')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: enCopy['briefing.playHacking'] }).hasAttribute('disabled')
+    ).toBe(false);
   });
 
   it('on a double-played day the share line is the HACK record, consistently (w6-r-004)', async () => {
@@ -254,20 +286,14 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
   });
 
   it('falls back to the prereg record when that is the only one the day holds', async () => {
-    // Reachable once W12 lands (prereg unlocked before any hack day is
-    // played); today it is the defensive arm of the same expression.
-    const preregRec = record({ mode: 'prereg', shareString: '🧾📄 prereg line' });
-    seed(
-      freshV1({
-        history: { [ISO]: { prereg: preregRec } },
-        achievements: {},
-      })
-    );
+    // W6 wrote this arm as unreachable-until-W12 and asserted the CTA
+    // instead. It is reachable now: a day whose only record is a prereg one
+    // is a finished day, and its share line is that record's.
+    const preregRec = record({ mode: 'prereg', shareString: '🧾 📄 prereg line' });
+    seed(freshV1({ history: { [ISO]: { prereg: preregRec } } }));
     renderBriefing();
-    // No hack record, prereg not available (no unlock) -> hacking IS playable,
-    // so this is NOT a finished day; the plain CTA stands. The share-line
-    // fallback is asserted where it is actually reachable, below.
-    await waitFor(() => expect(screen.getByText(enCopy['briefing.openData'])).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+    expect(screen.getByTestId('briefing-finished-share').textContent).toBe(preregRec.shareString);
   });
 });
 
@@ -286,9 +312,13 @@ describe('Briefing — practice mode is exempt from the finished-day guard (w6-r
     seed(freshV1({ history: { [ISO]: { hack: record() } } }));
     const { openData } = renderBriefing({ practice: true });
 
-    await waitFor(() => expect(screen.getByText(enCopy['briefing.openData'])).toBeTruthy());
+    // §1(j)(1): that real record is also a completed day, so the practice boot
+    // now lands on the chooser rather than the bare CTA — with BOTH modes
+    // live, because a practice session has spent neither. The claim under test
+    // is unchanged: the real day's record does not lock practice out.
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
     expect(screen.queryByTestId('briefing-finished')).toBeNull();
-    fireEvent.click(screen.getByText(enCopy['briefing.openData']));
+    fireEvent.click(screen.getByRole('button', { name: enCopy['briefing.playHacking'] }));
     expect(openData).toHaveBeenCalledTimes(1);
   });
 
@@ -296,7 +326,6 @@ describe('Briefing — practice mode is exempt from the finished-day guard (w6-r
     seed(
       freshV1({
         history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }), prereg: record({ mode: 'prereg' }) } },
-        achievements: { first_retraction: '2026-08-01' },
       })
     );
     const { openData, chooseMode } = renderBriefing({ practice: true });
@@ -325,12 +354,7 @@ describe('Briefing — practice mode is exempt from the finished-day guard (w6-r
     //     hacking disabled: true, prereg disabled: false
     // The exemption belongs at the two definitions, where every consumer sees
     // it, not at one of the three places that read them.
-    seed(
-      freshV1({
-        history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } },
-        achievements: { first_retraction: '2026-08-01' },
-      })
-    );
+    seed(freshV1({ history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } } }));
     const { openData } = renderBriefing({ practice: true });
 
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
@@ -341,21 +365,16 @@ describe('Briefing — practice mode is exempt from the finished-day guard (w6-r
     expect(openData).toHaveBeenCalledTimes(1);
   });
 
-  it('[re-review] the same storage in a REAL session still disables the spent hacking option', async () => {
-    // The other half: the exemption must be practice-only at the chooser too.
-    seed(
-      freshV1({
-        history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } },
-        achievements: { first_retraction: '2026-08-01' },
-      })
-    );
+  it('[re-review] the same storage in a REAL session still spends the day', async () => {
+    // The other half: the exemption must be practice-only. §1(j) moved where
+    // that shows — the real session gets the finished state now, not a chooser
+    // with one dead option — but the proposition is the same one, and it is
+    // the mirror of the practice case directly above it.
+    seed(freshV1({ history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } } }));
     renderBriefing({ practice: false });
 
-    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
-    expect(
-      screen.getByRole('button', { name: enCopy['briefing.playHacking'] }).hasAttribute('disabled')
-    ).toBe(true);
-    expect(screen.getByText(enCopy['briefing.alreadyPlayedToday'])).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+    expect(screen.queryByTestId('mode-chooser')).toBeNull();
   });
 
   it('the exemption is practice-ONLY: the same storage locks the real day', async () => {

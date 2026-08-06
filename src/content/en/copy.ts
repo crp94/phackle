@@ -113,8 +113,9 @@ export type CopyKey =
   // first-timer, before anything else, what they are being asked to do.
   | 'briefing.goal'
   // T18 additions: the briefing's mode chooser (§2.2 "prereg unlocked: choose
-  // mode first"), visible only once achievements.first_retraction exists —
-  // see Briefing.tsx.
+  // mode first"), visible once a day has been completed and today's own mode
+  // has not been spent yet (§1(j)(1) moved the gate off
+  // achievements.first_retraction) — see Briefing.tsx.
   | 'briefing.modeChooserIntro'
   | 'briefing.playHacking'
   | 'briefing.playPrereg'
@@ -610,9 +611,18 @@ export const copy: Record<CopyKey, string> = {
   // this is genuinely the task Act I is setting.
   'briefing.goal': 'Your task: find a statistically significant effect (p < 0.05) and publish it.',
 
-  // T18 additions — the mode chooser (§2.2), shown only once Prereg Mode is
-  // unlocked and today's preregistration has not been filed yet.
-  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today. One attempt per mode.',
+  // T18 additions — the mode chooser (§2.2), shown once Prereg Mode is
+  // unlocked and today's mode has not been spent yet.
+  //
+  // §1(j) — "One attempt per mode" WAS FALSE AFTER THE RULING, so it moved.
+  // W12 refused same-day reopening (the reasoning is at Briefing.tsx's
+  // `preregAvailable`: between two plays of the same day sits Act II, which
+  // shows the day type, the true outcome and every significant path, and
+  // Prereg Mode's whole score is a function of the first two). The old line
+  // promised the player two attempts, one per mode; the rule is one attempt
+  // and one mode, and the string that offers the choice is where that has to
+  // be said. Kept to three short sentences in the same rhythm.
+  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today. One attempt, one mode.',
   'briefing.playHacking': 'Play Hacking Mode',
   'briefing.playPrereg': 'Play Prereg Mode',
   'briefing.alreadyPlayedToday': 'Already played today',

@@ -483,11 +483,65 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
     expect(saved.stats?.hackDays ?? 0).toBe(0);
   });
 
-  it('preregUnlocked is true iff achievements.first_retraction is already set', () => {
-    seedStorage(freshV1({ achievements: { first_retraction: '2026-08-01' } }));
-    const unlocked = persistAndComputeSummary({
+  // §1(j)(1) — THE HONEST PATH IS NO LONGER A DEAD END.
+  //
+  // This used to read "preregUnlocked is true iff achievements.first_retraction
+  // is already set", and the honest player never sets it: GR2 measured the
+  // honest REPLICATED rate at 0/30 structurally, so the mode that cures
+  // p-hacking was gated behind the p-hacking. The gate is a COMPLETED DAY now,
+  // and the day being completed right here counts — so the unlock lands on the
+  // very summary that earned it, exactly as the first_retraction expression
+  // already did for its own fact.
+  it('preregUnlocked lands on the FIRST completed day, with no achievement of any kind', () => {
+    seedStorage(freshV1());
+    const firstEverDay = persistAndComputeSummary({
       mode: 'hack',
       practice: false,
+      puzzleNumber: 1,
+      forks: 0,
+      // An abandon, a correct "noise" call, a NULL_REPORTED-family stamp: the
+      // honest day, in full. Nothing here unlocks a single achievement.
+      published: false,
+      call: 'noise',
+      dayType: 'null',
+      stamp: 'NULL_REPORTED',
+      log: [],
+      copy: enCopy,
+      puzzleIso: '2026-08-10',
+      resultLog: [],
+    });
+    expect(firstEverDay.preregUnlocked).toBe(true);
+    const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
+    expect(saved.achievements ?? {}).toEqual({});
+
+    // A LATER day reads it off history rather than off its own completion —
+    // the other arm of the same expression.
+    const laterDay = persistAndComputeSummary({
+      mode: 'hack',
+      practice: false,
+      puzzleNumber: 2,
+      forks: 0,
+      published: false,
+      call: 'noise',
+      dayType: 'null',
+      stamp: 'NULL_REPORTED',
+      log: [],
+      copy: enCopy,
+      puzzleIso: '2026-08-11',
+      resultLog: [],
+    });
+    expect(laterDay.preregUnlocked).toBe(true);
+  });
+
+  // The exemption W6 established, carried into the new gate by DATA rather
+  // than by a second `practice` conjunct: a practice run reaches no `saveDay`,
+  // so it completes no day and unlocks nothing — even though it is otherwise
+  // a full, finished, scored session.
+  it('a practice day unlocks nothing: no completed day, no prereg', () => {
+    seedStorage(freshV1());
+    const practiceDay = persistAndComputeSummary({
+      mode: 'hack',
+      practice: true,
       puzzleNumber: 1,
       forks: 0,
       published: false,
@@ -499,14 +553,14 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       puzzleIso: '2026-08-10',
       resultLog: [],
     });
-    expect(unlocked.preregUnlocked).toBe(true);
+    expect(practiceDay.preregUnlocked).toBe(false);
 
-    window.localStorage.clear();
-    seedStorage(freshV1());
-    const locked = persistAndComputeSummary({
+    // ...and a practice run on a day a REAL completed day already unlocked
+    // still reports the unlock, because the unlock is a fact about history.
+    const withHistory = persistAndComputeSummary({
       mode: 'hack',
-      practice: false,
-      puzzleNumber: 1,
+      practice: true,
+      puzzleNumber: 2,
       forks: 0,
       published: false,
       call: 'noise',
@@ -517,7 +571,24 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       puzzleIso: '2026-08-11',
       resultLog: [],
     });
-    expect(locked.preregUnlocked).toBe(false);
+    expect(withHistory.preregUnlocked).toBe(false);
+
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } } } }));
+    const practiceAfterARealDay = persistAndComputeSummary({
+      mode: 'hack',
+      practice: true,
+      puzzleNumber: 3,
+      forks: 0,
+      published: false,
+      call: 'noise',
+      dayType: 'null',
+      stamp: 'NULL_REPORTED',
+      log: [],
+      copy: enCopy,
+      puzzleIso: '2026-08-12',
+      resultLog: [],
+    });
+    expect(practiceAfterARealDay.preregUnlocked).toBe(true);
   });
 
   it('the share text is built via shareString and included in the persisted DayRecord', () => {
