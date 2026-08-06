@@ -28,6 +28,8 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { copy } from '../../src/content/en/copy';
+import { copy as itCopy } from '../../src/content/it/copy';
+import { copy as esCopy } from '../../src/content/es/copy';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const UI_DIR = join(ROOT, 'src/ui');
@@ -350,5 +352,239 @@ describe('Raw user-facing string literal scan — src/ui (allowed: "P-hackle", e
     expect(isAllowed('🍴🎯')).toBe(true);
     expect(isAllowed('https://phackle.carlosrodriguezpardo.es')).toBe(true);
     expect(isAllowed('Loading, please wait')).toBe(false);
+  });
+});
+
+/* ================================================================
+   4. Token reconciliation — every {token} a value carries is a param
+      some call site actually supplies, in every locale (w7-r-002)
+   ================================================================ */
+
+/**
+ * THE DEFECT THIS EXISTS FOR, stated first because it is subtle and it
+ * shipped. `t()` leaves an unmatched `{token}` VISIBLE on screen by design
+ * (src/i18n/t.ts's own doc comment: a missed param should be obvious rather
+ * than hidden in a log). So a token renamed in the catalogs but not at the
+ * binding site does not throw, does not blank the line, and does not fail a
+ * type check — it prints `Top {n}% of all research outputs` to a real player.
+ *
+ * gr6-086 renamed exactly that token and shipped a test for it, and the test
+ * could not see the defect: it built its expected string by substituting into
+ * THE SAME CATALOG VALUE the component reads, so renaming the catalog moved
+ * both sides of the assertion together. Measured: renaming `{pct}` back to
+ * `{n}` in all three catalogs left the whole suite green and rendered the raw
+ * token in all three locales.
+ *
+ * The fix is a check that never reads the value twice. It reconciles two
+ * INDEPENDENT sources — the tokens a catalog value declares, and the param
+ * names a call site passes — and requires them to be the same set. Written
+ * corpus-wide rather than per key, deliberately: the next rename will not
+ * come with a test of its own either.
+ */
+
+/** Top-level property names of an object literal, or `null` if the literal
+ * spreads (in which case the names are not statically knowable and the site
+ * is skipped rather than guessed at). */
+function objectKeys(text: string): string[] | null {
+  const names: string[] = [];
+  let depth = 0;
+  let i = 0;
+  let quote = '';
+  let pending = '';
+  // Where the literal's own closing brace sits. `text` is the rest of the
+  // FILE from the `{` onwards, so every question about this literal has to be
+  // asked of `text.slice(0, end)` and never of the whole tail — asking the
+  // tail is how the spread check below came to disqualify almost every call
+  // site in the product on the strength of an unrelated `...` further down
+  // the file.
+  let end = -1;
+  for (; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === quote && text[i - 1] !== '\\') quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '{' || ch === '[' || ch === '(') {
+      depth++;
+      continue;
+    }
+    if (ch === '}' || ch === ']' || ch === ')') {
+      depth--;
+      if (depth === 0) {
+        if (pending.trim()) names.push(pending.trim());
+        end = i;
+        break;
+      }
+      continue;
+    }
+    if (depth !== 1) continue;
+    if (ch === ':') {
+      if (pending.trim()) names.push(pending.trim());
+      pending = '';
+      // skip the value entirely — only names matter here
+      let valueDepth = 0;
+      for (i++; i < text.length; i++) {
+        const c = text[i];
+        if (quote) {
+          if (c === quote && text[i - 1] !== '\\') quote = '';
+          continue;
+        }
+        if (c === '"' || c === "'" || c === '`') {
+          quote = c;
+          continue;
+        }
+        if (c === '{' || c === '[' || c === '(') valueDepth++;
+        else if (c === '}' || c === ']' || c === ')') {
+          if (valueDepth === 0) {
+            i--;
+            break;
+          }
+          valueDepth--;
+        } else if (c === ',' && valueDepth === 0) break;
+      }
+      continue;
+    }
+    if (ch === ',') {
+      if (pending.trim()) names.push(pending.trim());
+      pending = '';
+      continue;
+    }
+    pending += ch;
+  }
+  if (end === -1) return null; // unbalanced: not statically knowable
+  if (text.slice(0, end).includes('...')) return null; // spreads: likewise
+  return names.filter((name) => /^[A-Za-z_$][\w$]*$/.test(name));
+}
+
+interface CallSite {
+  file: string;
+  key: string;
+  params: string[] | null;
+}
+
+/** Every `t('some.key', { … })` / `t(record, 'some.key', { … })` call site,
+ * with the param names it supplies. A site with no second argument reports
+ * an empty param list, which is exactly as meaningful — it asserts the value
+ * carries no tokens. */
+function callSites(file: string, text: string): CallSite[] {
+  const sites: CallSite[] = [];
+  const re = /\bt\(\s*(?:[A-Za-z0-9_.]+\s*,\s*)?(['"`])([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9]+)\1/g;
+  for (const match of text.matchAll(re)) {
+    const after = text.slice((match.index ?? 0) + match[0].length);
+    const next = after.match(/^\s*(.)/);
+    if (!next) continue;
+    if (next[1] === ')') {
+      sites.push({ file, key: match[2], params: [] });
+      continue;
+    }
+    if (next[1] !== ',') continue;
+    const rest = after.slice(after.indexOf(',') + 1).replace(/^\s+/, '');
+    if (!rest.startsWith('{')) {
+      // a params object that is not a literal (a variable, a call): the names
+      // are not statically knowable, so this site is skipped rather than
+      // guessed at.
+      sites.push({ file, key: match[2], params: null });
+      continue;
+    }
+    sites.push({ file, key: match[2], params: objectKeys(rest) });
+  }
+  return sites;
+}
+
+const tokensOf = (value: string): string[] => [...value.matchAll(/\{(\w+)\}/g)].map(([, name]) => name);
+
+const ALL_LOCALES: [string, Record<string, string>][] = [
+  ['en', copy as unknown as Record<string, string>],
+  ['it', itCopy as unknown as Record<string, string>],
+  ['es', esCopy as unknown as Record<string, string>],
+];
+
+/** Every literal call site in the product, paired with what it supplies. */
+const allCallSites: CallSite[] = scannedFiles.flatMap((f) =>
+  callSites(relative(ROOT, f), stripComments(readFileSync(f, 'utf8')))
+);
+
+describe('Token reconciliation — a value\'s {tokens} and its call site\'s params are the same set (w7-r-002)', () => {
+  it('finds a non-trivial number of literal call sites, params included (sanity: the parse is not vacuous)', () => {
+    expect(allCallSites.length).toBeGreaterThan(50);
+    expect(allCallSites.filter(({ params }) => params && params.length > 0).length).toBeGreaterThan(10);
+  });
+
+  it('SKIPS NOTHING SILENTLY — every literal call site in the product is actually reconciled', () => {
+    // The failure mode this check has, and the one it shipped with for an
+    // hour: `params === null` means "not statically knowable", and the two
+    // reconciliations above quietly `continue` past it. A parse bug that
+    // returned null for everything would leave both of them iterating an
+    // empty set and passing loudly. (That is not hypothetical — the spread
+    // test originally scanned the rest of the FILE rather than the literal's
+    // own extent, so a single `...` anywhere below a call site disqualified
+    // it, and almost every site in the product was being skipped.)
+    //
+    // The product has no spread- or variable-params call site today, so the
+    // honest pin is zero. If one is ever written, this assertion is the
+    // conversation about whether it should be.
+    const unknowable = allCallSites.filter(({ params }) => params === null);
+    expect(unknowable.map(({ file, key }) => `${file}: t('${key}')`)).toEqual([]);
+  });
+
+  it('parses a params object literal the way the compiler would', () => {
+    expect(objectKeys('{ n: 3 })')).toEqual(['n']);
+    expect(objectKeys('{ n })')).toEqual(['n']); // shorthand
+    expect(objectKeys('{ hours, minutes })')).toEqual(['hours', 'minutes']);
+    expect(objectKeys('{ volume: JOURNAL_VOLUME, issue: n })')).toEqual(['volume', 'issue']);
+    // A value containing braces, a comma and a quoted brace must not be read
+    // as more param names.
+    expect(objectKeys('{ n: fn({ a: 1, b: 2 }), s: "x, {y}" })')).toEqual(['n', 's']);
+    // A spread is not statically knowable and must disable the site.
+    expect(objectKeys('{ ...rest })')).toBeNull();
+  });
+
+  it.each(ALL_LOCALES)('%s: every token a rendered value carries is supplied by its call site', (_name, catalog) => {
+    const problems: string[] = [];
+    for (const { file, key, params } of allCallSites) {
+      if (params === null) continue; // spread / non-literal: not knowable
+      const value = catalog[key];
+      if (value === undefined) continue; // check 1 owns missing keys
+      const tokens = tokensOf(value);
+      const missing = tokens.filter((token) => !params.includes(token));
+      if (missing.length > 0) {
+        problems.push(
+          `${file}: t('${key}') renders ${missing.map((m) => `{${m}}`).join(', ')} RAW — ` +
+            `the value declares [${tokens.join(', ')}] and the call site supplies [${params.join(', ')}]`
+        );
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it.each(ALL_LOCALES)('%s: every param a call site supplies is a token the value actually has', (_name, catalog) => {
+    // The other direction, and it is not cosmetic: a param with no token is
+    // either a token that was renamed out from under it (the same defect seen
+    // from the other end) or dead weight the next translator will trust.
+    const problems: string[] = [];
+    for (const { file, key, params } of allCallSites) {
+      if (params === null || params.length === 0) continue;
+      const value = catalog[key];
+      if (value === undefined) continue;
+      const tokens = tokensOf(value);
+      const unused = params.filter((param) => !tokens.includes(param));
+      if (unused.length > 0) {
+        problems.push(`${file}: t('${key}') passes ${unused.join(', ')}, which the value never interpolates`);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it('still recognises a half-rename when one is introduced (guards the guard)', () => {
+    // The exact gr6-086 defect, both directions, against a fabricated pair.
+    const catalog = { 'published.altmetricPercentile': 'Top {n}% of all research outputs, all time' };
+    const site: CallSite = { file: 'probe.tsx', key: 'published.altmetricPercentile', params: ['pct'] };
+    const tokens = tokensOf(catalog[site.key as keyof typeof catalog]);
+    expect(tokens.filter((token) => !site.params!.includes(token))).toEqual(['n']);
+    expect(site.params!.filter((param) => !tokens.includes(param))).toEqual(['pct']);
   });
 });
