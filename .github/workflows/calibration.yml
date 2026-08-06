@@ -2,11 +2,25 @@ name: calibration
 
 # The master spec §8.3 statistical calibration suite ("this suite is the
 # game's balance sheet"). It simulates 1,000 synthetic days and asserts five
-# §3.9 bands — expensive enough (and stable enough, by construction: every
-# draw is seeded, never Math.random) that it does not belong on every push.
-# Weekly cron catches silent drift from ANY change (engine, tuning constants,
-# even a dependency bump) between deliberate touches; workflow_dispatch is
-# the on-demand escape hatch for verifying a tuning change before landing it.
+# §3.9 bands.
+#
+# WHAT THIS WORKFLOW IS FOR, corrected (GR6 gr6-055). This header used to say
+# the suite was "expensive enough … that it does not belong on every push".
+# Measured, clean clone, pinned Node: 42s unpinned and 33s on two cores — the
+# CHEAPEST of the three suites (`npm test` 37.7s, `npm run e2e` 15.8s plus its
+# own build+preview), and it gets FASTER under core pressure, being
+# single-threaded where parallel vitest suffers contention. A rationale that
+# measurement contradicts is exactly the defect class T24's fix round existed
+# to catch, so it is removed rather than softened.
+#
+# The suite therefore now runs ON EVERY PUSH, path-gated, as a job in test.yml.
+# What is left here is the job that gate cannot do: catching drift from
+# something OUTSIDE those paths. A dependency bump, a Node minor, a transitive
+# floating-point change in a math routine — none of them touch src/engine/**,
+# and any of them can move a band. The cron is the standing check that the
+# balance sheet still balances when nothing in this repository changed at all.
+# workflow_dispatch is the on-demand escape hatch for verifying a tuning change
+# before landing it.
 on:
   schedule:
     # Monday 06:00 UTC — a quiet hour, off the back of the weekend, ahead of
@@ -17,6 +31,15 @@ on:
 
 permissions:
   contents: read
+
+# GR6 gr6-118. Harmless on a weekly cron, load-bearing on workflow_dispatch:
+# an owner verifying a tuning change dispatches, spots a typo, fixes it and
+# dispatches again, and only the second answer matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Action pinning: see the recorded decision in test.yml.
 
 jobs:
   calibration:
@@ -41,9 +64,19 @@ jobs:
       # only added when `shell: bash` is declared explicitly (GitHub's own
       # workflow-syntax docs: unspecified = `bash -e {0}`, explicit `bash` =
       # `bash --noprofile --norc -eo pipefail {0}`), so it is declared here.
+      #
+      # VERIFY MODE, deliberately (gr6-119): the default run recomputes the
+      # p_hit table and compares it against the committed bytes rather than
+      # overwriting them. On this cron that is the whole point — if a
+      # dependency bump moves the table, the answer must be a red run, not a
+      # silently regenerated artifact that nobody diffed. Regeneration is
+      # `npm run cal -- --write`, and it is a deliberate, committed act.
       - name: calibration (5 bands, 500 null + 500 effect synthetic days)
         shell: bash
         run: npm run cal | tee calibration-report.txt
+
+      - name: the calibration run must not have rewritten a tracked file
+        run: git diff --exit-code src/data/p_hit_by_k.json
 
       - name: upload calibration report
         if: always()
