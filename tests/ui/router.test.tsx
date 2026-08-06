@@ -11,6 +11,7 @@
 //    inside a vi.mock factory) so App's real, unmodified boot effect never
 //    constructs a real Worker — jsdom has none (verified against this repo's
 //    own test environment before writing this file).
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, act } from '@testing-library/react';
@@ -212,7 +213,96 @@ describe('App boot wiring', () => {
     expect(await screen.findByRole('button', { name: enCopy['briefing.openData'] })).toBeTruthy();
   });
 
-  it('boots exactly once even if App re-renders (mount-once guard)', async () => {
+  // gr6-110 / gr1c-022. THREE tests for the `didBootRef` guard (App.tsx:79,
+  // checked at :123), because the one that was here tested none of it, and
+  // because the fix gr1c-022 proposed does not — measured — discriminate it
+  // either. What each one is worth, stated honestly:
+  //
+  //  1. RE-RENDER with a changed prop. Does not exercise the guard at all: the
+  //     effect's dependency array is [content, boot], neither of which moves,
+  //     so React never re-runs the effect and the test passes against an
+  //     implementation with no ref in the effect whatsoever. Kept as a
+  //     composition regression test; it is not evidence about the ref.
+  //
+  //  2. STRICTMODE, the mode the real app ships with (src/main.tsx:29). React
+  //     19's dev double-invoke mounts, runs the effect, tears it down and runs
+  //     it again — but ONLY on mount. Probed directly in this environment:
+  //     an effect whose dep is null at mount and set asynchronously afterwards
+  //     runs `[null, null, loaded]` — the mount pass doubles, the later dep
+  //     change does not. App's boot effect is behind exactly such a gate
+  //     (`content` is null until LocaleProvider's dynamic import resolves), so
+  //     both double-invoke passes take the `!content` early return and the
+  //     guard is never reached. Deleting `didBootRef` therefore leaves this
+  //     test GREEN. It is kept because it pins boot-once under the mode that
+  //     ships, but it is NOT the discriminating case, and gr1c-022's proposed
+  //     fix would have shipped believing it was.
+  //
+  //  3. LOCALE SWITCH — the discriminating case, and the production one. The
+  //     header ships a LocaleToggle (App.tsx:227), so `content` really does
+  //     change identity mid-session: null -> EN -> null -> IT. That re-runs
+  //     the boot effect on the SAME instance with `content` truthy, which is
+  //     precisely the arm `didBootRef` guards. Deleting the ref makes this go
+  //     red (a second createEngineClient + a second boot(), silently resetting
+  //     the player's log mid-day). Note App.tsx's own comment there — "locale
+  //     never switches after first load" — is stale; this test is the proof.
+  it('boots exactly once under <StrictMode> (the mode the real app ships with — src/main.tsx)', async () => {
+    const client = makeFakeClient();
+    mocks.createEngineClient.mockReturnValue(client);
+
+    render(
+      <StrictMode>
+        <LocaleProvider>
+          <App puzzleNumber={1}>
+            <ScreenRouter />
+          </App>
+        </LocaleProvider>
+      </StrictMode>
+    );
+
+    await waitFor(() => expect(client.init).toHaveBeenCalled());
+    // Settle the second effect pass before counting, so this asserts "exactly
+    // once after the double-invoke has happened", not "once, so far".
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(client.init).toHaveBeenCalledTimes(1);
+    expect(mocks.createEngineClient).toHaveBeenCalledTimes(1);
+  });
+
+  it('boots exactly once across a live locale switch — the header control really does change `content` mid-session', async () => {
+    const client = makeFakeClient();
+    mocks.createEngineClient.mockReturnValue(client);
+
+    render(
+      <StrictMode>
+        <LocaleProvider>
+          <App puzzleNumber={1}>
+            <ScreenRouter />
+          </App>
+        </LocaleProvider>
+      </StrictMode>
+    );
+    await waitFor(() => expect(client.init).toHaveBeenCalledTimes(1));
+
+    // Driven through the app's OWN header control, not through setLocale
+    // directly, so the test breaks if the toggle stops being wired up.
+    fireEvent.click(await screen.findByRole('button', { name: enCopy['nav.localeNameIt'] }));
+
+    // The Italian bundle is a dynamic import, and App's loading gate unmounts
+    // the whole header (including this toggle) while it is in flight — so the
+    // button must be RE-QUERIED, not held across the switch. Wait for the
+    // switch to actually land before counting, or this asserts nothing.
+    await waitFor(() => {
+      const itButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.ph-seg--locale')).find(
+        (b) => b.textContent?.includes('IT')
+      );
+      expect(itButton?.getAttribute('aria-pressed')).toBe('true');
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(client.init).toHaveBeenCalledTimes(1);
+    expect(mocks.createEngineClient).toHaveBeenCalledTimes(1);
+  });
+
+  it('boots exactly once even if App re-renders (composition regression; does NOT exercise didBootRef — see above)', async () => {
     const client = makeFakeClient();
     mocks.createEngineClient.mockReturnValue(client);
 
