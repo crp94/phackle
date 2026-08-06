@@ -409,7 +409,12 @@ describe('Italian locale content', () => {
       'briefing.emailFrom',
       'lab.nLabel',
       'lab.covariatesBoth',
-      'lab.exclusionNone',
+      // gr6-086 / final-011: 'lab.exclusionNone' used to sit here and was
+      // STALE — the Italian value is 'Nessuna', so the entry excused a key
+      // that had never needed excusing. A stale allow-list member is invisible
+      // (it only ever suppresses a failure that is not happening) and it
+      // teaches the next reader that the key is untranslatable, which is how
+      // a real English leak would eventually be waved through.
       'lab.exclusionZ3',
       'lab.exclusionZ2_5',
       'lab.exclusionZ2',
@@ -438,7 +443,17 @@ describe('Italian locale content', () => {
     expect(untranslated).toEqual([]);
   });
 
-  it('never repeats an interpolation token within one copy string (t() replaces the first occurrence only)', () => {
+  // gr6-086 / gr1b-024: the old name of this test ASSERTED A FALSEHOOD.
+  // `t()` (src/i18n/t.ts:33) substitutes with `/\{(\w+)\}/g` — global — so it
+  // replaces every occurrence, and a repeated token would render the value
+  // twice rather than leaving a raw `{token}` on screen. The rule survives on
+  // two grounds that are true, and the file header states both: several call
+  // sites interpolate with a LITERAL String.replace and do only the first
+  // (SpecCurve.tsx:212, published.ts:97, the UI suites' line-builders), and
+  // the token-parity test below compares SETS, so a duplicate in one locale
+  // and not the other is invisible to it. This test is what makes that set
+  // comparison sufficient.
+  it('never repeats an interpolation token within one copy string (the parity check below compares sets)', () => {
     for (const [key, value] of Object.entries(itContent.copy)) {
       const tokens = value.match(/\{(\w+)\}/g) ?? [];
       expect(`${key}: ${tokens.join(',')}`).toBe(`${key}: ${[...new Set(tokens)].join(',')}`);

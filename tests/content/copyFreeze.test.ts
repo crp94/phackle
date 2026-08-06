@@ -17,6 +17,12 @@
 //     wordmark, an emoji/symbol-only string with no Latin letters, or a
 //     bare URL) — anything else is a raw user-facing string that should
 //     have gone through the copy catalog instead.
+//  3. GR6 gr6-026 — the OTHER direction: every key the catalog DEFINES is
+//     either reachable from src/ui or src/game, or rostered below with a
+//     reason. Check 1 catches a call site with no key; nothing caught a key
+//     with no call site, and the grand review found nine of them — including
+//     `nav.tagline`, the single best one-line description of the product,
+//     transcreated into three languages and rendered nowhere.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -130,6 +136,131 @@ describe('Copy catalog freeze — every t()/copy[] key referenced in src/ui + sr
   it('does not false-positive on storage.ts\'s key-shaped-but-unrelated localStorage keys', () => {
     const sample = "const KEY = 'phackle.v1'; const LEGACY = 'phackle.settings';";
     expect(referencedKeys(sample)).toEqual([]);
+  });
+});
+
+/* ================================================================
+   3. Dead-key sweep — defined ⇒ used, or rostered with a reason (gr6-026)
+   ================================================================ */
+
+/**
+ * The detector for THIS direction is deliberately the LIBERAL one: any quoted
+ * string literal, anywhere under src/ui or src/game, that is exactly equal to
+ * a CopyKey. That is much wider than check 1's `t(…)`/`copy[…]` call-site
+ * patterns, and the width is the point — the bias has to run the safe way.
+ *
+ * A liberal detector can only ever UNDER-report death (it may call a key
+ * "used" on the strength of a literal that is really dead code), which costs
+ * nothing but a missed cleanup. A narrow one would OVER-report it, and this
+ * suite's failure message is an instruction to delete a string from three
+ * locales — a false positive there is a translated sentence thrown away.
+ *
+ * The width is also load-bearing for two real call shapes that check 1's own
+ * doc comment already names as invisible to it: `Legend.tsx`'s
+ * `LEGEND_ENTRIES` table (`{ glyph: …, labelKey: 'legend.emojiSpec' }`, read
+ * back as `t(entry.labelKey)`) and `scoring.ts`'s
+ * `breakdown.push(['summary.breakdownCallCorrect', …])`, read back as
+ * `t(key)`. Both are literals in a `CopyKey`-typed slot with no lookup call
+ * beside them, so only a bare-literal scan sees them.
+ *
+ * The reverse false-positive risk that shaped check 1 (storage.ts's
+ * `'phackle.v1'`) cannot arise here: this scan starts from the catalog's own
+ * key set and asks whether each key appears, so a same-shaped string that is
+ * not a CopyKey is never looked for.
+ */
+function definesLiteral(text: string, key: string): boolean {
+  return new RegExp(`(['"\`])${key.replace(/\./g, '\\.')}\\1`).test(text);
+}
+
+/**
+ * Keys with no call site that are KEPT anyway, each for a reason that has to
+ * survive being read by someone who did not write it. From the final
+ * whole-branch review's dead-key roster.
+ */
+const ROSTER_KEPT: Record<string, string> = {
+  'nav.title':
+    'The product name. `copyFreeze` uses it as its own guards-the-guard fixture two describes up, and a catalog that cannot name the app is worse than one carrying four characters nothing renders.',
+  'a11y.closeDialog':
+    'T22 removed the last mislabelled close button (every close control is now named by its own visible label). Kept because the next real dialog needs exactly this string, and it is asserted ABSENT at tests/ui/a11y.test.tsx:540 — the key is the subject of a live regression pin.',
+  'a11y.shareButton':
+    'The share control is named by its visible label; this is the label the clipboard-only fallback path would take. Documented at Summary.tsx:259, which explains why the button does not use it today.',
+};
+
+/**
+ * Keys this wave AUTHORED for a wiring commit another wave owns. Every entry
+ * names the consumer, so the roster is a work list rather than an amnesty —
+ * and assertion (b) below turns it into a self-retiring one: the day a key
+ * here acquires a call site, this suite fails until the entry is removed.
+ */
+const ROSTER_PENDING: Record<string, string> = {
+  'nav.tagline':
+    'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
+  'nav.skipToContent': 'gr6-017 — App.tsx, first child of .ph-app, targeting the existing <main tabindex="-1">. W7.',
+  'briefing.finishedToday':
+    'gr6-008 — Briefing.tsx replaces briefing.alreadyPlayedToday in the finished-day block (its own TODO-W2 comment). W6 is merged; the swap is one line and is booked.',
+  'briefing.finishedNextIn': 'gr6-008 — Briefing.tsx replaces summary.nextIn in the finished-day countdown. Same commit.',
+  'lab.collectMoreHint': 'gr6-025 — Lab.tsx, beside the Collect button. W7.',
+  'lab.canPublish': 'gr6-061 — Lab.tsx, a visually-hidden status beside SUBMIT rendered while canSubmit. W7.',
+  'lab.forkTrailKey': 'gr6-029 — ForkTrail.tsx:170 replaces t(\'nav.legend\') on the popover trigger. W7.',
+  'summary.viewStats': "gr6-062 — Summary.tsx:216 replaces the t('nav.stats') placeholder on the stats action. W7.",
+  'stats.emptyState': 'gr6-035 — Stats.tsx, under the title, rendered only when played === 0. W7.',
+  'about.sectionHowItWorks': 'gr6-036 — About.tsx, <h2> over about.mechanism + about.frozenFork. W7.',
+  'about.sectionNotReal': 'gr6-036 — About.tsx, <h2> over about.syntheticDisclaimer + about.decimalNote (which moves here). W7.',
+  'about.sectionYourData': 'gr6-036 — About.tsx, <h2> over about.dataDisclosure. W7.',
+  'about.sectionPriorArt': 'gr6-036 — About.tsx, <h2> over about.priorArt and the five citations. W7.',
+  'errors.reload': 'gr6-007 — App.tsx, the reload control on the whole-screen boot-failure state. W7.',
+  'summary.playPrereg':
+    'RETIRED, not pending: W6 (gr6-020) deleted the button this labelled. Blocked on tests/ui/summary.test.tsx:285,837, which still name the key to pin the CTA\'s absence and belong to W7 this round. W7 re-pins those structurally, then deletes the key from all three catalogs and this roster.',
+};
+
+describe('Dead-key sweep — every defined CopyKey is reachable, or rostered with a reason (gr6-026)', () => {
+  const definedKeys = Object.keys(copy);
+  const sources = scannedFiles.map((f) => stripComments(readFileSync(f, 'utf8')));
+  const usedKeys = new Set(definedKeys.filter((k) => sources.some((text) => definesLiteral(text, k))));
+
+  it('finds most of the catalog reachable (sanity: the scan is not vacuously empty)', () => {
+    expect(usedKeys.size).toBeGreaterThan(definedKeys.length * 0.8);
+  });
+
+  it('(a) defines no key that is neither used nor rostered', () => {
+    const unaccounted = definedKeys.filter(
+      (k) => !usedKeys.has(k) && !(k in ROSTER_KEPT) && !(k in ROSTER_PENDING)
+    );
+    expect(unaccounted).toEqual([]);
+  });
+
+  it('(b) rosters no key that is actually used — a wired key must leave the roster', () => {
+    const wiredButStillRostered = [...Object.keys(ROSTER_KEPT), ...Object.keys(ROSTER_PENDING)].filter((k) =>
+      usedKeys.has(k)
+    );
+    expect(wiredButStillRostered).toEqual([]);
+  });
+
+  it('(c) rosters no key the catalog no longer defines', () => {
+    const defined = new Set(definedKeys);
+    const stale = [...Object.keys(ROSTER_KEPT), ...Object.keys(ROSTER_PENDING)].filter((k) => !defined.has(k));
+    expect(stale).toEqual([]);
+  });
+
+  it('(d) gives every rostered key a non-trivial reason', () => {
+    const thin = Object.entries({ ...ROSTER_KEPT, ...ROSTER_PENDING })
+      .filter(([, reason]) => reason.trim().length < 40)
+      .map(([k]) => k);
+    expect(thin).toEqual([]);
+  });
+
+  it('still recognises a dead key when one is introduced (guards the guard)', () => {
+    const withGhost = [...definedKeys, 'nav.ghostKeyThatNothingRenders'];
+    const unaccounted = withGhost.filter((k) => !usedKeys.has(k) && !(k in ROSTER_KEPT) && !(k in ROSTER_PENDING));
+    expect(unaccounted).toEqual(['nav.ghostKeyThatNothingRenders']);
+  });
+
+  it('sees the two dynamic call shapes check 1 is blind to (Legend table, scoring breakdown)', () => {
+    // Both are bare literals in a CopyKey-typed slot, with no t()/copy[] call
+    // beside them. If this ever goes red, the liberal detector has narrowed
+    // and assertion (a) is about to demand the deletion of live strings.
+    expect(usedKeys.has('legend.emojiSpec')).toBe(true);
+    expect(usedKeys.has('summary.breakdownCallCorrect')).toBe(true);
   });
 });
 

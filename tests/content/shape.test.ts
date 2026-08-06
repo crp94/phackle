@@ -4,6 +4,20 @@
 // — and therefore re-registering — this file's own tests. See gr6-106.
 import { describe, expect, it } from 'vitest';
 import { content as enContent } from '../../src/content/en';
+// w1b-003: the terminology-lock block at the bottom of this file was
+// EN-ONLY, which is the root cause of the whole w1b class — IT's and ES's
+// locks existed as source comments certifying constraints their own strings
+// did not satisfy, and nothing compiled the difference. Both locales are now
+// under the same assertions, so this class of drift is caught rather than
+// re-found. The per-locale suites keep everything that needs a lexicon; what
+// belongs here is what is CROSS-LOCALE by nature: a term that must be
+// identical to its own About page, and a notation that must be identical to
+// English.
+import { content as itContent } from '../../src/content/it';
+import { content as esContent } from '../../src/content/es';
+import { copy as enCopy } from '../../src/content/en/copy';
+import { NULL_SIG_BAND } from '../../src/game/tuning';
+import { allSpecs } from '../../src/engine/specGrid';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 import {
@@ -510,5 +524,123 @@ describe('GR6 W1 — the reveal accounting keys carry exactly the tokens the scr
     const value = enContent.copy['reveal.accounting1Effect'];
     expect(value).not.toMatch(/by chance alone/i);
     expect(value).toMatch(/p-value/);
+  });
+
+  // w1b-008: W1's review forced two WORDING fixes that nothing pins, so they
+  // could be undone by a future pass with a green suite. Both are about the
+  // same discipline — the game may not assert more than it knows.
+  it('keeps r-003\'s single-p-value hedge, which Fig. 2\'s caption contradicts as an absolute', () => {
+    // "Nothing in a p-value distinguishes the two" collided with
+    // reveal.groupedCaption ("Real effects cluster. Noise scatters.") two
+    // blocks below on the SAME screen, over the figure the code calls the most
+    // important educational graphic in the game. It is ONE p-value, read
+    // alone, that cannot tell them apart.
+    expect(enContent.copy['reveal.accounting1Effect']).toMatch(/A single p-value/);
+    expect(enContent.copy['reveal.accounting1Effect']).not.toMatch(/Nothing in a p-value/i);
+    // The caption it must not contradict is still the one it was reconciled
+    // against; if that moves, this pin should be re-read rather than deleted.
+    expect(enContent.copy['reveal.groupedCaption']).toMatch(/cluster/i);
+  });
+
+  it('keeps r-004\'s conditional, because the engine never measures how the player searched', () => {
+    // The first draft asserted "you did not search at random: you followed the
+    // p-value" as a fact about the player, while gating only on
+    // `mode === 'hack' && playerExplored > 1`. Same defect class as gr6-096.
+    const value = enContent.copy['reveal.accounting3Directed'];
+    expect(value).toMatch(/^If you followed the p-value,/);
+    expect(value).not.toMatch(/You did not search at random/);
+  });
+});
+
+// --- w1b-003 / w1b-004: the cross-locale locks, compiled for all three ------
+
+describe('GR6 W2 — terminology and notation locks hold in every locale, not just English', () => {
+  const LOCALES = [
+    // The lock is per locale: each catalog's accounting line must name the
+    // confound in ITS OWN About page's words, because that is the only sense
+    // in which "the same term" means anything to a reader of that language.
+    { name: 'en', content: enContent, confound: 'confounded with age and income' },
+    { name: 'it', content: itContent, confound: 'confondimento da età e reddito' },
+    { name: 'es', content: esContent, confound: 'confundido con la edad y la renta' },
+  ] as const;
+
+  it.each(LOCALES)('$name: reveal.accounting1 names the confound in about.mechanism\'s exact words', ({ content, confound }) => {
+    expect(content.copy['about.mechanism']).toContain(confound);
+    expect(content.copy['reveal.accounting1']).toContain(confound);
+  });
+
+  it.each(LOCALES)('$name: reveal.accounting1 never blames chance alone, and never blames the confound for the count', ({ content }) => {
+    const value = content.copy['reveal.accounting1'];
+    // The retracted overclaim in each locale's own words — the shapes it could
+    // plausibly come back as, not a translation of one English phrase.
+    expect(value).not.toMatch(/by chance alone|per puro caso|por puro azar/i);
+    expect(value).not.toMatch(
+      /the rest are confounding|le altre sono confondimento|el resto viene de la confusión/i
+    );
+    // It must still say the threshold does this on its own: the one claim
+    // measurement supports, and the sentence About was written to agree with.
+    expect(value).toMatch(/on its own|da sola|por sí solo/i);
+  });
+
+  // w1b-004 — NOTATION IS IDENTICAL, not merely similar. `legend.significant`
+  // renders inside Fig. 1 one block above reveal.accounting1's own threshold,
+  // so a locale drifting to `p < .05` would put both forms on one screen —
+  // gr3-015's defect in its sharpest possible form, which is exactly how it
+  // was found. `toBe` rather than a regex: this is a notation string, and the
+  // IT/ES suites' SHARED_WITH_EN rosters already claim it is shared.
+  it.each(['legend.significant', 'lab.pBelow', 'reveal.pValueTiny', 'reveal.pValue', 'lab.pEquals'] as const)(
+    '%s is byte-identical in it and es (notation is not prose)',
+    (key) => {
+      expect(itContent.copy[key]).toBe(enCopy[key]);
+      expect(esContent.copy[key]).toBe(enCopy[key]);
+    }
+  );
+
+  it('every locale writes the p-threshold with its leading zero', () => {
+    for (const { name, content } of LOCALES) {
+      const offenders = Object.entries(content.copy).filter(([, v]) => /(?<![\d.])[.]\d\d\b/.test(v));
+      expect(offenders, `${name} has a decimal without its leading zero`).toEqual([]);
+    }
+  });
+});
+
+// --- gr6-004: About's rejection-sampler disclosure quotes real constants ----
+
+describe('GR6 gr6-004 — About discloses the acceptance band, in numbers the engine actually uses', () => {
+  const LOCALES = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  // Written in the string as bare digits, in every locale, with no thousands
+  // separator: `formatCount` prints `String(Math.round(v))`, so the reveal
+  // shows "1792" one screen earlier and the two have to be recognisable as one
+  // number. That also sidesteps the separator conventions (1.792 / 1,792)
+  // that would otherwise differ per locale for a figure that must not.
+  const gridSize = String(allSpecs().length);
+
+  it.each(LOCALES)('$name: quotes NULL_SIG_BAND and the real grid size', ({ content }) => {
+    const value = content.copy['about.mechanism'];
+    expect(value).toContain(String(NULL_SIG_BAND[0]));
+    expect(value).toContain(String(NULL_SIG_BAND[1]));
+    expect(value).toContain(gridSize);
+    // No thousands separator on the grid size, in any locale.
+    expect(value).not.toMatch(/1[.,]792/);
+  });
+
+  it.each(LOCALES)('$name: names the redraw, so "everything under the hood is real" is not left doing the work alone', ({ content }) => {
+    expect(content.copy['about.mechanism']).toMatch(/redrawn|riestratta|se vuelve a sortear/i);
+  });
+
+  it('agrees with reveal.accounting1 rather than restating it: the band is around what the threshold does alone', () => {
+    // The controller note on the W1 review: gr6-004 must be written
+    // consistently with the merged accounting1. Both sentences now attribute
+    // the count to the threshold, in each locale's own words, and About adds
+    // the band around it.
+    for (const { name, content } of LOCALES) {
+      expect(content.copy['about.mechanism'], `${name} About`).toMatch(/on its own|da sola|por sí solo/i);
+      expect(content.copy['reveal.accounting1'], `${name} accounting1`).toMatch(/on its own|da sola|por sí solo/i);
+    }
   });
 });
