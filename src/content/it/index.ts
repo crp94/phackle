@@ -860,14 +860,14 @@ export const content: LocaleContent = {
   // keeps its English expansion because that is how it is taught in Italian
   // methods courses.
   glossary: [
-  // gr6-071 — ORDER IS AN ARGUMENT, and this list had it backwards. The entry
-  // below used to be LAST, while "false-positive rate" was used undefined in
-  // entry 1 (p-hacking) and again in entry 6 (optional stopping): a reader who
-  // arrived not knowing the term met it twice before it was defined, and had no
-  // reason to keep scrolling to find out. It is also the funniest entry in the
-  // list, which makes it a better first thing to read than a definition of the
-  // game's own title. Ordering only — not one character of any definition moved,
-  // and the same move is made identically in IT and ES.
+    // gr6-071 — ORDER IS AN ARGUMENT, and this list had it backwards. The entry
+    // below used to be LAST, while "false-positive rate" was used undefined in
+    // entry 1 (p-hacking) and again in entry 6 (optional stopping): a reader who
+    // arrived not knowing the term met it twice before it was defined, and had no
+    // reason to keep scrolling to find out. It is also the funniest entry in the
+    // list, which makes it a better first thing to read than a definition of the
+    // game's own title. Ordering only — not one character of any definition moved,
+    // and the same move is made identically in IT and ES.
     {
       term: 'α / tasso di falsi positivi',
       def: 'La frequenza con cui un test segnala un effetto che in realtà non c\'è, per convenzione tenuta entro il 5%. Questo gioco è costruito apposta per sfondare quel tetto.',
