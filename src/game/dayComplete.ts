@@ -2,7 +2,8 @@
 // day-completion moment. T17's review confirmed evaluateAchievements had
 // ZERO call sites before this file existed: the achievement wall stayed
 // all-locked forever and the §2.11 first_retraction -> Prereg Mode unlock
-// was dead. Two pieces:
+// was dead. (That unlock has since moved off the achievement entirely —
+// see `preregUnlockedBy` below — but the wall is still wired here.) Pieces:
 //
 //  - computeDecisiveTails: the "One-Tailed Bandit" truth table.
 //  - unlockAchievements: assembles the AchievementCtx evaluateAchievements
@@ -20,6 +21,39 @@ import { shareString } from './share';
 import { loadState, saveAchievements, saveDay, streakAfter } from './storage';
 import { evaluateAchievements, type AchievementCtx, type ModeHistory } from './achievements';
 import type { ResultLogEntry } from './store';
+
+/**
+ * §1(j)(1) — WHAT UNLOCKS PREREG MODE, AND WHY IT IS NO LONGER AN ACHIEVEMENT.
+ *
+ * It used to be `achievements.first_retraction`: publish something on a null
+ * day (or on the wrong outcome of an effect day) and the honest mode opens.
+ * Measured by GR2: the honest player's REPLICATED rate is 0/30 *structurally*,
+ * so a player who never publishes never retracts, and never retracting meant
+ * Prereg Mode never opened — integrity was a progression dead end, gated
+ * behind the exact behaviour preregistration exists to cure. GR4 captured the
+ * same day from both sides: `unlocks=3` for the publish path, `unlocks=0` for
+ * the honest one.
+ *
+ * The gate is now "you have finished a day" — any day, any mode, any verdict.
+ * A completed day is a `DayRecord` in storage, and storage only ever gets one
+ * from `saveDay` below, which practice runs never reach (W6: a practice
+ * session records nothing and can neither consume nor be consumed by the real
+ * day's budget). So this predicate inherits the practice exemption from the
+ * data rather than restating it.
+ *
+ * `first_retraction` is UNCHANGED as an achievement — it is still §2.11's
+ * eleven-item wall, still earned on the first RETRACTED stamp, still cited.
+ * Only its second job, the one nothing in its name or its citation ever
+ * mentioned, moved off it.
+ *
+ * The one predicate, exported, because two screens must not answer this
+ * question differently: `Briefing.tsx` asks it to decide whether today has a
+ * choice to make, and `persistAndComputeSummary` asks it to decide whether the
+ * day that just ended announces the unlock.
+ */
+export function preregUnlockedBy(history: ModeHistory): boolean {
+  return Object.keys(history).length > 0;
+}
 
 /**
  * §2.11 "The One-Tailed Bandit": true iff (a) the published spec is
@@ -337,7 +371,12 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
   // -> Prereg Mode), not only on some later day's.
   let unlockedToday: AchievementId[] = [];
 
-  if (!practice && !alreadySaved) {
+  // Hoisted out of the `if` below (it was that condition, inline) because
+  // `preregUnlocked` in the return statement needs the same fact: "this call
+  // is the one that turned today into a completed day". §1(j)(1).
+  const persistedNow = !practice && !alreadySaved;
+
+  if (persistedNow) {
     saveDay(puzzleIso, {
       mode,
       score: scoreResult.score,
@@ -407,11 +446,14 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     // now, and the history read covers a prereg day finished earlier and
     // revisited (or a hack day played after this date's prereg one).
     preregPlayedToday: mode === 'prereg' || state.history[puzzleIso]?.prereg !== undefined,
-    // True if EITHER a past day already unlocked first_retraction, OR today
-    // just did (`unlockedToday` — see its own doc comment above for why
-    // "today" must be included here, not only what was already in storage
-    // before this call started).
-    preregUnlocked: state.achievements.first_retraction !== undefined || unlockedToday.includes('first_retraction'),
+    // §1(j)(1) — ONE COMPLETED DAY, not one retraction. `state` is the
+    // PRE-save snapshot, so today's own record is not in it yet: `persistedNow`
+    // is what covers the day being finished right now (and is false on a
+    // practice run, which records nothing and therefore unlocks nothing), and
+    // `preregUnlockedBy` covers every earlier day, including the `alreadySaved`
+    // re-visit of this one. Same "today must count too" reasoning the
+    // first_retraction expression carried; different fact being asked about.
+    preregUnlocked: persistedNow || preregUnlockedBy(state.history),
     // T38: the same array, handed on rather than re-derived. Re-running
     // unlockAchievements here (or, worse, diffing storage before/after) would
     // be a SECOND evaluation of the day and a second thing to keep in step

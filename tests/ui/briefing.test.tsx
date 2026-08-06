@@ -198,7 +198,11 @@ describe('Briefing — the mode chooser', () => {
 
   const copy = enContent.copy;
 
-  it('renders no chooser — only the plain "Open the data" CTA — when Prereg Mode is NOT unlocked', async () => {
+  // §1(j)(1): "not unlocked" is now "no day has ever been completed" — i.e.
+  // day one, for everybody, which is the only state that still hides the
+  // chooser. `freshV1()` has an empty history, so this fixture says exactly
+  // that and needed no edit.
+  it('renders no chooser — only the plain "Open the data" CTA — when Prereg Mode is NOT unlocked (no day completed yet)', async () => {
     seedStorage(freshV1());
     renderBriefing();
     await waitFor(() => expect(screen.getByText(copy['briefing.openData'])).toBeTruthy());
@@ -206,8 +210,11 @@ describe('Briefing — the mode chooser', () => {
     expect(screen.queryByText(copy['briefing.playPrereg'])).toBeNull();
   });
 
-  it('renders the chooser once unlocked (achievements.first_retraction set) and prereg not yet played today', async () => {
-    seedStorage(freshV1({ achievements: { first_retraction: '2026-08-01' } }));
+  // §1(j)(1): the unlock fixture is a COMPLETED DAY, not an achievement.
+  // `achievements` is left empty on purpose — this is the honest player, who
+  // never earns first_retraction and used to never see this chooser at all.
+  it('renders the chooser once a day has been completed (no achievement required) and today is unspent', async () => {
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1 });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
     expect(screen.getByRole('button', { name: copy['briefing.playHacking'] })).toBeTruthy();
@@ -216,40 +223,46 @@ describe('Briefing — the mode chooser', () => {
     expect(screen.queryByRole('button', { name: copy['briefing.openData'] })).toBeNull();
   });
 
-  it('hides the chooser entirely once prereg has already been played today (falls back to the plain "Open the data" CTA)', async () => {
+  // §1(j) SAME-DAY REOPENING IS REFUSED (the decision, at Briefing.tsx's
+  // `preregAvailable`). This used to fall back to the plain "Open the data"
+  // CTA — a second play of the same puzzle, after Act II had shown the day
+  // type, the true outcome and every significant path. The day is finished.
+  it('a prereg day already played today FINISHES the day — no chooser and no hacking fallback', async () => {
     const iso = isoFromPuzzleNumber(1);
     seedStorage(
       freshV1({
-        achievements: { first_retraction: '2026-08-01' },
         history: { [iso]: { prereg: { mode: 'prereg', score: 100, forks: 0, stamp: 'REPLICATED', shareString: '' } } },
       })
     );
     renderBriefing({ puzzleNumber: 1 });
-    await waitFor(() => expect(screen.getByText(copy['briefing.openData'])).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
     expect(screen.queryByTestId('mode-chooser')).toBeNull();
+    expect(screen.queryByRole('button', { name: copy['briefing.openData'] })).toBeNull();
   });
 
-  it('disables the hacking option and shows "already played today" when hack was already played (belt and suspenders on top of the persist-layer guard)', async () => {
+  // The other half of the same decision, and the direction that actually
+  // changes: a hack day spent today used to leave prereg open ("Prereg is a
+  // SEPARATE guard"), which is the reopening §1(j) refused. One attempt, one
+  // mode — `briefing.modeChooserIntro` says so where the choice is offered.
+  it('a hack day already played today FINISHES the day — prereg is not offered as a second attempt', async () => {
     const iso = isoFromPuzzleNumber(1);
     seedStorage(
       freshV1({
-        achievements: { first_retraction: '2026-08-01' },
-        history: { [iso]: { hack: { mode: 'hack', score: 100, forks: 0, stamp: 'RETRACTED', shareString: '' } } },
+        history: {
+          '2026-08-01': { hack: { mode: 'hack', score: 10, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } },
+          [iso]: { hack: { mode: 'hack', score: 100, forks: 0, stamp: 'RETRACTED', shareString: '' } },
+        },
       })
     );
     renderBriefing({ puzzleNumber: 1 });
-    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
-
-    const hackButton = screen.getByRole('button', { name: copy['briefing.playHacking'] });
-    expect(hackButton.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByText(copy['briefing.alreadyPlayedToday'])).toBeTruthy();
-    // Prereg is a SEPARATE guard — still open, since only hack was played.
-    expect(screen.getByRole('button', { name: copy['briefing.playPrereg'] }).hasAttribute('disabled')).toBe(false);
+    await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+    expect(screen.queryByTestId('mode-chooser')).toBeNull();
+    expect(screen.queryByRole('button', { name: copy['briefing.playPrereg'] })).toBeNull();
   });
 
   it('clicking "Play Hacking Mode" calls the existing, already-tested store.openData() — nothing else', async () => {
     const openDataSpy = vi.fn();
-    seedStorage(freshV1({ achievements: { first_retraction: '2026-08-01' } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1, openData: openDataSpy as unknown as GameStore['openData'] });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
 
@@ -260,7 +273,7 @@ describe('Briefing — the mode chooser', () => {
 
   it('clicking "Play Prereg Mode" calls store.chooseMode(\'prereg\') — nothing else', async () => {
     const chooseModeSpy = vi.fn();
-    seedStorage(freshV1({ achievements: { first_retraction: '2026-08-01' } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1, chooseMode: chooseModeSpy as unknown as GameStore['chooseMode'] });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
 

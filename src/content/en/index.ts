@@ -984,9 +984,11 @@ export const content: LocaleContent = {
   // left to the reader to notice.
   //
   // THE LAW THAT SHAPES EVERY LINE HERE (w3-r-001), and it is not the same law
-  // the retraction bank lives under. `verdictStamp` (src/engine/reveal.ts) is
-  // DAY-TYPE-BLIND at this stamp: `if (published === null) return
-  // 'NULL_REPORTED'`. About a quarter of days are effect days, and abandoning
+  // the retraction bank lives under. ONE BANK SERVES BOTH DAY TYPES. (§1(j)(2)
+  // gave the stamp itself a day-typed pair — CONFIRMED_NULL and
+  // MISSED_DISCOVERY — but Reveal.tsx gates this bank on the FAMILY, never on
+  // either verdict, so the law below is unchanged and is now the only thing
+  // keeping the bank single.) About a quarter of days are effect days, and abandoning
   // one — walking away from a real effect you never found — is exactly the
   // honest path this bank exists to furnish. On that day the SAME SCREEN prints
   // reveal.truthEffect one block above the stamp ("True effect on X: β = 0.29"),

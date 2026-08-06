@@ -89,7 +89,15 @@ export interface RevealMetrics {
   totalPaths: number; sigPaths: number; sigFraction: number;
   playerExplored: number; pHitAtK: number;           // from lookup table
   curve: { p: number; explored: boolean; published: boolean; outcome: Outcome }[];
-  stamp: 'RETRACTED'|'REPLICATED'|'NULL_REPORTED';
+  /** §2.7.4's verdict. §1(j)(2) split the honest verdict in two: an
+   * unpublished null day is a CONFIRMED_NULL (the player was right), an
+   * unpublished effect day is a MISSED_DISCOVERY. `NULL_REPORTED` is GONE
+   * rather than kept alongside them — with it removed, every `!== 'NULL_REPORTED'`
+   * comparison in the tree is a TS2367 rather than a silent survivor, which is
+   * how the four "was this published" predicates were found. See
+   * `verdictStamp` in engine/reveal.ts and `isPublishedStamp` in
+   * game/verdict.ts. */
+  stamp: 'RETRACTED'|'REPLICATED'|'CONFIRMED_NULL'|'MISSED_DISCOVERY';
   peeks: number;
 }
 

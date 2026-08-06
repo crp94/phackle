@@ -3,10 +3,11 @@
 // accounting beat.
 import { useId } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import type { RevealMetrics } from '../../engine/types';
 import './Stamp.css';
 
 export interface StampProps {
-  kind: 'RETRACTED' | 'REPLICATED' | 'NULL_REPORTED';
+  kind: RevealMetrics['stamp'];
   label: string;
   animate: boolean;
 }
@@ -15,12 +16,23 @@ export interface StampProps {
 // §7.2 names --assist-green for "REPLICATED" among its uses, and the
 // REPLICATED verdict stamp is the exact parallel of R1.3's RETRACTED-stamp
 // entry for --sig-red -- a signature moment (R8.2), not the ambient chrome
-// R1.5's inline-only/never-a-fill discipline targets. NULL_REPORTED has no
-// such registered exception, so it stays on R1.2's default, --ink.
+// R1.5's inline-only/never-a-fill discipline targets.
+//
+// §1(j)(2): BOTH honest verdicts stay on R1.2's default, --ink, including
+// CONFIRMED_NULL — which is the day the player was RIGHT, and which therefore
+// has a real case for --assist-green. It does not get one HERE. The green and
+// red carve-outs are named selectors in DESIGN.md's R1.3/R1.5 registry and
+// compiled by tests/ui/tokens.test.ts's allow-list; adding a third would be a
+// lawbook amendment, and no wave amends the lawbook as a side effect of a
+// content change. The positive beat this ruling asks for is carried by the
+// WORD (a verdict that says the player was right), by §2.8's 80-point
+// `abandonNull` row and by the subline beneath — none of which need a colour.
+// Recorded as a candidate follow-up for the controller, not taken here.
 const MARK_CLASS: Record<StampProps['kind'], string> = {
   RETRACTED: 'ph-stamp__mark--red',
   REPLICATED: 'ph-stamp__mark--green',
-  NULL_REPORTED: 'ph-stamp__mark--ink',
+  CONFIRMED_NULL: 'ph-stamp__mark--ink',
+  MISSED_DISCOVERY: 'ph-stamp__mark--ink',
 };
 
 /**

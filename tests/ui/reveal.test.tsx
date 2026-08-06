@@ -249,7 +249,7 @@ describe('§2.7.3 the accounting', () => {
   });
 
   it('says "before reporting a null result" when the player abandoned', async () => {
-    const { container } = await mountReveal({ stamp: 'NULL_REPORTED' }, { path: 'abandon' });
+    const { container } = await mountReveal({ stamp: 'CONFIRMED_NULL' }, { path: 'abandon' });
     const text = blockText(container, 'accounting');
     expect(text).toContain(t(copy, 'reveal.accounting2Abandoned', { k: '14' }));
     expect(text).not.toContain(t(copy, 'reveal.accounting2', { k: '14' }));
@@ -403,7 +403,10 @@ describe('§2.7.4 the verdict stamp', () => {
   it.each([
     ['RETRACTED' as const, 'reveal.retracted' as const],
     ['REPLICATED' as const, 'reveal.replicated' as const],
-    ['NULL_REPORTED' as const, 'reveal.nullReported' as const],
+    // §1(j)(2): both honest verdicts, because the map that resolves them is
+    // the only thing between a stamp and an undefined copy key.
+    ['CONFIRMED_NULL' as const, 'reveal.confirmedNull' as const],
+    ['MISSED_DISCOVERY' as const, 'reveal.missedDiscovery' as const],
   ])('renders %s as real text (R6.3/R8.2)', async (stamp, key) => {
     const { container } = await mountReveal({ stamp });
     expect(blockText(container, 'stamp')).toContain(copy[key]);
@@ -435,7 +438,7 @@ describe('§2.7.4 the verdict stamp', () => {
 
   it('still finds a null-reported subline on a PRE-EPOCH day', async () => {
     const { container } = await mountReveal(
-      { stamp: 'NULL_REPORTED' },
+      { stamp: 'CONFIRMED_NULL' },
       { path: 'abandon', iso: PRE_EPOCH_ISO, practice: true }
     );
     expect(live().puzzleNumber).toBeLessThan(0);
@@ -472,8 +475,8 @@ describe('§2.7.4 the verdict stamp', () => {
   /* gr6-037 — NULL REPORTED was the one stamp that rendered with no subline
      at all: Act II's quietest moment and, until W3 wrote the bank, its
      emptiest. */
-  it('gives NULL_REPORTED its own rotating subline, from its own bank', async () => {
-    const { container } = await mountReveal({ stamp: 'NULL_REPORTED' }, { path: 'abandon' });
+  it('gives the honest verdict its own rotating subline, from its own bank', async () => {
+    const { container } = await mountReveal({ stamp: 'CONFIRMED_NULL' }, { path: 'abandon' });
     const sub = container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
     expect(sub, 'the honest ending still ends on nothing').not.toBe('');
     expect(en.nullReportedSublines).toContain(sub);
@@ -484,19 +487,25 @@ describe('§2.7.4 the verdict stamp', () => {
   });
 
   /* w3-r-001, the constraint W3 attached to this wiring and the reason it is
-     wired WITHOUT a day-type branch. `verdictStamp` returns NULL_REPORTED on
-     `published === null` alone, so an abandoned EFFECT day lands on the same
-     stamp — one block under a `reveal.truthEffect` line that has just
-     declared the effect real. Both day types must therefore get a line, and
-     it must be drawn from the same bank; a future variant has to key on
-     `payload.dayType`, never on the stamp, which cannot tell them apart. */
-  it('renders the same bank on an abandoned EFFECT day, where the stamp cannot tell the day types apart', async () => {
-    const nullDay = await mountReveal({ stamp: 'NULL_REPORTED', dayType: 'null' }, { path: 'abandon' });
+     wired WITHOUT a day-type branch: an abandoned EFFECT day lands on the
+     honest stamp too — one block under a `reveal.truthEffect` line that has
+     just declared the effect real. Both day types must therefore get a line,
+     and it must be drawn from the same bank.
+
+     §1(j)(2) MAKES THIS TEST STRONGER, NOT WEAKER. W3's reason was that the
+     stamp "cannot tell the two apart"; the stamp CAN now (CONFIRMED_NULL vs
+     MISSED_DISCOVERY, which is precisely the day type). So the two arms below
+     are no longer the same stamp with a different `dayType` field — they are
+     the two real verdicts an abandoned day can carry — and the assertion that
+     they land on the identical line is what keeps the single bank single.
+     Reveal.tsx gates on `isHonestStamp`, the family, never on either member. */
+  it('renders the same bank on an abandoned EFFECT day, where the two honest verdicts must still share one voice', async () => {
+    const nullDay = await mountReveal({ stamp: 'CONFIRMED_NULL', dayType: 'null' }, { path: 'abandon' });
     const nullSub = nullDay.container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
     expect(en.nullReportedSublines).toContain(nullSub);
     cleanup();
 
-    const effectDay = await mountReveal({ stamp: 'NULL_REPORTED', dayType: 'effect' }, { path: 'abandon' });
+    const effectDay = await mountReveal({ stamp: 'MISSED_DISCOVERY', dayType: 'effect' }, { path: 'abandon' });
     const effectSub = effectDay.container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
     expect(effectSub, 'an abandoned effect day lost its subline').not.toBe('');
     expect(en.nullReportedSublines).toContain(effectSub);
@@ -581,7 +590,7 @@ describe('review I4 — the abandon path claims nothing it did not do', () => {
    * flagged, exactly as buildRevealMetrics produces for `published: null`. */
   function abandonedPayload(): Partial<RevealPayloadFull> {
     return {
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       curve: payload().curve.map((entry) => ({ ...entry, published: false })),
     };
   }
@@ -639,7 +648,7 @@ describe('review I5 — the published recipe exists as real text', () => {
   });
 
   it('is absent when the player published nothing', async () => {
-    const { container } = await mountReveal({ stamp: 'NULL_REPORTED' }, { path: 'abandon' });
+    const { container } = await mountReveal({ stamp: 'CONFIRMED_NULL' }, { path: 'abandon' });
     expect(container.querySelector('[data-role="published-recipe"]')).toBeNull();
   });
 });

@@ -123,8 +123,12 @@ export const copy: Record<CopyKey, string> = {
   'briefing.emailFrom': 'Prof. R. Grantwell',
   'briefing.goal': 'Tu tarea: encontrar un efecto estadísticamente significativo (p < 0.05) y publicarlo.',
 
+  // §1(j): "un intento por modo" prometía dos partidas al día; la regla es un
+  // solo intento y un solo modo (v. Briefing.tsx). Misma estructura en tres
+  // frases breves; "un solo" repetido porque en español la elipsis ("un
+  // intento, un modo") se lee como enumeración, no como restricción.
   'briefing.modeChooserIntro':
-    'El preregistro está desbloqueado. Elige cómo quieres jugar hoy. Un intento por modo.',
+    'El preregistro está desbloqueado. Elige cómo quieres jugar hoy. Un solo intento, un solo modo.',
   'briefing.playHacking': 'Jugar en modo Hacking',
   'briefing.playPrereg': 'Jugar en modo Preregistro',
   'briefing.alreadyPlayedToday': 'Ya has jugado hoy',
@@ -408,7 +412,19 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RETRACTADO',
   'reveal.replicated': 'REPLICADO',
-  'reveal.nullReported': 'RESULTADO NULO',
+  // §1(j)(2) — los dos veredictos que sustituyen a "RESULTADO NULO".
+  //
+  // Participio pospuesto, como RETRACTADO y REPLICADO: son desenlaces, no
+  // acciones. "NULO CONFIRMADO" concuerda en masculino singular con
+  // "resultado", que queda sobrentendido igual que en la cadena retirada.
+  //
+  // "HALLAZGO PERDIDO" y no "DESCUBRIMIENTO PERDIDO": el segundo mide 22
+  // caracteres y se comprimiría notablemente dentro del ancho fijo del sello
+  // (Stamp.tsx, TEXT_W). "Perdido" es además la palabra que el español usa
+  // para la ocasión desaprovechada ("una oportunidad perdida"), que es
+  // exactamente el caso: el efecto estaba ahí y no se informó.
+  'reveal.confirmedNull': 'NULO CONFIRMADO',
+  'reveal.missedDiscovery': 'HALLAZGO PERDIDO',
   'reveal.callCorrect': 'Tu veredicto fue correcto.',
   'reveal.callIncorrect': 'Tu veredicto fue erróneo.',
   // GR6 gr6-009 / ruling §1(a): "alrededor del 5%" was false and is replaced by
@@ -573,8 +589,10 @@ export const copy: Record<CopyKey, string> = {
   // comparte, y el concepto circulaba con cuatro nombres. Ahora la fila 🍴
   // define el término del que es el dibujo, y esta introducción dice cómo se
   // relacionan el rastro y los recuentos.
+  // §1(i): "en grupos de cinco" — quien vea un espacio tiene que saber si el
+  // espacio significa algo. No significa nada: es una marca de conteo.
   'legend.intro':
-    'Cómo se lee un resultado compartido. El rastro es un símbolo por movimiento; los recuentos de debajo son esos mismos movimientos, sumados.',
+    'Cómo se lee un resultado compartido. El rastro es un símbolo por movimiento, en grupos de cinco; los recuentos de debajo son esos mismos movimientos, sumados.',
   // La enumeración entre paréntesis está COMPILADA, no es decorativa:
   // findMissingSpecKnobs exige que contenga literalmente lab.outcome /
   // lab.subgroup / lab.covariates / lab.exclusion / lab.transform /

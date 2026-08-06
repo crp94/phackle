@@ -5,6 +5,7 @@
 import type { AchievementId } from '../content/types';
 import type { DayRecord, Outcome, PlayerAction, Spec } from '../engine/types';
 import { distinctExplored } from './forkLog';
+import { isPublishedStamp } from './verdict';
 
 /**
  * §5.6 extension (ruling, ties to storage.ts): one play per mode per day
@@ -105,10 +106,13 @@ export function evaluateAchievements(ctx: AchievementCtx): AchievementId[] {
   const days = historyDays(ctx.history);
 
   // First Blood: first publication, ever.
-  const priorPublished = days.some((d) => d.stamp !== 'NULL_REPORTED');
+  const priorPublished = days.some((d) => isPublishedStamp(d.stamp));
   if (ctx.published !== null && !priorPublished) out.push('first_blood');
 
-  // First Retraction: first RETRACTED stamp (unlocks Prereg Mode).
+  // First Retraction: first RETRACTED stamp. §1(j)(1): it no longer unlocks
+  // Prereg Mode — that gate is `preregUnlockedBy` in dayComplete.ts, because
+  // gating the cure for p-hacking behind an achievement only a p-hacker can
+  // earn made integrity a dead end. This is now purely a §2.11 wall entry.
   const priorRetracted = days.some((d) => d.stamp === 'RETRACTED');
   if (ctx.stamp === 'RETRACTED' && !priorRetracted) out.push('first_retraction');
 

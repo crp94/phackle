@@ -8,6 +8,7 @@ import type { EngineClient, RevealPayload } from '../engine/protocol';
 import type { PathResult, PlayerAction, Spec, WindowN } from '../engine/types';
 import { specKey } from '../engine/specGrid';
 import { countForks, distinctExplored } from './forkLog';
+import { honestStampFor } from './verdict';
 import { practiceSeed, puzzleNumber } from './daily';
 import { DEBOUNCE_MS, N_SCHEDULE } from './tuning';
 
@@ -162,7 +163,9 @@ export interface GameStore {
   makeCall(v: 'real' | 'noise'): Promise<void>;
   finishReveal(): void;
   /** T18: the briefing's mode chooser (§2.2 "prereg unlocked: choose mode
-   * first"), visible only once achievements.first_retraction exists.
+   * first"), visible once a day has been completed and today's own mode is
+   * still unspent (§1(j)(1) moved the gate off achievements.first_retraction;
+   * see game/dayComplete.ts's `preregUnlockedBy`).
    * Guarded to only fire from 'briefing' (mirrors openData's own guard).
    * 'prereg' is the only value the real UI ever passes (Prereg.tsx's screen
    * is reached ONLY this way, never via openData) — the Briefing chooser's
@@ -503,15 +506,23 @@ export function createGameStore() {
         // "published !== null" already implies "was significant" — true for
         // Hacking Mode, where submit() is guarded to only ever fire at p<.05,
         // but NOT true here: a preregistered commit is unconditional. A
-        // non-significant commit must read NULL_REPORTED regardless of what
-        // the engine's stamp says (it has no way to know); a significant one
-        // keeps the engine's own REPLICATED/RETRACTED call verbatim — it
-        // already encodes "did this land on the true outcome" (§2.7.4), which
-        // does not need re-deriving here.
+        // non-significant commit must read as a report of nothing regardless
+        // of what the engine's stamp says (it has no way to know); a
+        // significant one keeps the engine's own REPLICATED/RETRACTED call
+        // verbatim — it already encodes "did this land on the true outcome"
+        // (§2.7.4), which does not need re-deriving here.
+        //
+        // §1(j)(2): "a report of nothing" is now two verdicts, and WHICH one
+        // is a fact about the day, not about the commit — so this reads
+        // `honestStampFor` rather than naming a verdict, and cannot drift from
+        // the engine's own branch. An honest preregistration that came back
+        // non-significant on a null day is a CONFIRMED_NULL, which is the
+        // correct result and the one §2.8 pays 100 points for; on an effect
+        // day the same commit is a MISSED_DISCOVERY.
         const sig = result.valid && result.p < 0.05;
         const corrected: RevealPayload = {
           ...payload,
-          stamp: sig ? payload.stamp : 'NULL_REPORTED',
+          stamp: sig ? payload.stamp : honestStampFor(payload.dayType),
           // The N_SCHEDULE.length - 1 extends above bumped the worker's
           // internal peek counter as a mechanical side effect of reaching
           // full power in one shot — never player "peeking" (there is nothing

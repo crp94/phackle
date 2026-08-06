@@ -68,8 +68,9 @@ export interface LocaleContent {
   grantwellSubjects: string[];
   press: PressBlurb[];
   retractionSublines: string[]; // rendered under the RETRACTED stamp
-  // gr6-037: the same job for NULL_REPORTED days, which rendered with NO
-  // subline at all — Act II's quietest moment and, until this bank, its
+  // gr6-037: the same job for the days that reported nothing (§1(j)(2)'s
+  // CONFIRMED_NULL / MISSED_DISCOVERY pair — ONE bank across both, see
+  // Reveal.tsx), which rendered with NO subline at all — Act II's quietest moment and, until this bank, its
   // emptiest. Same register as retractionSublines (clinical, one sentence,
   // never smug, never congratulatory): the affirmation an honest null deserves
   // has to be carried by a fact about the world, not by a compliment.

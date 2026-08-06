@@ -67,9 +67,15 @@ export interface HarnessOptions {
    * app BOOTS in that locale rather than being toggled into it afterwards —
    * `detectLocale` reads storage and ignores navigator.language entirely. */
   locale?: 'en' | 'it' | 'es';
-  /** Seeds unlocked achievements. `first_retraction` is what makes the
-   * Briefing render its mode chooser (Prereg Mode's only entrance). */
+  /** Seeds unlocked achievements. §1(j)(1) moved the Prereg Mode gate OFF
+   * `first_retraction` and onto "a day has been completed", so this no longer
+   * opens the mode chooser — see `history`. */
   achievements?: Record<string, string>;
+  /** Seeds completed days. §1(j)(1): one entry under ANY earlier date is what
+   * makes the Briefing render its mode chooser (Prereg Mode's only entrance),
+   * and it must be an EARLIER date — a record under the pinned puzzle's own
+   * date finishes today instead of opening it. */
+  history?: Record<string, unknown>;
   /** Skips the Lab's first-run "How to play" panel. */
   introSeen?: boolean;
   /** Seeds career statistics. GR6 gr6-115/gr6-121: the Stats screen renders an
@@ -87,7 +93,7 @@ export interface HarnessOptions {
 function freshPersistedState(opts: HarnessOptions) {
   return {
     version: 1,
-    history: {},
+    history: opts.history ?? {},
     stats: {
       streak: 0,
       maxStreak: 0,
@@ -201,6 +207,7 @@ export async function installHarness(context: BrowserContext, opts: HarnessOptio
   } else if (
     opts.locale !== undefined ||
     opts.achievements !== undefined ||
+    opts.history !== undefined ||
     opts.introSeen !== undefined ||
     opts.stats !== undefined
   ) {
@@ -517,4 +524,14 @@ export async function readClipboard(page: Page): Promise<string[]> {
  * happens on both day types). Anything else appearing here would be a
  * spoiler shipped to somebody else's timeline.
  */
-export const SHARE_LINE2 = /^(🧾)?[🍴➕]*(📄|🏳️)( → ⚖️(✅|❌))?$/u;
+// §1(i): the fork run is grouped in fives and the parts are separated by
+// U+0020, so a legal trail is a sequence of space-separated parts — an
+// optional 🧾, then fork groups, then the terminal. Written as an alternation
+// over parts rather than by loosening the character class, so a stray space
+// INSIDE a group, a leading space, or a doubled space still fails.
+export const SHARE_LINE2 = /^(🧾 )?([🍴➕]{1,5} )*(📄|🏳️)( → ⚖️(✅|❌))?$/u;
+
+/** §1(i): line 1 is the brand + issue number, then the locale's own tagline
+ * as the hook. The tagline half is read from the catalog by the specs that
+ * check it, so this only pins the invariant half and the separator. */
+export const SHARE_LINE1_PREFIX = (n: number) => `P-hackle #${n} · `;

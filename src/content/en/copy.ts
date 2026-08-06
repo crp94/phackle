@@ -118,8 +118,9 @@ export type CopyKey =
   // first-timer, before anything else, what they are being asked to do.
   | 'briefing.goal'
   // T18 additions: the briefing's mode chooser (§2.2 "prereg unlocked: choose
-  // mode first"), visible only once achievements.first_retraction exists —
-  // see Briefing.tsx.
+  // mode first"), visible once a day has been completed and today's own mode
+  // has not been spent yet (§1(j)(1) moved the gate off
+  // achievements.first_retraction) — see Briefing.tsx.
   | 'briefing.modeChooserIntro'
   | 'briefing.playHacking'
   | 'briefing.playPrereg'
@@ -365,7 +366,11 @@ export type CopyKey =
   | 'reveal.tailsOne'
   | 'reveal.retracted'
   | 'reveal.replicated'
-  | 'reveal.nullReported'
+  // §1(j)(2): `reveal.nullReported` is REPLACED by these two, not joined by
+  // them. The honest verdict is day-typed now — see engine/reveal.ts's
+  // `verdictStamp` — and one key cannot carry two verdicts.
+  | 'reveal.confirmedNull'
+  | 'reveal.missedDiscovery'
   | 'reveal.callCorrect'
   | 'reveal.callIncorrect'
   // T18 addition: §2.8's own parenthetical for the prereg sig+null row ("a
@@ -647,9 +652,18 @@ export const copy: Record<CopyKey, string> = {
   // this is genuinely the task Act I is setting.
   'briefing.goal': 'Your task: find a statistically significant effect (p < 0.05) and publish it.',
 
-  // T18 additions — the mode chooser (§2.2), shown only once Prereg Mode is
-  // unlocked and today's preregistration has not been filed yet.
-  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today. One attempt per mode.',
+  // T18 additions — the mode chooser (§2.2), shown once Prereg Mode is
+  // unlocked and today's mode has not been spent yet.
+  //
+  // §1(j) — "One attempt per mode" WAS FALSE AFTER THE RULING, so it moved.
+  // W12 refused same-day reopening (the reasoning is at Briefing.tsx's
+  // `preregAvailable`: between two plays of the same day sits Act II, which
+  // shows the day type, the true outcome and every significant path, and
+  // Prereg Mode's whole score is a function of the first two). The old line
+  // promised the player two attempts, one per mode; the rule is one attempt
+  // and one mode, and the string that offers the choice is where that has to
+  // be said. Kept to three short sentences in the same rhythm.
+  'briefing.modeChooserIntro': 'Preregistration is unlocked. Choose how you play today. One attempt, one mode.',
   'briefing.playHacking': 'Play Hacking Mode',
   'briefing.playPrereg': 'Play Prereg Mode',
   'briefing.alreadyPlayedToday': 'Already played today',
@@ -1173,7 +1187,23 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RETRACTED',
   'reveal.replicated': 'REPLICATED',
-  'reveal.nullReported': 'NULL REPORTED',
+  // §1(j)(2) — THE TWO VERDICTS THAT REPLACE "NULL REPORTED".
+  //
+  // The retired string described the ACT (a null was reported) and so said
+  // the same thing on the day the player was right and the day they were
+  // wrong. These describe the RESULT, which is what the other two stamps do:
+  // RETRACTED and REPLICATED are outcomes, not actions.
+  //
+  // `confirmedNull` reuses the exact noun phrase §2.8's own score row already
+  // prints for this case ('summary.breakdownConfirmedNull'), so the invoice
+  // and the stamp agree in wording as well as in arithmetic.
+  //
+  // Both are set at --text-40 inside a fixed 268-unit advance (Stamp.tsx's
+  // TEXT_W), so length costs glyph compression rather than a clipped word —
+  // measured against the real frame by e2e/stamp.spec.ts, which reads these
+  // catalogs directly.
+  'reveal.confirmedNull': 'NULL CONFIRMED',
+  'reveal.missedDiscovery': 'MISSED DISCOVERY',
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
   // T18 addition: §2.8's own parenthetical, spelled out. Clinical register
@@ -1465,8 +1495,12 @@ export const copy: Record<CopyKey, string> = {
   // the term it is the picture of, and this intro says how the trail and the
   // counts relate, which is the other half a stranger holding a share string
   // has to work out.
+  // §1(i): "in groups of five" is the one thing the grouped trail does not
+  // explain about itself — a reader who sees a gap has to be told whether the
+  // gap means anything. It does not; it is a tally. Everything else in this
+  // sentence is unchanged and still exactly true.
   'legend.intro':
-    'How to read a shared result. The trail is one symbol per move; the counts under it are the same moves, added up.',
+    'How to read a shared result. The trail is one symbol per move, in groups of five; the counts under it are the same moves, added up.',
   // T29 fix round: 🍴 is now the ONLY in-trail glyph for a spec change —
   // share.ts's FORK_EMOJI collapsed subgroup/exclusion/tails onto it, and the
   // Legend deduplicates by glyph, so this one row is the only place the key

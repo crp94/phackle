@@ -21,6 +21,7 @@ import { useMemo, type ReactNode } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
+import { isHonestStamp } from '../../game/verdict';
 import { bankIndex } from '../../game/daily';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
@@ -61,7 +62,11 @@ const FIG_SEP = ' — ';
 const STAMP_LABEL: Record<RevealPayload['stamp'], CopyKey> = {
   RETRACTED: 'reveal.retracted',
   REPLICATED: 'reveal.replicated',
-  NULL_REPORTED: 'reveal.nullReported',
+  // §1(j)(2): the honest verdict is two verdicts now. `Record<…>` over the
+  // stamp union is what makes this map total — a fifth verdict is a type
+  // error here rather than an `undefined` copy key at render time.
+  CONFIRMED_NULL: 'reveal.confirmedNull',
+  MISSED_DISCOVERY: 'reveal.missedDiscovery',
 };
 
 /**
@@ -311,20 +316,30 @@ export function Reveal() {
   // wrote this bank, its emptiest.
   //
   // THE CONSTRAINT W3 ATTACHED TO THIS WIRING (w3-r-001), because it is the
-  // one thing about the bank that its name does not tell you: THE STAMP IS
-  // DAY-TYPE-BLIND. `verdictStamp` (src/engine/reveal.ts) returns
-  // NULL_REPORTED on `published === null` alone, so an ABANDONED EFFECT DAY
-  // lands here too — one block under a `reveal.truthEffect` line that has
-  // just declared the effect real. Every line in the bank is therefore
-  // authored to be true on BOTH day types (each says what happened to the
-  // REPORT, never what the day contained), which is exactly why this needs no
-  // branch and gets none.
+  // one thing about the bank that its name does not tell you: an ABANDONED
+  // EFFECT DAY lands here too — one block under a `reveal.truthEffect` line
+  // that has just declared the effect real. Every line in the bank is
+  // therefore authored to be true on BOTH day types (each says what happened
+  // to the REPORT, never what the day contained), which is exactly why this
+  // needs no branch and gets none.
   //
-  // IF A FUTURE CHANGE EVER GIVES IT ONE — a second, effect-day variant — the
-  // branch must key on `payload.dayType`, NEVER on the stamp, which cannot
-  // tell the two apart. And the retraction bank's `!isPrereg` gate above is
-  // NOT the precedent for that: RETRACTED requires a published spec, so its
-  // claims are scoped to that spec and true of it; nothing scopes these.
+  // §1(j)(2) CHANGED THE MECHANISM AND NOT THE RULE, so read this carefully.
+  // W3's note said the stamp "cannot tell the two apart" and that any future
+  // branch must key on `payload.dayType` instead. The stamp CAN tell them
+  // apart now — CONFIRMED_NULL and MISSED_DISCOVERY are exactly the null and
+  // effect cases — which retires W3's REASON while leaving W3's RULE standing
+  // and, if anything, easier to break: naming one of the two verdicts here
+  // would be a day-type branch wearing a different word.
+  //
+  // The gate is therefore `isHonestStamp`, the whole honest family, never
+  // either member. Both day types reach the same line, tests/ui/reveal.test.tsx
+  // asserts precisely that (and W7's dayType-offset mutation reds), and the
+  // one bank stays the one bank.
+  //
+  // The retraction bank's `!isPrereg` gate above is NOT a precedent for a
+  // branch here: RETRACTED requires a published spec, so its claims are scoped
+  // to that spec and true of it; nothing scopes these.
+  //
   // gr6-021 — `bankIndex`, NOT the bare `%`. Both lookups used to write
   // `puzzleNumber % bank.length`, and `puzzleNumber` is negative on every
   // pre-EPOCH day (all of which are practice days): `-3 % 14` is `-3`, so
@@ -336,7 +351,7 @@ export function Reveal() {
     if (!isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0) {
       return content.retractionSublines[bankIndex(puzzleNumber, content.retractionSublines.length)];
     }
-    if (payload.stamp === 'NULL_REPORTED' && content.nullReportedSublines.length > 0) {
+    if (isHonestStamp(payload.stamp) && content.nullReportedSublines.length > 0) {
       return content.nullReportedSublines[bankIndex(puzzleNumber, content.nullReportedSublines.length)];
     }
     return undefined;

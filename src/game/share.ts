@@ -74,9 +74,18 @@ export const CALL_INCORRECT = '⚖️❌';
  * SUBMIT/ABANDON terminal, no call mark. Those are the two consumers'
  * differences, and they are exactly what stays at the call sites — the Lab is
  * by definition mid-play, before any terminal exists.
+ *
+ * RETURNS ONE ELEMENT PER FORK (gr2-010 / §1(i)), not a pre-joined string.
+ * The walk is the only place that knows where one glyph ends and the next
+ * begins: 🍴 is one UTF-16 surrogate pair and ➕ is a single unit, so a
+ * downstream consumer that wanted to group the run would have to re-tokenize
+ * a string this function had just finished tokenizing — and get the pair
+ * arithmetic right a second time. `buildTrail` below groups these in fives;
+ * `components/ForkTrail.tsx` joins them straight back together. Both keep
+ * reading the same walk, which is the rule gr6-092 exists to protect.
  */
-export function walkForkGlyphs(log: PlayerAction[]): string {
-  let glyphs = '';
+export function walkForkGlyphs(log: PlayerAction[]): string[] {
+  const glyphs: string[] = [];
   let prevSpec: Spec | undefined;
 
   for (const action of log) {
@@ -85,14 +94,65 @@ export function walkForkGlyphs(log: PlayerAction[]): string {
         prevSpec = action.spec; // the initial default spec is free (§2.10)
         continue;
       }
-      if (action.seen) glyphs += FORK_EMOJI[classifyChange(prevSpec, action.spec)];
+      if (action.seen) glyphs.push(FORK_EMOJI[classifyChange(prevSpec, action.spec)]);
       prevSpec = action.spec;
     } else if (action.t === 'PEEK_AND_EXTEND') {
-      glyphs += FORK_EMOJI.peek;
+      glyphs.push(FORK_EMOJI.peek);
     }
     // SUBMIT/ABANDON/CALL contribute no in-trail glyph — see the callers.
   }
   return glyphs;
+}
+
+/**
+ * §1(i), part 1 — HOW MANY FORKS FIT IN ONE GROUP.
+ *
+ * Five, for the reason tally marks are five: it is the largest run a reader
+ * subitizes without counting, so a grouped trail is read as "three groups and
+ * two" rather than counted glyph by glyph. Nothing downstream derives from
+ * this number — it is a presentation constant with exactly one consumer
+ * (`buildTrail`) and one test group.
+ */
+export const FORK_GROUP_SIZE = 5;
+
+/**
+ * §1(i), part 1 — THE RUN IS GROUPED, AND DELIBERATELY NOT CAPPED.
+ *
+ * The finding (gr2-010 + gr3-027), measured over 32 days × 3 player models:
+ * the trail is a run of 0–60 instances of ONE character, and "read cold,
+ * there is nothing to decode". The ruling offered two shapes — group the run,
+ * or cap it at N glyphs and print "+k".
+ *
+ * GROUPING ONLY, and the cap declined, for three measured reasons:
+ *   1. The cap's "+k" restates line 3's `Forks: 43` — and "the number that
+ *      carries the information is restated in words on the next line" is a
+ *      clause of the finding itself, not a thing to add a second instance of.
+ *   2. The remainder marker would have to be an ASCII '+', one glyph away
+ *      from ➕, which is a real in-trail token meaning "peek". A share string
+ *      whose truncation mark is confusable with its own vocabulary is worse
+ *      than the run it truncates.
+ *   3. The length IS the joke. A sixty-fork day should look like a sixty-fork
+ *      day to a stranger; capping it at twenty-five hides the one thing the
+ *      grid is for. Grouped, sixty glyphs read as twelve tally blocks and
+ *      wrap between them (the separator is a plain space, so every break
+ *      opportunity falls between groups and never inside one).
+ *
+ * The groups are joined with U+0020 and so are the prefix and the terminal:
+ * a terminal glued to the last group would make that group look like six.
+ * Empty parts are never emitted, so a zero-fork prereg day is `🧾 📄` and a
+ * zero-fork abandoned hack day is `🏳️` — no leading or doubled spaces at any
+ * fork count.
+ *
+ * SPOILER-NEUTRAL BY CONSTRUCTION: grouping is a function of the trail's
+ * LENGTH, which is `countForks(log)`, which was already printed in full on
+ * line 3. No new input reaches this function; see the module header.
+ */
+function groupForkRun(glyphs: string[]): string[] {
+  const groups: string[] = [];
+  for (let i = 0; i < glyphs.length; i += FORK_GROUP_SIZE) {
+    groups.push(glyphs.slice(i, i + FORK_GROUP_SIZE).join(''));
+  }
+  return groups;
 }
 
 /**
@@ -120,10 +180,11 @@ export function walkForkGlyphs(log: PlayerAction[]): string {
  * test in tests/game/share.test.ts, extended to assert exactly this.
  */
 function buildTrail(log: PlayerAction[], prereg: boolean): string {
-  const glyphs = walkForkGlyphs(log);
+  const groups = groupForkRun(walkForkGlyphs(log));
+
   // Prereg: a FIXED, outcome-independent terminal, and any literal
   // SUBMIT/ABANDON in the log deliberately ignored (see the doc comment).
-  if (prereg) return `${PREREG_PREFIX}${glyphs}${SUBMIT_EMOJI}`;
+  if (prereg) return [PREREG_PREFIX, ...groups, SUBMIT_EMOJI].join(' ');
 
   // Hack: the log's own terminal(s). store.submit()/abandon() both leave the
   // lab for good, so at most one ever appears and it is always last — this
@@ -134,7 +195,10 @@ function buildTrail(log: PlayerAction[], prereg: boolean): string {
     if (action.t === 'SUBMIT') terminal += SUBMIT_EMOJI;
     else if (action.t === 'ABANDON') terminal += ABANDON_EMOJI;
   }
-  return glyphs + terminal;
+  // `filter(Boolean)` rather than a conditional push: it covers BOTH empty
+  // parts at once (no terminal, and no forks) so no fork count can produce a
+  // leading, trailing or doubled space.
+  return [...groups, terminal].filter(Boolean).join(' ');
 }
 
 export interface ShareStringInput {
@@ -176,9 +240,10 @@ export interface ShareStringInput {
 
 /**
  * §2.9 layout, 4 lines:
- *   1. "P-hackle #{n}" — the brand name is a deliberate non-translation
- *      (delta spec i18n §6: journal-style proper nouns stay invariant), so
- *      it is a literal here, not pulled from the copy catalog.
+ *   1. "P-hackle #{n} · {tagline}" — the brand name is a deliberate
+ *      non-translation (delta spec i18n §6: journal-style proper nouns stay
+ *      invariant), so it is a literal here, not pulled from the copy catalog.
+ *      The tagline after it IS from the catalog — see the §1(i) note below.
  *   2. the emoji trail (see buildTrail), plus " → ⚖️✅"/" → ⚖️❌" iff a call
  *      was actually made (callCorrect !== null) — omitted entirely for
  *      Prereg Mode, which never calls.
@@ -208,6 +273,35 @@ export interface ShareStringInput {
  * stamp, no call direction, exactly as before. The rearrangement is
  * typographic; tests/game/share.test.ts's property test is unchanged.
  *
+ * SECOND DOCUMENTED DEVIATION FROM §2.9 (§1(i), owner ruling 2026-08-06:
+ * "CHUNK + HOOK"). §2.9's line 1 is the bare "P-hackle #{n}".
+ *
+ * THE DEFECT (gr3-027): the four-line object contains no content word except
+ * "Forks". Pasted into a stranger's timeline it is a number, a run of one
+ * repeated character, two labels and a URL — nothing that says what the thing
+ * IS, and therefore no reason to follow the link. Line 1 is the only line
+ * with room: line 2 is the grid, line 3 is pinned to exactly two figures by
+ * the spoiler rule, line 4 is the URL.
+ *
+ * WHAT GOES THERE, AND WHY IT IS THE CATALOG'S STRING AND NOT A LITERAL. The
+ * hook is `nav.tagline` — "A daily game about the garden of forking paths."
+ * — read from the copy catalog like line 3's two words, not hard-coded like
+ * the brand name. Three reasons:
+ *   1. It is the product's own one-line description, already authored and
+ *      transcreated in all three locales, and `src/content/en/copy.ts`
+ *      reserves this exact site at the key ("§1(i)'s share-string hook is the
+ *      second place it will earn"). Writing a fourth string here would mean a
+ *      second one-line description to keep in step with the first.
+ *   2. Line 3 has been localized since T37 ("Biforcazioni: 1 · Serie: 7"), so
+ *      an English-only line 1 would be the anomaly in this string, not the
+ *      rule. The §1(i) brief's "invariant across locales" describes the brand
+ *      NAME, which is still a literal above and still invariant.
+ *   3. It leaks nothing, structurally: it is a constant per locale, with no
+ *      input from the day at all. The `copy` bundle was already an argument.
+ *
+ * The separator is the same " · " line 3 uses, so the two content lines are
+ * punctuated alike.
+ *
  * gr6-022 — LINE 1 ON A PRACTICE DAY. `?practice=1` does not expire at
  * launch, and every pre-EPOCH date is a practice date, so "P-hackle #{n}" was
  * being pasted into other people's timelines for sessions that were never
@@ -231,7 +325,12 @@ export function shareString(i: ShareStringInput): string {
   const trail = buildTrail(i.log, i.mode === 'prereg');
   const suffix = i.callCorrect === null ? '' : ` → ${i.callCorrect ? CALL_CORRECT : CALL_INCORRECT}`;
 
-  const line1 = i.practice ? `P-hackle (${i.copy['nav.practiceMode']})` : `P-hackle #${i.puzzleNumber}`;
+  // Both §1(i)'s hook and gr6-022's practice marker live on line 1. A practice
+  // run has no issue number to print, but it is still the product, so it still
+  // earns the tagline: the marker replaces the number, the hook stays.
+  const line1 = i.practice
+    ? `P-hackle (${i.copy['nav.practiceMode']}) · ${i.copy['nav.tagline']}`
+    : `P-hackle #${i.puzzleNumber} · ${i.copy['nav.tagline']}`;
   const line2 = `${trail}${suffix}`;
   const line3 = `${i.copy['share.forksWord']}: ${forks} · ${i.copy['share.streakWord']}: ${i.streak}`;
   const line4 = SITE_URL;

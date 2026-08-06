@@ -494,16 +494,16 @@ describe('Stamp', () => {
   // Act II's loudest moment. R8.2's "always also present as text" is satisfied
   // by either channel alone.
   it('announces the verdict exactly once, and keeps the glyphs out of the AX tree', () => {
-    const { container } = render(<Stamp kind="NULL_REPORTED" label="NULL REPORTED" animate={false} />);
+    const { container } = render(<Stamp kind="CONFIRMED_NULL" label="NULL CONFIRMED" animate={false} />);
     const svg = container.querySelector('.ph-stamp__mark')!;
     expect(svg.getAttribute('role')).toBe('img');
-    expect(svg.getAttribute('aria-label')).toBe('NULL REPORTED');
+    expect(svg.getAttribute('aria-label')).toBe('NULL CONFIRMED');
     const texts = [...svg.querySelectorAll('text')];
     expect(texts).toHaveLength(1);
     expect(texts[0].getAttribute('aria-hidden')).toBe('true');
     // Still a real, queryable text node on screen — only its second trip
     // through the accessibility tree is gone.
-    expect(screen.getByText('NULL REPORTED')).toBeTruthy();
+    expect(screen.getByText('NULL CONFIRMED')).toBeTruthy();
   });
 
   // gr6-010: the filter region is pinned to the viewBox in USER SPACE, so what
@@ -522,17 +522,18 @@ describe('Stamp', () => {
   });
 
   // w1-r-011: pinning the region made it a hard CLIP, which exposed that the
-  // label had never fitted the box: NULL_REPORTED overran it in all three
+  // label had never fitted the box: the honest verdict overran it in all three
   // locales and rendered sheared ("RISULTATO NULLO" as "ULTATO NUL") — the
   // stamp an HONEST player gets. The advance is an input now, not an output.
   //
   // This is the STRUCTURAL half of the guard, and it is all jsdom can do: jsdom
-  // has no text metrics at all, so the nine real strings are measured against
-  // the region in a real browser by e2e/stamp.spec.ts. Both are needed — this
-  // one catches the attribute being dropped, that one catches the constant
+  // has no text metrics at all, so the real strings are measured against the
+  // region in a real browser by e2e/stamp.spec.ts — twelve of them since
+  // §1(j)(2) split the honest verdict in two. Both are needed — this one
+  // catches the attribute being dropped, that one catches the constant
   // drifting past the frame.
   it('fixes the label\'s advance so no locale\'s verdict can overrun the frame', () => {
-    const { container } = render(<Stamp kind="NULL_REPORTED" label="RISULTATO NULLO" animate={false} />);
+    const { container } = render(<Stamp kind="MISSED_DISCOVERY" label="MANCATA SCOPERTA" animate={false} />);
     const svg = container.querySelector('.ph-stamp__mark')!;
     const text = svg.querySelector('text.ph-stamp__label')!;
 
@@ -572,13 +573,16 @@ describe('Stamp', () => {
 
   // DESIGN.md R1.3/R1.5 (§0 registry): RETRACTED is one of R1.3's four
   // --sig-red places; REPLICATED is R1.5's one registered --assist-green
-  // exception (a verdict-stamp parallel to R1.3's entry); NULL_REPORTED has no
-  // registered exception and stays on R1.2's default, --ink.
+  // exception (a verdict-stamp parallel to R1.3's entry); BOTH honest verdicts
+  // have no registered exception and stay on R1.2's default, --ink —
+  // CONFIRMED_NULL included, deliberately, since a third registered colour
+  // would be a DESIGN.md amendment (see Stamp.tsx's own note).
   it('maps each kind to its sanctioned colour class', () => {
     const cases: Array<[StampProps['kind'], string]> = [
       ['RETRACTED', 'ph-stamp__mark--red'],
       ['REPLICATED', 'ph-stamp__mark--green'],
-      ['NULL_REPORTED', 'ph-stamp__mark--ink'],
+      ['CONFIRMED_NULL', 'ph-stamp__mark--ink'],
+      ['MISSED_DISCOVERY', 'ph-stamp__mark--ink'],
     ];
     for (const [kind, expectedClass] of cases) {
       const { container, unmount } = render(<Stamp kind={kind} label={kind} animate={false} />);

@@ -78,19 +78,36 @@ describe('verdictStamp', () => {
 
   const cases: { name: string; dayType: DayType; published: Spec | null; trueOutcome: Outcome | null; want: string }[] =
     [
+      // §1(j)(2) — THE HONEST VERDICT IS DAY-TYPED. Both rows used to want
+      // the single NULL_REPORTED, which is why an honest player could not
+      // reach a positive verdict on the day they were right: the stamp said
+      // the same thing whether they had confirmed a null or walked past a
+      // real effect, while the score paid 80 for one and 20 for the other.
+      // These two rows are the whole of the ruling's stamp half.
       {
-        name: 'null day, nothing published (abandoned) -> NULL_REPORTED',
+        name: 'null day, nothing published (abandoned) -> CONFIRMED_NULL — the honest player was RIGHT',
         dayType: 'null',
         published: null,
         trueOutcome: null,
-        want: 'NULL_REPORTED',
+        want: 'CONFIRMED_NULL',
       },
       {
-        name: 'effect day, nothing published (abandoned) -> NULL_REPORTED',
+        name: 'effect day, nothing published (abandoned) -> MISSED_DISCOVERY — a real effect went unreported',
         dayType: 'effect',
         published: null,
         trueOutcome: 2,
-        want: 'NULL_REPORTED',
+        want: 'MISSED_DISCOVERY',
+      },
+      // The distinction is on the DAY, not on what the player happened to
+      // have looked at: an abandoned effect day whose trueOutcome is missing
+      // (the defensive shape the signature admits) is still a missed
+      // discovery, because `published === null` is resolved first.
+      {
+        name: 'effect day, nothing published, no recorded trueOutcome -> MISSED_DISCOVERY',
+        dayType: 'effect',
+        published: null,
+        trueOutcome: null,
+        want: 'MISSED_DISCOVERY',
       },
       {
         name: 'null day, published -> RETRACTED (the signature moment)',
@@ -221,7 +238,7 @@ describe('buildRevealMetrics — counts from a synthetic curve', () => {
   it('marks nothing as published when the player abandoned', () => {
     const m = buildRevealMetrics(fakeDay({}), curve, null, explored, 0);
     expect(m.curve.some((e) => e.published)).toBe(false);
-    expect(m.stamp).toBe('NULL_REPORTED');
+    expect(m.stamp).toBe('CONFIRMED_NULL');
   });
 
   it('flags a spec that was both explored and published on both axes', () => {

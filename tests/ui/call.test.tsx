@@ -29,7 +29,7 @@ function payload(): RevealPayload {
     playerExplored: 14,
     pHitAtK: 0.52,
     curve: [],
-    stamp: 'NULL_REPORTED',
+    stamp: 'CONFIRMED_NULL',
     peeks: 0,
     dayType: 'null',
     trueOutcome: null,

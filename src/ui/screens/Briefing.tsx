@@ -14,6 +14,7 @@ import { useGameStore, type UseGameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { pickGrantwellEmail } from '../../game/briefing';
 import { loadState } from '../../game/storage';
+import { preregUnlockedBy } from '../../game/dayComplete';
 import { localIsoDate, msToNextLocalMidnight } from '../../game/daily';
 import { EmailCard } from '../components/EmailCard';
 import './Briefing.css';
@@ -113,30 +114,57 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   // The guard is expressed as "is any mode still PLAYABLE today", not as
   // "which achievements are unlocked". That framing is deliberate: `dayFinished`
   // means precisely "no mode is still playable", so it stays correct however
-  // availability is later decided. W12 will unlock Prereg Mode on the first
-  // COMPLETED day rather than the first retraction; that edits exactly one
-  // line here, `preregAvailable`'s expression, and the guard composes.
+  // availability is later decided — and W12 has now decided it, twice.
   //
-  // (Stated exactly, because the earlier wording overclaimed: widening
-  // availability DOES legitimately un-finish a day that still has an unspent
-  // prereg attempt — an honest day-one, finished today, would become a
-  // prereg-only chooser. That is a behaviour change, consistent with T18's
-  // existing chooser design, and it is W12's decision to make, not a bug this
-  // guard prevents. What the guard does guarantee is that a mode already
-  // SPENT today can never be re-entered, whatever unlocks it.)
-  const preregAvailable = state.achievements.first_retraction !== undefined;
-  const hackPlayable = !hackPlayedToday;
-  const preregPlayable = preregAvailable && !preregPlayedToday;
+  // §1(j)(1) — WHAT OPENS THE CHOOSER. `first_retraction` is gone from this
+  // expression: the mode that cures p-hacking was gated behind an achievement
+  // only a p-hacker can earn, so the honest player never saw it (GR2: honest
+  // REPLICATED rate 0/30, structurally). The gate is `preregUnlockedBy`, "you
+  // have finished a day" — see its doc comment in game/dayComplete.ts for the
+  // whole reasoning, including why it inherits the practice exemption from the
+  // data instead of restating it.
+  //
+  // §1(j) SAME-DAY REOPENING — THE DELIBERATE DECISION, WHICH IS *NO*.
+  //
+  // W6 left this open and named it W12's to make: widening the unlock
+  // legitimately un-finishes a day that still has an unspent prereg attempt,
+  // so an honest day-one, finished this afternoon, could become a prereg-only
+  // chooser this evening. (The same reopening is already reachable today for
+  // any player who earns `first_retraction`, so this is a decision about
+  // existing behaviour as much as about new behaviour.)
+  //
+  // IT IS REFUSED, and the reason is not budget, it is meaning. Between the
+  // two plays sits Act II, which shows the player the day type, the true
+  // outcome, and the entire enumerated specification curve with every
+  // significant path marked. Preregistering after that is not preregistration;
+  // `prereg.intro` and `summary.preregUpsell` both say so in the product's own
+  // words — "before you see a single number". And the scoring makes the
+  // consequence exact rather than merely inelegant: `scorePrereg` is a
+  // function of `(preregSig, dayType)` and nothing else, so a player returning
+  // from the reveal knows both, can commit a path they have already watched
+  // come back significant, and collects `preregSigEffect` — 150, the largest
+  // single figure in the game — with certainty, every day, forever. A mode
+  // whose whole subject is committing in ignorance cannot be replayable by
+  // someone who has just been shown the answer.
+  //
+  // So the day's mode is chosen ONCE. `briefing.modeChooserIntro` says this to
+  // the player in the same breath as it offers the choice ("One attempt, one
+  // mode."), which is where a rule like this belongs.
+  const preregAvailable = preregUnlockedBy(state.history);
+  const modeSpentToday = hackPlayedToday || preregPlayedToday;
+  const hackPlayable = !modeSpentToday;
+  const preregPlayable = preregAvailable && !modeSpentToday;
 
   // No `!practice` conjunct needed here: it is already carried by
-  // `hackPlayedToday` above, which makes `hackPlayable` unconditionally true
-  // in a practice session — see that definition for the whole reasoning.
+  // `hackPlayedToday`/`preregPlayedToday` above, which make `modeSpentToday`
+  // unconditionally false in a practice session — see those definitions for
+  // the whole reasoning.
   const dayFinished = !hackPlayable && !preregPlayable;
 
   // The chooser itself only makes sense while there is still a choice left
-  // to make today: once prereg is filed, "Open Data" (below) is the only
-  // thing left to do, exactly the pre-unlock experience.
-  const showChooser = preregAvailable && !preregPlayedToday;
+  // to make today: once either mode is spent, the day is finished (above) and
+  // this branch is not reached at all.
+  const showChooser = preregAvailable && !modeSpentToday;
 
   // What the day actually produced, for the finished state's share line.
   //
@@ -241,6 +269,19 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
       ) : showChooser ? (
         <div className="ph-briefing__chooser" data-testid="mode-chooser">
           <p className="ph-briefing__chooser-intro">{t('briefing.modeChooserIntro')}</p>
+          {/* THE PER-OPTION GUARDS ARE KEPT, AND ARE NOW UNREACHABLE BY
+              CONSTRUCTION. `showChooser` already requires `!modeSpentToday`,
+              which is the disjunction of the two booleans below, so neither
+              `disabled` can be true while this block renders and neither
+              status line can appear. They are deliberately not deleted: they
+              are the UI-layer guard against double ENTRY (the persist layer's
+              `alreadySaved` is the separate guard against a double SCORE), and
+              they fail safe against a partially-populated `history[iso]` that
+              no code path in this repo writes but a hand-edited or legacy blob
+              could. Same class as `saveAchievements`'s unreachable
+              changed-tracking, recorded as defensive rather than removed. If a
+              later wave re-widens same-day play, these are what make the
+              chooser correct again without a second decision. */}
           <div className="ph-briefing__chooser-options">
             <div className="ph-briefing__chooser-option">
               <button type="button" className="ph-briefing__cta ph-focusable ph-label" disabled={hackPlayedToday} onClick={openData}>

@@ -130,8 +130,12 @@ export const copy: Record<CopyKey, string> = {
   'briefing.emailFrom': 'Prof. R. Grantwell',
   'briefing.goal': 'Il tuo compito: trovare un effetto statisticamente significativo (p < 0.05) e pubblicarlo.',
 
+  // §1(j): "un tentativo per modalità" prometteva due partite al giorno; la
+  // regola è una sola partita e una sola modalità (v. Briefing.tsx). Stessa
+  // struttura in tre frasi brevi; "una sola" ripetuto perché in italiano è
+  // l'unico modo naturale di dire "one X, one Y" senza suonare telegrafico.
   'briefing.modeChooserIntro':
-    'La preregistrazione è sbloccata. Scegli come giocare oggi. Un tentativo per modalità.',
+    'La preregistrazione è sbloccata. Scegli come giocare oggi. Una sola partita, una sola modalità.',
   // T37: sentence case (rule 3) — Italian does not capitalise a common noun
   // mid-sentence — and one name for the mode, "Preregistrazione", which is
   // what prereg.title, summary.preregUpsell, briefing.modeChooserIntro and
@@ -420,9 +424,22 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RITIRATO',
   'reveal.replicated': 'REPLICATO',
-  // T37: "NULLO RIPORTATO" stamped the English word order onto Italian and
-  // read as a fragment with no head noun.
-  'reveal.nullReported': 'RISULTATO NULLO',
+  // §1(j)(2) — le due sentenze che sostituiscono "RISULTATO NULLO".
+  //
+  // T37 aveva già corretto "NULLO RIPORTATO", che calcava l'ordine inglese e
+  // restava senza testa nominale; la stessa cura vale qui. Participio in
+  // seconda posizione come RITIRATO/REPLICATO: sono esiti, non azioni.
+  //
+  // "NULLO CONFERMATO" — il nullo (il risultato) è confermato: la giornata in
+  // cui il giocatore aveva ragione. Concorda al maschile singolare con
+  // "risultato", sottinteso qui come lo era in T37.
+  //
+  // "MANCATA SCOPERTA" e non "SCOPERTA MANCATA": in italiano "mancato" in
+  // questo senso precede il nome ("mancato pagamento", "mancata consegna");
+  // posposto scivolerebbe verso "una scoperta che è mancata", che è un'altra
+  // cosa. L'ordine è portante, non stilistico.
+  'reveal.confirmedNull': 'NULLO CONFERMATO',
+  'reveal.missedDiscovery': 'MANCATA SCOPERTA',
   'reveal.callCorrect': 'Il tuo verdetto era giusto.',
   'reveal.callIncorrect': 'Il tuo verdetto era sbagliato.',
   // Clinical, not apologetic. GR6 gr6-009 / ruling §1(a): "circa il 5%" was
@@ -595,8 +612,10 @@ export const copy: Record<CopyKey, string> = {
   // l'unica parola piena che la stringa condivisa stampa, e il concetto girava
   // con quattro nomi. Ora la riga 🍴 definisce il termine di cui è il disegno,
   // e questa introduzione dice come stanno insieme la traccia e i conteggi.
+  // §1(i): "a gruppi di cinque" — un lettore che vede uno spazio deve sapere
+  // se lo spazio significa qualcosa. Non significa nulla: è una tacca.
   'legend.intro':
-    'Come si legge un risultato condiviso. La traccia è un simbolo per mossa; i conteggi sotto sono le stesse mosse, sommate.',
+    'Come si legge un risultato condiviso. La traccia è un simbolo per mossa, a gruppi di cinque; i conteggi sotto sono le stesse mosse, sommate.',
   // L'elenco fra parentesi è COMPILATO, non decorativo: findMissingSpecKnobs
   // pretende che contenga alla lettera lab.outcome / lab.subgroup /
   // lab.covariates / lab.exclusion / lab.transform / reveal.tailsOne di QUESTA

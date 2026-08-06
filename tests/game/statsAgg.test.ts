@@ -133,12 +133,17 @@ describe('modeSuccessRate — fraction of days that ended published/replicated, 
     expect(modeSuccessRate([])).toBeNull();
   });
 
-  it('counts REPLICATED and RETRACTED as "success" (something was published), NULL_REPORTED as not', () => {
+  // §1(j)(2): BOTH honest verdicts are excluded from the numerator, and the
+  // mixed set is here rather than two homogeneous ones because the predicate
+  // this figure now reads (`isPublishedStamp`) was previously the fail-open
+  // `stamp !== 'NULL_REPORTED'` — under which MISSED_DISCOVERY would have
+  // counted as a published claim and pushed this percentage up silently.
+  it('counts REPLICATED and RETRACTED as "success" (something was published), and NEITHER honest verdict', () => {
     const records = [
       day({ stamp: 'REPLICATED' }),
       day({ stamp: 'RETRACTED' }),
-      day({ stamp: 'NULL_REPORTED' }),
-      day({ stamp: 'NULL_REPORTED' }),
+      day({ stamp: 'CONFIRMED_NULL' }),
+      day({ stamp: 'MISSED_DISCOVERY' }),
     ];
     expect(modeSuccessRate(records)).toBeCloseTo(0.5);
   });
@@ -148,8 +153,8 @@ describe('modeSuccessRate — fraction of days that ended published/replicated, 
     expect(modeSuccessRate(records)).toBe(1);
   });
 
-  it('is 0 when every day was an honest null report', () => {
-    const records = [day({ stamp: 'NULL_REPORTED' }), day({ stamp: 'NULL_REPORTED' })];
+  it('is 0 when every day reported nothing, whichever honest verdict it earned', () => {
+    const records = [day({ stamp: 'CONFIRMED_NULL' }), day({ stamp: 'MISSED_DISCOVERY' })];
     expect(modeSuccessRate(records)).toBe(0);
   });
 });
