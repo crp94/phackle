@@ -12,10 +12,13 @@ import {
 } from '../../src/game/share';
 import { callIsCorrect } from '../../src/game/scoring';
 import { countForks } from '../../src/game/forkLog';
+import { createGameStore } from '../../src/game/store';
+import { EPOCH, N_SCHEDULE } from '../../src/game/tuning';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import { getContent } from '../../src/content';
 import { copy as enCopy } from '../../src/content/en/copy';
-import type { PlayerAction, Spec } from '../../src/engine/types';
+import type { EngineClient, RevealPayload } from '../../src/engine/protocol';
+import type { PathResult, PlayerAction, Spec } from '../../src/engine/types';
 
 // --- fixtures ----------------------------------------------------------------
 
@@ -415,44 +418,113 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
   // calls at all, so callCorrect is always null, and preregCommit's own log-
   // building never consults the result (§2.6 — nothing is ever shown before
   // commit), so the SAME action log is what a significant day and a
-  // non-significant day both produce. The only way day type (or preregSig)
-  // could leak through shareString at all is if some future caller derived
-  // callCorrect from significance instead of passing the real null — this
-  // test fixes a realistic prereg log pattern and proves that scenario is a
-  // no-op today, then "guards the guard" by showing the assertion IS
-  // sensitive to exactly that leak.
-  it('prereg mode: a FIXED action pattern is byte-identical whether the imagined day was significant or not (callCorrect is null either way — there is no call to leak through)', async () => {
+  // non-significant day both produce.
+  //
+  // gr6-053 / gr1c-024: THIS TEST USED TO BE A TAUTOLOGY. It called
+  // shareString twice with BYTE-IDENTICAL arguments — two hand-built logs, the
+  // same callCorrect: null — and asserted the outputs matched. `f(x) === f(x)`
+  // holds for any deterministic shareString, including one leaking day type
+  // through some other channel entirely, and it held it 300 times a run.
+  // Significance was never an input.
+  //
+  // It is now driven through the REAL path: two `createGameStore()` instances
+  // booted in prereg mode against a fake EngineClient, one whose runSpec
+  // returns a genuinely significant PathResult (valid, p < .05) and one whose
+  // runSpec returns a genuinely non-significant one, each taken all the way
+  // through `preregCommit()` — the production code that builds the log. The
+  // logs the assertion compares are the store's OWN, and significance is
+  // really the only varied input. The stores' divergent `preregResult`/`reveal`
+  // state is asserted first, so a fake that failed to make the day types differ
+  // could not pass this test by making both sides trivially equal.
+  //
+  // 300 draws stay HERE, because this is where fuzzing pays: the committed
+  // spec, puzzle number and streak vary per draw.
+  async function runPreregDay(committed: Spec, significant: boolean) {
+    const result: PathResult = {
+      spec: committed,
+      n: 400,
+      beta: significant ? 0.42 : 0.01,
+      se: 0.05,
+      t: significant ? 8.4 : 0.2,
+      // The exact signal preregCommit reads: `result.valid && result.p < 0.05`.
+      p: significant ? 0.001 : 0.62,
+      ci: significant ? [0.32, 0.52] : [-0.09, 0.11],
+      excludedCount: 0,
+      valid: true,
+    };
+    const reveal: RevealPayload = {
+      totalPaths: 1792,
+      sigPaths: significant ? 900 : 40,
+      sigFraction: significant ? 0.5 : 0.02,
+      playerExplored: 1,
+      pHitAtK: 0.5,
+      curve: [],
+      stamp: significant ? 'REPLICATED' : 'RETRACTED',
+      peeks: 0,
+      dayType: significant ? 'effect' : 'null',
+      trueOutcome: significant ? committed.outcome : null,
+      trueBeta: significant ? 0.4 : 0,
+      hetero: null,
+    };
+    const client: EngineClient = {
+      init: async () => ({ scenarioIndex: 0, n: N_SCHEDULE[0] }),
+      runSpec: async () => result,
+      extend: async () => ({ n: N_SCHEDULE[N_SCHEDULE.length - 1] }),
+      reveal: async () => reveal,
+      onCrash: () => {},
+    };
+
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, { practice: false, mode: 'prereg', scenarioCount: 20 });
+    store.getState().chooseMode('prereg');
+    await store.getState().preregCommit(committed);
+    return store.getState();
+  }
+
+  it('prereg mode: the share string produced by a real preregCommit() on a SIGNIFICANT day is byte-identical to the one produced on a NON-SIGNIFICANT day', async () => {
     const rng = makeLcg(0x9e3779b9);
     const content = await getContent('en');
     const copy = content.copy;
 
     for (let trial = 0; trial < 300; trial++) {
-      // The real preregCommit() log shape: only un-seen VIEW_SPEC entries
-      // (boot's own free one, plus the committed spec's own — see
-      // store.ts's preregCommit doc comment), never a SUBMIT/ABANDON, and
-      // never anything derived from the result itself.
       const committed = pool[Math.floor(rng() * pool.length)];
-      const log: PlayerAction[] = [view(pool[0], false, 0), view(committed, false, 1)];
       const puzzleNumber = 1 + Math.floor(rng() * 500);
       const streak = Math.floor(rng() * 60);
 
-      // Summary.tsx's real wiring: `call` stays null regardless of
-      // preregSig (Prereg Mode never makes a call at all) — so this is the
-      // SAME callCorrect: null for both the "significant" and
-      // "non-significant" imagined day, because that IS the real contract,
-      // not a simplifying assumption.
-      const asIfSignificant = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: null, streak, copy });
-      const asIfNonSignificant = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: null, streak, copy });
-      expect(asIfSignificant).toBe(asIfNonSignificant);
+      const sigDay = await runPreregDay(committed, true);
+      const nullDay = await runPreregDay(committed, false);
 
-      // Guards the guard: this must be a REAL leak channel, not a vacuous
-      // check — if a future regression derived callCorrect from
-      // significance (the exact bug class this test exists to catch:
-      // "sig -> true -> ⚖️✅", "non-sig -> false -> ⚖️❌"), the two outputs
-      // would visibly differ, proving the assertion above is meaningful.
-      const leakedIfSig = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: true, streak, copy });
-      const leakedIfNonSig = shareString({ puzzleNumber, log, mode: 'prereg', callCorrect: false, streak, copy });
-      expect(leakedIfSig).not.toBe(leakedIfNonSig);
+      // The two days really ARE different days — asserted before comparing the
+      // share strings, so this can never quietly degrade back into f(x)===f(x)
+      // by both sides becoming the same run.
+      expect(sigDay.preregResult?.p).toBeLessThan(0.05);
+      expect(nullDay.preregResult?.p).toBeGreaterThan(0.05);
+      expect(sigDay.reveal?.stamp).not.toBe(nullDay.reveal?.stamp);
+      expect(sigDay.reveal?.dayType).not.toBe(nullDay.reveal?.dayType);
+
+      // Summary.tsx's real wiring: `call` stays null regardless of preregSig
+      // (Prereg Mode never makes a call at all). Everything else on both sides
+      // is the store's own output for its own day.
+      const fromSig = shareString({ puzzleNumber, log: sigDay.log, mode: 'prereg', callCorrect: null, streak, copy });
+      const fromNull = shareString({ puzzleNumber, log: nullDay.log, mode: 'prereg', callCorrect: null, streak, copy });
+      expect(fromSig).toBe(fromNull);
     }
+  });
+
+  // The other half of the old test, kept because it is NOT vacuous — but run
+  // ONCE rather than 300 times, because it proves a different proposition and
+  // has no random input to fuzz. If a future regression derived callCorrect
+  // from significance (the exact bug class: "sig -> true -> ⚖️✅",
+  // "non-sig -> false -> ⚖️❌"), the two outputs would visibly differ — which
+  // is what makes the null-callCorrect contract above load-bearing rather than
+  // decorative.
+  it('callCorrect IS a real leak channel: the same prereg log with callCorrect true vs false produces different strings', async () => {
+    const content = await getContent('en');
+    const copy = content.copy;
+    const log: PlayerAction[] = [view(pool[0], false, 0), view(pool[1], false, 1)];
+
+    const leakedIfSig = shareString({ puzzleNumber: 7, log, mode: 'prereg', callCorrect: true, streak: 3, copy });
+    const leakedIfNonSig = shareString({ puzzleNumber: 7, log, mode: 'prereg', callCorrect: false, streak: 3, copy });
+    expect(leakedIfSig).not.toBe(leakedIfNonSig);
   });
 });
