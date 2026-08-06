@@ -52,12 +52,16 @@ function assertFontsResolvable(families) {
   try {
     fcList = execFileSync('fc-list', [], { encoding: 'utf8' });
   } catch (err) {
-    const cause = err instanceof Error ? err.message : String(err);
+    const detail = err instanceof Error ? err.message : String(err);
     throw new Error(
       `generate-pwa-images.mjs: could not run \`fc-list\` to verify the pinned font families ` +
-        `(${families.map((f) => `"${f}"`).join(', ')}) are installed on this machine (${cause}). ` +
+        `(${families.map((f) => `"${f}"`).join(', ')}) are installed on this machine (${detail}). ` +
         'Install fontconfig (Debian/Ubuntu: `apt-get install fontconfig`) so `fc-list` is on PATH, then re-run. ' +
         'Without this check, a missing family silently falls back to an arbitrary system font instead of failing loudly.',
+      // gr6-117: this file is now linted (eslint.config.js's **/*.mjs block);
+      // `preserve-caught-error` correctly wants the original ENOENT/spawn
+      // failure kept, not just its message spliced into a string.
+      { cause: err },
     );
   }
   const missing = families.filter((family) => !fcList.includes(family));
