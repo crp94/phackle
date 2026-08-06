@@ -193,12 +193,6 @@ const ROSTER_KEPT: Record<string, string> = {
  * here acquires a call site, this suite fails until the entry is removed.
  */
 const ROSTER_PENDING: Record<string, string> = {
-  'nav.tagline':
-    'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
-  'about.sectionHowItWorks': 'gr6-036 — About.tsx, <h2> over about.mechanism + about.frozenFork. W7.',
-  'about.sectionNotReal': 'gr6-036 — About.tsx, <h2> over about.syntheticDisclaimer + about.decimalNote (which moves here). W7.',
-  'about.sectionYourData': 'gr6-036 — About.tsx, <h2> over about.dataDisclosure. W7.',
-  'about.sectionPriorArt': 'gr6-036 — About.tsx, <h2> over about.priorArt and the five citations. W7.',
   'summary.playPrereg':
     'RETIRED, not pending: W6 (gr6-020) deleted the button this labelled. Blocked on tests/ui/summary.test.tsx:285,837, which still name the key to pin the CTA\'s absence and belong to W7 this round. W7 re-pins those structurally, then deletes the key from all three catalogs and this roster.',
 };

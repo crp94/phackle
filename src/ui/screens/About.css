@@ -14,6 +14,29 @@
   margin: 0;
 }
 
+/* gr6-026/gr6-037 — the standfirst: `nav.tagline`, between the <h1> and the
+   body, which is where a line that summarises a title goes in the manuscript
+   idiom this page is set in.
+
+   IT IS DISTINGUISHED BY WEIGHT AND ATTACHMENT, NOT BY COLOUR OR SIZE, and
+   both of those were deliberate refusals. --muted would have been the obvious
+   reach and is wrong twice over: R1.2's --muted list is captions, footnotes,
+   axis labels and the quiet null action, and a standfirst is none of those —
+   it is the most load-bearing sentence on the page, not an aside. A sixth
+   size is not available either (R2.2 closes the scale at five). So it takes
+   the prose size and the second of R2.3's two weights, and --space-8 rather
+   than the paragraph rhythm's --space-16: sitting tighter to the <h1> than
+   the body does is what makes it read as belonging to the title. */
+.ph-about__standfirst {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  max-width: var(--measure);
+  margin: var(--space-8) 0 0;
+}
+
 .ph-about__subtitle {
   font-family: var(--font-display);
   font-size: var(--text-22);
