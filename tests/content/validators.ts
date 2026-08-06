@@ -671,6 +671,15 @@ export function validateLocaleContent(
   problems.push(...findPressTokens(content));
   problems.push(...findParamFieldTokens(content));
 
+  // gr3-024 — the matrix, at the granularity the picker selects on. Sits here
+  // rather than beside T39a's per-scenario check because they are the same law
+  // at two resolutions and only this one is load-bearing: `resolveSlot` filters
+  // by tier first, so a scenario covered at one tier still renders a wholly
+  // generic page at the other two. Every locale inherits it from here.
+  for (const cell of findUncoveredPressCells(content)) {
+    problems.push(`press cell "${cell}" has no scenario-bound blurb (gr3-024: the guarantee is per (scenario, tier))`);
+  }
+
   // The em-dash budget is language-independent (it counts one character), so
   // unlike the two lexicons it needs no per-locale argument.
   problems.push(...findEmDashProblems(content));

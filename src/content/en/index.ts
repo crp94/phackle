@@ -593,6 +593,86 @@ export const content: LocaleContent = {
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
     },
+    // ---- gr3-024, the 60-cell matrix: the twelve tier-1 cells T39a left
+    // empty. Prestige register, same as the block above: the outlet has read
+    // the METHOD and reports it straight, in the third person, with no second
+    // person anywhere and no invitation to the reader. What makes these funny
+    // is the sincerity — the sentence a serious paper would write about a
+    // study that should not exist. 'Morning Chirp' carries four of them
+    // deliberately: it is the one tier-1 masthead with no generic entries, so
+    // a bespoke card under it can never collide with its own follow-up. ----
+    {
+      text: 'A full fiscal quarter of an internal poetry channel was scored blind by English-department alumni. The panel was paid in pizza, which the authors disclose.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Starter logs were matched to chip times across twelve weeks. The authors are careful to call the hypothesis behavioral rather than nutritional.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'One department received a 340-hour playlist and the other its usual silence. Every cell of both sets of quarterly models went through an independent audit tool.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'A single Boston fern sat in each procurement office for one full contracting cycle. The closed terms were then obtained in every case, several of them after considerable pleading.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Shower temperature was self-logged each morning and six weeks of outgoing mail scored by coders blind to condition. Enrollment proceeded in waves, as the plumbing allowed.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'A logger recorded every parking search from street entry to engine-off. Neither group was told what the study was looking for, and the two participants who guessed were not close.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'Eighteen months of hardware procurement records were matched line by line to eighteen months of issue trackers. Eleven engineering teams opened both sets to the researchers.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'Pet names were hand-classified against a reference list of economists and matched to two years of audited account statements. The classification queue, the authors concede, is not yet empty.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'One screening question preceded a quarter of instrumented mail clients. The instrument counts metadata only, a point the methods section makes three times.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'A research assistant attended each dinner introduced as a colleague from work, recording arrivals, departures and what the guests carried in. The wine was not available for analysis.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'A battery of everyday number preferences was scored and matched to the mortgage terms actually signed. The broker who obtains those terms has asked not to be named.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: 'An extension recorded a daily tab count and nothing else, a limitation the authors accept for recruitment reasons. Every self-reported project required a working public link.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
     // ---- TIER 2: aggregator-grade. The midmarket outlet has read the
     // abstract and made it about the reader. ----
     { text: 'One weird trick statisticians PUBLISH with.', outlet: 'The Daily Scroll', tier: 2 },

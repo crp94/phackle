@@ -584,6 +584,83 @@ export const content: LocaleContent = {
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
     },
+    // gr3-024, the 60-cell matrix: the twelve tier-1 cells, transcreated off
+    // the ITALIAN scenarios. Prestige register, third person, the method
+    // reported straight and without a second person anywhere; the joke is the
+    // sincerity. Il Cinguettio del Mattino carries four of them because it is
+    // the one masthead at this tier with no generic entries.
+    {
+      text: 'Un intero trimestre fiscale di canale di poesia aziendale è stato valutato alla cieca da ex studenti di Lettere. La giuria è pagata in pizza, cosa che gli autori dichiarano.',
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: "I diari del lievito sono stati incrociati con i tempi del chip lungo dodici settimane. Gli autori tengono a definire l'ipotesi comportamentale e non nutrizionale.",
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: "Un reparto ha ricevuto una playlist di 340 ore e l'altro il suo solito silenzio. Ogni cella dei modelli trimestrali di entrambi è passata in uno strumento di revisione indipendente.",
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'Una singola felce di Boston è rimasta in ogni ufficio acquisti per un intero ciclo di gare. Le condizioni finali sono poi arrivate in tutti i casi, parecchie dopo molte insistenze.',
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: "La temperatura della doccia è stata registrata ogni mattina e sei settimane di posta in uscita valutate da codificatori in cieco. Le iscrizioni sono proseguite a ondate, per quanto lo consentisse l'impianto idraulico.",
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: "Un registratore ha tracciato ogni ricerca di parcheggio dall'ingresso in strada allo spegnimento del motore. Ai due gruppi non è stato detto che cosa si cercasse, e i due che hanno indovinato non ci sono andati vicino.",
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'Diciotto mesi di ordini hardware sono stati incrociati riga per riga con diciotto mesi di ticket. Undici team di sviluppo hanno aperto ai ricercatori entrambi gli archivi.',
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'I nomi degli animali sono stati classificati a mano su un elenco di economisti e incrociati con due anni di estratti conto certificati. La coda della classificazione non è ancora smaltita.',
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Una sola domanda di selezione ha preceduto un trimestre di client di posta con sonda. La sonda conta soltanto metadati, punto che la sezione metodi ribadisce tre volte.',
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'A ogni cena era presente un assistente di ricerca, presentato come un collega di lavoro, che registrava arrivi, uscite e che cosa portavano gli ospiti. Il vino non era disponibile per l\'analisi.',
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'Una batteria di domande sulle preferenze numeriche di tutti i giorni è stata incrociata con le condizioni di mutuo davvero firmate. Il broker che ottiene quelle condizioni ha chiesto di non essere nominato.',
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: "Un'estensione ha registrato il numero di schede del giorno e nient'altro, un limite che gli autori accettano per ragioni di reclutamento. Ogni progetto dichiarato richiedeva un link pubblico funzionante.",
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
     { text: 'Lo strano trucco con cui gli statistici PUBBLICANO.', outlet: 'Lo Scroll Quotidiano', tier: 2 },
     {
       text: 'La tua sedia da ufficio ti sta costando un Premio Strega? Gli esperti si pronunciano.',

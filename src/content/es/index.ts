@@ -569,6 +569,83 @@ export const content: LocaleContent = {
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
     },
+    // gr3-024, the 60-cell matrix: the twelve tier-1 cells, transcreated off
+    // the SPANISH scenarios. Prestige register, third person, the method
+    // reported straight with no second person anywhere; the joke is the
+    // sincerity. El Trino Matinal carries four of them because it is the one
+    // cabecera at this tier with no generic entries.
+    {
+      text: 'Un trimestre fiscal entero del canal interno de poesía se puntuó a ciegas con un jurado de licenciados en Filología. Al jurado se le paga en pizza, cosa que los autores declaran.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Los cuadernos de masa madre se cruzaron con los tiempos de chip a lo largo de doce semanas. Los autores insisten en llamar conductual y no nutricional a la hipótesis.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'Un departamento recibió una lista de 340 horas y el otro su silencio de siempre. Cada celda de los modelos trimestrales de ambos pasó por una herramienta de auditoría independiente.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'Un único helecho de Boston permaneció en cada despacho de compras durante un ciclo de contratación completo. Las condiciones finales llegaron en todos los casos, varias tras considerable insistencia.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'La temperatura de la ducha se anotó cada mañana y seis semanas de correo saliente las puntuaron personas que desconocían la condición asignada. Las altas avanzaron por oleadas, según lo permitía la fontanería.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'Un registrador anotó cada búsqueda de aparcamiento desde la entrada en la calle hasta el apagado del motor. A ninguno de los dos grupos se le dijo qué se buscaba, y los dos que lo adivinaron no se acercaron.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'Dieciocho meses de registros de compra de hardware se cruzaron línea a línea con dieciocho meses de gestores de incidencias. Once equipos de ingeniería abrieron los dos archivos a los investigadores.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'Los nombres de las mascotas se clasificaron a mano contra una lista de referencia de economistas y se cruzaron con dos años de extractos auditados. La cola de clasificación, admiten los autores, todavía no está vacía.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Una única pregunta de cribado precedió a un trimestre de clientes de correo instrumentados. El instrumento cuenta metadatos y nada más, algo que el apartado de método repite tres veces.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'En cada cena hubo un ayudante de investigación presentado como un compañero del trabajo, que anotó llegadas, salidas y qué llevaban los invitados. El vino no estaba disponible para su análisis.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'Una batería de preferencias numéricas cotidianas se cruzó con las condiciones hipotecarias efectivamente firmadas. El intermediario que consigue esas condiciones ha pedido no ser nombrado.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: 'Una extensión registró un recuento diario de pestañas y nada más, una limitación que los autores aceptan por motivos de reclutamiento. Cada proyecto declarado exigía un enlace público que funcionara.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
     { text: 'El truco raro con el que los estadísticos PUBLICAN.', outlet: 'El Scroll Diario', tier: 2 },
     {
       text: '¿Tu silla de oficina te está costando un Premio Nacional? Los expertos opinan.',

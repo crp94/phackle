@@ -448,17 +448,22 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
  * days, and why three of six live days driven through the real UI rendered no
  * scenario-bound press at all.
  *
- * A RATCHET WHILE THE WAVE IS IN FLIGHT, A LAW WHEN IT LANDS. The matrix is
- * authored tier by tier (tier 2, then tier 3, then tier 1; English first, then
- * the transcreation), so a hard 60 would be red for five of the six commits and
- * would tell nobody anything they did not already know. MIN_COVERED_CELLS rises
- * once per tier pair and the final commit both sets it to 60 and wires
- * `findUncoveredPressCells` into `validateLocaleContent`, where every locale
- * inherits it. The asymmetry is the point, exactly as in the dosage ratchets:
- * filling a cell early passes silently, emptying one fails.
+ * A RATCHET WHILE THE WAVE WAS IN FLIGHT, A LAW NOW THAT IT HAS LANDED. The
+ * matrix was authored tier by tier (tier 2, then tier 3, then tier 1), and a
+ * hard 60 would have been red for two of the three commits while telling nobody
+ * anything they did not already know, so MIN_COVERED_CELLS rose once per tier:
+ * 37, then 48, now 60. At 60 it stops being a ratchet — the final commit wires
+ * `findUncoveredPressCells` into `validateLocaleContent`, where all three
+ * locales inherit it as a hard law and an emptied cell is a validator problem
+ * rather than a number that drifted.
+ *
+ * The ratchet stays alongside the law on purpose. It is the assertion that
+ * prints WHICH cells are missing when the corpus is mid-edit, and it is the one
+ * a future scenario addition (a 21st scenario is three new cells) will fail
+ * first, with the list in the message.
  */
 describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
-  const MIN_COVERED_CELLS = 48;
+  const MIN_COVERED_CELLS = 60;
 
   const LOCALES = [
     { name: 'en', content: enContent },
@@ -503,6 +508,11 @@ describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
     expect(findUncoveredPressCells(emptied)).toContain('cat-crypto/tier2');
     expect(findScenariosWithoutPress(emptied)).toEqual([]);
     expect(findUncoveredPressCells(enContent)).not.toContain('cat-crypto/tier2');
+    // ...and the law reaches the validator, which is the only entry point the
+    // Italian and Spanish suites call. Without this the matrix would be an
+    // English-only guarantee, which is the fix-round-1 [I1] defect exactly.
+    expect(validateLocaleContent(emptied, EN_LEXICONS).some((p) => p.includes('cat-crypto/tier2'))).toBe(true);
+    expect(validateLocaleContent(enContent, EN_LEXICONS)).toEqual([]);
   });
 
   /**

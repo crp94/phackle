@@ -211,12 +211,26 @@ describe('pickPress (T6 review adoption: prefer scenario-bound, tier-matched; el
     }
   });
 
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4). This test used to reach for
+   * 'sourdough-marathon' at tier 1 as a live example of a cell with no bound
+   * blurb, on T39a's reasoning that "a tier is a VOICE, not a volume knob, and
+   * not every scenario's material is funny read straight by a broadsheet".
+   * §1(g) overturned that: the empty cells were measured to leave the press
+   * page wholly generic on 55-58% of days, and the 60-cell matrix fills all of
+   * them, so no scenario in the shipped bank is a fallback case any more.
+   *
+   * The BRANCH is still there and still has to work — `resolveSlot`'s
+   * preference is a preference and not a filter, precisely so that a future
+   * bank with a hole in it still yields a first card rather than crashing the
+   * celebration screen. So the fixture is now synthetic, which is the stronger
+   * form anyway: it exercises the branch on purpose instead of depending on a
+   * gap in the corpus that nobody had promised to keep.
+   */
   it('falls back to the scenario-agnostic tier-matched pool when no scenario-bound blurb exists at this tier', () => {
-    // T39a gave 'sourdough-marathon' a bound blurb at tier 2 (the flour co-op
-    // line) and deliberately none at tier 1: a tier is a VOICE, not a volume
-    // knob, and not every scenario's material is funny read straight by a
-    // broadsheet. Tier 1 is therefore still a genuine fallback case here.
-    const picked = pickPress(enContent.press, 1, 'sourdough-marathon', ISO);
+    const withHole = enContent.press.filter((p) => !(p.tier === 1 && isBoundTo(p, 'sourdough-marathon')));
+    expect(withHole.length).toBeLessThan(enContent.press.length);
+    const picked = pickPress(withHole, 1, 'sourdough-marathon', ISO);
     expect(picked.tier).toBe(1);
     expect(picked.scenarioIds ?? []).toHaveLength(0);
   });
