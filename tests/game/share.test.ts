@@ -5,6 +5,7 @@ import {
   CALL_CORRECT,
   CALL_INCORRECT,
   FORK_EMOJI,
+  FORK_GROUP_SIZE,
   PREREG_PREFIX,
   SITE_URL,
   SUBMIT_EMOJI,
@@ -55,10 +56,19 @@ function abandon(at: number): PlayerAction {
 // print 🍴) and are kept in this tokenizer deliberately: it must stay total
 // over any trail, including one restored from a pre-T29 saved share string.
 const EMOJI_TOKENS = ['🧾', '🎯', '🔪', '🌗', '🍴', '➕', '📄', '🏳️'];
+/** Tokenizes the GLYPHS. §1(i)'s group separator (U+0020) is dropped rather
+ * than tokenized: every caller below is counting or ordering markers, and a
+ * separator is neither. The group SHAPE — where the spaces fall — is pinned
+ * by its own describe block further down, so nothing about the chunking is
+ * left unasserted by this omission. */
 function tokenizeTrail(trail: string): string[] {
   const tokens: string[] = [];
   let rest = trail;
   outer: while (rest.length > 0) {
+    if (rest.startsWith(' ')) {
+      rest = rest.slice(1);
+      continue;
+    }
     for (const tok of EMOJI_TOKENS) {
       if (rest.startsWith(tok)) {
         tokens.push(tok);
@@ -83,7 +93,10 @@ describe('shareString — §2.9 layout', () => {
     const out = shareString({ puzzleNumber: 5, log, mode: 'hack', callCorrect: true, streak: 1, copy: enCopy });
     const lines = out.split('\n');
     expect(lines).toHaveLength(4);
-    expect(lines[0]).toBe('P-hackle #5');
+    // §1(i): line 1 is the brand + issue number, then the catalog's own
+    // tagline as the hook. The brand half stays a literal (invariant); the
+    // hook half is read from the same `copy` bundle line 3 reads.
+    expect(lines[0]).toBe(`P-hackle #5 · ${enCopy['nav.tagline']}`);
     expect(lines[3]).toBe(SITE_URL);
   });
 
@@ -126,7 +139,7 @@ describe('shareString — §2.9 layout', () => {
   it('the real preregCommit shape (a single un-seen VIEW_SPEC, no SUBMIT/ABANDON at all) still ends in exactly one 📄, with no ⚖️ suffix at all', () => {
     const log: PlayerAction[] = [view(spec(), false, 0)];
     const out = shareString({ puzzleNumber: 1, log, mode: 'prereg', callCorrect: null, streak: 0, copy: enCopy });
-    expect(out.split('\n')[1]).toBe('🧾📄');
+    expect(out.split('\n')[1]).toBe('🧾 📄');
   });
 
   it('hack mode never prefixes with 🧾', () => {
@@ -239,7 +252,14 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
   // day, in the one string that leaves the app. Same two numbers, same two
   // localized words, same absence of any day-type input: this assertion is
   // repointed for the new punctuation and nothing else.
-  it('🍴🍴🍴🍴➕🍴📄 → ⚖️✅ / Forks: 6 · Streak: 12 / SITE_URL', () => {
+  //
+  // §1(i) (owner ruling, documented at share.ts's `groupForkRun` and
+  // `shareString`): line 1 gains the tagline hook and line 2's fork run is
+  // grouped in fives. Six forks is one full group and one of one, so this
+  // sample now prints "🍴🍴🍴🍴➕ 🍴 📄". Same log, same transitions, same six
+  // markers in the same order, same terminal, same call suffix — repointed
+  // for the two typographic rulings and nothing else.
+  it('🍴🍴🍴🍴➕ 🍴 📄 → ⚖️✅ / Forks: 6 · Streak: 12 / SITE_URL', () => {
     const s0 = spec();
     const s1 = spec({ outcome: 1 }); // only outcome differs from s0 -> 'spec' (🍴)
     const s2 = spec({ outcome: 1, subgroup: 'urban' }); // only subgroup differs from s1 -> 'subgroup' (🍴)
@@ -262,7 +282,12 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
 
     const out = shareString({ puzzleNumber: 37, log, mode: 'hack', callCorrect: true, streak: 12, copy: enCopy });
     expect(out).toBe(
-      ['P-hackle #37', '🍴🍴🍴🍴➕🍴📄 → ⚖️✅', 'Forks: 6 · Streak: 12', SITE_URL].join('\n')
+      [
+        `P-hackle #37 · ${enCopy['nav.tagline']}`,
+        '🍴🍴🍴🍴➕ 🍴 📄 → ⚖️✅',
+        'Forks: 6 · Streak: 12',
+        SITE_URL,
+      ].join('\n')
     );
   });
 
@@ -285,6 +310,139 @@ describe('reproduces the master spec §2.9 illustrative sample', () => {
       CALL_INCORRECT,
     ]);
     expect(vocabulary.size).toBe(7);
+  });
+});
+
+// --- §1(i): the run is grouped, and line 1 has a hook ------------------------
+
+describe('§1(i) — the fork run is read as groups of five, and line 1 says what the game is', () => {
+  // A log with EXACTLY k counted forks: one free default view, then k seen
+  // changes alternating between two specs (each transition is a real
+  // `classifyChange` fork), then a terminal. Built from real Spec transitions
+  // so `countForks` — the number line 3 prints — is the same k by the same
+  // rule the walk uses, not by arithmetic performed here.
+  function logWithForks(k: number, terminal: 'submit' | 'abandon' = 'submit'): PlayerAction[] {
+    const log: PlayerAction[] = [view(spec(), false, 0)];
+    for (let i = 0; i < k; i++) log.push(view(spec({ outcome: (i % 2) + 1 }), true, i + 1));
+    log.push(terminal === 'submit' ? submit(spec({ outcome: (k % 2) + 1 }), k + 1) : abandon(k + 1));
+    return log;
+  }
+
+  function line2Of(log: PlayerAction[], mode: 'hack' | 'prereg' = 'hack'): string {
+    return shareString({ puzzleNumber: 12, log, mode, callCorrect: null, streak: 4, copy: enCopy }).split('\n')[1];
+  }
+
+  /** The parts of line 2 that are runs of fork glyphs — i.e. everything
+   * except the prefix and the terminal, which are their own parts. */
+  function forkGroupsOf(line2: string): string[] {
+    return line2
+      .split(' ')
+      .filter((part) => part !== PREREG_PREFIX && part !== SUBMIT_EMOJI && part !== ABANDON_EMOJI);
+  }
+
+  it('the group size is five — the largest run a reader takes in without counting', () => {
+    expect(FORK_GROUP_SIZE).toBe(5);
+  });
+
+  it.each([0, 1, 4, 5, 6, 10, 11, 43, 60])('%i forks: every group but the last is full, and the last is never empty', (k) => {
+    const log = logWithForks(k);
+    expect(countForks(log)).toBe(k);
+    const groups = forkGroupsOf(line2Of(log));
+    expect(groups).toHaveLength(Math.ceil(k / FORK_GROUP_SIZE));
+    groups.forEach((group, i) => {
+      const size = tokenizeTrail(group).length;
+      if (i < groups.length - 1) expect(size).toBe(FORK_GROUP_SIZE);
+      else expect(size).toBeGreaterThanOrEqual(1);
+      expect(size).toBeLessThanOrEqual(FORK_GROUP_SIZE);
+    });
+  });
+
+  // The measured worst case in the finding (gr2-010: 0-60 forks over 32 days
+  // x 3 models) spelled out, because it is the day the ruling was about.
+  it('the 43-fork day is eight full groups and a three — one readable object, not a wall', () => {
+    const line2 = line2Of(logWithForks(43));
+    expect(forkGroupsOf(line2).map((g) => tokenizeTrail(g).length)).toEqual([5, 5, 5, 5, 5, 5, 5, 5, 3]);
+    expect(line2.endsWith(` ${SUBMIT_EMOJI}`)).toBe(true);
+  });
+
+  // THE CAP WAS DECLINED (see groupForkRun's doc comment for the three
+  // reasons). This is the guard on that decision: a future edit that quietly
+  // truncates the run to keep the line short loses glyphs here, and the
+  // failure names the count.
+  it('nothing is ever truncated: a sixty-fork day still prints sixty fork glyphs', () => {
+    const log = logWithForks(60);
+    const tokens = tokenizeTrail(line2Of(log));
+    expect(tokens.filter((t) => t === FORK_EMOJI.spec)).toHaveLength(60);
+    expect(tokens).toHaveLength(61); // 60 forks + the terminal
+    expect(line2Of(log)).not.toContain('+');
+  });
+
+  // Separator hygiene across the whole plausible range, both modes, both
+  // terminals: no leading space, no trailing space, no doubled space, and
+  // never a space inside a group. Zero forks is included in the sweep, which
+  // is where a naive join produces `🧾  📄`.
+  it('no leading, trailing or doubled space at any fork count, in either mode, with either terminal', () => {
+    for (let k = 0; k <= 62; k++) {
+      for (const mode of ['hack', 'prereg'] as const) {
+        for (const terminal of ['submit', 'abandon'] as const) {
+          const line2 = line2Of(logWithForks(k, terminal), mode);
+          expect(line2, `k=${k} mode=${mode} terminal=${terminal}: ${JSON.stringify(line2)}`).not.toMatch(
+            /^ | $| {2}/
+          );
+        }
+      }
+    }
+  });
+
+  it('grouping is presentation only: strip the separators and the ungrouped trail is exactly there', () => {
+    for (let k = 0; k <= 30; k++) {
+      const log = logWithForks(k);
+      const ungrouped = tokenizeTrail(line2Of(log)).join('');
+      expect(line2Of(log).replace(/ /g, '')).toBe(ungrouped);
+      // ...and the count line still agrees with the glyphs, which is the
+      // invariant grouping could most easily have broken.
+      expect(tokenizeTrail(line2Of(log))).toHaveLength(countForks(log) + 1);
+    }
+  });
+
+  it('a zero-fork prereg day is 🧾 📄 and a zero-fork abandoned hack day is just 🏳️', () => {
+    expect(line2Of(logWithForks(0), 'prereg')).toBe(`${PREREG_PREFIX} ${SUBMIT_EMOJI}`);
+    expect(line2Of(logWithForks(0, 'abandon'), 'hack')).toBe(ABANDON_EMOJI);
+  });
+
+  it('line 1 carries the LOCALE’s own tagline, and the brand half stays invariant', async () => {
+    for (const locale of AVAILABLE_LOCALES) {
+      const content = await getContent(locale);
+      const line1 = shareString({
+        puzzleNumber: 88,
+        log: logWithForks(2),
+        mode: 'hack',
+        callCorrect: true,
+        streak: 3,
+        copy: content.copy,
+      }).split('\n')[0];
+      expect(line1).toBe(`P-hackle #88 · ${content.copy['nav.tagline']}`);
+      expect(line1.startsWith('P-hackle #88 · ')).toBe(true);
+      // The hook is a real sentence, not an empty or placeholder value: the
+      // whole point of the row is that a stranger reads a content word.
+      expect(content.copy['nav.tagline'].length).toBeGreaterThan(10);
+    }
+  });
+
+  // The hook must not become a second channel. It takes no day input at all —
+  // pinned here directly (constant across every other varying argument) as
+  // well as by the 300-draw property test below, which compares whole strings.
+  it('line 1 varies with the puzzle number and NOTHING else the day decides', () => {
+    const a = shareString({ puzzleNumber: 4, log: logWithForks(1), mode: 'hack', callCorrect: true, streak: 0, copy: enCopy });
+    const b = shareString({ puzzleNumber: 4, log: logWithForks(9), mode: 'prereg', callCorrect: null, streak: 41, copy: enCopy });
+    expect(a.split('\n')[0]).toBe(b.split('\n')[0]);
+  });
+
+  // §2.9's line-3 ruling is untouched by either half of §1(i): still exactly
+  // the two figures, still no third.
+  it('line 3 still takes only forks and streak', () => {
+    const out = shareString({ puzzleNumber: 3, log: logWithForks(7), mode: 'hack', callCorrect: false, streak: 9, copy: enCopy });
+    expect(out.split('\n')[2]).toBe('Forks: 7 · Streak: 9');
   });
 });
 

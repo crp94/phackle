@@ -474,11 +474,16 @@ describe('share — 🧾 prefix (T13\'s pipeline, fired by a real mode:"prereg" 
   // Post-review fix: asserts the FULL line 2, not just the prefix.
   // preregCommit() never logs a SUBMIT/ABANDON (§2.6 — always run &
   // reported, never abandoned) and never makes a call (§2.8 — no CALL step),
-  // so the real, correct output is exactly "🧾📄" — no fork glyphs (both
+  // so the real, correct output is exactly "🧾 📄" — no fork glyphs (both
   // VIEW_SPEC entries are seen:false, so neither counts, §2.10) and NO
   // "→ ⚖️…" suffix at all (callCorrect must reach shareString as null, not
   // be coerced to a boolean).
-  it('a full prereg day produces a share string line 2 of exactly 🧾📄 — no fork glyphs, no ⚖️ call marker', async () => {
+  //
+  // §1(i): the prefix and the terminal are separated by U+0020 now, because
+  // the fork run between them is grouped and a terminal glued to the last
+  // group would read as part of it. Repointed for the separator only — the
+  // proposition (prefix + terminal, nothing else) is the same one.
+  it('a full prereg day produces a share string line 2 of exactly 🧾 📄 — no fork glyphs, no ⚖️ call marker', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock)
       .mockResolvedValueOnce(makeResult())
@@ -508,6 +513,6 @@ describe('share — 🧾 prefix (T13\'s pipeline, fired by a real mode:"prereg" 
 
     expect(s.mode).toBe('prereg');
     expect(s.call).toBeNull();
-    expect(result.shareText.split('\n')[1]).toBe('🧾📄');
+    expect(result.shareText.split('\n')[1]).toBe('🧾 📄');
   });
 });

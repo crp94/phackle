@@ -41,9 +41,18 @@ export interface ForkTrailProps {
  * The Lab's trail carries no terminal 📄/🏳️ marker: it is by definition
  * mid-play, before any SUBMIT or ABANDON has happened. That difference is
  * exactly what stays here, at the call site, which is why the exported walker
- * covers only the fork/peek run. */
+ * covers only the fork/peek run.
+ *
+ * §1(i) — AND THE LIVE STRIP IS NOT GROUPED, deliberately. The walker now
+ * returns one element per fork so that `share.ts` can group the run in fives
+ * (a shared string is read cold, by a stranger, with nothing else on screen).
+ * This strip is read by the player who is making the forks, one at a time,
+ * next to the count it belongs to and inside a control that already scrolls;
+ * it has never been the surface the finding measured. Joining straight back
+ * together is therefore the whole of this call site's difference, and it is
+ * stated rather than left as an accident of an unchanged line. */
 function buildLiveTrail(log: PlayerAction[], prereg: boolean): string {
-  return (prereg ? PREREG_PREFIX : '') + walkForkGlyphs(log);
+  return (prereg ? PREREG_PREFIX : '') + walkForkGlyphs(log).join('');
 }
 
 /**

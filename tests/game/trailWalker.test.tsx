@@ -61,9 +61,10 @@ afterEach(cleanup);
 
 describe('walkForkGlyphs (gr6-092) — one walk, two consumers, one answer', () => {
   it.each(Object.entries(MID_PLAY_LOGS))('%s: one glyph per counted fork, matching countForks exactly', (_label, log) => {
-    // Both glyphs are single-codepoint-plus-nothing (🍴, ➕), so Array.from
-    // counts markers rather than UTF-16 units.
-    expect(Array.from(walkForkGlyphs(log))).toHaveLength(countForks(log));
+    // §1(i): the walker returns ONE ELEMENT PER FORK, so this is a plain
+    // length check — no Array.from, no UTF-16 arithmetic, and no way for a
+    // surrogate pair to be miscounted by either consumer.
+    expect(walkForkGlyphs(log)).toHaveLength(countForks(log));
   });
 
   it.each(Object.entries(MID_PLAY_LOGS))('%s: the Lab renders exactly the walker\'s output', async (_label, log) => {
@@ -76,7 +77,7 @@ describe('walkForkGlyphs (gr6-092) — one walk, two consumers, one answer', () 
     const rendered = document.querySelector('.ph-fork-trail__glyphs')?.textContent ?? '';
     // The component substitutes an em-dash placeholder for an empty trail —
     // that is presentation, and the only difference it is allowed to have.
-    expect(rendered).toBe(walkForkGlyphs(log) || '—');
+    expect(rendered).toBe(walkForkGlyphs(log).join('') || '—');
   });
 
   it.each(Object.entries(MID_PLAY_LOGS))(
@@ -91,10 +92,17 @@ describe('walkForkGlyphs (gr6-092) — one walk, two consumers, one answer', () 
         streak: 1,
         copy: enCopy,
       }).split('\n')[1];
-      expect(line2).toBe(walkForkGlyphs(terminated) + SUBMIT_EMOJI);
+      // §1(i): line 2 now GROUPS the run in fives and separates the groups
+      // (and the terminal) with U+0020. Asserted with the separators removed
+      // rather than by re-deriving the grouping here: that keeps this file's
+      // claim the one it was written to make — the share string reads the
+      // SAME walk, in the same order, and adds only its terminal — while
+      // share.test.ts owns the group SHAPE. A regrouping bug that dropped,
+      // duplicated or reordered a glyph still reds here.
+      expect(line2.replace(/ /g, '')).toBe(walkForkGlyphs(terminated).join('') + SUBMIT_EMOJI);
       // ...and the walk is blind to the terminal, so the Lab's strip is a
       // strict prefix of what the day will eventually share.
-      expect(walkForkGlyphs(terminated)).toBe(walkForkGlyphs(log));
+      expect(walkForkGlyphs(terminated)).toEqual(walkForkGlyphs(log));
     }
   );
 
@@ -109,7 +117,7 @@ describe('walkForkGlyphs (gr6-092) — one walk, two consumers, one answer', () 
     await waitFor(() => expect(screen.getByText(enCopy['lab.forkTrailLabel'])).toBeTruthy());
     const rendered = document.querySelector('.ph-fork-trail__glyphs')?.textContent ?? '';
     expect(rendered).not.toContain(ABANDON_EMOJI);
-    expect(rendered).toBe(walkForkGlyphs(log));
+    expect(rendered).toBe(walkForkGlyphs(log).join(''));
   });
 
   it('the prereg prefix is the call site\'s, and both call sites spell it the same way', async () => {
@@ -125,6 +133,6 @@ describe('walkForkGlyphs (gr6-092) — one walk, two consumers, one answer', () 
 
     const line2 = shareString({ puzzleNumber: 1, log, mode: 'prereg', callCorrect: null, streak: 0, copy: enCopy })
       .split('\n')[1];
-    expect(line2).toBe(`${PREREG_PREFIX}${walkForkGlyphs(log)}${SUBMIT_EMOJI}`);
+    expect(line2.replace(/ /g, '')).toBe(`${PREREG_PREFIX}${walkForkGlyphs(log).join('')}${SUBMIT_EMOJI}`);
   });
 });
