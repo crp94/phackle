@@ -98,7 +98,7 @@ describe('loadState / saveDay — round trip', () => {
   it('saveDay awards +25 career points for a published (non-abandoned) hack day only', async () => {
     const { loadState, saveDay } = await freshStorage();
     saveDay('2026-08-01', day({ mode: 'hack', stamp: 'REPLICATED' }));
-    saveDay('2026-08-02', day({ mode: 'hack', stamp: 'NULL_REPORTED' })); // abandoned: no career points
+    saveDay('2026-08-02', day({ mode: 'hack', stamp: 'CONFIRMED_NULL' })); // abandoned: no career points
     saveDay('2026-08-03', day({ mode: 'prereg', stamp: 'REPLICATED' })); // prereg: no career track
     expect(loadState().stats.careerPoints).toBe(25);
   });
@@ -488,10 +488,10 @@ describe('w6-r-010 — a repaired stats block is rebuilt from the history that s
   function historyBlob(): ModeHistory {
     return {
       '2026-08-10': { hack: day({ forks: 2, callCorrect: true, stamp: 'RETRACTED' }) },
-      '2026-08-11': { hack: day({ forks: 0, callCorrect: false, stamp: 'NULL_REPORTED' }) },
+      '2026-08-11': { hack: day({ forks: 0, callCorrect: false, stamp: 'CONFIRMED_NULL' }) },
       '2026-08-12': {
         hack: day({ forks: 5, callCorrect: true, stamp: 'REPLICATED' }),
-        prereg: day({ mode: 'prereg', forks: 0, stamp: 'NULL_REPORTED' }),
+        prereg: day({ mode: 'prereg', forks: 0, stamp: 'CONFIRMED_NULL' }),
       },
       // A gap, so streak and maxStreak are genuinely different numbers.
       '2026-08-20': { prereg: day({ mode: 'prereg', forks: 1, callCorrect: true, stamp: 'REPLICATED' }) },
@@ -506,7 +506,7 @@ describe('w6-r-010 — a repaired stats block is rebuilt from the history that s
     expect(out.stats.preregDays).toBe(2);
     expect(out.stats.callsTotal).toBe(4); // three hack calls + the prereg day's
     expect(out.stats.callsCorrect).toBe(3);
-    // +25 per PUBLISHED hack day (stamp !== NULL_REPORTED), mirroring saveDay.
+    // +25 per PUBLISHED hack day (`isPublishedStamp`), mirroring saveDay.
     expect(out.stats.careerPoints).toBe(50);
     expect(out.stats.forkHistogram).toEqual([2, 1, 1, 0, 0, 1]);
     // The run ending on the last played day, and the longest run anywhere.

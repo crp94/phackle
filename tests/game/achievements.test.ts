@@ -61,7 +61,7 @@ function baseCtx(): Parameters<typeof evaluateAchievements>[0] {
     call: null,
     callCorrect: null,
     mode: 'hack',
-    stamp: 'NULL_REPORTED',
+    stamp: 'CONFIRMED_NULL',
   };
 }
 
@@ -80,7 +80,7 @@ describe('first_blood — first publication', () => {
   });
 
   it('does not trigger on an abandoned day', () => {
-    const out = evaluateAchievements({ ...baseCtx(), published: null, stamp: 'NULL_REPORTED' });
+    const out = evaluateAchievements({ ...baseCtx(), published: null, stamp: 'CONFIRMED_NULL' });
     expect(out).not.toContain('first_blood');
   });
 });
@@ -136,7 +136,7 @@ describe('harking — outcome changed >=3 times, then published', () => {
       view(spec({ outcome: 2 }), true, 2),
       view(spec({ outcome: 3 }), true, 3),
     ];
-    const out = evaluateAchievements({ ...baseCtx(), log, published: null, stamp: 'NULL_REPORTED' });
+    const out = evaluateAchievements({ ...baseCtx(), log, published: null, stamp: 'CONFIRMED_NULL' });
     expect(out).not.toContain('harking');
   });
 });
@@ -155,7 +155,7 @@ describe('one_tailed_bandit — decisive fork was the flip to one-tailed', () =>
   });
 
   it('does not trigger without publishing, even if decisiveTails is true', () => {
-    const out = evaluateAchievements({ ...baseCtx(), published: null, decisiveTails: true, stamp: 'NULL_REPORTED' });
+    const out = evaluateAchievements({ ...baseCtx(), published: null, decisiveTails: true, stamp: 'CONFIRMED_NULL' });
     expect(out).not.toContain('one_tailed_bandit');
   });
 });

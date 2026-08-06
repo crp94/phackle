@@ -21,7 +21,7 @@
 //   * `getBBox()` is geometry in USER UNITS, directly comparable to the viewBox
 //     numbers, and it honours `textLength`. That is the measurement.
 //
-// The nine strings are read from the shipped catalogs rather than written here,
+// The twelve strings are read from the shipped catalogs rather than written here,
 // so a future locale edit is measured by this test the day it lands.
 import { expect, test } from '@playwright/test';
 import { copy as en } from '../src/content/en/copy';
@@ -29,7 +29,15 @@ import { copy as it } from '../src/content/it/copy';
 import { copy as es } from '../src/content/es/copy';
 import { enterLab, openApp, publishPinnedSpec } from './harness';
 
-const VERDICT_KEYS = ['reveal.retracted', 'reveal.replicated', 'reveal.nullReported'] as const;
+// §1(j)(2) split the honest verdict in two, so this is twelve strings now,
+// and the two new ones are the longest in the set — exactly the case the
+// guard exists for.
+const VERDICT_KEYS = [
+  'reveal.retracted',
+  'reveal.replicated',
+  'reveal.confirmedNull',
+  'reveal.missedDiscovery',
+] as const;
 
 const LABELS = (['en', 'it', 'es'] as const).flatMap((locale) => {
   const catalog = { en, it, es }[locale];
@@ -89,7 +97,7 @@ test('every verdict label, in every locale, is drawn inside the stamp frame', as
   // Guards the guard: if the measurement were blind (a filtered
   // getBoundingClientRect, say) every row would report an identical width and
   // the assertions above would pass without measuring anything. The nine
-  // strings differ in length, so a real text measurement cannot report one
+  // strings differ in length (9 to 16 characters), so a real text measurement cannot report one
   // number for all of them UNLESS textLength is doing its job — which is
   // exactly the property under test, so assert that instead: every label ends
   // up at the SAME fixed advance, and that advance is the one Stamp.tsx sets.
@@ -99,5 +107,5 @@ test('every verdict label, in every locale, is drawn inside the stamp frame', as
     `THE LABEL ADVANCE IS NOT FIXED: measured ${JSON.stringify(widths)}. Every verdict must be set to ` +
       "Stamp.tsx's TEXT_W, or a longer locale string can overrun the frame again.",
   ).toHaveLength(1);
-  expect(measured.rows).toHaveLength(9);
+  expect(measured.rows).toHaveLength(12);
 });

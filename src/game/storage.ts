@@ -11,6 +11,7 @@
 import type { AchievementId } from '../content/types';
 import type { DayRecord, Locale } from '../engine/types';
 import { SCORING } from './tuning';
+import { isPublishedStamp } from './verdict';
 
 export type ModeRecord = Partial<Record<'hack' | 'prereg', DayRecord>>;
 /** Same shape as achievements.ts's own ModeHistory (defined independently
@@ -208,9 +209,13 @@ function readRecord(value: unknown): { mode: 'hack' | 'prereg'; forks: number; c
     mode: rec.mode,
     forks: rec.forks,
     callCorrect: typeof rec.callCorrect === 'boolean' ? rec.callCorrect : undefined,
-    // `saveDay`'s own career rule: a hack day that ended in anything but a
-    // reported null was published.
-    published: typeof rec.stamp === 'string' && rec.stamp !== 'NULL_REPORTED',
+    // `saveDay`'s own career rule: a hack day that ended in a standing claim
+    // was published. Read through the same predicate `saveDay` uses, over a
+    // value this function has deliberately NOT narrowed (`history` was only
+    // ever validated as "is an object", and this is the repair path) — an
+    // unrecognised or absent stamp reads as unpublished, which is the
+    // fail-safe direction for a career-points total.
+    published: typeof rec.stamp === 'string' && isPublishedStamp(rec.stamp as DayRecord['stamp']),
   };
 }
 
@@ -462,7 +467,7 @@ export function streakAfter(history: ModeHistory, iso: string): { streak: number
  * one play per mode per day), and folds it into the running stats: call
  * accuracy, the fork histogram, per-mode day counts, career points (+25,
  * mirroring SCORING.publishedCareer, whenever a hack-mode day was actually
- * published rather than abandoned — a stamp of anything but NULL_REPORTED),
+ * published rather than abandoned — `isPublishedStamp`, §1(j)(2)),
  * and the streak (recomputed via streakAfter over the updated history).
  */
 export function saveDay(iso: string, rec: DayRecord): void {
@@ -471,7 +476,7 @@ export function saveDay(iso: string, rec: DayRecord): void {
   const history: ModeHistory = { ...state.history, [iso]: { ...state.history[iso], [rec.mode]: rec } };
   const { streak, maxStreak } = streakAfter(history, iso);
 
-  const earnedCareer = rec.mode === 'hack' && rec.stamp !== 'NULL_REPORTED' ? SCORING.publishedCareer : 0;
+  const earnedCareer = rec.mode === 'hack' && isPublishedStamp(rec.stamp) ? SCORING.publishedCareer : 0;
   const stats: PersistedStats = {
     streak,
     maxStreak,

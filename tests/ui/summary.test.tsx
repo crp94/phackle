@@ -71,7 +71,7 @@ describe('Summary — invoice rows sum to the total score (3 scoreDay fixtures)'
 
   const fixtures = [
     scoreDay({ mode: 'hack', dayType: 'effect', published: true, callCorrect: true, forks: 3, stamp: 'REPLICATED' }),
-    scoreDay({ mode: 'hack', dayType: 'null', published: false, callCorrect: true, forks: 0, stamp: 'NULL_REPORTED' }),
+    scoreDay({ mode: 'hack', dayType: 'null', published: false, callCorrect: true, forks: 0, stamp: 'CONFIRMED_NULL' }),
     scoreDay({
       mode: 'prereg',
       dayType: 'effect',
@@ -499,12 +499,12 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       practice: false,
       puzzleNumber: 1,
       forks: 0,
-      // An abandon, a correct "noise" call, a NULL_REPORTED-family stamp: the
+      // An abandon, a correct "noise" call, an honest verdict: the
       // honest day, in full. Nothing here unlocks a single achievement.
       published: false,
       call: 'noise',
       dayType: 'null',
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
@@ -524,7 +524,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       published: false,
       call: 'noise',
       dayType: 'null',
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-11',
@@ -547,7 +547,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       published: false,
       call: 'noise',
       dayType: 'null',
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-10',
@@ -565,7 +565,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       published: false,
       call: 'noise',
       dayType: 'null',
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-11',
@@ -573,7 +573,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
     });
     expect(withHistory.preregUnlocked).toBe(false);
 
-    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } } } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     const practiceAfterARealDay = persistAndComputeSummary({
       mode: 'hack',
       practice: true,
@@ -582,7 +582,7 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       published: false,
       call: 'noise',
       dayType: 'null',
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       log: [],
       copy: enCopy,
       puzzleIso: '2026-08-12',
@@ -802,7 +802,7 @@ describe('SummaryScreen — a real unmount/remount cycle does not double-persist
     const afterFirst = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(afterFirst.stats.hackDays).toBe(1);
     expect(afterFirst.stats.callsTotal).toBe(1);
-    expect(afterFirst.stats.careerPoints).toBe(25); // published, stamp !== NULL_REPORTED
+    expect(afterFirst.stats.careerPoints).toBe(25); // published: isPublishedStamp(stamp)
     expect(afterFirst.stats.forkHistogram[0]).toBe(1);
 
     first.unmount(); // <- "click Stats" (App.tsx's page-state unmounts this branch)

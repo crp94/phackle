@@ -78,7 +78,7 @@ function record(overrides: Partial<DayRecord> = {}): DayRecord {
     mode: 'hack',
     score: 80,
     forks: 2,
-    stamp: 'NULL_REPORTED',
+    stamp: 'CONFIRMED_NULL',
     shareString: 'P-hackle #5\n🍴🏳️ → ⚖️✅\nForks: 1 · Streak: 1\nhttps://phackle.carlosrodriguezpardo.es',
     ...overrides,
   };
@@ -196,7 +196,7 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
     seed(
       freshV1({
         history: {
-          '2026-08-01': { hack: record({ stamp: 'NULL_REPORTED' }) },
+          '2026-08-01': { hack: record({ stamp: 'CONFIRMED_NULL' }) },
           [ISO]: { hack: record({ stamp: 'RETRACTED' }) },
         },
       })
@@ -212,7 +212,7 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
   // The state that still HAS a choice in it: unlocked, and today untouched.
   // Without this the file could pass by never rendering a chooser at all.
   it('a completed day in history and nothing spent today: the chooser, with both modes live', async () => {
-    seed(freshV1({ history: { '2026-08-01': { hack: record({ stamp: 'NULL_REPORTED' }) } } }));
+    seed(freshV1({ history: { '2026-08-01': { hack: record({ stamp: 'CONFIRMED_NULL' }) } } }));
     renderBriefing();
 
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());

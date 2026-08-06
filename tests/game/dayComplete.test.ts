@@ -57,7 +57,7 @@ function baseInput(overrides: Partial<DayCompleteInput> = {}): DayCompleteInput 
     call: null,
     callCorrect: null,
     mode: 'hack',
-    stamp: 'NULL_REPORTED',
+    stamp: 'CONFIRMED_NULL',
     ...overrides,
   };
 }
@@ -146,7 +146,7 @@ describe('unlockAchievements — assembles AchievementCtx from log/resultLog/his
 
   it('no SUBMIT anywhere in the log means published stays null — publish-gated achievements never fire', () => {
     const log: PlayerAction[] = [view(baseSpec, false), { t: 'ABANDON', at: 1 }];
-    const out = unlockAchievements(baseInput({ log, stamp: 'NULL_REPORTED' }));
+    const out = unlockAchievements(baseInput({ log, stamp: 'CONFIRMED_NULL' }));
     expect(out).not.toContain('first_blood');
     expect(out).not.toContain('outlier_surgeon');
     expect(out).not.toContain('one_tailed_bandit');

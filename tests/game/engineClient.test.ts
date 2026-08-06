@@ -125,7 +125,7 @@ describe('createEngineClient — request/response routing', () => {
       playerExplored: 0,
       pHitAtK: 0.1,
       curve: [],
-      stamp: 'NULL_REPORTED' as const,
+      stamp: 'CONFIRMED_NULL' as const,
       peeks: 0,
       dayType: 'null' as const,
       trueOutcome: null,

@@ -138,8 +138,8 @@ describe('Stats — prereg-vs-hacking success rates, ALWAYS both panels (the α 
   it('renders distinct hack vs prereg rates when both exist (the collapse from ~100% to a real rate)', () => {
     const history: ModeHistory = {
       '2026-08-01': { hack: { mode: 'hack', score: 100, forks: 0, stamp: 'REPLICATED', shareString: '' } },
-      '2026-08-02': { prereg: { mode: 'prereg', score: 0, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } },
-      '2026-08-03': { prereg: { mode: 'prereg', score: 0, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } },
+      '2026-08-02': { prereg: { mode: 'prereg', score: 0, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } },
+      '2026-08-03': { prereg: { mode: 'prereg', score: 0, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } },
     };
     render(<Stats t={t} stats={baseStats()} history={history} achievements={{}} achievementDefs={enContent.achievements} />);
     expect(within(screen.getByTestId('success-panel-hack')).getByText('100%')).toBeTruthy();

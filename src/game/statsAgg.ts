@@ -9,6 +9,7 @@
 // or in a reader's head, with src/engine/stats.ts — a completely different
 // "stats" (the OLS/t-distribution engine).
 import type { DayRecord } from '../engine/types';
+import { isPublishedStamp } from './verdict';
 
 /**
  * Same shape as storage.ts's PersistedState['history'] and achievements.ts's
@@ -63,7 +64,9 @@ export function recordsForMode(history: ModeHistory, mode: 'hack' | 'prereg'): D
  * ended in a published claim standing (REPLICATED or RETRACTED — the game
  * guarantees you can always REACH publication, so "success" here means
  * "found/kept something to submit," not "was correct") rather than an honest
- * NULL_REPORTED. `null` when `records` is empty, so the Stats screen can
+ * report of nothing (§1(j)(2)'s CONFIRMED_NULL / MISSED_DISCOVERY pair, read
+ * through `isPublishedStamp` so a future verdict cannot join the numerator by
+ * default). `null` when `records` is empty, so the Stats screen can
  * render the always-visible empty-state em-dash instead of a fabricated 0%
  * (a mode nobody has played yet is "no data," not "0% successful").
  *
@@ -75,6 +78,6 @@ export function recordsForMode(history: ModeHistory, mode: 'hack' | 'prereg'): D
  */
 export function modeSuccessRate(records: DayRecord[]): number | null {
   if (records.length === 0) return null;
-  const successes = records.filter((r) => r.stamp !== 'NULL_REPORTED').length;
+  const successes = records.filter((r) => isPublishedStamp(r.stamp)).length;
   return successes / records.length;
 }

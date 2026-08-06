@@ -154,27 +154,27 @@ describe('persistAndComputeSummary — career (gr6-018) and preregPlayedToday (g
       { t: 'CALL', verdict: 'noise', at: 2 },
     ];
     const result = persistAndComputeSummary(
-      fields({ puzzleIso: isoForDay(0), published: false, call: 'noise', stamp: 'NULL_REPORTED', log: abandonLog })
+      fields({ puzzleIso: isoForDay(0), published: false, call: 'noise', stamp: 'CONFIRMED_NULL', log: abandonLog })
     );
     expect(result.career).toBe(0);
   });
 
   it('carries null on a prereg day — §2.8 gives Prereg Mode no career track at all', () => {
     const result = persistAndComputeSummary(
-      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' })
+      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'CONFIRMED_NULL' })
     );
     expect(result.career).toBeNull();
   });
 
   it('reports preregPlayedToday on the prereg day being finished right now', () => {
     const result = persistAndComputeSummary(
-      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' })
+      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'CONFIRMED_NULL' })
     );
     expect(result.preregPlayedToday).toBe(true);
   });
 
   it('reports preregPlayedToday on a HACK summary for a date whose prereg play is already spent', () => {
-    persistAndComputeSummary(fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' }));
+    persistAndComputeSummary(fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'CONFIRMED_NULL' }));
     const result = persistAndComputeSummary(fields({ puzzleIso: isoForDay(0) }));
     expect(result.preregPlayedToday).toBe(true);
   });

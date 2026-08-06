@@ -52,8 +52,9 @@ import pHitTableJson from '../data/p_hit_by_k.json';
 
 /**
  * The rubber stamp that slams onto the journal cover (§2.7.4):
- *  - nothing published (the player abandoned, §2.5) -> NULL_REPORTED, on
- *    either day type: there is no claim to retract or replicate;
+ *  - nothing published (the player abandoned, §2.5) -> the honest pair, split
+ *    BY DAY TYPE: a null day whose player reported nothing is a CONFIRMED_NULL
+ *    and an effect day whose player reported nothing is a MISSED_DISCOVERY;
  *  - null day + published -> RETRACTED (the game's signature moment);
  *  - effect day + published on the TRUE outcome -> REPLICATED;
  *  - effect day + published on any OTHER outcome -> RETRACTED. This is the
@@ -72,13 +73,46 @@ import pHitTableJson from '../data/p_hit_by_k.json';
  * signature admits it, so it is resolved explicitly rather than left to a
  * `undefined === undefined` accident: with no true outcome recorded there is
  * nothing to have captured, so the claim is RETRACTED.
+ *
+ * §1(j)(2) — WHY THE HONEST VERDICT IS TWO VERDICTS (owner ruling 2026-08-06,
+ * "BOTH"). This returned a single `NULL_REPORTED` for every unpublished day,
+ * so a player who reported a null could not reach a positive verdict even
+ * when they were right and the game was paying them 80 points for it (§2.8's
+ * `abandonNull`). Two nameable outcomes were collapsed into one grey stamp:
+ * abandoning an effect day is a missed discovery, abandoning a null day is a
+ * confirmed null, and only the second is an achievement. The score already
+ * knew the difference — `scoreDay` pays 80 for one and 20 for the other — so
+ * the stamp was the one surface still telling the honest player that being
+ * right and being wrong came to the same thing.
+ *
+ * NO NEW INPUT. `dayType` was already the first parameter; the split reads a
+ * fact this function has always had, in a branch it always had.
+ *
+ * NOT A SPOILER CHANNEL. The stamp is Act II, and Act II has already printed
+ * the day's truth (`reveal.truthEffect`/`truthNull`) two blocks above it. It
+ * never enters `shareString` — see that module's header for why day type has
+ * no channel into the share grid at all — and the 300-draw property test
+ * still holds byte-for-byte.
  */
 export function verdictStamp(
   dayType: DayType,
   published: Spec | null,
   trueOutcome: Outcome | null,
 ): RevealMetrics['stamp'] {
-  if (published === null) return 'NULL_REPORTED';
+  // WRITTEN OUT HERE RATHER THAN CALLED. `game/verdict.ts`'s `honestStampFor`
+  // is the same one-line rule, and store.ts's prereg correction reads it —
+  // but the compiled layering law (eslint's no-restricted-imports on
+  // src/engine/**) allows this module exactly two outside dependencies,
+  // game/tuning.ts and the checksum-guarded tables in src/data, and importing
+  // a game helper here would breach it. Pulling this module the other way, so
+  // store.ts imported the engine's copy, is worse: reveal.ts carries the DGP
+  // constants and the p_hit table, which is why the engine lives in a worker.
+  //
+  // Two sites, one ternary, and the agreement is COMPILED rather than
+  // trusted: tests/game/verdict.test.ts drives this function on both day
+  // types and asserts it returns exactly what `honestStampFor` does, so the
+  // two cannot drift without a red test.
+  if (published === null) return dayType === 'effect' ? 'MISSED_DISCOVERY' : 'CONFIRMED_NULL';
   if (dayType !== 'effect') return 'RETRACTED';
   if (trueOutcome === null) return 'RETRACTED';
   return published.outcome === trueOutcome ? 'REPLICATED' : 'RETRACTED';

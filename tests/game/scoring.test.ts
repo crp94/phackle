@@ -119,7 +119,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: false,
       callCorrect: true,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
     });
     expect(r.career).toBe(0);
   });
@@ -132,7 +132,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: false,
       callCorrect: true,
       forks: 2,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
     });
     const expectedParsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * 2);
     expect(r.score).toBe(SCORING.correctCall + expectedParsimony + SCORING.abandonNull);
@@ -146,7 +146,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: false,
       callCorrect: false,
       forks: 3,
-      stamp: 'NULL_REPORTED',
+      stamp: 'MISSED_DISCOVERY',
     });
     // callCorrect is false here, so no call points and no parsimony — isolates
     // the abandonEffect bonus itself.
@@ -160,7 +160,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: false,
       callCorrect: true,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
     });
     const wrongCall = scoreDay({
       mode: 'hack',
@@ -168,7 +168,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: false,
       callCorrect: false,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
     });
     // The integrity bonus itself (isolate it by subtracting the call component).
     expect(correctCall.score - (SCORING.correctCall + SCORING.parsimonyMax)).toBe(SCORING.abandonNull);
@@ -198,7 +198,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: true,
       callCorrect: null,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       preregSig: false,
     });
     expect(r.score).toBe(SCORING.preregNonsigNull);
@@ -212,7 +212,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       published: true,
       callCorrect: null,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'MISSED_DISCOVERY',
       preregSig: false,
     });
     expect(r.score).toBe(SCORING.preregNonsigEffect);
@@ -274,7 +274,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         published: false,
         callCorrect: true,
         forks: 0,
-        stamp: 'NULL_REPORTED',
+        stamp: 'CONFIRMED_NULL',
       });
       const keys = r.breakdown.map(([k]) => k);
       expect(keys).toContain('summary.breakdownCallCorrect');
@@ -300,7 +300,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         published: true,
         callCorrect: null,
         forks: 0,
-        stamp: 'NULL_REPORTED',
+        stamp: 'CONFIRMED_NULL',
         preregSig: false,
       });
       const underpoweredLuck = scoreDay({
@@ -309,7 +309,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         published: true,
         callCorrect: null,
         forks: 0,
-        stamp: 'NULL_REPORTED',
+        stamp: 'MISSED_DISCOVERY',
         preregSig: false,
       });
       const falsePositive = scoreDay({
@@ -418,7 +418,7 @@ describe('gr6-018 — the parsimony row is always itemised, at its computed valu
       published: true,
       callCorrect: null,
       forks: 0,
-      stamp: 'NULL_REPORTED',
+      stamp: 'CONFIRMED_NULL',
       preregSig: false,
     });
     expect(r.breakdown.map(([k]) => k)).toEqual(['summary.breakdownConfirmedNull']);

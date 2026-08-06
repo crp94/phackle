@@ -214,7 +214,7 @@ describe('Briefing — the mode chooser', () => {
   // `achievements` is left empty on purpose — this is the honest player, who
   // never earns first_retraction and used to never see this chooser at all.
   it('renders the chooser once a day has been completed (no achievement required) and today is unspent', async () => {
-    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } } } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1 });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
     expect(screen.getByRole('button', { name: copy['briefing.playHacking'] })).toBeTruthy();
@@ -249,7 +249,7 @@ describe('Briefing — the mode chooser', () => {
     seedStorage(
       freshV1({
         history: {
-          '2026-08-01': { hack: { mode: 'hack', score: 10, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } },
+          '2026-08-01': { hack: { mode: 'hack', score: 10, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } },
           [iso]: { hack: { mode: 'hack', score: 100, forks: 0, stamp: 'RETRACTED', shareString: '' } },
         },
       })
@@ -262,7 +262,7 @@ describe('Briefing — the mode chooser', () => {
 
   it('clicking "Play Hacking Mode" calls the existing, already-tested store.openData() — nothing else', async () => {
     const openDataSpy = vi.fn();
-    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } } } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1, openData: openDataSpy as unknown as GameStore['openData'] });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
 
@@ -273,7 +273,7 @@ describe('Briefing — the mode chooser', () => {
 
   it('clicking "Play Prereg Mode" calls store.chooseMode(\'prereg\') — nothing else', async () => {
     const chooseModeSpy = vi.fn();
-    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'NULL_REPORTED', shareString: '' } } } }));
+    seedStorage(freshV1({ history: { '2026-08-01': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } } } }));
     renderBriefing({ puzzleNumber: 1, chooseMode: chooseModeSpy as unknown as GameStore['chooseMode'] });
     await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
 

@@ -361,7 +361,11 @@ export type CopyKey =
   | 'reveal.tailsOne'
   | 'reveal.retracted'
   | 'reveal.replicated'
-  | 'reveal.nullReported'
+  // §1(j)(2): `reveal.nullReported` is REPLACED by these two, not joined by
+  // them. The honest verdict is day-typed now — see engine/reveal.ts's
+  // `verdictStamp` — and one key cannot carry two verdicts.
+  | 'reveal.confirmedNull'
+  | 'reveal.missedDiscovery'
   | 'reveal.callCorrect'
   | 'reveal.callIncorrect'
   // T18 addition: §2.8's own parenthetical for the prereg sig+null row ("a
@@ -1146,7 +1150,23 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RETRACTED',
   'reveal.replicated': 'REPLICATED',
-  'reveal.nullReported': 'NULL REPORTED',
+  // §1(j)(2) — THE TWO VERDICTS THAT REPLACE "NULL REPORTED".
+  //
+  // The retired string described the ACT (a null was reported) and so said
+  // the same thing on the day the player was right and the day they were
+  // wrong. These describe the RESULT, which is what the other two stamps do:
+  // RETRACTED and REPLICATED are outcomes, not actions.
+  //
+  // `confirmedNull` reuses the exact noun phrase §2.8's own score row already
+  // prints for this case ('summary.breakdownConfirmedNull'), so the invoice
+  // and the stamp agree in wording as well as in arithmetic.
+  //
+  // Both are set at --text-40 inside a fixed 268-unit advance (Stamp.tsx's
+  // TEXT_W), so length costs glyph compression rather than a clipped word —
+  // measured against the real frame by e2e/stamp.spec.ts, which reads these
+  // catalogs directly.
+  'reveal.confirmedNull': 'NULL CONFIRMED',
+  'reveal.missedDiscovery': 'MISSED DISCOVERY',
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
   // T18 addition: §2.8's own parenthetical, spelled out — a preregistered

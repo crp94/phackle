@@ -304,7 +304,7 @@ describe('preregCommit — stamp correction (the engine\'s own verdictStamp assu
     expect(store.getState().reveal?.stamp).toBe('RETRACTED');
   });
 
-  it('non-significant on a null day -> NULL_REPORTED, OVERRIDING whatever the engine said (it assumed significance)', async () => {
+  it('non-significant on a null day -> CONFIRMED_NULL, OVERRIDING whatever the engine said (it assumed significance)', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock)
       .mockResolvedValueOnce(makeResult())
@@ -316,10 +316,15 @@ describe('preregCommit — stamp correction (the engine\'s own verdictStamp assu
 
     await store.getState().preregCommit(committedSpec);
 
-    expect(store.getState().reveal?.stamp).toBe('NULL_REPORTED');
+    expect(store.getState().reveal?.stamp).toBe('CONFIRMED_NULL');
   });
 
-  it('non-significant on an effect day -> NULL_REPORTED, overriding an engine-reported REPLICATED/RETRACTED', async () => {
+  // §1(j)(2): the correction picks the honest verdict BY DAY TYPE, through
+  // the same `honestStampFor` the engine's own branch reads — so a
+  // preregistration that came back non-significant on an effect day reads
+  // MISSED_DISCOVERY, not the null day's verdict. The two arms of this pair
+  // are what would red if store.ts hard-coded either one.
+  it('non-significant on an effect day -> MISSED_DISCOVERY, overriding an engine-reported REPLICATED/RETRACTED', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock)
       .mockResolvedValueOnce(makeResult())
@@ -331,10 +336,10 @@ describe('preregCommit — stamp correction (the engine\'s own verdictStamp assu
 
     await store.getState().preregCommit(committedSpec);
 
-    expect(store.getState().reveal?.stamp).toBe('NULL_REPORTED');
+    expect(store.getState().reveal?.stamp).toBe('MISSED_DISCOVERY');
   });
 
-  it('an INVALID result (n<30) never counts as significant, even at p<0.05 -> NULL_REPORTED', async () => {
+  it('an INVALID result (n<30) never counts as significant, even at p<0.05 -> CONFIRMED_NULL on a null day', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock)
       .mockResolvedValueOnce(makeResult())
@@ -344,7 +349,7 @@ describe('preregCommit — stamp correction (the engine\'s own verdictStamp assu
 
     await store.getState().preregCommit(committedSpec);
 
-    expect(store.getState().reveal?.stamp).toBe('NULL_REPORTED');
+    expect(store.getState().reveal?.stamp).toBe('CONFIRMED_NULL');
   });
 });
 

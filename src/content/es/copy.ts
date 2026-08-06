@@ -403,7 +403,19 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RETRACTADO',
   'reveal.replicated': 'REPLICADO',
-  'reveal.nullReported': 'RESULTADO NULO',
+  // §1(j)(2) — los dos veredictos que sustituyen a "RESULTADO NULO".
+  //
+  // Participio pospuesto, como RETRACTADO y REPLICADO: son desenlaces, no
+  // acciones. "NULO CONFIRMADO" concuerda en masculino singular con
+  // "resultado", que queda sobrentendido igual que en la cadena retirada.
+  //
+  // "HALLAZGO PERDIDO" y no "DESCUBRIMIENTO PERDIDO": el segundo mide 22
+  // caracteres y se comprimiría notablemente dentro del ancho fijo del sello
+  // (Stamp.tsx, TEXT_W). "Perdido" es además la palabra que el español usa
+  // para la ocasión desaprovechada ("una oportunidad perdida"), que es
+  // exactamente el caso: el efecto estaba ahí y no se informó.
+  'reveal.confirmedNull': 'NULO CONFIRMADO',
+  'reveal.missedDiscovery': 'HALLAZGO PERDIDO',
   'reveal.callCorrect': 'Tu veredicto fue correcto.',
   'reveal.callIncorrect': 'Tu veredicto fue erróneo.',
   'reveal.preregFalsePositive':

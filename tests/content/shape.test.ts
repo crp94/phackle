@@ -1279,12 +1279,11 @@ describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cann
  *     together. `briefing.emailSubject` was deleted from all three catalogs in
  *     that commit. `tests/ui/briefing.test.tsx` pins the pairing across five
  *     puzzle numbers, index for index — not merely that a subject renders.
- *   - `Reveal.tsx` gives NULL_REPORTED its own bank, indexed by
+ *   - `Reveal.tsx` gives the honest verdict its own bank, indexed by
  *     `puzzleNumber % length` exactly as the retraction bank is.
  *     WITH THIS CONSTRAINT STILL ATTACHED (w3-r-001), because it is the one
- *     thing about this bank that is not obvious from its name: the stamp is
- *     DAY-TYPE-BLIND. `verdictStamp` returns NULL_REPORTED on `published ===
- *     null` alone, so an abandoned EFFECT day lands there too, one block under
+ *     thing about this bank that is not obvious from its name: an abandoned
+ *     EFFECT day lands there too, one block under
  *     a `reveal.truthEffect` line that has just declared the effect real. The
  *     bank is authored to be true on both day types, so it is wired with NO
  *     branch — and `tests/ui/reveal.test.tsx` asserts both day types get a

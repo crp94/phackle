@@ -414,9 +414,22 @@ export const copy: Record<CopyKey, string> = {
 
   'reveal.retracted': 'RITIRATO',
   'reveal.replicated': 'REPLICATO',
-  // T37: "NULLO RIPORTATO" stamped the English word order onto Italian and
-  // read as a fragment with no head noun.
-  'reveal.nullReported': 'RISULTATO NULLO',
+  // §1(j)(2) — le due sentenze che sostituiscono "RISULTATO NULLO".
+  //
+  // T37 aveva già corretto "NULLO RIPORTATO", che calcava l'ordine inglese e
+  // restava senza testa nominale; la stessa cura vale qui. Participio in
+  // seconda posizione come RITIRATO/REPLICATO: sono esiti, non azioni.
+  //
+  // "NULLO CONFERMATO" — il nullo (il risultato) è confermato: la giornata in
+  // cui il giocatore aveva ragione. Concorda al maschile singolare con
+  // "risultato", sottinteso qui come lo era in T37.
+  //
+  // "MANCATA SCOPERTA" e non "SCOPERTA MANCATA": in italiano "mancato" in
+  // questo senso precede il nome ("mancato pagamento", "mancata consegna");
+  // posposto scivolerebbe verso "una scoperta che è mancata", che è un'altra
+  // cosa. L'ordine è portante, non stilistico.
+  'reveal.confirmedNull': 'NULLO CONFERMATO',
+  'reveal.missedDiscovery': 'MANCATA SCOPERTA',
   'reveal.callCorrect': 'Il tuo verdetto era giusto.',
   'reveal.callIncorrect': 'Il tuo verdetto era sbagliato.',
   // Clinical, not apologetic: a preregistered analysis run exactly once is still
