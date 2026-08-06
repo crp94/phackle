@@ -187,10 +187,19 @@ export function Summary({
           "rows sum to the total" arithmetic. Rendered at its computed value
           including 0 — an invoice itemises what you did not earn too — and
           omitted entirely on a prereg day, which has no career track.
-          TODO-W2: reuses `published.careerPoints` ("+{n} career points"),
-          the exact string the Published screen printed, so the two visibly
-          agree. W2's own summary-side key may reword it for invoice register
-          ("Career points +25 — separate account"). */}
+
+          RULED, NOT PENDING. This asked W2 for a summary-side key in invoice
+          register ("Career points +25 — separate account"). W2 DECLINED, and
+          the reasoning is recorded beside the key itself in en/copy.ts: this
+          line exists to AGREE with the number the Published screen printed two
+          screens earlier, and rendering the identical string is the strongest
+          available form of that agreement — a second key would let the two
+          drift silently, and the drift would land on the one figure §2.8 says
+          is never a summand of the score. The register objection does not
+          hold either, because gr6-018 renders career as its own LINE beside
+          the total rather than as an invoice row, so it is not sitting among
+          labelled rows asking to be labelled like one. Reusing
+          `published.careerPoints` is therefore the answer, not a stand-in. */}
       {career !== null && (
         <p className="ph-summary__career" data-testid="summary-career">
           {t('published.careerPoints', { n: career })}
@@ -207,9 +216,13 @@ export function Summary({
           Rendered only when the shell hands down a route (App.tsx owns the
           nav page-state), so this is never the disabled control gr6-020 just
           removed from the block below.
-          TODO-W2: labelled with the existing `nav.stats` key as a
-          placeholder; W2 supplies the sentence-register "stats action" key
-          listed in its own §3 batch. */}
+          `summary.viewStats` ("See your stats") replaces the `nav.stats`
+          placeholder this comment used to describe. The header's own tab says
+          "Stats" because a tab in a row of tabs is a destination; this is an
+          action at the end of a day, and it reads as one. The two are
+          deliberately not the same string: they are not the same control, and
+          a screen reader meeting the identical name twice on one screen would
+          have no way to tell them apart. */}
       {onViewStats && (
         <div className="ph-summary__next">
           <button
@@ -218,7 +231,7 @@ export function Summary({
             data-testid="summary-stats-action"
             onClick={onViewStats}
           >
-            {t('nav.stats')}
+            {t('summary.viewStats')}
           </button>
         </div>
       )}
@@ -294,10 +307,14 @@ export function Summary({
           block is now gated on the day still HAVING a prereg play to offer —
           it used to render on prereg days too, advertising the mode the
           player had just finished.
-          TODO-W2: `summary.preregUpsell` stands in as the block's only body
-          line. W2's "prereg-upsell replacement" key points it at the real
-          door ("Tomorrow's briefing will let you choose it before you see any
-          data."), which is the sentence this block is currently missing. */}
+          The missing sentence has landed, and it landed IN `summary.preregUpsell`
+          rather than beside it: W2 rewrote the key's value in all three
+          locales instead of adding a "replacement" key, so this block already
+          renders the door it was failing to point at — "Preregistration is
+          unlocked. Tomorrow you can choose it before you see a single
+          number." Rewriting in place is the right shape here, because there
+          was never a second thing to say; there was one sentence that stopped
+          one clause short of the only question the block raises. */}
       {preregUnlocked && !preregPlayedToday && (
         <div className="ph-summary__prereg">
           <h2 className="ph-summary__prereg-title">{t('prereg.title')}</h2>

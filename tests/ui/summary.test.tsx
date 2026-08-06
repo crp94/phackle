@@ -363,6 +363,18 @@ describe('Summary — the "your stats" action (gr6-062)', () => {
     expect(onViewStats).toHaveBeenCalledTimes(1);
   });
 
+  it('is labelled as an ACTION, not as the header tab of the same name', () => {
+    // gr6-062: this rendered `nav.stats` ("Stats") as a placeholder. A tab in
+    // a row of tabs is a destination and is right to be a noun; this is the
+    // last control of a finished day and reads as what it does. They must not
+    // be the same string — a screen reader meeting the identical accessible
+    // name twice on one screen has no way to tell the two controls apart.
+    render(<Summary {...props} onViewStats={vi.fn()} />);
+    const button = screen.getByTestId('summary-stats-action');
+    expect(button.textContent).toBe(t('summary.viewStats'));
+    expect(button.textContent).not.toBe(t('nav.stats'));
+  });
+
   it('sits AFTER the countdown, where the day actually ends', () => {
     render(<Summary {...props} onViewStats={vi.fn()} />);
     const section = document.querySelector('.ph-summary') as HTMLElement;
