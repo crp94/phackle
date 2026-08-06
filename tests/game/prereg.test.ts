@@ -12,7 +12,7 @@ import type { EngineClient, ExtendInfo, InitInfo, RevealPayload } from '../../sr
 import type { Outcome, PathResult, Spec } from '../../src/engine/types';
 import { createGameStore, DEFAULT_SPEC } from '../../src/game/store';
 import { N_SCHEDULE, SCORING } from '../../src/game/tuning';
-import { persistAndComputeSummary } from '../../src/ui/screens/Summary';
+import { persistAndComputeSummary } from '../../src/game/dayComplete';
 import { copy as enCopy } from '../../src/content/en/copy';
 
 // --- fixtures ----------------------------------------------------------------

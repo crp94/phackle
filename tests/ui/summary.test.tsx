@@ -10,7 +10,9 @@
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import SummaryScreen, { Summary, persistAndComputeSummary, type UnlockedAchievement } from '../../src/ui/screens/Summary';
+import SummaryScreen, { Summary, type UnlockedAchievement } from '../../src/ui/screens/Summary';
+// gr6-081: the persistence moment moved out of the screen file it never belonged in.
+import { persistAndComputeSummary } from '../../src/game/dayComplete';
 import { scoreDay } from '../../src/game/scoring';
 import { copy as enCopy } from '../../src/content/en/copy';
 // T38: the achievement NAMES and CITATIONS are content, not chrome — they
