@@ -512,6 +512,43 @@ describe('Lab', () => {
     expect(hasClass(container.querySelector('[data-testid="pvalue-dial"]'), 'ph-dial--significant')).toBe(true);
   });
 
+  /* gr6-061 — the door that opens silently for a screen-reader player. */
+  it('announces that publishing became possible, politely, only while it IS possible', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.049 }));
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    const status = await screen.findByTestId('lab-submit-status');
+    // The sentence names the threshold AND the consequence. A bare "p < 0.05"
+    // announced into someone's ear is a fact with no door attached to it.
+    expect(status.textContent).toBe(enCopy['lab.canPublish']);
+    expect(status.getAttribute('role')).toBe('status');
+    // Off the page, in the a11y tree: the sighted channel already exists (the
+    // button enables, the dial turns green), so this must not paint anything.
+    expect(status.className.split(' ')).toContain('ph-visually-hidden');
+    expect(container.querySelector('[data-testid="lab-submit-status"]')).toBe(status);
+  });
+
+  it('says nothing at all while p >= .05 — it announces on the edge, never on arrival', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.06 }));
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    // Wait for a settled non-publishable state before asserting the absence,
+    // so this is not merely passing on the pre-result render.
+    const submitBtn = await screen.findByRole('button', { name: enCopy['lab.submit'] });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByTestId('lab-submit-status')).toBeNull();
+  });
+
   it('disables Submit and shows the insufficient-data copy when valid=false, even at a plausible p', async () => {
     const client = makeFakeClient();
     (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01, valid: false }));
@@ -1294,6 +1331,57 @@ describe('gr6-025 — the collect button says what the collection buys', () => {
     // n = 200 today -> 250 after one press (N_SCHEDULE's constant step).
     expect(gain?.textContent).toContain('→');
     expect(gain?.textContent).toMatch(/250/);
+  });
+
+  it('prints what the bigger sample BUYS beside it — the arithmetic alone was never the offer', async () => {
+    // The half gr6-025 was actually about. "n: 200 → 250" says the sample
+    // gets bigger, which every player already assumed; `lab.collectMoreHint`
+    // says the CoefPlot interval on screen a few inches away gets narrower,
+    // which is the visible return the row was missing.
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const hint = container.querySelector('[data-testid="lab-collect-hint"]');
+    expect(hint?.textContent).toBe(enCopy['lab.collectMoreHint']);
+    // Caption register, not a rule of its own: it reuses the footnote class
+    // this file's other quiet lines already use (R8.3 — nothing down here
+    // competes with the dial).
+    expect(hint?.className.split(' ')).toContain('ph-lab__footnote');
+  });
+
+  it('offers neither line at the last window — an offer that cannot be taken is noise', async () => {
+    // n = 400 is N_SCHEDULE's last entry, so `canCollectMore` is false and
+    // the Collect button beside these two lines is disabled. The hint is the
+    // one that matters here: "a bigger sample narrows the CI" printed under a
+    // dead button is an instruction the player cannot follow.
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValue(makeResult({ p: 0.2, n: 400 }));
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    // `n` is the STORE's window, not the result's: the last window is the
+    // state a player reaches by peeking four times, and setting it directly
+    // is how this file reaches it without four debounced round trips.
+    act(() => {
+      gameStore.setState({ n: 400 });
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: enCopy['lab.collectMore'].replace('{n}', '50') }) as HTMLButtonElement)
+          .disabled
+      ).toBe(true)
+    );
+    expect(container.querySelector('[data-testid="lab-collect-gain"]')).toBeNull();
+    expect(container.querySelector('[data-testid="lab-collect-hint"]')).toBeNull();
   });
 });
 

@@ -158,13 +158,36 @@ export function Lab() {
             same trail mark; only the offer is legible now.
             Symbols, not words: `→` carries no Latin letters, so this adds no
             uncatalogued copy (tests/content/copyFreeze.test.ts's own rule).
-            TODO-W2: the batch's other half — "the interval narrows" — is a
-            sentence this catalog does not have; W2's own batch lists a peek
-            affordance key for this row, and it belongs beside this line. */}
+
+            THE OTHER HALF, NOW LANDED. The n line alone still only says the
+            sample gets bigger, which is the fact a player already assumed and
+            not the reason to press. `lab.collectMoreHint` says what bigger
+            BUYS — "A bigger sample narrows the 95% CI on your estimate" —
+            which is the CoefPlot interval, on screen, a few inches away, and
+            the one visible return gr6-025 measured as missing. Its own line
+            under the arithmetic rather than inside it: the n line is a
+            numeral (mono, tabular) and this is prose, and R8.3 does not want
+            them fighting for one line's worth of attention. Both are gated on
+            `canCollectMore` together — an offer with no button to take it is
+            worse than silence.
+
+            It reuses `.ph-lab__footnote` rather than declaring a class of its
+            own, which is the precedent the fork-trail hint below already set
+            in this file and for the same reason: the rule is exactly what
+            this line wants (--muted, --text-13, capped at --measure) and a
+            second identical rule under a second name is how a stylesheet
+            starts disagreeing with itself. The n line keeps
+            `.ph-lab__collect-gain` because it is mono and tabular — it is a
+            numeral, this is prose, and that is a real difference in type. */}
         {canCollectMore ? (
-          <p className="ph-lab__collect-gain" data-testid="lab-collect-gain">
-            {t('lab.nLabel', { n })} → {n + STEP}
-          </p>
+          <>
+            <p className="ph-lab__collect-gain" data-testid="lab-collect-gain">
+              {t('lab.nLabel', { n })} → {n + STEP}
+            </p>
+            <p className="ph-lab__footnote" data-testid="lab-collect-hint">
+              {t('lab.collectMoreHint')}
+            </p>
+          </>
         ) : null}
         {peeks >= 1 ? <p className="ph-lab__footnote">{t('lab.peekFootnote')}</p> : null}
         {/* gr6-024 — `--armitage` was a BEM modifier with no rule anywhere
@@ -217,18 +240,19 @@ export function Lab() {
             Visually hidden — R6.6's idiom, in the a11y tree, off the page —
             because the sighted channel already exists (the button enables,
             the dial turns green).
-            TODO-W2: the string is a stand-in — `legend.significant`, which
-            is "p < 0.05" in all three locales, and which is precisely the
-            fact that just became true and the one thing the dial's own live
-            region cannot say (it reads the number, not the threshold it just
-            crossed). It is chosen over the dial's caption deliberately: that
-            sentence is already on the page, and a hidden second copy of a
-            visible paragraph makes a screen reader read the same explanation
-            twice. W2's batch lists a submit-status key; the sentence this
-            wants is "You can publish this result now." */}
+            `lab.canPublish` replaces the `legend.significant` stand-in this
+            comment used to describe, and it keeps everything that made the
+            stand-in the right shape while adding the half it could not say.
+            "Below 0.05. You can submit this for publication." is the
+            threshold that just got crossed AND the door that just opened —
+            the stand-in was the first sentence only, and a bare "p < 0.05"
+            announced into a player's ear names a fact without naming the
+            consequence. Still not the dial's caption: that sentence is
+            already on the page, and a hidden second copy of a visible
+            paragraph makes a screen reader read the same explanation twice. */}
         {canSubmit ? (
           <p className="ph-visually-hidden" role="status" data-testid="lab-submit-status">
-            {t('legend.significant')}
+            {t('lab.canPublish')}
           </p>
         ) : null}
         <button type="button" className="ph-lab__abandon ph-focusable" onClick={() => void abandon()}>
