@@ -5,6 +5,8 @@
 // own conventions (no @testing-library/jest-dom; plain DOM property reads;
 // a local `hasClass` helper for SVG-safe class checks) and
 // tests/game/store.test.ts's fixture shapes (makeResult/makeFakeClient).
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
@@ -1219,5 +1221,78 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     glyphSpans.forEach((span) => {
       expect(span.classList.contains('ph-glyph-mark')).toBe(true);
     });
+  });
+});
+
+/* ==========================================================================
+   §1(e) ruling + DESIGN.md R8.1's amendment — the exit actions are sticky
+   below the breakpoint, and they are a DIRECT CHILD of .ph-lab.
+   The containing-block half is the part a screenshot cannot check and a
+   refactor breaks silently: left inside .ph-lab__results the row would stop
+   sticking at the exact scroll position where the knobs begin, which is the
+   distance it exists to close.
+   ========================================================================== */
+describe('§1(e) — the Lab actions row is the product\'s second sticky element', () => {
+  async function mountLab() {
+    const client = makeFakeClient();
+    const view = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    return view;
+  }
+
+  it('is a direct child of .ph-lab, not of the results pane (R8.1\'s containing-block trap)', async () => {
+    const { container } = await mountLab();
+    const actions = container.querySelector('.ph-lab__actions') as HTMLElement;
+    expect(actions).not.toBeNull();
+    expect(actions.parentElement?.className).toContain('ph-lab');
+    expect(actions.parentElement?.className).not.toContain('ph-lab__results');
+    // ...and it is still the ONE actions row: R8.1 forbids rendering a
+    // second copy at the foot of the controls.
+    expect(container.querySelectorAll('.ph-lab__actions')).toHaveLength(1);
+    // Both exit actions are still inside it.
+    expect(actions.querySelector('.ph-lab__submit')).not.toBeNull();
+    expect(actions.querySelector('.ph-lab__abandon')).not.toBeNull();
+  });
+
+  it('sticks to the BOTTOM below the breakpoint and goes static above it, exactly as R8.1 grants', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/screens/Lab.css'), 'utf8');
+    const base = /\.ph-lab__actions\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(base).toMatch(/position:\s*sticky/);
+    expect(base).toMatch(/bottom:\s*0/);
+    expect(base).toMatch(/background:\s*var\(--paper\)/);
+    expect(base).toMatch(/border-block-start:\s*var\(--hairline\)/);
+    expect(base).toMatch(/z-index:\s*var\(--z-sticky\)/);
+    // R8.1's Don'ts, mechanically: no fill beyond --paper, no shadow, no
+    // second colour, no motion.
+    expect(base).not.toMatch(/box-shadow/);
+    expect(base).not.toMatch(/transition|animation/);
+
+    const media = css.slice(css.indexOf('@media (min-width: 768px)'));
+    const above = /\.ph-lab__actions\s*\{([^}]*)\}/.exec(media)?.[1] ?? '';
+    expect(above).toMatch(/position:\s*static/);
+  });
+});
+
+/* gr6-025 — the peek offer, made legible at the button that makes it. */
+describe('gr6-025 — the collect button says what the collection buys', () => {
+  it('prints the n a peek would produce, beside the button, while a peek is possible', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const gain = container.querySelector('[data-testid="lab-collect-gain"]');
+    expect(gain).not.toBeNull();
+    // n = 200 today -> 250 after one press (N_SCHEDULE's constant step).
+    expect(gain?.textContent).toContain('→');
+    expect(gain?.textContent).toMatch(/250/);
   });
 });

@@ -188,11 +188,30 @@
   color: var(--muted);
 }
 
+/* §1(e) ruling + DESIGN.md R8.1's 2026-08-06 amendment — THE SECOND, AND
+   LAST, STICKY ELEMENT IN THE PRODUCT.
+   R8.1 grants exactly one besides the dial and describes it exhaustively:
+   the Lab's actions row, below R3.4's breakpoint, `position: sticky; bottom:
+   0`, on --paper, with a `border-block-start: var(--hairline)` and nothing
+   else. No fill (R4.1), no shadow (R4.2), no second colour, no motion
+   (R5.5), on the same --z-sticky rung as the dial (R4.7). The two pin to
+   OPPOSITE edges, which is what keeps them from colliding — and R8.1 makes
+   that a condition rather than a hope, so the sum is what has to be short:
+   the dial block is a measured 153px at 360 and this row is a measured 61px
+   (--text-15 at --leading-ui plus two --space-12s, one hairline), 214px of a
+   640px phone, leaving 426px of live scroll between them.
+   The inline padding is the page gutter the results pane above it supplies
+   through .ph-lab; on a sticky row that spans the viewport the buttons would
+   otherwise sit flush against the edge at 360. */
 .ph-lab__actions {
   display: flex;
   align-items: center;
   gap: var(--space-16);
-  margin-block-start: var(--space-24);
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  background: var(--paper);
+  border-block-start: var(--hairline);
 }
 
 .ph-lab__submit {
@@ -277,8 +296,37 @@
     border-block-end: none;
   }
 
+  /* R8.1's own Do: "make it static at and above 768px. The grid already puts
+     the knobs and the actions on screen together there, so there is nothing
+     for stickiness to buy" — the same argument that makes the dial static
+     above the breakpoint. The hairline goes with the stickiness: it is what
+     separates a pinned bar from the content sliding under it, and there is
+     nothing sliding under it here. */
+  .ph-lab__actions {
+    position: static;
+    grid-column: 2;
+    grid-row: 4;
+    background: none;
+    border-block-start: none;
+    margin-block-start: var(--space-24);
+  }
+
   .ph-lab__controls {
     grid-column: 1;
-    grid-row: 2 / span 2;
+    grid-row: 2 / span 3;
   }
+}
+
+/* gr6-025 — what a peek buys, printed at the button that buys it. Caption
+   register (R1.2/R8.3: it must not compete with the dial), mono because it
+   is entirely numerals (R2.4), and gone the moment there is nothing left to
+   collect — the button is disabled then, and an offer that cannot be taken
+   is noise. */
+.ph-lab__collect-gain {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
 }
