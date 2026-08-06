@@ -216,12 +216,26 @@ describe('pickPress (T6 review adoption: prefer scenario-bound, tier-matched; el
     }
   });
 
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4). This test used to reach for
+   * 'sourdough-marathon' at tier 1 as a live example of a cell with no bound
+   * blurb, on T39a's reasoning that "a tier is a VOICE, not a volume knob, and
+   * not every scenario's material is funny read straight by a broadsheet".
+   * §1(g) overturned that: the empty cells were measured to leave the press
+   * page wholly generic on 55-58% of days, and the 60-cell matrix fills all of
+   * them, so no scenario in the shipped bank is a fallback case any more.
+   *
+   * The BRANCH is still there and still has to work — `resolveSlot`'s
+   * preference is a preference and not a filter, precisely so that a future
+   * bank with a hole in it still yields a first card rather than crashing the
+   * celebration screen. So the fixture is now synthetic, which is the stronger
+   * form anyway: it exercises the branch on purpose instead of depending on a
+   * gap in the corpus that nobody had promised to keep.
+   */
   it('falls back to the scenario-agnostic tier-matched pool when no scenario-bound blurb exists at this tier', () => {
-    // T39a gave 'sourdough-marathon' a bound blurb at tier 2 (the flour co-op
-    // line) and deliberately none at tier 1: a tier is a VOICE, not a volume
-    // knob, and not every scenario's material is funny read straight by a
-    // broadsheet. Tier 1 is therefore still a genuine fallback case here.
-    const picked = pickPress(enContent.press, 1, 'sourdough-marathon', ISO);
+    const withHole = enContent.press.filter((p) => !(p.tier === 1 && isBoundTo(p, 'sourdough-marathon')));
+    expect(withHole.length).toBeLessThan(enContent.press.length);
+    const picked = pickPress(withHole, 1, 'sourdough-marathon', ISO);
     expect(picked.tier).toBe(1);
     expect(picked.scenarioIds ?? []).toHaveLength(0);
   });
@@ -535,14 +549,61 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
    * Salting the agnostic draw with the scenario id decorrelates the twenty
    * scenarios from each other.
    */
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4) and w4-r-001, which is the reason this test
+   * is written against a SYNTHETIC bank rather than the shipped one.
+   *
+   * The test used to select "scenarios with no bound blurb at tier 2", because
+   * a cell with no bespoke entry renders a wholly generic day and is where the
+   * repetition was most visible. The 60-cell matrix filled every such cell, so
+   * that selector matches nothing and the fixture's own `> 1` premise guard
+   * fired. W4's first repair pointed the same `> 1` assertion at the live
+   * bank's follow-up tail — and that repair was WRONG in a way that took a
+   * mutation to see: deleting the salt from `resolveSlot` left the whole suite
+   * green.
+   *
+   * WHY THE LIVE BANK CANNOT TEST THIS ANY MORE. Post-matrix, card 1 is bespoke
+   * and therefore already differs per scenario. `resolveSlot`'s reject-and-
+   * advance then walks the follow-ups past card 1's outlet, so the tail shifts
+   * from scenario to scenario even with NO salt at all. The matrix masks the
+   * salt's absence, and `signatures.size > 1` is far too loose to notice: the
+   * bespoke card alone supplies the variation the assertion was reading as
+   * proof of the salt.
+   *
+   * WHAT ISOLATES THE SALT. Strip every bound row out of the bank. Then, for
+   * each tier, all three slots draw from one shared agnostic pool, `safePool`
+   * and `offset` are identical for all twenty scenarios, and the ONLY route by
+   * which the scenario id can reach the index is `resolveSlot`'s agnostic hash
+   * — the salt itself. Without it every scenario collapses to exactly ONE
+   * signature; with it they spread. That makes `> 1` structurally exact here
+   * rather than merely true, and it is a property of the picker rather than a
+   * threshold tied to today's pool sizes.
+   */
   it('does not run the same generic pair for two different scenarios on the same date and tier', () => {
-    const genericOnly = enContent.scenarios.filter((sc) => enContent.press.every((p) => !isBoundTo(p, sc.id) || p.tier !== 2));
-    // The interesting cells are the ones with no bound blurb at this tier —
-    // where the WHOLE day is generic and the repetition was most visible.
-    expect(genericOnly.length).toBeGreaterThan(1);
-    const signatures = new Set(
-      genericOnly.map((sc) => pressForDay(enContent.press, 2, sc.id, ISO).map((b) => b.text).join('|'))
-    );
-    expect(signatures.size).toBeGreaterThan(1);
+    // The synthetic bank: agnostic rows only, so a bespoke first card cannot
+    // supply the variation the salt is supposed to supply.
+    const agnosticOnly = enContent.press.filter((p) => !p.scenarioIds?.length);
+    expect(agnosticOnly.length).toBeLessThan(enContent.press.length);
+    expect(enContent.scenarios.length).toBeGreaterThan(1);
+
+    for (const tier of TIERS) {
+      const signatures = new Set(
+        enContent.scenarios.map((sc) =>
+          pressForDay(agnosticOnly, tier, sc.id, ISO)
+            .map((b) => b.text)
+            .join('|')
+        )
+      );
+      // Unsalted, this is exactly 1 for every tier — the whole bank draws off
+      // the date alone, which is the defect gr6-064 was raised for.
+      expect(signatures.size, `tier ${tier} generic draws on ${ISO} are not decorrelated by scenario`).toBeGreaterThan(1);
+    }
   });
+
+  // The live-bank, player-facing half of the same concern (w4-r-010) lives in
+  // tests/content/shape.test.ts beside the 3,000-date simulation, because what
+  // it measures is the BANK's richness rather than the picker's arithmetic.
+  // Card 1 is deliberately deterministic per (scenario, tier) — that is T39a's
+  // covered-by-name guarantee — so "the whole page differs across dates" is not
+  // a property this design has, and asserting it here would be a false law.
 });

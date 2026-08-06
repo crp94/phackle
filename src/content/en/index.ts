@@ -593,6 +593,91 @@ export const content: LocaleContent = {
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
     },
+    // ---- gr3-024, the 60-cell matrix: the twelve tier-1 cells T39a left
+    // empty. Prestige register, same as the block above: the outlet has read
+    // the METHOD and reports it straight, in the third person, with no second
+    // person anywhere and no invitation to the reader. What makes these funny
+    // is the sincerity — the sentence a serious paper would write about a
+    // study that should not exist. 'Morning Chirp' carries four of them
+    // deliberately: it is the one tier-1 masthead with no generic entries, so
+    // a bespoke card under it can never collide with its own follow-up. ----
+    {
+      text: 'A full fiscal quarter of an internal poetry channel was scored blind by English-department alumni. The panel was paid in pizza, which the authors disclose.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Starter logs were matched to chip times across twelve weeks. The authors are careful to call the hypothesis behavioral rather than nutritional.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'One department received a 340-hour playlist and the other its usual silence. Every cell of both sets of quarterly models went through an independent audit tool.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'A single Boston fern sat in each procurement office for one full contracting cycle. The closed terms were then obtained in every case, several of them after considerable pleading.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Shower temperature was self-logged each morning and six weeks of outgoing mail scored by coders blind to condition. Enrollment proceeded in waves, as the plumbing allowed.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'A logger recorded every parking search from street entry to engine-off. Neither group was told what the study was looking for, and the two participants who guessed were not close.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      // w4-r-007: this row used to restate the cover story's first two
+      // sentences almost verbatim (a 13-word shared run). The cover story has
+      // two jokes it never spends — the switch changeover as a natural
+      // experiment, and where the tactile-feedback literature stops — and a
+      // tier-1 outlet reporting the method is exactly who would spend them.
+      text: 'Every switch changeover inside eleven teams\' procurement records is treated as a natural experiment. The tactile-feedback literature stops at typing speed; this study begins at production.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'Pet names were hand-classified against a reference list of economists and matched to two years of audited account statements. The classification queue, the authors concede, is not yet empty.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'One screening question preceded a quarter of instrumented mail clients. The instrument counts metadata only, a point the methods section makes three times.',
+      outlet: 'Morning Chirp',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'A research assistant attended each dinner introduced as a colleague from work, recording arrivals, departures and what the guests carried in. The wine was not available for analysis.',
+      outlet: 'The Weekly Ledger',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'A battery of everyday number preferences was scored and matched to the mortgage terms actually signed. The broker who obtains those terms has asked not to be named.',
+      outlet: 'The Sunday Supplement',
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: 'An extension recorded a daily tab count and nothing else, a limitation the authors accept for recruitment reasons. Every self-reported project required a working public link.',
+      outlet: 'Public Record Weekly',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
     // ---- TIER 2: aggregator-grade. The midmarket outlet has read the
     // abstract and made it about the reader. ----
     { text: 'One weird trick statisticians PUBLISH with.', outlet: 'The Daily Scroll', tier: 2 },
@@ -657,6 +742,84 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // ---- gr3-024, the 60-cell matrix: the eleven tier-2 cells T39a left
+    // empty. Same midmarket voice as the nine above it — the outlet has read
+    // the abstract and made it about the reader, so every line turns on the
+    // second person and lands on something the reader already owns, already
+    // does, or is already inside somebody's dataset for. Mastheads rotate
+    // Buzz / Clickwell / Scroll for VARIETY — w4-r-005: an earlier version of
+    // this note claimed the rotation is what stops a first card colliding with
+    // its follow-ups, which is not true. gr6-064's reject-and-advance in
+    // resolveSlot is what guarantees that, and it holds whichever masthead the
+    // bespoke card carries; the rotation only keeps the tier from reading like
+    // one outlet wrote it. Spoiler law as above: the question, the method and
+    // the cover story's furniture, never the verdict. ----
+    {
+      text: 'Your cat is not on the trust\'s payroll, but four cats are the reason it exists. Thirty days of your trading would have been enough to get you into the sample.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: 'The panel of English-department alumni is paid in pizza and scores every submission blind. A quarter of your writing would have gone into the same pile.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'One Boston fern per procurement officer, one full contracting cycle, and then somebody asked for the closed terms. There is a fern somewhere near your desk right now.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Every pet name was hand-classified against a list of economists, and one Milton took a week to settle. Your dog is either on that list or it is not.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Eighteen months of calendar records went into this, and the consultancy has already asked which of its meetings we intend to name. Your four o\'clock is in somebody\'s dataset too.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: 'Strangers in three cities were asked for directions first and about their telescope second. A fourth city is being added, so watch who stops you.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'The panel scoring severity is made of former editors who have all been reviewed in a café. If your manuscript came back long, you finally have somewhere to point.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'The hard part was finding anybody who reads the agreement. If that is you, twelve months of your support calls were worth transcribing.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'They put a folding table at gate 14 and measured what travelers had packed against the bag it came in. Your carry-on would have been next.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'Twelve floors of badge data, and everybody found out about the badges at the debrief. Every time you took the stairs with a colleague, that was the unit of analysis.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'Two coders studied photographs of other people\'s sock storage and agreed almost every time. Open yours and you can score it yourself.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     // ---- TIER 3: the chyron. The broadcast has reduced the abstract to
     // whatever fits a lower third. ----
     { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
@@ -710,6 +873,85 @@ export const content: LocaleContent = {
       outlet: 'Nightly Chyron Network',
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
+    },
+    // ---- gr3-024, the 60-cell matrix: the eleven tier-3 cells T39a left
+    // empty. Lower-third rules, same as the block above: present tense, one
+    // clause, nothing a chyron could not hold, and the voice law (capitals) is
+    // mechanical rather than a matter of taste.
+    //
+    // w4-r-005 corrected the masthead note here. It used to argue that a
+    // bespoke first card reusing a generic masthead "would force a repeat",
+    // which is false: tier 3 renders three items and the generic pool holds
+    // exactly three mastheads, which is one per slot — card 1 may reuse any of
+    // them and resolveSlot still finds two unused ones for the follow-ups. All
+    // eleven cells below DO reuse a generic masthead, and the 3,000-date
+    // simulation measures same-outlet pairs at 0.00%. The rotation is variety,
+    // not structure; the structure is gr6-064's reject-and-advance. ----
+    {
+      text: 'ALERT: THE FLOUR CO-OP IS NOW A TRAINING PLAN',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'BREAKING: 340 HOURS OF HARD BOP ARE AUDITING YOUR SPREADSHEET',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'THE SHOWER IS COLD AND SO IS YOUR REPLY-ALL',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'YOUR STAR SIGN IS CIRCLING THE BLOCK WITH YOU',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'THE LOUD KEYBOARD IS NOW A QUALITY PROCESS',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'THE LABEL MAKER HAS REACHED THE INBOX',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'EXCLUSIVE: THE TURNTABLE DECIDES WHEN YOUR GUESTS GO HOME',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'THE STRANGER WITH THE TELESCOPE KNOWS THE WAY. THE APP DOES NOT.',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'BREAKING: SOMEBODY OUT THERE READS THE TERMS, AND SUPPORT KNOWS IT',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'GATE 14 HAS A FOLDING TABLE AND YOUR HOLIDAY IS ON IT',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'EXCLUSIVE: SKIP THE 13TH FLOOR, KEEP THE BASIS POINTS',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
     },
   ],
 

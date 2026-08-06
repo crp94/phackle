@@ -584,6 +584,92 @@ export const content: LocaleContent = {
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
     },
+    // gr3-024, the 60-cell matrix: the twelve tier-1 cells, transcreated off
+    // the ITALIAN scenarios. Prestige register, third person, the method
+    // reported straight and without a second person anywhere; the joke is the
+    // sincerity. Il Cinguettio del Mattino carries four of them because it is
+    // the one masthead at this tier with no generic entries.
+    {
+      text: 'Un intero trimestre fiscale del canale di poesia aziendale è stato valutato alla cieca da ex studenti di Lettere. La giuria è pagata in pizza, cosa che gli autori dichiarano.',
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: "I diari del lievito sono stati incrociati con i tempi del chip lungo dodici settimane. Gli autori tengono a definire l'ipotesi comportamentale e non nutrizionale.",
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: "Un reparto ha ricevuto una playlist di 340 ore e l'altro il suo solito silenzio. Ogni cella dei modelli trimestrali di entrambi è passata in uno strumento di revisione indipendente.",
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'Una singola felce di Boston è rimasta in ogni ufficio acquisti per un intero ciclo di gare. Le condizioni finali sono poi arrivate in tutti i casi, parecchie dopo molte insistenze.',
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: "La temperatura della doccia è stata registrata ogni mattina e sei settimane di posta in uscita valutate da codificatori in cieco. Le iscrizioni sono proseguite a ondate, per quanto lo consentisse l'impianto idraulico.",
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      // w4-r-004: "hanno indovinato" said they guessed CORRECTLY, which is the
+      // opposite of the sentence's own second half. This locale's cover story
+      // has the idiom right three lines away ("hanno tirato a indovinare").
+      text: "Un registratore ha tracciato ogni ricerca di parcheggio dall'ingresso in strada allo spegnimento del motore. Ai due gruppi non è stato detto che cosa si cercasse, e i due che hanno tirato a indovinare non ci sono andati vicino.",
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      // w4-r-007: see the English row. The cover story's two unspent jokes are
+      // the switch changeover treated as a natural experiment and the point
+      // where the tactile-feedback literature stops.
+      text: "Ogni cambio di switch dentro gli archivi di undici team è trattato come un esperimento naturale. La letteratura sul feedback tattile si ferma alla velocità di battitura; questo studio comincia dalla produzione.",
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      // w4-r-008: "classificare CONTRO un elenco" is an anglicism; Italian
+      // confronta CON. The cover story still carries the older phrasing (it is
+      // W3's string, not this wave's) and is booked rather than reworked here.
+      text: 'I nomi degli animali sono stati confrontati a mano con un elenco di economisti e incrociati con due anni di estratti conto certificati. La coda della classificazione non è ancora smaltita.',
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Una sola domanda di selezione ha preceduto un trimestre di client di posta con sonda. La sonda conta soltanto metadati, punto che la sezione metodi ribadisce tre volte.',
+      outlet: 'Il Cinguettio del Mattino',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'A ogni cena era presente un assistente di ricerca, presentato come un collega di lavoro, che registrava arrivi, uscite e che cosa portavano gli ospiti. Il vino non era disponibile per l\'analisi.',
+      outlet: 'La Gazzetta di Provincia',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'Una batteria di domande sulle preferenze numeriche di tutti i giorni è stata incrociata con le condizioni di mutuo davvero firmate. Il broker che ottiene quelle condizioni ha chiesto di non essere nominato.',
+      outlet: "L'Inserto della Domenica",
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: "Un'estensione ha registrato il numero di schede del giorno e nient'altro, un limite che gli autori accettano per ragioni di reclutamento. Ogni progetto dichiarato richiedeva un link pubblico funzionante.",
+      outlet: 'Il Bollettino Civico',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
+    },
     { text: 'Lo strano trucco con cui gli statistici PUBBLICANO.', outlet: 'Lo Scroll Quotidiano', tier: 2 },
     {
       text: 'La tua sedia da ufficio ti sta costando un Premio Strega? Gli esperti si pronunciano.',
@@ -680,6 +766,85 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-2 cells, transcreated off
+    // the ITALIAN scenarios. Same midmarket rules as the block above — TU and
+    // never Lei, the second person in every line, and the joke landing on
+    // something the reader owns or already does.
+    //
+    // w4-r-005 corrected this note, which described content that is not in
+    // this block. It claimed a mortgage line (thirteen-mortgage's tier-2 cell
+    // was already filled by T39b; this wave's mortgage work is the tier-3
+    // chyron, and it is there that the 17 appears) and a poetry line reaching
+    // for the canale Slack di poesia aziendale (it does not; it names the
+    // giuria di ex studenti di Lettere and the pizza). The divergences that
+    // ARE here: the peer-review panel sat al bar rather than in a café, and
+    // the stairs line takes this locale's badge/debriefing sequencing.
+    {
+      text: "Il tuo gatto non è nel libro paga della fondazione, ma sono stati quattro gatti a far partire lo studio. Sarebbero bastati trenta giorni delle tue operazioni per entrare nel campione.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: "La giuria di ex studenti di Lettere è pagata in pizza e valuta tutto alla cieca. Anche un trimestre di quello che scrivi tu sarebbe finito nella stessa pila.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: "Una felce di Boston per ogni responsabile acquisti, un ciclo di gare intero, e poi qualcuno ha chiesto le condizioni finali. Una felce ce l'hai anche tu a due passi dalla scrivania.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: "Ogni nome di animale è stato confrontato a mano con un elenco di economisti, e su un Milton ci è voluta una settimana. Il nome del tuo cane o è in quell'elenco o non c'è.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: "Dentro ci sono diciotto mesi di registri di calendario, e la società di consulenza ha già chiesto quali riunioni pensiamo di nominare. Anche la tua delle quattro sta nei dati di qualcuno.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: "Ai passanti di tre città hanno chiesto prima la strada e poi del telescopio. Stanno aggiungendo una quarta città, quindi occhio a chi ti ferma.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: "Il collegio che valuta la severità è composto da ex direttori, recensiti tutti al bar almeno una volta. Se il tuo manoscritto è tornato indietro lungo, finalmente sai dove puntare il dito.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: "La parte difficile è stata trovare qualcuno che il contratto lo legga davvero. Se sei tu, dodici mesi delle tue telefonate all'assistenza valevano una trascrizione.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: "Hanno montato un tavolino pieghevole al gate 14 e confrontato quello che i viaggiatori avevano messo in valigia con il volume della valigia stessa. Il tuo bagaglio a mano sarebbe stato il prossimo.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: "Dodici piani di dati dei badge, e dei badge lo hanno saputo tutti al debriefing. Ogni volta che prendi le scale con un collega, quella è l'unità di analisi.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: "Due codificatori hanno studiato le fotografie di come gli altri tengono i calzini e si sono trovati d'accordo quasi sempre. Apri il tuo cassetto e puoi valutarti da solo.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     {
       text: 'STUDIO: FELCI = POTERE CONTRATTUALE?',
       outlet: 'Rete Sottopancia',
@@ -765,6 +930,81 @@ export const content: LocaleContent = {
       outlet: 'Rete Sottopancia',
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
+    },
+    // gr3-024, the 60-cell matrix: the eleven tier-3 cells, in sottopancia
+    // Italian. Present tense, one clause, and the ITALIAN scenario's own
+    // furniture where it diverges — the mortgage chyron skips the PIANO 17,
+    // because this locale relocated the superstition (eptacaidecafobia) and a
+    // 13 here would be the English source showing through. Accented capitals
+    // (È, À) sit outside the ASCII class upperCaseRatio counts and cost
+    // nothing. Mastheads here are variety and not structure (w4-r-005): the
+    // generic pool holds one masthead per slot, so a bespoke card may reuse
+    // one and resolveSlot still finds two unused ones for the follow-ups.
+    {
+      text: 'ALLARME: IL MOLINO COOPERATIVO ADESSO È UNA TABELLA DI ALLENAMENTO',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: "ULTIM'ORA: 340 ORE DI HARD BOP CONTROLLANO IL TUO FOGLIO DI CALCOLO",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'LA DOCCIA È FREDDA E LO È ANCHE IL TUO RISPONDI A TUTTI',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: "IL TUO SEGNO STA GIRANDO L'ISOLATO INSIEME A TE",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'ALLARME: LA TASTIERA RUMOROSA ADESSO È CONTROLLO QUALITÀ',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: "ULTIM'ORA: L'ETICHETTATRICE È ARRIVATA NELLA POSTA IN ARRIVO",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'ESCLUSIVO: È IL GIRADISCHI A DECIDERE QUANDO I TUOI OSPITI VANNO A CASA',
+      outlet: 'Rete Sottopancia',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: "CHI HA IL TELESCOPIO SA LA STRADA. L'APP NO.",
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: "ULTIM'ORA: QUALCUNO LEGGE I TERMINI, E L'ASSISTENZA LO SA",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: "AL GATE 14 C'È UN TAVOLINO PIEGHEVOLE E SOPRA CI SONO LE TUE VACANZE",
+      outlet: 'Rete Sottopancia',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'ESCLUSIVO: SALTA IL PIANO 17, TIENITI I PUNTI BASE',
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
     },
   ],
 
