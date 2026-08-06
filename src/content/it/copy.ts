@@ -238,6 +238,8 @@ export const copy: Record<CopyKey, string> = {
   'reveal.curveCaptionAbandoned':
     'Tutte le specificazioni che avresti potuto stimare, ordinate per p-value. Non è stato pubblicato niente.',
   'reveal.publishedRecipe': 'Hai pubblicato: {recipe}',
+  // gr6-003: il verbo della modalità Preregistrazione, non quello di Hacking.
+  'reveal.preregisteredRecipe': 'Hai preregistrato: {recipe}',
   // Holds on null days too: niente si addensa, and that is the same lesson read
   // from the other side.
   'reveal.groupedCaption': 'Gli effetti veri si addensano. Il rumore si sparpaglia.',
@@ -245,7 +247,20 @@ export const copy: Record<CopyKey, string> = {
   'reveal.toSummary': 'Vedi la fattura',
   'reveal.pValue': 'p = {p}',
   'reveal.pValueTiny': 'p < 0.001',
-  'reveal.accounting1': 'Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < .05 per puro caso.',
+  // gr6-001 — "per puro caso" non era vero su nessuno dei due tipi di giorno.
+  // Nei giorni nulli l'associazione c'è davvero: il trattamento nasce dalle
+  // stesse variabili latenti su cui caricano gli esiti (about.mechanism lo
+  // dichiara già, "un trattamento con confondimento da età e reddito"), e la
+  // specificazione Y1 più semplice rifiuta il 18.2% delle volte contro un
+  // nominale del 5%. Nei giorni con effetto quasi il 70% dei risultati
+  // significativi sta sull'esito che la riga sopra ha appena dichiarato reale.
+  // "Caso" resta nella frase, ma mai come unica spiegazione (decisione del
+  // controller (a), 2026-08-06). Zero em dash (regola 11); punto decimale con
+  // lo zero iniziale, come in briefing.goal.
+  'reveal.accounting1':
+    "Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < 0.05. Nessuna ha trovato un effetto, perché non ce n'è. Alcune sono caso; le altre sono confondimento: il trattamento non è mai stato assegnato in modo casuale, e si muove con l'età e il reddito.",
+  'reveal.accounting1Effect':
+    "Su {total} analisi possibili, {sig} ({sigPct}%) arrivano a p < 0.05: {trueSig} sull'esito dove l'effetto è reale, {otherSig} sugli esiti dove non c'è niente. Un p-value da solo non distingue le due cose.",
   // T37 — plural safety (rule 9). {k} floors at 1: publishing the default
   // specification explores exactly one sentiero, so "Hai esplorato 1 sentieri"
   // was the ordinary first case, not an edge one. Label-colon-count in the two
@@ -253,8 +268,16 @@ export const copy: Record<CopyKey, string> = {
   // in the third, which has to keep its sentence shape.
   'reveal.accounting2': 'Sentieri che hai esplorato prima di pubblicare: {k}.',
   'reveal.accounting2Abandoned': 'Sentieri che hai esplorato prima di riportare un risultato nullo: {k}.',
+  // gr6-003 — impegno, non esplorazione. Il verbo è quello che
+  // summary.preregUpsell usa già ("impegnati su una sola analisi"), regola 7.
+  'reveal.accounting2Prereg':
+    'Sentieri su cui ti sei impegnato prima di vedere un solo numero: {k}. Non ne hai eseguito nessun altro.',
   'reveal.accounting3':
     'Un ricercatore che esplora a caso quello stesso numero di sentieri ({k}) trova almeno un risultato "significativo" circa il {pHitPct}% delle volte.',
+  // gr6-002 — la frase sopra descrive una ricerca uniforme a caso, che nessuno
+  // fa: chi segue il p-value arriva alla significatività in 3-4 mosse.
+  'reveal.accounting3Directed':
+    'Tu non hai cercato a caso: hai seguito il p-value. La ricerca guidata arriva alla significatività prima, quindi il numero qui sopra è un limite inferiore.',
   // {peeks} floors at 1 (Reveal renders this line only when peeks !== 0), so
   // "Le tue 1 sbirciate" was on screen for every single-peek day.
   'reveal.peekSurcharge':

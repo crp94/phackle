@@ -183,13 +183,34 @@ export type CopyKey =
   // is invisible to a screen reader and unreachable by tab; this line sets the
   // published recipe as real text, in full labels, once.
   | 'reveal.publishedRecipe'
+  // GR6 gr6-003: Prereg Mode's own framing for the same line. "You published"
+  // is Hacking Mode's verb; a preregistered player declared the analysis
+  // before seeing a number, and the reveal is the one screen that has to say
+  // which of the two happened.
+  | 'reveal.preregisteredRecipe'
+  // GR6 gr6-001: `accounting1` is DAY-TYPED. The un-suffixed key is the NULL
+  // day; the effect day gets its own line, because ~70% of an effect day's
+  // hits sit on the outcome the truth line declared real one paragraph above
+  // (measured: median 192 of 283 hits at N=200 over 200 effect days) and
+  // calling those "chance" contradicts the game's own previous sentence.
   | 'reveal.accounting1'
+  | 'reveal.accounting1Effect'
   | 'reveal.accounting2'
   // T16 addition: §2.7.3's accounting2 assumes a publication. A player who
   // reported a null result explored their paths before doing something else,
   // and the sentence has to say so rather than lie by a verb.
   | 'reveal.accounting2Abandoned'
+  // GR6 gr6-003: the third variant, selected on mode === 'prereg'. A
+  // preregistering player explored nothing; handing them the hacker's verb is
+  // false in the only mode where the distinction is the whole lesson.
+  | 'reveal.accounting2Prereg'
   | 'reveal.accounting3'
+  // GR6 gr6-002: the sentence above describes a UNIFORM RANDOM explorer, and
+  // nobody plays that way. A hill-climber reaches significance in a median of
+  // 3-4 evaluations, so the random figure understates exactly the player it is
+  // aimed at. Rendered beside accounting3 in Hacking Mode only, and only once
+  // there was a search to describe (k > 1).
+  | 'reveal.accounting3Directed'
   | 'reveal.peekSurcharge'
   // T16 additions: figure furniture (§7.4, DESIGN.md R8.3 — "a plain figure
   // with a --muted caption"). Kept out of the caption strings themselves so
@@ -597,6 +618,7 @@ export const copy: Record<CopyKey, string> = {
   'reveal.curveCaptionAbandoned':
     'Every specification you could have run, sorted by p-value. Nothing was published.',
   'reveal.publishedRecipe': 'You published: {recipe}',
+  'reveal.preregisteredRecipe': 'You preregistered: {recipe}',
   // §7.3 pins this sentence. It holds on null days too: nothing clusters, and
   // that is the same lesson read from the other side.
   'reveal.groupedCaption': 'Real effects cluster. Noise scatters.',
@@ -649,7 +671,41 @@ export const copy: Record<CopyKey, string> = {
   // A locale whose agreement rules differ from English must check the floor
   // above rather than assume the English form is safe.
   // ------------------------------------------------------------------
-  'reveal.accounting1': 'Of {total} possible analyses, {sig} ({sigPct}%) reach p < .05 by chance alone.',
+  // ------------------------------------------------------------------
+  // GR6 gr6-001 (blocker, `scientific`) — WHY "BY CHANCE ALONE" IS GONE FROM
+  // BOTH VARIANTS OF THIS LINE.
+  //
+  // NULL DAYS. The DGP assigns treatment from the same latents the outcomes
+  // load on (dgp.ts: X = 1[0.3·L1 + 0.2·L4 + 0.94·ε > 0] while Y1 loads on L1
+  // and L4), and L1 has no covariate proxy on offer, so the association is not
+  // removable by any control the player has. Measured over 600 unconditioned
+  // null draws at N=200, the plainest Y1 spec has mean β = 0.182 (z = 24.9 on
+  // the mean) and rejects at 18.2%, i.e. 3.6x nominal. That is omitted-variable
+  // bias, not luck, and About already discloses it in as many words ("a
+  // treatment confounded with age and income"). Calling it "chance" taught the
+  // wrong name for the one mechanism the whole DGP was built to demonstrate,
+  // and contradicted the About page on the same day's screen. Controller
+  // ruling (a), 2026-08-06: the copy names the disclosed confound; "chance" may
+  // appear, but never as the sole explanation.
+  //
+  // EFFECT DAYS. The line rendered unconditionally, one paragraph below
+  // reveal.truthEffect's "True effect on X: β = ...". Measured over 200 effect
+  // days at N=200: median 283 significant paths, of which a median of 192 sit
+  // ON THE TRUE OUTCOME — 69.7% of the hits the sentence called chance. Hence
+  // the split, which the engine now computes (reveal.ts's sigTrueOutcome /
+  // sigOtherOutcome).
+  //
+  // Both variants set the threshold as `p < 0.05`, with the leading zero, per
+  // about.decimalNote's own worked example and briefing.goal's `p < 0.05`.
+  // {trueSig} and {otherSig} both floor at 0 and neither is followed by a noun
+  // that has to agree, so the sentence reads at every value (form (a) of the
+  // standing plural-safety note above: a bare count against a set named
+  // elsewhere).
+  // ------------------------------------------------------------------
+  'reveal.accounting1':
+    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05. None of them found an effect, because there is none. Some are chance; the rest are confounding: the treatment was never randomly assigned, and it moves with age and income.',
+  'reveal.accounting1Effect':
+    'Of {total} possible analyses, {sig} ({sigPct}%) reach p < 0.05: {trueSig} on the outcome where the effect is real, {otherSig} on the outcomes where nothing is. Nothing in a p-value distinguishes the two.',
   // ANAPHORA, load-bearing: "them" refers back to accounting1's "{total}
   // possible analyses", which Reveal.tsx always renders immediately above
   // (block "accounting", first <p>). That is what makes "{k} of them"
@@ -659,8 +715,21 @@ export const copy: Record<CopyKey, string> = {
   // the noun instead, which is equally correct and their own idiom.
   'reveal.accounting2': 'You explored {k} of them before publishing.',
   'reveal.accounting2Abandoned': 'You explored {k} of them before reporting a null result.',
+  // GR6 gr6-003: COMMITTED, NOT EXPLORED. Rendered on prereg days in place of
+  // accounting2, whose verb is Hacking Mode's. "and ran nothing else" rather
+  // than "and ran that one" so the sentence survives a k the mode does not
+  // currently produce (preregCommit passes exactly one spec today).
+  'reveal.accounting2Prereg': 'You committed to {k} of them before seeing any data, and ran nothing else.',
   'reveal.accounting3':
     'A researcher randomly exploring {k} of them finds at least one "significant" result about {pHitPct}% of the time.',
+  // GR6 gr6-002: the honest second half of the sentence above. Measured, a
+  // greedy hill-climber on the visible p-value publishes in a median of 3-4
+  // evaluations against pHit[4] = 0.181, so the random-explorer figure reads as
+  // "you were unlucky-lucky" to precisely the player who gamed the search best.
+  // Directed search is what Gelman and Loken's garden is about, and the number
+  // above is a floor for it, not an estimate of it.
+  'reveal.accounting3Directed':
+    'You did not search at random: you followed the p-value. Directed search reaches significance sooner, so the figure above is a lower bound.',
   // §3.7's honest form: m peeks make the true number of analyses ≈ (m+1)×
   // larger. Not 5^m, and not a scolding.
   // Plural safety by SINGULAR HEAD NOUN: "data-peeking … makes". The old

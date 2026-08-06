@@ -8,13 +8,15 @@ import { useEffect } from 'react';
 import { render, cleanup, act, waitFor } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { copy } from '../../src/content/en/copy';
+import { copy as itCopy } from '../../src/content/it/copy';
+import { copy as esCopy } from '../../src/content/es/copy';
 import { content as en } from '../../src/content/en';
 import { t } from '../../src/i18n/t';
 import { useGameStore, type GameStore } from '../../src/game/store';
 import type { EngineClient, RevealPayload } from '../../src/engine/protocol';
 import type { RevealCurveEntry } from '../../src/engine/reveal';
 import type { Outcome, PathResult, Spec } from '../../src/engine/types';
-import { Reveal, formatSigFigs } from '../../src/ui/screens/Reveal';
+import { Reveal, formatSigFigs, type RevealPayloadFull } from '../../src/ui/screens/Reveal';
 import { ScreenRouter } from '../../src/ui/ScreenRouter';
 import { recipeLabel } from '../../src/ui/charts/SpecCurve';
 
@@ -36,12 +38,19 @@ function curveEntry(p: number, over: Partial<RevealCurveEntry> = {}): RevealCurv
   return { p, explored: false, published: false, outcome: 0 as Outcome, spec: SPEC, ...over };
 }
 
-/** §2.7.3's own worked example: 1,792 paths, 87 significant (4.9%), k = 14, ~52%. */
-function payload(over: Partial<RevealPayload> = {}): RevealPayload {
+/** §2.7.3's own worked example: 1,792 paths, 87 significant (4.9%), k = 14, ~52%.
+ *
+ * Typed `RevealPayloadFull` (gr6-001): the two day-typed hit counts ride the
+ * same widening as `curve` — protocol.ts spreads `buildRevealMetrics`'s return
+ * verbatim, so they are on the wire object even though §6's narrower
+ * `RevealMetrics` does not declare them. See Reveal.tsx's own note. */
+function payload(over: Partial<RevealPayloadFull> = {}): RevealPayloadFull {
   return {
     totalPaths: 1792,
     sigPaths: 87,
     sigFraction: 87 / 1792,
+    sigTrueOutcome: 0,
+    sigOtherOutcome: 87,
     playerExplored: 14,
     pHitAtK: 0.52,
     curve: [
@@ -93,7 +102,7 @@ function Capture() {
 const live = () => harness.store as GameStore;
 
 async function mountReveal(
-  over: Partial<RevealPayload> = {},
+  over: Partial<RevealPayloadFull> = {},
   opts: { path?: 'abandon' | 'submit'; call?: 'real' | 'noise' } = {}
 ) {
   const p = payload(over);
@@ -130,6 +139,17 @@ function blockText(container: HTMLElement, name: string): string {
  * verbatim whatever the params are, so presence/absence can be asserted on it. */
 function literalRun(key: 'reveal.omittedFootnote' | 'reveal.peekSurcharge'): string {
   return copy[key].split(/\{\w+\}/).reduce((longest, run) => (run.length > longest.length ? run : longest), '');
+}
+
+/** Every token-free run of a template that is long enough to be distinctive.
+ * Absence has to be asserted on ALL of them: the day-typed accounting variants
+ * share their opening ("Of {total} possible analyses, ..."), so checking only
+ * the longest run would let the wrong variant through on a shared prefix. */
+function literalRuns(key: keyof typeof copy): string[] {
+  return copy[key]
+    .split(/\{\w+\}/)
+    .map((run) => run.trim())
+    .filter((run) => run.length >= 20);
 }
 
 describe('§2.7 sequence — the six blocks, in order', () => {
@@ -247,6 +267,100 @@ describe('§2.7.3 the accounting', () => {
   });
 });
 
+// --- gr6-001: the accounting is DAY-TYPED -----------------------------------
+//
+// The old single `accounting1` said "by chance alone" on both day types. On
+// effect days ~70% of the counted hits are true positives on the outcome the
+// truth line declared real one paragraph above (measured: median 192 of 283);
+// on null days a large share are the DGP's own designed confounding (z = 24.9
+// on the mean beta of the plainest Y1 spec, rejecting at 3.6x nominal), which
+// About discloses and the reveal then mislabelled.
+
+describe('gr6-001 — the accounting names the right cause on each day type', () => {
+  const EFFECT = {
+    dayType: 'effect' as const,
+    trueOutcome: 0 as Outcome,
+    trueBeta: 0.29,
+    sigPaths: 455,
+    sigFraction: 455 / 1792,
+    sigTrueOutcome: 317,
+    sigOtherOutcome: 138,
+  };
+
+  it('splits the hits by outcome on an effect day, using the payload\'s own counts', async () => {
+    const { container } = await mountReveal(EFFECT);
+    expect(blockText(container, 'accounting')).toContain(
+      t(copy, 'reveal.accounting1Effect', {
+        total: '1792',
+        sig: '455',
+        sigPct: '25.4',
+        trueSig: '317',
+        otherSig: '138',
+      })
+    );
+  });
+
+  it('never runs the null-day sentence on an effect day', async () => {
+    const { container } = await mountReveal(EFFECT);
+    const text = blockText(container, 'accounting');
+    for (const run of literalRuns('reveal.accounting1')) expect(text).not.toContain(run);
+  });
+
+  it('runs the null sentence, and names the disclosed confound, on a null day', async () => {
+    const { container } = await mountReveal({ dayType: 'null', trueOutcome: null, trueBeta: 0 });
+    const text = blockText(container, 'accounting');
+    expect(text).toContain(t(copy, 'reveal.accounting1', { total: '1792', sig: '87', sigPct: '4.9' }));
+    // Controller ruling (a): "chance" may appear, never as the sole cause.
+    // About's own disclosure is "a treatment confounded with age and income".
+    expect(text).toContain('confounding');
+    expect(text).toMatch(/never randomly assigned/);
+  });
+
+  it('never runs the effect-day sentence on a null day', async () => {
+    const { container } = await mountReveal({ dayType: 'null', trueOutcome: null, trueBeta: 0 });
+    const text = blockText(container, 'accounting');
+    for (const run of literalRuns('reveal.accounting1Effect')) expect(text).not.toContain(run);
+  });
+
+  it('says "by chance alone" on neither day type, in any locale (the defect, pinned)', () => {
+    for (const catalog of [copy, itCopy, esCopy]) {
+      for (const key of ['reveal.accounting1', 'reveal.accounting1Effect'] as const) {
+        expect(`${key}: ${catalog[key]}`).not.toMatch(/by chance alone|per puro caso|por puro azar/i);
+      }
+    }
+  });
+
+  it('keeps R1.3\'s loud colour on the headline pair only, not on the split counts', async () => {
+    const { container } = await mountReveal(EFFECT);
+    const sig = [...container.querySelectorAll('[data-block="accounting"] .ph-num--sig')].map((n) => n.textContent);
+    expect(sig).toEqual(['455', '25.4']);
+    const nums = [...container.querySelectorAll('[data-block="accounting"] .ph-num')].map((n) => n.textContent);
+    expect(nums).toContain('317');
+    expect(nums).toContain('138');
+  });
+});
+
+// --- gr6-002: the directed-search sentence ----------------------------------
+
+describe('gr6-002 — the pHit sentence stops exonerating an efficient hacker', () => {
+  it('adds the directed-search line when there was a search to describe', async () => {
+    const { container } = await mountReveal({ playerExplored: 14 });
+    expect(blockText(container, 'accounting')).toContain(copy['reveal.accounting3Directed']);
+  });
+
+  it('omits it at k = 1: publishing the default is not a search', async () => {
+    const { container } = await mountReveal({ playerExplored: 1 });
+    expect(blockText(container, 'accounting')).not.toContain(copy['reveal.accounting3Directed']);
+  });
+
+  it('quotes the pHit the payload carries, whichever vector the engine chose', async () => {
+    const { container } = await mountReveal({ dayType: 'effect', trueOutcome: 0, trueBeta: 0.29, pHitAtK: 0.614 });
+    expect(blockText(container, 'accounting')).toContain(
+      t(copy, 'reveal.accounting3', { k: '14', pHitPct: '61' })
+    );
+  });
+});
+
 describe('§2.7.2 / §2.7.6 the two figures', () => {
   it('captions fig. 1 and fig. 2 and plots the curve in both', async () => {
     const { container } = await mountReveal();
@@ -340,7 +454,7 @@ describe('a11y', () => {
 describe('review I4 — the abandon path claims nothing it did not do', () => {
   /** A payload consistent with having published nothing: no curve entry is
    * flagged, exactly as buildRevealMetrics produces for `published: null`. */
-  function abandonedPayload(): Partial<RevealPayload> {
+  function abandonedPayload(): Partial<RevealPayloadFull> {
     return {
       stamp: 'NULL_REPORTED',
       curve: payload().curve.map((entry) => ({ ...entry, published: false })),
@@ -411,7 +525,7 @@ describe('review I5 — the published recipe exists as real text', () => {
  * preregCommit), reusing the same fakeClient the hack-mode harness above
  * uses — its default runSpec (p=0.01, valid) is significant, so
  * preregCommit's own stamp correction keeps whatever `over.stamp` says. */
-async function mountRevealPrereg(over: Partial<RevealPayload> = {}, spec: Spec = SPEC) {
+async function mountRevealPrereg(over: Partial<RevealPayloadFull> = {}, spec: Spec = SPEC) {
   const p = payload(over);
   const view = render(
     <LocaleProvider>
@@ -431,15 +545,70 @@ async function mountRevealPrereg(over: Partial<RevealPayload> = {}, spec: Spec =
 }
 
 describe('T18 — prereg days: no CALL block, and the sig+null false-positive one-liner', () => {
-  it('renders the same six blocks in order, with the call block genuinely EMPTY (call is always null in prereg)', async () => {
+  it('renders five blocks: the call section is not rendered at all, rather than rendered empty (gr6-003)', async () => {
     const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
-    expect(blocks(container)).toEqual(['truth', 'fig1', 'accounting', 'stamp', 'call', 'fig2']);
-    expect(blockText(container, 'call')).toBe('');
+    expect(blocks(container)).toEqual(['truth', 'fig1', 'accounting', 'stamp', 'fig2']);
+    expect(container.querySelector('[data-block="call"]')).toBeNull();
   });
 
   it('shows reveal.preregFalsePositive on a prereg sig+null RETRACTED day (§2.8\'s "real 5% false positive")', async () => {
     const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
     expect(blockText(container, 'stamp')).toContain(copy['reveal.preregFalsePositive']);
+  });
+
+  // --- gr6-003: block 3 is MODE-typed, not just day-typed -------------------
+
+  it('says the player COMMITTED, never that they explored (gr6-003)', async () => {
+    // k = 1 is what a real prereg day carries: store.preregCommit hands the
+    // engine `explored: [spec]`, exactly the one path that was declared.
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null', playerExplored: 1 });
+    const text = blockText(container, 'accounting');
+    expect(text).toContain(t(copy, 'reveal.accounting2Prereg', { k: '1' }));
+    for (const run of literalRuns('reveal.accounting2')) expect(text).not.toContain(run);
+    for (const run of literalRuns('reveal.accounting2Abandoned')) expect(text).not.toContain(run);
+  });
+
+  it('frames the recipe as preregistered, not as published', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
+    const line = container.querySelector('[data-role="published-recipe"]');
+    expect(line?.textContent).toBe(
+      t(copy, 'reveal.preregisteredRecipe', { recipe: recipeLabel(SPEC, SCENARIO.outcomeLabels, copy) })
+    );
+    for (const run of literalRuns('reveal.publishedRecipe')) expect(line?.textContent).not.toContain(run);
+  });
+
+  it('never adds the directed-search line: a preregistering player followed nothing', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null', playerExplored: 14 });
+    expect(blockText(container, 'accounting')).not.toContain(copy['reveal.accounting3Directed']);
+  });
+
+  it('keeps the pHit sentence, which is the mode\'s whole lesson', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null', playerExplored: 1 });
+    expect(blockText(container, 'accounting')).toContain(t(copy, 'reveal.accounting3', { k: '1', pHitPct: '52' }));
+  });
+
+  it('suppresses the retraction subline: §4.5\'s bank is written for cheats', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
+    const stampText = blockText(container, 'stamp');
+    for (const subline of en.retractionSublines) expect(stampText).not.toContain(subline);
+    // The stamp itself is untouched: only its subline is.
+    expect(stampText).toContain(copy['reveal.retracted']);
+  });
+
+  it('keeps the retraction subline in hacking mode (the suppression is mode-scoped)', async () => {
+    const { container } = await mountReveal({ stamp: 'RETRACTED', dayType: 'null' });
+    const stampText = blockText(container, 'stamp');
+    expect(en.retractionSublines.some((s) => stampText.includes(s))).toBe(true);
+  });
+
+  it('hoists the false-positive frame ABOVE the stamp, so the frame arrives before the verdict', async () => {
+    const { container } = await mountRevealPrereg({ stamp: 'RETRACTED', dayType: 'null' });
+    const block = container.querySelector('[data-block="stamp"]')!;
+    const nodes = [...block.querySelectorAll('.ph-reveal__statement, .ph-stamp')];
+    expect(nodes.length).toBeGreaterThanOrEqual(2);
+    expect(nodes[0].textContent).toBe(copy['reveal.preregFalsePositive']);
+    expect(nodes[0].classList.contains('ph-reveal__statement')).toBe(true);
+    expect(nodes[1].classList.contains('ph-stamp')).toBe(true);
   });
 
   it('does NOT show the one-liner on a hack-mode RETRACTED day (existing behavior unchanged)', async () => {
