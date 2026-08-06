@@ -187,15 +187,24 @@ const ROSTER_KEPT: Record<string, string> = {
 };
 
 /**
- * Keys this wave AUTHORED for a wiring commit another wave owns. Every entry
- * names the consumer, so the roster is a work list rather than an amnesty —
- * and assertion (b) below turns it into a self-retiring one: the day a key
- * here acquires a call site, this suite fails until the entry is removed.
+ * Keys AUTHORED by one wave for a wiring commit another wave owns. Every
+ * entry names the consumer, so the roster is a work list rather than an
+ * amnesty — and assertion (b) below turns it into a self-retiring one: the
+ * day a key here acquires a call site, this suite fails until the entry is
+ * removed. It self-retires from the other direction too, via (a): a key
+ * removed from here without being wired goes red as an unaccounted dead key.
+ *
+ * IT IS EMPTY, AND EMPTY IS THE STATE IT SHOULD BE FOUND IN. Fifteen entries
+ * passed through it — W2 wrote the strings, W7 wired them at the call sites
+ * W2 named, and each entry left as its key acquired one. The record stays
+ * declared rather than deleted with the last entry, because it is the only
+ * place that distinguishes "kept deliberately, forever" (ROSTER_KEPT above,
+ * a different contract) from "owed, by a named wave, at a named call site".
+ * A future wave that writes a key ahead of its consumer belongs here, with
+ * the consumer written down; a key parked in ROSTER_KEPT instead would be
+ * granted permanent amnesty by the wrong list and never wired at all.
  */
-const ROSTER_PENDING: Record<string, string> = {
-  'summary.playPrereg':
-    'RETIRED, not pending: W6 (gr6-020) deleted the button this labelled. Blocked on tests/ui/summary.test.tsx:285,837, which still name the key to pin the CTA\'s absence and belong to W7 this round. W7 re-pins those structurally, then deletes the key from all three catalogs and this roster.',
-};
+const ROSTER_PENDING: Record<string, string> = {};
 
 describe('Dead-key sweep — every defined CopyKey is reachable, or rostered with a reason (gr6-026)', () => {
   const definedKeys = Object.keys(copy);

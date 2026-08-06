@@ -432,11 +432,6 @@ export const copy: Record<CopyKey, string> = {
   // nunca contrastadas). *Racha* es además lo que dicen los juegos diarios en
   // español. La regla 6 ya lo recoge.
   'summary.streak': 'Racha: {n}',
-  // RETIRADA: W6 (gr6-020) eliminó el botón deshabilitado que esta cadena
-  // etiquetaba. No se borra solo porque dos aserciones de
-  // tests/ui/summary.test.tsx la siguen nombrando y ese archivo no es de esta
-  // oleada. La nota completa está en en/copy.ts.
-  'summary.playPrereg': 'Probar el modo Preregistro',
 
   'summary.breakdownCallCorrect': 'Veredicto correcto',
   'summary.breakdownCallIncorrect': 'Veredicto erróneo',

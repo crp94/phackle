@@ -375,7 +375,6 @@ export type CopyKey =
   | 'summary.copied'
   | 'summary.nextIn'
   | 'summary.streak'
-  | 'summary.playPrereg'
   // T13 addition: one label per §2.8 scoring-table row, for the Summary
   // screen's "fee invoice" breakdown (§7.3) that scoring.ts's scoreDay()
   // returns as `[CopyKey, number][]` pairs. Not in the brief's explicit
@@ -1168,18 +1167,6 @@ export const copy: Record<CopyKey, string> = {
   // form both locales and share.ts already use — and now the Summary, the
   // Stats page and the share string all say one word.
   'summary.streak': 'Streak: {n}',
-  // RETIRED, PENDING ONE EDIT THIS WAVE DOES NOT OWN. W6 (gr6-020) deleted the
-  // permanently-disabled "Try Prereg Mode" button this string labelled, so the
-  // key is dead: no literal reference survives anywhere in src/ui or src/game
-  // (probed). It is NOT deleted here only because two assertions in
-  // `tests/ui/summary.test.tsx` (:285, :837) still name it to pin the CTA's
-  // absence, and `tests/ui/**` belongs to W7 this round — deleting the key
-  // would red their `tsc`. BOOKED FOR W7: re-pin those two assertions
-  // structurally (the prereg block contains no <button>), then delete this key
-  // from all three catalogs and from the reserved roster in
-  // tests/content/copyFreeze.test.ts, which fails the day the key becomes
-  // reachable again.
-  'summary.playPrereg': 'Try Prereg Mode',
 
   // §2.8 scoring-table row labels for the Summary "fee invoice" breakdown —
   // see the CopyKey union above for why these were added under T13.
