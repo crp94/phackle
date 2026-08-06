@@ -45,27 +45,36 @@ import type { Outcome, Spec, WindowN } from './types';
  * record, not a string literal union); its four entries are ordered as a
  * 2-bit binary count with income as the high bit -- (0,0),(0,1),(1,0),(1,1)
  * -- matching `specKey`'s income-digit-then-risk-digit reading below.
+ *
+ * FROZEN (gr6-103). These arrays are the enumeration order itself: the golden
+ * fixtures, day.ts's stride-7 PRECHECK_SPECS subsample and reveal.ts's
+ * totalPaths product all read them, and reveal.ts imports AXES directly. A
+ * push/splice anywhere would silently change what "the 1,792 paths" means for
+ * every one of those consumers at once. Object.freeze makes that a TypeError
+ * at the mutation site instead of a fixture mismatch three files away. (Deep,
+ * not shallow: the four `covariates` records are frozen too, since a mutated
+ * record would change specKey's output without changing any array's length.)
  */
 export const AXES: {
-  outcome: Outcome[];
-  subgroup: Spec['subgroup'][];
-  covariates: Spec['covariates'][];
-  exclusion: Spec['exclusion'][];
-  transform: Spec['transform'][];
-  tails: Spec['tails'][];
-} = {
-  outcome: [0, 1, 2, 3],
-  subgroup: ['all', 'age_lt40', 'age_ge40', 'exp_high', 'exp_low', 'urban', 'rural'],
-  covariates: [
-    { income: false, risk: false },
-    { income: false, risk: true },
-    { income: true, risk: false },
-    { income: true, risk: true },
-  ],
-  exclusion: ['none', 'z3', 'z2_5', 'z2'],
-  transform: ['raw', 'log1p'],
-  tails: ['two', 'one'],
-};
+  outcome: readonly Outcome[];
+  subgroup: readonly Spec['subgroup'][];
+  covariates: readonly Spec['covariates'][];
+  exclusion: readonly Spec['exclusion'][];
+  transform: readonly Spec['transform'][];
+  tails: readonly Spec['tails'][];
+} = Object.freeze({
+  outcome: Object.freeze<Outcome[]>([0, 1, 2, 3]),
+  subgroup: Object.freeze<Spec['subgroup'][]>(['all', 'age_lt40', 'age_ge40', 'exp_high', 'exp_low', 'urban', 'rural']),
+  covariates: Object.freeze<Spec['covariates'][]>([
+    Object.freeze({ income: false, risk: false }),
+    Object.freeze({ income: false, risk: true }),
+    Object.freeze({ income: true, risk: false }),
+    Object.freeze({ income: true, risk: true }),
+  ]),
+  exclusion: Object.freeze<Spec['exclusion'][]>(['none', 'z3', 'z2_5', 'z2']),
+  transform: Object.freeze<Spec['transform'][]>(['raw', 'log1p']),
+  tails: Object.freeze<Spec['tails'][]>(['two', 'one']),
+});
 
 /** One point on the specification curve (§7.4): just enough for the plot
  * and the significance count. The richer per-path detail (`beta`/`se`/`ci`/
@@ -119,7 +128,35 @@ export function specKey(s: Spec): string {
   return `${s.outcome}|${s.subgroup}|${income}${risk}|${s.exclusion}|${s.transform}|${s.tails}`;
 }
 
-/** `valid && p < .05` count -- the reveal's "chance line" numerator (§3.7). */
+/**
+ * `valid && p < .05` count -- the reveal's "chance line" numerator (§3.7).
+ *
+ * NOT MONOTONE IN N, AND THAT IS CORRECT (gr6-105). Someone will eventually
+ * notice that the same date reports wildly different sigCounts depending on
+ * how far the player extended their window -- e.g. 122 / 146 / 108 / 167 / 196
+ * at N = 200 / 250 / 300 / 350 / 400 on 2026-08-10, which goes UP, DOWN, then
+ * up again -- and file it as a bug. It is not one. Re-derived over 60
+ * consecutive days x all five N_SCHEDULE windows (300 enumerations):
+ * 52 of 60 days are non-monotone in N, 8 are monotone increasing, 0 are
+ * monotone decreasing; the per-day spread across the five windows has median
+ * 120 and max 508 paths.
+ *
+ * The reason is that the curve is computed over the VISIBLE WINDOW -- the
+ * first N rows -- not over a fixed sample with more paths added. Extending N
+ * does not reveal more specifications; it REFITS all 1,792 of them on a
+ * different, larger sample. Two things then happen at once: statistical power
+ * rises (pushing p down, more hits) and every individual estimate moves as new
+ * rows join (either direction). On a null day there is no true effect for the
+ * power term to act on, so only the second effect is left and the count is
+ * free to wander. On an effect day the power term does pull upward -- which is
+ * why the monotone-increasing days are disproportionately effect days -- but
+ * even there, 1,791 of the 1,792 specs are not the canonical one, so the walk
+ * is still noisy.
+ *
+ * (Determinism is unaffected and was checked separately: the same (dataset, n)
+ * always returns the same count, so every difference above is attributable to
+ * N and nothing else.)
+ */
 export function sigCount(curve: CurvePoint[]): number {
   let count = 0;
   for (const point of curve) {
@@ -293,6 +330,15 @@ export function enumerateCurve(d: Dataset, n: WindowN): CurvePoint[] {
   const points: CurvePoint[] = [];
   forEachSpec((spec) => {
     const prep = getFitPrep(spec.outcome, spec.subgroup, spec.transform, spec.exclusion, spec.covariates);
+    // MIN_CELL is a defensive guard that has never bound (gr6-096): 215,040
+    // enumerated points -- 60 days x {200,400} x all 1,792 specs -- produced 0
+    // invalid, neither for n < MIN_CELL nor for a singular fit, and the
+    // smallest post-exclusion cell ever measured was 46 rows. So `valid` is
+    // true for every point of every curve the reveal has ever drawn, which is
+    // why `omitted = totalPaths - curve.length` is always 0 and the curve is
+    // always complete. That is the guard doing its job by never firing, not
+    // dead code: it is what stops a future subgroup or N_SCHEDULE change from
+    // putting a p-value computed on a handful of rows onto the curve.
     const valid = prep.fit.valid && prep.finalN >= MIN_CELL;
     const p = !prep.fit.valid ? 1 : spec.tails === 'two' ? prep.p2 : prep.fit.t > 0 ? prep.p2 / 2 : 1 - prep.p2 / 2;
     points.push({ spec, p, valid });

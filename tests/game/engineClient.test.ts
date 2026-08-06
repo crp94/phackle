@@ -131,6 +131,7 @@ describe('createEngineClient — request/response routing', () => {
       trueOutcome: null,
       trueBeta: 0,
       hetero: null,
+      capExhausted: false, // gr6-102 (W5): required field on RevealPayload
     };
     fake.respond({ id: fake.posted[2].id, ok: true, data: revealPayload });
     await expect(revealPromise).resolves.toEqual(revealPayload);

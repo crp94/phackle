@@ -12,8 +12,17 @@
 // Never Math.pow — the AR(1) matrix's rho^|i-j| entries (integer exponents
 // <=7) are built multiplicatively in buildAr1Matrix. Never Math.random,
 // Date.now, or new Date.
+//
+// Cross-engine caveat (gr6-048): of that op set, only Math.exp and Math.log are
+// implementation-approximated per ECMA-262 (<=1 ULP apart between V8,
+// SpiderMonkey and JavaScriptCore) — and this file uses both, for income, Y2
+// and Y3, on top of the Math.log already inside gaussPair. Same engine
+// reproduces byte for byte; across engines the guarantee is ~1 ULP, checked
+// empirically by the E2E browser matrix rather than asserted here. See prng.ts's
+// header for the full statement.
 
 import { gaussPair, mulberry32 } from './prng';
+import { meanSd } from './stats';
 import type { Outcome, Spec } from './types';
 import {
   AGE_BASE,
@@ -92,23 +101,6 @@ function clampNum(x: number, lo: number, hi: number): number {
   return Math.min(Math.max(x, lo), hi);
 }
 
-/** Mean and sample standard deviation (n-1 denominator). Deliberately a local,
- * private copy rather than an import from the sibling T2 stats.ts task (whose
- * meanSd has the same contract): T3 and T2 are independent, parallel-dispatch
- * worktrees with no shared build order, so dgp.ts cannot depend on stats.ts. */
-function meanAndSd(v: Float64Array): { mean: number; sd: number } {
-  let sum = 0;
-  for (let i = 0; i < v.length; i++) sum += v[i];
-  const mean = sum / v.length;
-
-  let sq = 0;
-  for (let i = 0; i < v.length; i++) {
-    const d = v[i] - mean;
-    sq += d * d;
-  }
-  return { mean, sd: Math.sqrt(sq / (v.length - 1)) };
-}
-
 /** Hetero-effect subgroup membership for one row. Strictly local to effect
  * injection below — the analysis engine's own Spec-filtering (all seven
  * `subgroup` values, including 'all') is a sibling task's concern. */
@@ -176,22 +168,32 @@ interface GeneratedRows {
 
 /**
  * Generates `n` rows in strict row order from a single continuous RNG stream
- * (mulberry32(seed)): row i's random draws never depend on n or on any row
- * after it, so generateRows(seed, 200, effect) is always exactly the first
- * 200 rows of generateRows(seed, 400, effect) — the "extending N never
- * re-rolls" prefix property (§3.8) — for the per-row generative core.
+ * (mulberry32(seed)). The PER-ROW GENERATIVE CORE is prefix-exact: row i's
+ * draws never depend on `n` or on any row after it, so with `effect === null`,
+ * generateRows(seed, 200, null) is exactly the first 200 rows of
+ * generateRows(seed, 400, null) — the "extending N never re-rolls" property
+ * (§3.8). Measured: max |y1[i]_200 - y1[i]_400| over the first 200 rows = 0.
  *
- * The one deliberate exception is effect injection (below): §3.2 defines it
- * as "generate all Y first with beta=0; compute sd = meanSd(y[j*]).sd; add
- * d*sd*x[i]" — a single pass over the *complete* generated array. Since
- * generateDataset always generates the full 400 in one call (there is no
- * partial-N entry point in its public signature at all), this one-time,
- * whole-array sd computation never actually re-rolls anything in practice.
+ * EFFECT INJECTION IS NOT PREFIX-EXACT, and this is not a subtlety to be
+ * discovered later. §3.2 defines the injection as "generate all Y first with
+ * beta=0; compute sd = meanSd(y[j*]).sd; add d*sd*x[i]" — one pass over the
+ * *complete* array, so the sd (and therefore every injected value) depends on
+ * `n`. Measured with d=0.25 on Y1: max |y1[i]_200 - y1[i]_400| over the first
+ * 200 rows = 0.0185, first divergence at row 4. Rather than leave that as a
+ * live trap on an exported function, `effect !== null` with `n !== 400` THROWS
+ * (below): production only ever generates the full 400 in one call via
+ * generateDataset, and the prefix-property tests pass `effect = null`.
  *
  * Exported (beyond the brief's pinned surface) so dgp.test.ts can exercise the
  * prefix property directly; generateDataset is a thin n=400 wrapper below.
  */
 export function generateRows(seed: number, n: number, effect: EffectSpec | null): GeneratedRows {
+  if (effect !== null && n !== 400) {
+    throw new Error(
+      `generateRows: effect injection is whole-array and therefore n-dependent — ` +
+        `it is only defined at the full n=400 (got n=${n}). Pass effect=null for partial-n prefixes.`,
+    );
+  }
   const rng = mulberry32(seed);
 
   const x = new Uint8Array(n);
@@ -292,7 +294,11 @@ export function generateRows(seed: number, n: number, effect: EffectSpec | null)
   // gets a treatment bump now, scaled by that outcome's own baseline sd.
   if (effect !== null) {
     const target = y[effect.outcome];
-    const { sd } = meanAndSd(target);
+    // stats.meanSd, not a local copy (gr6-100). Its accumulation ORDER is the
+    // contract, not merely its value: day.ts's effectMagnitude re-derives this
+    // exact sd from the same seed to report trueBeta in raw units, and the two
+    // must agree bit for bit. See day.ts's SD CONTRACT note.
+    const { sd } = meanSd(target);
     for (let i = 0; i < n; i++) {
       if (x[i] === 1) {
         let multiplier = 1;
@@ -309,7 +315,8 @@ export function generateRows(seed: number, n: number, effect: EffectSpec | null)
 
 /** Generates the full N=400 sample for one day (§3.2). Pure function of
  * (seed, effect) — same seed and effect always produce byte-identical
- * Float64Arrays. No acceptance/rejection loop here (§3.3 is a later task);
+ * Float64Arrays on the same engine (across engines, see the file header's
+ * ≤1-ULP note). No acceptance/rejection loop here (§3.3 is a later task);
  * `seed` is whatever the caller already resolved (e.g. daySeed(iso, attempt)
  * from seeds.ts). */
 export function generateDataset(seed: number, effect: EffectSpec | null): Dataset {

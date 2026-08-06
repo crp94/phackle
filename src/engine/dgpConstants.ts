@@ -32,12 +32,26 @@
 // eta_shared, so mixing does cost Y1 some of its heavy-tailedness (a smaller
 // t5 weight, sqrt(1-RHO_SHARED)) — RHO_SHARED was tuned (via
 // scripts/gen_dgp_fixtures.py-adjacent scratch harness, not checked in) to
-// keep median excess kurtosis(Y1) comfortably above 1 while landing the corr
-// band. RHO_SHARED=0.3 (the suggested starting value) already clears every
-// criterion with margin: median kurtosis(Y1)=1.295, mean pairwise
-// corr=0.286 (per-seed range [0.174,0.356] over 200 seeds), median
-// skewness(Y2)=1.608, median distinct Y3 values=9, median max single-value
-// frequency=0.372 — no further tuning was needed.
+// hold up Y1's excess kurtosis while landing the corr band. RHO_SHARED=0.3
+// (the suggested starting value) already clears every criterion: median
+// kurtosis(Y1)=1.295, mean pairwise corr=0.286 (per-seed range [0.174,0.356]
+// over 200 seeds), median skewness(Y2)=1.608, median distinct Y3 values=9,
+// median max single-value frequency=0.372 — no further tuning was needed.
+//
+// RE-MEASURED (gr6-101, 200 fresh seeds independent of the ones above): median
+// excess kurtosis(Y1) 1.303, median skewness(Y2) 1.694, median distinct Y3
+// values 9, median max single-value frequency 0.378, mean pairwise corr 0.285
+// with a per-seed range of [0.223, 0.362] and 0 of 200 seeds outside the
+// required [0.15, 0.45]. Every number above reproduces.
+//
+// One phrase in the original note did not, and is corrected here: it said this
+// tuning keeps median excess kurtosis(Y1) "comfortably above 1". The MEDIAN is
+// 1.30 — but 74 of those 200 seeds (37%) have excess kurtosis <= 1. Y1's heavy
+// tail is a property of the FAMILY, not a guarantee on any given day: better
+// than a third of days do not deliver it. That is the honest statement of what
+// RHO_SHARED=0.3 buys. A per-day guarantee would be a RHO_SHARED retune with
+// knock-on effects on the whole calibration suite (the corr band and Y1's t5
+// weight move together), which is a controller decision, not a comment fix.
 
 // ---- PINNED: latent structure (§3.2) ----
 export const AR1_RHO = 0.35; // R[i][j] = AR1_RHO^|i-j|, 8x8, PSD by construction

@@ -15,6 +15,7 @@
 //       (no 14-day rotation check).
 import { describe, expect, it, vi } from 'vitest';
 import { runSpec } from '../../src/engine/analyze';
+import type { SpecCore } from '../../src/engine/analyze';
 import {
   bandDistance,
   canonicalSpecFor,
@@ -105,6 +106,11 @@ describe('generateDay — acceptance guarantee over 30 consecutive days', () => 
       expect(puzzle.attemptUsed).toBeLessThan(MAX_ATTEMPTS);
       expect(puzzle.isoDate).toBe(iso);
       expect(puzzle.nFull).toBe(400);
+      // gr6-102: every one of these days passed its gate, so none of them may
+      // claim the cap was exhausted. Paired with the two cap-exhaustion tests
+      // below (which assert `true`), this pins the flag in both directions --
+      // an always-false field would pass here and fail there.
+      expect(puzzle.capExhausted).toBe(false);
 
       if (puzzle.dayType === 'null') {
         expect(puzzle.trueOutcome).toBeUndefined();
@@ -193,6 +199,10 @@ describe('best-attempt fallback — end-to-end via mocked tuning constants', () 
       expect(puzzle.dayType).toBe('null');
       expect(puzzle.attemptUsed).toBeGreaterThanOrEqual(0);
       expect(puzzle.attemptUsed).toBeLessThan(3);
+      // gr6-102: the console.warn is kept, but it is no longer the ONLY
+      // channel -- the fallback is on the puzzle (and from there on
+      // RevealPayload) so something downstream can actually know.
+      expect(puzzle.capExhausted).toBe(true);
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       const message = warnSpy.mock.calls[0].join(' ');
@@ -230,6 +240,9 @@ describe('best-attempt fallback — end-to-end via mocked tuning constants', () 
 
       expect(puzzle.dayType).toBe('effect');
       expect(puzzle.attemptUsed).toBe(0); // the only attempt MAX_ATTEMPTS=1 permits
+      // gr6-102: set on BOTH day types -- which is precisely why the flag is
+      // not spoiler-bearing and may ride along on RevealPayload.
+      expect(puzzle.capExhausted).toBe(true);
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       const message = warnSpy.mock.calls[0].join(' ');
@@ -276,6 +289,24 @@ describe('null-day precheck gates enumerateCurve', () => {
         // of the real underlying data -- guarantees the precheck fails on
         // every attempt, deterministically (no date-mining required to find
         // a real day whose fixed 256-spec subsample happens to miss).
+        // nullDayPrecheckHit calls runSpecCore, not runSpec (gr6-046: runSpec
+        // additionally builds a DataCut the precheck never reads, 51% of the
+        // pass). Both are mocked: runSpecCore is what the precheck actually
+        // reads, runSpec is mocked to match so nothing else in day.ts can
+        // observe a different verdict from the same mocked pipeline.
+        runSpecCore: (): SpecCore => ({
+          n: 200,
+          beta: 0,
+          se: 1,
+          t: 0.1,
+          p: 0.9,
+          ci: [0, 0],
+          excludedCount: 0,
+          valid: true,
+          filteredIdx: [],
+          transformedY: new Float64Array(0),
+          keptLocal: [],
+        }),
         runSpec: (): PathResult => ({
           spec: {} as Spec,
           n: 200,
@@ -339,7 +370,21 @@ describe('null-day precheck gates enumerateCurve', () => {
         // nullDayPrecheckHit early-exits on the very first one, so this
         // alone guarantees the precheck passes deterministically,
         // independent of whether the real underlying data's fixed
-        // 256-subsample happens to contain a hit.
+        // 256-subsample happens to contain a hit. Both entry points are
+        // mocked for the reason given in the sibling test above (gr6-046).
+        runSpecCore: (): SpecCore => ({
+          n: 200,
+          beta: 1,
+          se: 0.1,
+          t: 8,
+          p: 0.0001,
+          ci: [0, 0],
+          excludedCount: 0,
+          valid: true,
+          filteredIdx: [],
+          transformedY: new Float64Array(0),
+          keptLocal: [],
+        }),
         runSpec: (): PathResult => ({
           spec: {} as Spec,
           n: 200,

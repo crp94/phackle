@@ -3,10 +3,20 @@
 // effect days) its true effect parameters from the seeded hashes (T1's
 // src/engine/seeds.ts), then rejection-sample datasets via
 // src/engine/dgp.ts's generateDataset until one passes the day's acceptance
-// gate -- the "unloseable by design" guarantee. Every client on Earth that
-// calls generateDay(iso, scenarioCount) for the same (iso, scenarioCount)
-// gets a byte-identical result: no Math.random, no wall clock, no shared
-// mutable state (see the no-restricted-* eslint rules on src/engine/**).
+// gate -- the "unloseable by design" guarantee.
+//
+// DETERMINISM (gr6-048). generateDay(iso, scenarioCount) is a pure function of
+// its two arguments: no Math.random, no wall clock, no shared mutable state
+// (see the no-restricted-* eslint rules on src/engine/**), so any two clients
+// running the SAME JS engine on the same (iso, scenarioCount) get a
+// byte-identical day -- which is exactly what the golden fixtures pin. ACROSS
+// engines the claim is weaker and this header used to overstate it: the
+// pipeline below runs through Math.exp/Math.log, which ECMA-262 leaves
+// implementation-approximated, so V8, SpiderMonkey and JavaScriptCore may
+// disagree by up to 1 ULP. The design accepts that; the evidence for it is the
+// E2E cross-engine matrix, not this comment. prng.ts's header carries the full
+// statement, including the (small, quantified) chance that a 1-ULP difference
+// flips a discrete decision.
 //
 // Acceptance (§3.3, controller-amended):
 //   attempt = 0, 1, 2, ... MAX_ATTEMPTS-1, dataset from a per-mode seed:
@@ -36,13 +46,15 @@
 //   - cap: if no attempt passes within MAX_ATTEMPTS, accept the best-scoring
 //     attempt among the ones already generated (bandDistance for null days,
 //     pickBestEffectAttempt for effect days) and console.warn exactly once.
-import { runSpec } from './analyze';
+import { runSpec, runSpecCore } from './analyze';
+import { daysFromCivil, parseIso } from './civil';
 import type { Dataset, EffectSpec } from './dgp';
 import { generateDataset } from './dgp';
 import { fnv1a32 } from './prng';
 import { daySeed, dayTypeFor, effectParamsFor, scenarioIndexFor } from './seeds';
 import type { CurvePoint } from './specGrid';
 import { allSpecs, enumerateCurve, sigCount, specKey } from './specGrid';
+import { meanSd } from './stats';
 import type { DailyPuzzle, Outcome, Spec } from './types';
 import { EPOCH, HETERO_MULTIPLIER, MAX_ATTEMPTS, NULL_SIG_BAND } from '../game/tuning';
 
@@ -122,6 +134,10 @@ export function pickBestEffectAttempt<T extends { p200: number; p400: number }>(
 interface AcceptanceResult {
   attemptUsed: number;
   data: Dataset;
+  /** True iff no attempt satisfied the day's acceptance gate within
+   * MAX_ATTEMPTS and the best-attempt fallback was used -- see
+   * DailyPuzzle.capExhausted (gr6-102). */
+  capExhausted: boolean;
 }
 
 const EFFECT_PRECHECK_P200_MAX = 0.3;
@@ -138,22 +154,28 @@ const PRECHECK_SPECS: Spec[] = allSpecs().filter((_, i) => i % 7 === 0);
 
 /**
  * The null-day precheck (§3.3): true iff at least one of the fixed 256-spec
- * subsample is significant at N=200. Deliberately calls `runSpec` directly,
- * spec by spec, with an early exit on the first hit -- NOT `enumerateCurve`
- * -- so this cheap-ish check can run BEFORE, and actually gate, the
- * expensive full 1792-spec enumeration (see acceptNullDay below). An earlier
- * version of this file called `enumerateCurve` first and read the precheck
- * off a slice of the resulting array -- correct in its DECISION (same 256
- * specs, same "any significant" logic, since enumerateCurve's per-spec
- * {p,valid} is bit-for-bit identical to runSpec's, per specGrid.ts's own
- * parity guarantee), but that ordering meant the "cheap" check never
- * actually happened before the expensive one -- caught in T9 review round 1
- * (see the T9 fix report for the measured wall-clock cost of each
- * ordering).
+ * subsample is significant at N=200. Deliberately walks the specs one by one,
+ * with an early exit on the first hit -- NOT `enumerateCurve` -- so this
+ * cheap-ish check can run BEFORE, and actually gate, the expensive full
+ * 1792-spec enumeration (see acceptNullDay below). An earlier version of this
+ * file called `enumerateCurve` first and read the precheck off a slice of the
+ * resulting array -- correct in its DECISION (same 256 specs, same "any
+ * significant" logic, since enumerateCurve's per-spec {p,valid} is bit-for-bit
+ * identical to runSpec's, per specGrid.ts's own parity guarantee), but that
+ * ordering meant the "cheap" check never actually happened before the
+ * expensive one -- caught in T9 review round 1 (see the T9 fix report for the
+ * measured wall-clock cost of each ordering).
+ *
+ * Calls `runSpecCore`, not `runSpec` (gr6-046): this loop reads exactly
+ * `.valid` and `.p`, and `runSpec` would additionally build -- and this
+ * function would immediately discard -- a four-array `DataCut` per spec, 256
+ * per attempt and up to `MAX_ATTEMPTS = 20` attempts per day boot. Same
+ * pipeline, same helpers, same order, same floats: `runSpec` IS
+ * `runSpecCore` plus that one payload.
  */
 function nullDayPrecheckHit(data: Dataset): boolean {
   for (const spec of PRECHECK_SPECS) {
-    const result = runSpec(data, spec, 200);
+    const result = runSpecCore(data, spec, 200);
     if (result.valid && result.p < 0.05) return true;
   }
   return false;
@@ -189,7 +211,7 @@ function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext:
 
     const sig = sigCount(enumerateCurve(data, 200));
     if (sig >= NULL_SIG_BAND[0] && sig <= NULL_SIG_BAND[1]) {
-      return { attemptUsed: attempt, data };
+      return { attemptUsed: attempt, data, capExhausted: false };
     }
     candidates.push({ attempt, data, sig });
   }
@@ -212,7 +234,7 @@ function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext:
     `P-hackle acceptance loop: ${warnContext} exhausted MAX_ATTEMPTS=${MAX_ATTEMPTS} without a passing ` +
       `attempt (null day); using best-attempt fallback (attempt ${chosen.attempt}, sigCount=${sigDisplay}).`,
   );
-  return { attemptUsed: chosen.attempt, data: chosen.data };
+  return { attemptUsed: chosen.attempt, data: chosen.data, capExhausted: true };
 }
 
 function acceptEffectDay(
@@ -230,7 +252,7 @@ function acceptEffectDay(
 
     const precheckHit = p200 < EFFECT_PRECHECK_P200_MAX;
     const accepted = precheckHit && p200 < EFFECT_P200_MAX && p400 < EFFECT_P400_MAX;
-    if (accepted) return { attemptUsed: attempt, data };
+    if (accepted) return { attemptUsed: attempt, data, capExhausted: false };
 
     candidates.push({ attempt, data, p200, p400 });
   }
@@ -241,7 +263,7 @@ function acceptEffectDay(
       `attempt (effect day); using best-attempt fallback (attempt ${chosen.attempt}, ` +
       `p200=${chosen.p200.toFixed(4)}, p400=${chosen.p400.toFixed(4)}).`,
   );
-  return { attemptUsed: chosen.attempt, data: chosen.data };
+  return { attemptUsed: chosen.attempt, data: chosen.data, capExhausted: true };
 }
 
 // ---- puzzleNumber (engine-side, non-authoritative computation) ----
@@ -252,56 +274,42 @@ function acceptEffectDay(
 // computes puzzleNumber via src/game/daily.ts"). src/engine/** may not use
 // `new Date` (eslint no-restricted-syntax) or import src/game/daily.ts (the
 // engine-purity rule allows only src/game/tuning.ts from game/*), so this is
-// a from-scratch, pure-integer-math reimplementation of the exact same
-// formula (`daysBetween(EPOCH, iso) + 1`, cross-checked byte-for-byte against
-// src/game/daily.ts's own puzzleNumber() in day.test.ts) -- deliberately
-// duplicated rather than shared, mirroring dgp.ts's own precedent of
-// duplicating meanAndSd rather than cross-importing between independently
-// built sibling modules (see dgp.ts's file header). Deliberately excluded
-// from the golden fixtures (scripts/gen_goldens.ts) since EPOCH is
-// provisional ("frozen to real launch date in T25" per tuning.ts) and the
-// golden-master suite must not depend on a value that's expected to change
-// for unrelated deploy reasons.
-function daysFromCivil(y: number, m: number, d: number): number {
-  const yy = m <= 2 ? y - 1 : y;
-  const era = Math.floor((yy >= 0 ? yy : yy - 399) / 400);
-  const yoe = yy - era * 400; // [0, 399]
-  const mp = (m + 9) % 12; // Mar=0 .. Feb=11
-  const doy = Math.floor((153 * mp + 2) / 5) + d - 1; // [0, 365]
-  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy; // [0, 146096]
-  return era * 146097 + doe - 719468; // days since 1970-01-01
-}
-
+// a from-scratch, pure-integer-math computation of the same formula
+// (`daysBetween(EPOCH, iso) + 1`, cross-checked byte-for-byte against
+// src/game/daily.ts's own puzzleNumber() in day.test.ts). The calendar
+// arithmetic itself is NOT duplicated: it comes from src/engine/civil.ts,
+// which seeds.ts imports too (gr6-047 -- the two engine-internal copies were
+// byte-identical, and the "purity-forced" ruling that justified them covers
+// only the engine-to-game copy in src/game/daily.ts, never engine-to-engine).
+// Deliberately excluded from the golden fixtures (scripts/gen_goldens.ts)
+// since EPOCH is provisional ("frozen to real launch date in T25" per
+// tuning.ts) and the golden-master suite must not depend on a value that's
+// expected to change for unrelated deploy reasons.
 function puzzleNumberFor(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number);
-  const [ey, em, ed] = EPOCH.split('-').map(Number);
+  const [y, m, d] = parseIso(iso);
+  const [ey, em, ed] = parseIso(EPOCH);
   return daysFromCivil(y, m, d) - daysFromCivil(ey, em, ed) + 1;
 }
 
 // ---- trueBeta (T11 controller amendment) ----
-
-/** Sample standard deviation (n-1 denominator) — a private, local duplicate
- * of dgp.ts's own (unexported) meanAndSd, needed ONLY to reconstruct the
- * exact baseline sd effect injection multiplied by (see effectMagnitude
- * below): same loop order as dgp.ts's copy, so the float result is
- * bit-identical to whatever dgp.ts's injection pass actually used.
- * Deliberately duplicated rather than exported from dgp.ts and imported here
- * — mirroring this file's own puzzleNumberFor precedent above (and dgp.ts's
- * own precedent of duplicating meanAndSd rather than cross-importing from
- * stats.ts): small pure numeric helpers get duplicated, not shared, across
- * this codebase's independently-evolving engine modules. */
-function sampleSd(v: Float64Array): number {
-  let sum = 0;
-  for (let i = 0; i < v.length; i++) sum += v[i];
-  const mean = sum / v.length;
-
-  let sq = 0;
-  for (let i = 0; i < v.length; i++) {
-    const dev = v[i] - mean;
-    sq += dev * dev;
-  }
-  return Math.sqrt(sq / (v.length - 1));
-}
+//
+// SD CONTRACT (gr6-100). effectMagnitude below must multiply by the EXACT
+// float64 the injection pass in dgp.ts multiplied by — not a value equal to it
+// within tolerance, the same bits — because trueBeta is presented to the
+// player as the day's true effect in raw units and is cross-checked against
+// the injected difference by dgp.test.ts's diff-in-diff assertion. There used
+// to be three separately-written mean/sd helpers here (day.ts's `sampleSd`,
+// dgp.ts's `meanAndSd`, stats.ts's `meanSd`), duplicated on the theory that
+// small numeric helpers should not be shared across independently-built
+// engine modules. They were measured bit-identical (5,772 Object.is
+// comparisons: 120 days x 2 attempts x 4 outcome columns x both window
+// lengths, plus four cancellation-prone adversarial arrays — zero
+// mismatches), because all three ran the same accumulation ORDER: sum ->
+// mean -> sum of (v-mean)^2 -> sqrt(./(n-1)). Order is the whole contract: any
+// reformulation (a two-pass Welford, a sum-of-squares shortcut, pairwise
+// summation) would still be a correct sd and would still break trueBeta, so
+// the three are now ONE helper, stats.meanSd, and the golden fixtures are the
+// net that catches a change to it.
 
 /**
  * The actual injected magnitude, in the true outcome's own raw units (T11
@@ -327,10 +335,22 @@ function sampleSd(v: Float64Array): number {
  * here is a proven-sound pattern, not a new assumption. The cost (one extra
  * full 400-row generateDataset call) is negligible next to the
  * up-to-MAX_ATTEMPTS calls the acceptance loop above it already pays.
+ *
+ * ADDENDUM (gr6-103) — DO NOT "FIX" THIS BACK TO `d`. The master spec's §2.7
+ * worked example is written on the STANDARDIZED scale (it quotes the effect
+ * size), while this function and everything downstream of it are in the true
+ * outcome's RAW units. That is not a discrepancy to be reconciled by dropping
+ * the `* sd`: the T11 controller amendment settled it deliberately, because
+ * §2.7.1's rendered reveal line ("True effect on [outcome]: β = 0.24") is a
+ * regression coefficient the player compares against their own published
+ * beta, and a standardized number there would be a re-labeled effect size
+ * masquerading as one. A future reader who diffs this against §2.7 and
+ * "corrects" it will silently make trueBeta incomparable to every beta the
+ * Lab ever showed.
  */
 function effectMagnitude(seed: number, outcome: Outcome, d: number): number {
   const baseline = generateDataset(seed, null);
-  return d * sampleSd(baseline.y[outcome]);
+  return d * meanSd(baseline.y[outcome]).sd;
 }
 
 // ---- shared puzzle assembly ----
@@ -352,13 +372,14 @@ function assemblePuzzle(args: AssembleArgs): GeneratedDay {
   const dayType = dayTypeFor(hashSourceIso);
 
   if (dayType === 'null') {
-    const { attemptUsed, data } = acceptNullDay(seedForAttempt, warnContext);
+    const { attemptUsed, data, capExhausted } = acceptNullDay(seedForAttempt, warnContext);
     const puzzle: DailyPuzzle = {
       isoDate,
       puzzleNumber,
       scenarioId: String(scenarioIdx),
       dayType,
       attemptUsed,
+      capExhausted,
       nFull: 400,
     };
     return { puzzle, data };
@@ -371,7 +392,7 @@ function assemblePuzzle(args: AssembleArgs): GeneratedDay {
     hetero: params.hetero ? { subgroup: params.heteroSubgroup, multiplier: HETERO_MULTIPLIER } : null,
   };
   const canonical = canonicalSpecFor(params.outcome);
-  const { attemptUsed, data } = acceptEffectDay(effect, canonical, seedForAttempt, warnContext);
+  const { attemptUsed, data, capExhausted } = acceptEffectDay(effect, canonical, seedForAttempt, warnContext);
 
   const puzzle: DailyPuzzle = {
     isoDate,
@@ -382,6 +403,7 @@ function assemblePuzzle(args: AssembleArgs): GeneratedDay {
     trueBeta: effectMagnitude(seedForAttempt(attemptUsed), params.outcome, params.d),
     ...(params.hetero ? { heterogeneous: { subgroup: params.heteroSubgroup, multiplier: HETERO_MULTIPLIER } } : {}),
     attemptUsed,
+    capExhausted,
     nFull: 400,
   };
   return { puzzle, data };

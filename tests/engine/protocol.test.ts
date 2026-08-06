@@ -348,6 +348,20 @@ describe('handleRequest — reveal', () => {
     expect(payload.hetero).toBeNull();
   });
 
+  it('capExhausted is a passthrough of the held day, on BOTH day types (gr6-102)', () => {
+    // Both arms are real, gate-passing days, so both report false -- the
+    // `true` case is proved end-to-end in day.test.ts, where MAX_ATTEMPTS is
+    // mocked down. What this pins is (a) the field reaches the wire at all and
+    // (b) it is the held puzzle's own value, not a hardcoded literal.
+    for (const iso of [NULL_ISO, EFFECT_ISO]) {
+      const state = freshState();
+      handleRequest(state, { id: 1, op: 'init', iso, scenarioCount: SCENARIO_COUNT });
+      const payload = revealData(handleRequest(state, { id: 2, op: 'reveal', published: null, explored: [] }));
+      expect(payload.capExhausted).toBe(generateDay(iso, SCENARIO_COUNT).puzzle.capExhausted);
+      expect(payload.capExhausted).toBe(false);
+    }
+  });
+
   it('effect day: trueOutcome matches, trueBeta equals the independently-reconstructed injected d*sd magnitude', () => {
     const state = freshState();
     handleRequest(state, { id: 1, op: 'init', iso: EFFECT_ISO, scenarioCount: SCENARIO_COUNT });

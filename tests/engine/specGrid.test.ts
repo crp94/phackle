@@ -106,7 +106,9 @@ describe('allSpecs — fixed order (outcome-major > subgroup > covariates > excl
   // blockSize = product of the sizes of every axis *to its right* (the more
   // minor axes) -- one assertion group per axis, so a placement bug in any
   // single axis fails independently of the others.
-  function checkAxis<T>(axisValues: T[], accessor: (s: Spec) => T, minorAxisSizes: number[]): void {
+  // `readonly T[]`: AXES is Object.freeze'd (gr6-103), so its arrays are
+  // readonly at the type level too — this helper only reads them.
+  function checkAxis<T>(axisValues: readonly T[], accessor: (s: Spec) => T, minorAxisSizes: number[]): void {
     const blockSize = minorAxisSizes.reduce((a, b) => a * b, 1);
     for (let i = 0; i < specs.length; i++) {
       const expected = axisValues[Math.floor(i / blockSize) % axisValues.length];

@@ -7,6 +7,15 @@
 // non-integer exponent -- gammln below needs no pow at all (the Lanczos
 // formula is expressed with log/exp only); every squaring elsewhere is
 // written as an explicit multiplication.
+//
+// What that op set does and does not guarantee across engines (gr6-048): the
+// arithmetic and Math.sqrt are exact everywhere, but Math.exp and Math.log --
+// which this file leans on heavily (gammln, regIncBeta) -- are
+// implementation-approximated per ECMA-262 and may differ by up to 1 ULP
+// between V8, SpiderMonkey and JavaScriptCore. So results here are exactly
+// reproducible on the same engine and agree to ~1 ULP across engines; they are
+// NOT byte-identical across engines by construction. See prng.ts's header for
+// the full statement and the empirical check that backs it.
 
 /** Mean and sample standard deviation (Bessel-corrected, divides by n-1). */
 export function meanSd(v: Float64Array): { mean: number; sd: number } {
@@ -65,10 +74,22 @@ function gammln(xx: number): number {
 }
 
 const BETACF_MAXIT = 200;
-// Double-precision convergence threshold. The textbook Numerical Recipes
-// value (EPS=3e-7) targets 32-bit float precision; f64 can and must do much
-// better to hit this engine's 1e-10 relative fixture tolerance, so this is
-// tightened to comfortably clear machine epsilon (~2.22e-16) with margin.
+// Double-precision convergence threshold. The textbook Numerical Recipes value
+// (EPS=3e-7) targets 32-bit float precision; f64 can do much better, so this
+// is tightened to just clear machine epsilon (~2.22e-16).
+//
+// This is NOT the engine's accuracy floor, despite what this comment used to
+// claim (gr6-097). Measured: betacf converges in <=45 iterations to 1e-15
+// across the entire (df, t) grid the game produces, so it is comfortably not
+// the binding term. The binding term is `gammln`'s 6-coefficient Lanczos
+// approximation above, whose published accuracy is ~2e-10 relative — which is
+// exactly what surfaces as the 4.2e-11 discontinuity at regIncBeta's branch
+// switch (a=199, i.e. df=398) and the 1.35e-11 worst error against closed
+// forms; against an exact finite-sum reference the relative error reaches
+// 1.76e-9 at (df=396, t=5). None of that is player-visible: at p = .05, where
+// every decision in this game is made, the absolute error is <=3.5e-14
+// (measured at df 28/100/198/398). tests/engine/stats.test.ts's t-CDF fixture
+// tolerance is set from gammln's floor, not from this constant.
 const BETACF_EPS = 1e-15;
 const BETACF_FPMIN = 1e-300;
 
@@ -140,7 +161,20 @@ export interface OlsResult {
   valid: boolean;
 }
 
-const SINGULAR_EPS = 1e-10;
+// Singularity threshold, RELATIVE to the matrix's own scale (gr6-093). It used
+// to be an absolute 1e-10 compared against a raw pivot of an unnormalised
+// XtX: with log(income) ~ 10.5 that matrix's leading entries are O(n*110) ~
+// 2e4, so the gate sat ~14 orders of magnitude below the matrix scale. A
+// design that is exactly collinear up to rounding (say a subgroup in which
+// every row is treated, so the x column equals the intercept column) leaves a
+// residual pivot around eps*||XtX|| ~ 1e-16 * 2e4 = 2e-12 — the right order to
+// sometimes PASS a 1e-10 gate and hand back a garbage beta/se that the game
+// would render as a real p-value. Scaling by max_a |XtX[a][a]| removes the
+// dependence on the covariates' units; 1e-12 relative is ~4 orders above f64
+// epsilon, tight enough to keep well clear of any well-conditioned fit
+// (smallest pivot ever observed over 40 days x every spec x {200,400}: 1.159)
+// and loose enough to catch the collinear case (unit-tested).
+const SINGULAR_EPS = 1e-12;
 
 /**
  * OLS of y on [1, x, ...covs] (p = 2 + covs.length <= 4 predictors, per
@@ -151,9 +185,9 @@ const SINGULAR_EPS = 1e-10;
  * beta, so a plain solve (without the inverse) isn't enough here.
  *
  * valid=false, without throwing, when a pivot's absolute value falls below
- * SINGULAR_EPS (singular/near-singular design matrix) or when df=n-p<=0.
- * beta/se/t always refer to the x column (index 1: 0=intercept, 1=x,
- * 2..=covariates).
+ * SINGULAR_EPS * (the matrix's own scale) — singular/near-singular design
+ * matrix — or when df=n-p<=0. beta/se/t always refer to the x column
+ * (index 1: 0=intercept, 1=x, 2..=covariates).
  */
 export function ols(y: Float64Array, x: Float64Array, covs: Float64Array[]): OlsResult {
   const n = y.length;
@@ -190,6 +224,20 @@ export function ols(y: Float64Array, x: Float64Array, covs: Float64Array[]): Ols
     for (let b = 0; b < a; b++) XtX[a][b] = XtX[b][a];
   }
 
+  // The matrix's own scale, captured BEFORE elimination: the largest absolute
+  // diagonal entry of XtX. Every pivot test below is relative to this, so the
+  // singularity gate does not silently depend on the covariates' units (see
+  // SINGULAR_EPS). All-zero XtX cannot arise (column 0 is the intercept, so
+  // XtX[0][0] === n > 0), but guard the degenerate scale anyway rather than
+  // compare against 0.
+  let scale = 0;
+  for (let a = 0; a < p; a++) {
+    const dv = Math.abs(XtX[a][a]);
+    if (dv > scale) scale = dv;
+  }
+  if (scale === 0) return invalid;
+  const pivotFloor = SINGULAR_EPS * scale;
+
   // Augmented matrix [XtX | I | Xty], p x (2p+1).
   const w = 2 * p + 1;
   const M: number[][] = [];
@@ -212,7 +260,7 @@ export function ols(y: Float64Array, x: Float64Array, covs: Float64Array[]): Ols
         pivotRow = r;
       }
     }
-    if (maxAbs < SINGULAR_EPS) return invalid;
+    if (maxAbs < pivotFloor) return invalid;
 
     if (pivotRow !== col) {
       const tmp = M[col];

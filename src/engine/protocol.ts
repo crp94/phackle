@@ -35,6 +35,13 @@ export interface RevealPayload extends RevealMetrics {
   // assemblePuzzle (DailyPuzzle.trueBeta) for how it's actually computed --
   // this field is a passthrough of that value, not recomputed here.
   trueBeta: number; hetero: { subgroup: Spec['subgroup']; multiplier: number } | null;
+  /** Passthrough of DailyPuzzle.capExhausted (gr6-102): this day's acceptance
+   * loop hit MAX_ATTEMPTS and served a best-effort fallback, so the reveal's
+   * guarantees (>=30 hackable paths on a null day; a findable canonical effect
+   * on an effect day) are not backed by the data. Not spoiler-bearing -- both
+   * day types can set it -- so it is safe on this payload, though nothing but
+   * a dev-mode badge should surface it to a player. */
+  capExhausted: boolean;
 }
 
 export type Res = { id: number; ok: true; data: InitInfo | PathResult | ExtendInfo | RevealPayload }
@@ -145,7 +152,10 @@ export function handleRequest(state: WorkerState, req: Req): Res {
     // Assembled at the CURRENT window, never a hardcoded N=400: the reveal
     // must show exactly the curve the player was looking at (§5.3/§5.4) --
     // if they never extended past the opening window, that's
-    // enumerateCurve(data, 200), not the full N.
+    // enumerateCurve(data, 200), not the full N. A direct consequence is that
+    // the same date's reported sigCount varies, non-monotonically, with how
+    // far the player extended -- expected, measured, and explained on
+    // specGrid.ts's sigCount (gr6-105).
     const curve = enumerateCurve(state.day.data, state.n);
     const metrics = buildRevealMetrics(state.day, curve, req.published, req.explored, state.peeks);
     const payload: RevealPayload = {
@@ -154,6 +164,7 @@ export function handleRequest(state: WorkerState, req: Req): Res {
       trueOutcome: state.day.puzzle.trueOutcome ?? null,
       trueBeta: state.day.puzzle.trueBeta ?? 0,
       hetero: state.day.puzzle.heterogeneous ?? null,
+      capExhausted: state.day.puzzle.capExhausted,
     };
     return { id, ok: true, data: payload };
   }
