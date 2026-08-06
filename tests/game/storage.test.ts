@@ -348,3 +348,113 @@ describe('saveAchievements — merge-only: existing unlock dates are never overw
     expect(loadState().achievements.first_retraction).toBe('2026-08-10');
   });
 });
+
+// --- gr6-044: a v1 tag is not a promise about the SHAPE underneath ----------
+//
+// The defect (final-002): `isValidV1` only checked that `stats` was an
+// object, so `{version: 1, ..., stats: {}}` passed straight through as a
+// PersistedState. Every counter in it is then `undefined`, and `saveDay`'s
+// arithmetic (`state.stats.callsTotal + 1`) turns the whole block into NaN —
+// or, for `forkHistogram`, throws outright on `.slice()`. The Stats wall then
+// renders NaN forever, and no later day can repair it.
+describe('gr6-044 — a version-1-tagged blob with unusable stats is repaired, never trusted', () => {
+  const CORRUPT = {
+    version: 1,
+    history: { '2026-08-01': { hack: day() } },
+    stats: {},
+    achievements: { first_blood: '2026-08-01' },
+    settings: { theme: 'dark' },
+  };
+
+  it('does not accept a v1 blob whose stats object is empty', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, CORRUPT);
+    // Not the identity path (that is reserved for a blob that really IS a
+    // PersistedState — see the "returns v1 data unchanged" test above).
+    expect(out).not.toBe(CORRUPT);
+    expect(out.stats).toEqual({
+      streak: 0,
+      maxStreak: 0,
+      callsCorrect: 0,
+      callsTotal: 0,
+      careerPoints: 0,
+      preregDays: 0,
+      hackDays: 0,
+      forkHistogram: [],
+    });
+  });
+
+  it('keeps the parts of the blob that WERE sound (history/achievements/settings survive the repair)', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, CORRUPT);
+    expect(out.history).toEqual(CORRUPT.history);
+    expect(out.achievements).toEqual(CORRUPT.achievements);
+    expect(out.settings).toEqual(CORRUPT.settings);
+  });
+
+  it.each([
+    ['a string counter', { ...freshStats(), callsTotal: '3' }],
+    ['a NaN counter', { ...freshStats(), careerPoints: Number.NaN }],
+    ['an Infinity counter', { ...freshStats(), streak: Number.POSITIVE_INFINITY }],
+    ['a null counter', { ...freshStats(), hackDays: null }],
+    ['a missing counter', (() => { const s: Record<string, unknown> = { ...freshStats() }; delete s.preregDays; return s; })()],
+    ['a non-array histogram', { ...freshStats(), forkHistogram: 3 }],
+    ['a histogram holding a non-number', { ...freshStats(), forkHistogram: [1, 'two', 3] }],
+  ])('replaces %s with the fresh default rather than persisting it', async (_label, stats) => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, { version: 1, history: {}, stats, achievements: {}, settings: {} });
+    for (const value of Object.values(out.stats)) {
+      if (Array.isArray(value)) expect(value.every((n) => Number.isFinite(n))).toBe(true);
+      else expect(Number.isFinite(value)).toBe(true);
+    }
+  });
+
+  it('keeps every individually-sound counter while repairing only the broken one', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, {
+      version: 1,
+      history: {},
+      stats: { ...freshStats(), streak: 4, maxStreak: 9, forkHistogram: 'nope' },
+      achievements: {},
+      settings: {},
+    });
+    expect(out.stats.streak).toBe(4);
+    expect(out.stats.maxStreak).toBe(9);
+    expect(out.stats.forkHistogram).toEqual([]);
+  });
+
+  it('saveDay over a corrupt-stats blob yields finite counters, not NaN and not a throw', async () => {
+    window.localStorage.setItem(
+      'phackle.v1',
+      JSON.stringify({ version: 1, history: {}, stats: {}, achievements: {}, settings: {} })
+    );
+    const { loadState, saveDay } = await freshStorage();
+
+    expect(() => saveDay('2026-08-10', day({ callCorrect: true }))).not.toThrow();
+
+    const stats = loadState().stats;
+    expect(stats.hackDays).toBe(1);
+    expect(stats.callsTotal).toBe(1);
+    expect(stats.callsCorrect).toBe(1);
+    expect(stats.careerPoints).toBe(25); // RETRACTED hack day earns the +25 track
+    expect(stats.streak).toBe(1);
+    expect(stats.forkHistogram).toEqual([0, 0, 1]);
+    for (const value of Object.values(stats)) {
+      if (Array.isArray(value)) expect(value.every((n) => Number.isFinite(n))).toBe(true);
+      else expect(Number.isFinite(value)).toBe(true);
+    }
+  });
+});
+
+function freshStats() {
+  return {
+    streak: 0,
+    maxStreak: 0,
+    callsCorrect: 0,
+    callsTotal: 0,
+    careerPoints: 0,
+    preregDays: 0,
+    hackDays: 0,
+    forkHistogram: [] as number[],
+  };
+}

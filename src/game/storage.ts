@@ -155,7 +155,13 @@ function pickValidSettings(value: unknown): PersistedSettings {
   return out;
 }
 
-function isValidV1(data: unknown): data is PersistedState {
+/** The CONTAINER check: every top-level field is present and of the right
+ * broad kind. Necessary but — as gr6-044 (final-002) found the hard way —
+ * nowhere near sufficient for `stats`, whose fields are arithmetic operands.
+ * Kept as its own predicate because `migrate` below distinguishes the two
+ * failure modes: a wrong-shaped container is unusable, a wrong-shaped
+ * `stats` block inside an otherwise sound container is repairable. */
+function isV1Container(data: unknown): data is Record<string, unknown> {
   if (typeof data !== 'object' || data === null) return false;
   const d = data as Record<string, unknown>;
   return (
@@ -171,15 +177,76 @@ function isValidV1(data: unknown): data is PersistedState {
   );
 }
 
+/** The seven scalar counters of PersistedStats, listed once so the numeric
+ * validation below and `freshState()`'s own literal cannot drift apart —
+ * `satisfies` makes a future field addition a compile error here rather than
+ * a silently-unvalidated counter. */
+const STATS_COUNTERS = [
+  'streak',
+  'maxStreak',
+  'callsCorrect',
+  'callsTotal',
+  'careerPoints',
+  'preregDays',
+  'hackDays',
+] as const satisfies readonly (keyof PersistedStats)[];
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** gr6-044: `stats` is the one block whose fields are read as ARITHMETIC
+ * OPERANDS (`saveDay`'s `state.stats.callsTotal + 1`, `incrementHistogram`'s
+ * `hist.slice()`), so "is an object" is not a check — it is an assumption.
+ * A `{version: 1, ..., stats: {}}` blob used to pass validation and then
+ * NaN-poison every counter on the very next `saveDay`, permanently and
+ * invisibly (the histogram case did not even get that far: `.slice()` of
+ * `undefined` throws). Every counter is therefore validated as a FINITE
+ * number and the histogram as an array of finite numbers; anything else
+ * falls back to `freshState()`'s own default for that field ALONE, so one
+ * bad counter costs the player one counter and never their history. */
+function pickValidStats(value: unknown): PersistedStats {
+  const out = freshState().stats;
+  if (typeof value !== 'object' || value === null) return out;
+  const raw = value as Record<string, unknown>;
+  for (const key of STATS_COUNTERS) {
+    if (isFiniteNumber(raw[key])) out[key] = raw[key];
+  }
+  if (Array.isArray(raw.forkHistogram) && raw.forkHistogram.every(isFiniteNumber)) {
+    out.forkHistogram = raw.forkHistogram as number[];
+  }
+  return out;
+}
+
+function isValidV1(data: unknown): data is PersistedState {
+  if (!isV1Container(data)) return false;
+  const stats = data.stats as Record<string, unknown>;
+  return (
+    STATS_COUNTERS.every((key) => isFiniteNumber(stats[key])) &&
+    Array.isArray(stats.forkHistogram) &&
+    stats.forkHistogram.every(isFiniteNumber)
+  );
+}
+
 /**
  * v1 -> v1 identity (defensively re-validated — a version tag lying about
  * its own shape is treated as corrupt); any other version -> fresh. This is
  * intentionally a stub: v1 is the only version that has ever existed, so
  * there is nothing to migrate FROM yet ("Migration function stub from day
  * one... because there will be a v2" — master spec §5.6).
+ *
+ * gr6-044 adds one middle case between "identity" and "fresh". A blob whose
+ * CONTAINER is sound but whose `stats` block is not numerically usable is
+ * REPAIRED rather than discarded: throwing the whole record away would cost
+ * the player their history, their achievements and their settings to fix a
+ * counter, which is a far worse outcome than the corruption itself. The
+ * identity path is unchanged and still returns the very same object
+ * reference for a blob that genuinely is a PersistedState.
  */
 export function migrate(version: number, data: unknown): PersistedState {
-  if (version === 1 && isValidV1(data)) return data;
+  if (version !== 1) return freshState();
+  if (isValidV1(data)) return data;
+  if (isV1Container(data)) return { ...(data as unknown as PersistedState), stats: pickValidStats(data.stats) };
   return freshState();
 }
 
