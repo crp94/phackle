@@ -97,7 +97,7 @@ function UnlockLine({ award, index }: { award: UnlockedAchievement; index: numbe
   return (
     <li
       ref={ref}
-      className={entered ? 'ph-summary__unlock-item ph-summary__unlock-item--in' : 'ph-summary__unlock-item'}
+      className={entered ? 'ph-summary__unlock-item ph-entered' : 'ph-summary__unlock-item'}
       style={staggerStyle(index)}
       data-testid="unlock-item"
     >

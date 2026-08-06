@@ -1038,7 +1038,7 @@ describe('Summary — R5.2 site 9: one staggered group, capped, and never hiding
       // The restoring class is present on the very first render: the citation
       // is held visible by the CLASS, and no movement is waited on.
       for (const item of screen.getAllByTestId('unlock-item')) {
-        expect(item.className).toContain('ph-summary__unlock-item--in');
+        expect(item.className).toContain('ph-entered');
       }
       // ...and the text is in the document regardless of any animation.
       expect(screen.getByText(enContent.achievements.harking.citation)).toBeTruthy();
@@ -1064,7 +1064,7 @@ describe('Summary — R5.2 site 9: one staggered group, capped, and never hiding
     expect(typeof (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver).toBe('undefined');
     renderWithUnlocks(TWO_AWARDS);
     for (const item of screen.getAllByTestId('unlock-item')) {
-      expect(item.className).toContain('ph-summary__unlock-item--in');
+      expect(item.className).toContain('ph-entered');
     }
   });
 });

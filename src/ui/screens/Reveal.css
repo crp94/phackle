@@ -61,7 +61,7 @@
    the end state must NOT persist — a lingering transform would make every
    block a containing block for anything fixed inside it, and R5.3's
    compositor-only discipline is cheapest when the transform simply goes
-   away. .ph-fade--in's own `opacity: 1` is what actually holds the block
+   away. .ph-entered's own `opacity: 1` is what actually holds the block
    visible afterwards, so the content is never present ONLY as the result of
    an animation (R5.6). tokens.css collapses --dur-scene to 1ms and
    --dur-stagger to 0ms under prefers-reduced-motion, and Block() additionally
@@ -75,11 +75,22 @@
   opacity: 0;
 }
 
-.ph-fade--in {
+.ph-entered {
   opacity: 1;
   animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
+
+/* gr6-050 / DESIGN.md §9.1 — THE ENTERED FLAG HAS ONE NAME.
+   This rule used to be `.ph-fade--in`, one of three names for one idea
+   ("the observer has seen this element, so it is visible on its own
+   account"), spread over five stylesheets. R5.6 states what landing the
+   collapse costs and this file pays two parts of it: the flag is composed
+   BESIDE the base class rather than replacing it, and the stamp's gate below
+   names the base class too — `.ph-fade.ph-entered`, never `.ph-entered`
+   alone, because a bare shared flag would match a stamp inside ANY entered
+   element (a press card, the chyron, an unlock line) and R8.2's once-only
+   signature would become a pattern (R8.3). */
 
 /* R3.2: the page rhythm, and it should be measurable with a ruler. */
 .ph-fade + .ph-fade {
@@ -238,18 +249,18 @@
 
    Requiring the visible ancestor moves the start to the intersection that
    reveals it: a CSS animation begins when its rule first matches, and
-   `.ph-fade--in` is added exactly then. `both` keeps the mark at its
+   `.ph-entered` is added exactly then. `both` keeps the mark at its
    resting rotate(-12deg) afterwards (identical to .ph-stamp__mark's own base
    transform, so nothing shifts); before the block is visible the rule does
    not match at all, so no fill applies and the stamp has simply not started.
    Reduced motion is handled twice over: Stamp.tsx withholds
    .ph-stamp--animate entirely (R5.6's JS half), and --dur-stamp collapses
    to 1ms besides. */
-.ph-fade--in .ph-stamp--animate {
+.ph-fade.ph-entered .ph-stamp--animate {
   animation: ph-stamp-shake var(--dur-stamp) var(--ease-stamp) both;
 }
 
-.ph-fade--in .ph-stamp--animate .ph-stamp__mark {
+.ph-fade.ph-entered .ph-stamp--animate .ph-stamp__mark {
   animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
 }
 

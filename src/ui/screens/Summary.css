@@ -189,7 +189,7 @@
    spent here: site 7's copy-confirmation toast is a single element with no
    index, not a second cascade.
 
-   The base rule holds `opacity: 0` and `.ph-summary__unlock-item--in`
+   The base rule holds `opacity: 0` and `.ph-entered`
    restores it, so what makes the citation visible is the CLASS the component
    adds, never the animation (R5.6) — and `useEnterOnce` resolves to
    entered-now under reduced motion, without an IntersectionObserver, and if
@@ -206,7 +206,7 @@
   opacity: 0;
 }
 
-.ph-summary__unlock-item--in {
+.ph-entered {
   opacity: 1;
   animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));

@@ -713,7 +713,7 @@ describe('the Reveal (booked items c and e)', () => {
 
   it('booked (c): every scroll-gated block is in the DOM and in the a11y tree before it has "entered"', async () => {
     // jsdom has no IntersectionObserver, so useEnterOnce fails OPEN and every
-    // block carries ph-fade--in here (reveal.test.tsx pins that separately).
+    // block carries ph-entered here (reveal.test.tsx pins that separately).
     // What THIS asserts is the property that makes the opacity gate safe in a
     // real browser, where three of the six are still un-entered at mount:
     // the gate is opacity ONLY — no display:none, no visibility:hidden, no

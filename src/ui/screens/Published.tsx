@@ -109,7 +109,7 @@ function PressCard({ blurb, t, index }: BlurbCardProps) {
   return (
     <li
       ref={ref}
-      className={entered ? 'ph-press-card ph-clipping--in' : 'ph-press-card'}
+      className={entered ? 'ph-press-card ph-entered' : 'ph-press-card'}
       style={staggerStyle(index)}
     >
       <p className="ph-press-card__outlet">{blurb.outlet}</p>
@@ -137,7 +137,7 @@ function ChyronBar({ blurb, t, index }: BlurbCardProps) {
   // item of the same group, so it keeps the group's next stagger index.
   const { ref, entered } = useEnterOnce<HTMLDivElement>();
   return (
-    <div ref={ref} className={entered ? 'ph-chyron ph-clipping--in' : 'ph-chyron'} style={staggerStyle(index)}>
+    <div ref={ref} className={entered ? 'ph-chyron ph-entered' : 'ph-chyron'} style={staggerStyle(index)}>
       <p className="ph-chyron__badge">{t('published.editorsPick')}</p>
       <p className="ph-chyron__text">{blurb.text}</p>
       <p className="ph-chyron__strap">

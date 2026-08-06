@@ -142,7 +142,7 @@ function interpolate(template: string, parts: Record<string, Part>): ReactNode[]
  * `useEnterOnce`, which Published's clippings (site 5) now share — see that
  * module for why a mount-triggered entrance was the wrong trigger in the
  * first place. The behaviour here is unchanged: `entered` fails OPEN in
- * every direction that could hide content, and `.ph-fade--in`'s own
+ * every direction that could hide content, and `.ph-fade ph-entered`'s own
  * `opacity: 1` (not the animation) is what holds the block visible.
  */
 function Block({ name, index, children }: { name: string; index: number; children: ReactNode }) {
@@ -152,7 +152,7 @@ function Block({ name, index, children }: { name: string; index: number; childre
     <section
       ref={ref}
       data-block={name}
-      className={entered ? 'ph-fade ph-fade--in' : 'ph-fade'}
+      className={entered ? 'ph-fade ph-entered' : 'ph-fade'}
       // The animation hook, and the only reason this component takes an
       // index at all: Reveal.css multiplies it by --dur-stagger to get this
       // block's animation-delay. A custom property, not an inline duration —

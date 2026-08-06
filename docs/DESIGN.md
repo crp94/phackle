@@ -352,12 +352,12 @@ how many its file is supposed to have.
 | 1 | Screen / nav-page transition (`.ph-screen` on `<main>`) | `src/ui/App.css` | `ph-enter-scene` | the game's `screen` or the header's `page` changes (App.tsx keys `<main>` on both) | `opacity` 0→1, `transform` `translateY(6px)`→0 | `--dur-scene` | `--ease-out` | 1ms — the new screen is simply there | The biggest state change in the product. It teleported before this task; a screen that lands tells you a move completed | 
 | 2 | p-value dial: band colour, and the settle | `src/ui/components/PValueDial.css` | `transition:color` + `ph-dial-settle` + `ph-dial-settle-band` | a genuinely new result, keyed on the BAND (R1.8's five steps) rather than on `p` / `n` / `outcome` alone, and never on a re-render | `color` (R5.3's one sanctioned exception); `transform` `translateY(-2px)`→0 within a band, `translateY(-6px)`→0 across one | `--dur-quick`; `--dur-scene` on a band change | `--ease-out` | 1ms — the new number and its colour are simply there | Act I's signature (R8.1) and the game's heartbeat: the whole mechanic is watching this number move when you turn a knob | 
 | 3 | Reveal block entrance, staggered | `src/ui/screens/Reveal.css` | `ph-enter-scene` | the block intersects the viewport | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `Block()` additionally starts visible | Act II is a report being read; its six blocks are pages arriving in order, not one wash of ink | 
-| 4 | RETRACTED stamp: slam + ≤2px paper shake | `src/ui/screens/Reveal.css` | `ph-stamp-shake` + `ph-stamp-slam` | the block holding the stamp becomes visible (`.ph-fade--in`) | `transform` (scale + rotate), `opacity` | `--dur-stamp` | `--ease-stamp` | Stamp.tsx withholds the class entirely; 1ms besides | Act II's signature (R8.2), the one moment in the game allowed to be loud | 
+| 4 | RETRACTED stamp: slam + ≤2px paper shake | `src/ui/screens/Reveal.css` | `ph-stamp-shake` + `ph-stamp-slam` | the block holding the stamp becomes visible (`.ph-fade.ph-entered`) | `transform` (scale + rotate), `opacity` | `--dur-stamp` | `--ease-stamp` | Stamp.tsx withholds the class entirely; 1ms besides | Act II's signature (R8.2), the one moment in the game allowed to be loud | 
 | 5 | Press clippings + chyron entrance, staggered | `src/ui/screens/Published.css` | `ph-enter-scene` | each clipping enters the viewport (`useEnterOnce`, one-way) | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay | The day's payoff. Coverage arrives outlet by outlet, which is what coverage does | 
 | 6 | Fork-trail key popover | `src/ui/components/ForkTrail.css` | `ph-enter-quick` | the key opens (hover / focus / tap) | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | The only feedback that the control did anything. Closing stays instant — an exit carries no information | 
 | 7 | Share "copied" / "failed" line | `src/ui/screens/Summary.css` | `ph-enter-quick` | a clipboard write resolves or rejects | `opacity` 0→1, `transform` `translateY(2px)`→0 | `--dur-quick` | `--ease-out` | 1ms | A clipboard write is invisible; this line is the entire confirmation that it happened | 
 | 8 | Confetti | `src/ui/components/ConfettiLayer.tsx` | — (canvas) | Published mounts, once per puzzle | canvas particles | `--dur-confetti` | — | canvas is never created (R5.6's JS half) | §2.5's sincere celebration; unchanged by T35 | 
-| 9 | Achievement unlock lines, staggered (T38) | `src/ui/screens/Summary.css` | `ph-enter-scene` | each unlocked line enters the viewport (`useEnterOnce`, one-way) | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `.ph-summary__unlock-item--in` holds the line visible | §2.11's award ceremony, and the day's best beat. The summary computed it, persisted it and rendered nothing; a citation already sitting beside the invoice is a table row, one that arrives is an award | 
+| 9 | Achievement unlock lines, staggered (T38) | `src/ui/screens/Summary.css` | `ph-enter-scene` | each unlocked line enters the viewport (`useEnterOnce`, one-way) | `opacity` 0→1, `transform` `translateY(6px)`→0, delayed by R5.7's index | `--dur-scene` + `--dur-stagger` | `--ease-out` | 1ms, 0ms delay; `.ph-entered` holds the line visible | §2.11's award ceremony, and the day's best beat. The summary computed it, persisted it and rendered nothing; a citation already sitting beside the invoice is a table row, one that arrives is an award | 
 
 Two files hold `@keyframes` that they do not themselves fire, and both are
 deliberate: `src/ui/components/Stamp.css` describes the slam while site 4 in
@@ -471,9 +471,8 @@ becomes a single imperceptible frame with an identical end state. Two rules
 follow from that and are not optional. **No content may appear only as the
 result of an animation:** every animated element is either already visible in
 its own right (sites 1, 2, 6 and 7 declare no base `opacity: 0`) or is held
-visible by a class that the animation merely decorates — `.ph-fade--in`'s own
-`opacity: 1` (sites 3 and 4), `.ph-clipping--in`'s (site 5),
-`.ph-summary__unlock-item--in`'s (site 9). `motion.test.ts` decides which of
+visible by a class that the animation merely decorates — `.ph-entered`'s own
+`opacity: 1`, which is now the single flag for sites 3, 4, 5 and 9. `motion.test.ts` decides which of
 the two a rule is: a base rule that hides content must be answered by a
 restoring modifier **associated with that rule** — sharing one of its classes,
 or paired with one in the same `className` the component writes — so a
@@ -484,8 +483,8 @@ do with (T38 tightened this; the per-file version was probe-broken). And
 `src/ui/hooks/useReducedMotion.ts`, which is the single place that decision is
 made — because a token cannot reach a canvas or a `setTimeout`.
 
-**The entered flag has one name: `.ph-entered`** (granted 2026-08-06, not yet
-in the tree; §9's utility roster). One idea — "the observer has seen this
+**The entered flag has one name: `.ph-entered`** (granted 2026-08-06, landed
+by GR6 gr6-050; §9's utility roster). One idea — "the observer has seen this
 element, so it is visible on its own account" — currently ships as three names,
 `.ph-fade--in`, `.ph-clipping--in` and `.ph-summary__unlock-item--in`, which is
 three chances for the next entrance to invent a fourth and two names too many
@@ -520,6 +519,20 @@ it('a co-written class that is not a modifier does NOT vouch', () => {
 
 — which passes against the predicate above and fails against the relaxed one.
 No guard, no rename.
+
+**And the check iterates the CORPUS, not each file.** This is the second cost,
+found while landing the rename and recorded here because the "ten places"
+below did not predict it. `unguardedHiddenRules` was invoked once per
+stylesheet, which was iteration structure rather than a guarantee: the
+check's substance is class-name-based — a restorer either extends the hidden
+rule's class by name or is co-written with it by a component — and class names
+are global in CSS. One shared flag cannot live in three files, so a single
+`.ph-entered` declaration could not answer base rules in `Reveal.css`,
+`Published.css` and `Summary.css` at once; declaring it three times would
+recreate the exact defect §9.1 exists to remove. The iteration widened and
+nothing else did. Every association the check makes is still an association,
+and a hidden rule with no restorer anywhere in the corpus still fails — which
+is driven by a probe of its own, alongside T38's original one.
 
 **And the cost is ten places, not one.** The three names are load-bearing
 wherever they are typed, and the rename is not done until all of them move in

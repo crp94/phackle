@@ -474,7 +474,7 @@ describe('§7.5 motion — scroll fades, and none of them under reduced motion',
     const { container } = await mountReveal();
     const faded = [...container.querySelectorAll('[data-block]')];
     expect(faded.length).toBe(6);
-    for (const el of faded) expect(el.className).toContain('ph-fade--in');
+    for (const el of faded) expect(el.className).toContain('ph-entered');
   });
 });
 

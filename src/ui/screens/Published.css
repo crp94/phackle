@@ -85,13 +85,13 @@
    viewport, so all three ran and finished (~450ms) while below the fold and
    the player scrolled down to press that had always been there. That is
    precisely the defect T35 had just diagnosed for the stamp, reproduced one
-   screen over. `.ph-clipping--in` is now added by useEnterOnce's one-way
+   screen over. `.ph-entered` is now added by useEnterOnce's one-way
    observer at the moment each clipping actually arrives on screen — the
    same idiom, the same hook, as the reveal's blocks (site 3). At >=768,
    where the cards are usually in view at mount already, the observer's very
    first callback flips them together and the cascade is unchanged.
 
-   The base rule holds `opacity: 0` and `.ph-clipping--in` restores it — so
+   The base rule holds `opacity: 0` and `.ph-entered` restores it — so
    what makes the content visible is the CLASS, never the animation, and
    `useEnterOnce` resolves to entered-now under reduced motion, without an
    IntersectionObserver, or if the node never mounts (R5.6's
@@ -104,7 +104,7 @@
   opacity: 0;
 }
 
-.ph-clipping--in {
+.ph-entered {
   opacity: 1;
   animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));

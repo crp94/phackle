@@ -139,11 +139,11 @@ test('a full hacking day: hack to p < .05, publish, call, reveal, and share a sp
     page.locator('[data-block="fig2"]'),
     'NOTHING ON THE REVEAL IS SCROLL-GATED: every block entered at mount, so the whole staged ' +
       'argument (and the stamp inside it) plays before the player has read a word of it.',
-  ).not.toHaveClass(/ph-fade--in/);
+  ).not.toHaveClass(/ph-entered/);
 
   const stampBlock = page.locator('[data-block="stamp"]');
   const mark = page.locator('.ph-stamp__mark');
-  const stampEnteredOnArrival = ((await stampBlock.getAttribute('class')) ?? '').includes('ph-fade--in');
+  const stampEnteredOnArrival = ((await stampBlock.getAttribute('class')) ?? '').includes('ph-entered');
   if (!stampEnteredOnArrival) {
     expect(
       await mark.evaluate((el) => getComputedStyle(el).animationName),
@@ -154,7 +154,7 @@ test('a full hacking day: hack to p < .05, publish, call, reveal, and share a sp
   }
 
   await stampBlock.scrollIntoViewIfNeeded();
-  await expect(stampBlock).toHaveClass(/ph-fade--in/);
+  await expect(stampBlock).toHaveClass(/ph-entered/);
   expect(
     await mark.evaluate((el) => getComputedStyle(el).animationName),
     'THE STAMP NEVER SLAMS: its block is on screen and the slam animation still is not attached.',
