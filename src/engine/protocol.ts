@@ -103,7 +103,12 @@ export function handleRequest(state: WorkerState, req: Req): Res {
     // handleRequest crashes the worker -- exactly what should happen, since
     // the client's onCrash / errors.workerCrash path (not a swallowed error
     // string) is the right place for a stale build artifact to surface.
-    pHitAtK(1);
+    // gr6-002 made `dayType` a required argument (a default would have kept the
+    // "every caller silently gets the null vector" failure it exists to fix).
+    // Which vector this probe reads is irrelevant — assertPHitTable runs first
+    // and validates BOTH — so 'null' here is arbitrary, not a claim about the
+    // day, which has not even been assembled yet on this line.
+    pHitAtK(1, 'null');
 
     const day: GeneratedDay =
       req.practiceSeed !== undefined

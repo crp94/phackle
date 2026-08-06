@@ -572,22 +572,37 @@ const informational: Band[] = [
 
 // ---- p_hit table (§3.7) ----
 
-const pHit: number[] = new Array(P_HIT_MAX_K + 1).fill(0);
-const totalDraws = nullDays.length * SUBSET_DRAWS_PER_DAY;
-for (let k = 1; k <= P_HIT_MAX_K; k++) {
-  let hits = 0;
-  for (const day of nullDays) {
-    for (const position of day.subsetHitPositions) {
-      if (position <= k) hits++;
+// gr6-002: TWO vectors, one per day type. The suite already simulates 500 days
+// of each and already walks SUBSET_DRAWS_PER_DAY random permutations of all
+// 1,792 specs on EVERY day — the effect-day vector was simply never written
+// out, so `pHitAtK` had nothing to select on and the reveal quoted the null
+// number on effect days too (23% shown where 51% was true at k = 5).
+function pHitVector(days: SimDay[]): number[] {
+  const vector: number[] = new Array(P_HIT_MAX_K + 1).fill(0);
+  const draws = days.length * SUBSET_DRAWS_PER_DAY;
+  for (let k = 1; k <= P_HIT_MAX_K; k++) {
+    let hits = 0;
+    for (const day of days) {
+      for (const position of day.subsetHitPositions) {
+        if (position <= k) hits++;
+      }
     }
+    vector[k] = Math.round((hits / draws) * 1e6) / 1e6;
   }
-  pHit[k] = Math.round((hits / totalDraws) * 1e6) / 1e6;
+  return vector;
 }
+
+const pHitNull = pHitVector(nullDays);
+const pHitEffect = pHitVector(effectDays);
+const totalDraws = nullDays.length * SUBSET_DRAWS_PER_DAY;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const tablePath = join(scriptDir, '..', 'src', 'data', 'p_hit_by_k.json');
+// UNCHANGED BY THIS EDIT, and that is correct rather than an oversight: the
+// checksum is fnv1a32 over the DGP constant vector, and no DGP constant moved.
+// The table's SHAPE is guarded separately, per vector, by assertPHitTable.
 const checksum = pHitTableChecksum();
-writeFileSync(tablePath, `${JSON.stringify({ checksum, pHit }, null, 2)}\n`);
+writeFileSync(tablePath, `${JSON.stringify({ checksum, pHitNull, pHitEffect }, null, 2)}\n`);
 
 // ---- report ----
 
@@ -873,12 +888,13 @@ for (const candidate of [
 }
 console.log('');
 
-console.log('P_HIT TABLE (P(>=1 significant path | k explored at random), null days)');
+console.log('P_HIT TABLE (P(>=1 significant path | k explored at random), BY DAY TYPE)');
 console.log(`  wrote ${tablePath}`);
-console.log(`  checksum ${checksum} · ${nullDays.length} days x ${SUBSET_DRAWS_PER_DAY} draws = ${totalDraws} samples`);
+console.log(`  checksum ${checksum} · ${nullDays.length} days x ${SUBSET_DRAWS_PER_DAY} draws = ${totalDraws} samples per vector`);
 const shown = [1, 2, 3, 4, 5, 7, 10, 14, 20, 30, 40];
-console.log(`  k      ${shown.map((k) => String(k).padStart(6)).join('')}`);
-console.log(`  pHit   ${shown.map((k) => pHit[k].toFixed(3).padStart(6)).join('')}`);
+console.log(`  k       ${shown.map((k) => String(k).padStart(6)).join('')}`);
+console.log(`  null    ${shown.map((k) => pHitNull[k].toFixed(3).padStart(6)).join('')}`);
+console.log(`  effect  ${shown.map((k) => pHitEffect[k].toFixed(3).padStart(6)).join('')}`);
 console.log('');
 
 const failed = bands.filter((b) => b.asserted && !b.pass);
