@@ -391,8 +391,3 @@
 .ph-reveal__cta:hover {
   text-decoration: underline;
 }
-
-.ph-reveal__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}

@@ -466,7 +466,7 @@ export function Reveal() {
           that can be hidden by an IntersectionObserver that never fires is an
           action that can strand the player. Full width, after everything, so
           it cannot be mistaken for one more caption. */}
-      <button type="button" className="ph-reveal__cta" data-role="to-summary" onClick={finishReveal}>
+      <button type="button" className="ph-reveal__cta ph-focusable" data-role="to-summary" onClick={finishReveal}>
         {t('reveal.toSummary')}
       </button>
     </div>

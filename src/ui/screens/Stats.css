@@ -232,8 +232,3 @@
 .ph-stats__close:hover {
   text-decoration: underline;
 }
-
-.ph-stats__close:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}

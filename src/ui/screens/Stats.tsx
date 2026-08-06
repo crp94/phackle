@@ -200,7 +200,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
           on its own, and the labelled region above supplies the context the
           false label was standing in for. */}
       {onClose && (
-        <button type="button" className="ph-stats__close" onClick={onClose}>
+        <button type="button" className="ph-stats__close ph-focusable" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

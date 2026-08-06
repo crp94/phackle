@@ -391,7 +391,7 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
           <PressCard blurb={card2} t={t} index={1} />
         </ul>
         {chyron && <ChyronBar blurb={chyron} t={t} index={2} />}
-        <button type="button" className="ph-published__cta" ref={ctaRef} onClick={handleFaceTruth}>
+        <button type="button" className="ph-published__cta ph-focusable" ref={ctaRef} onClick={handleFaceTruth}>
           {t('published.faceTruth')}
         </button>
       </div>
@@ -405,7 +405,7 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
           commit as this attribute, never one render later. */}
       {callOpen && (
         <div
-          className="ph-call-overlay"
+          className="ph-call-overlay ph-focusable"
           role="dialog"
           aria-modal="true"
           aria-labelledby={CALL_PROMPT_ID}

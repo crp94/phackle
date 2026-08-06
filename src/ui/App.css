@@ -26,6 +26,41 @@ body {
   color: var(--ink);
 }
 
+/* ===========================================================================
+   DESIGN.md §9.1 — THE UTILITY LAYER (gr6-050)
+
+   Idioms that are COMBINATIONS of tokens meaning one thing, declared once
+   here and composed at the sites by a multi-class `className` written by the
+   component — §9.1 constraint 1: no @apply, no preprocessor, no mixin, and no
+   `:is()` list of every consumer maintained in this file. The stylesheet says
+   what the idiom IS; the component says which elements ARE one.
+
+   Every declaration below already existed VERBATIM at every site it replaces.
+   §9.1 constraint 2 forbids a new token or a changed value, and constraint 3
+   admits a site only where the value already matched — which is why the sites
+   that disagree stay where they are and are named at their own rules.
+
+   This file is the home because it is the one stylesheet the shell always
+   imports, so no build that composes a utility can be missing its definition
+   (the same argument App.css's shared keyframes are here on).
+   =========================================================================== */
+
+/* R6.1's focus ring, and nothing else: `--focus-ring` (2px solid --ink) at
+   `--focus-offset` (2px), on :focus-visible, in both themes — `--ink` flips
+   with the theme, so this never needs a dark-theme override.
+
+   THE ONE EXCEPTION IS NAMED BY §9.1 CONSTRAINT 4, and it is `.ph-screen`
+   further down this file: R6.6's screen container declares the same ring at a
+   NEGATED offset, because <main> is full-bleed and a ring drawn 2px outside it
+   lands in the viewport gutter (at 200% zoom, in nothing at all). It is not
+   `.ph-focusable` and must not become one — a utility that quietly straightened
+   that out would put the one ring the SPA's route change depends on where
+   nobody can see it. */
+.ph-focusable:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
 /* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
    The screen change is the biggest state change in the product and, until
    this task, the only one with no beat at all: briefing -> lab -> published
@@ -138,9 +173,9 @@ body {
    the ONLY place in src/ui it may appear", so the link borrows the idiom and
    this rule only says what changes when it takes focus. Everything below is
    a token — the padding is R6.4's tap target out of the §3 scale, the rule
-   under it is R4.4's hairline, and the ring is R6.1's, at the ordinary
-   positive offset (unlike R6.6's full-bleed <main>, this element is inset
-   and its ring lands on paper).
+   under it is R4.4's hairline, and the ring is R6.1's, composed as
+   `.ph-focusable` (§9.1) at the ordinary positive offset (unlike R6.6's
+   full-bleed <main>, this element is inset and its ring lands on paper).
    `position: absolute` with `inset-block-start`/`inset-inline-start` at 0
    keeps it out of the header's flex flow entirely: a skip link that reserved
    layout while hidden would push the masthead down on every screen.
@@ -164,11 +199,6 @@ body {
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.ph-skip-link:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* gr6-007 — the boot-failure screen. A boot that never produced a day is not
@@ -219,11 +249,6 @@ body {
   text-decoration: underline;
 }
 
-.ph-boot-error__reload:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 /* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */
 .ph-header {
   display: flex;
@@ -266,11 +291,6 @@ body {
 .ph-header__home:hover .ph-header__wordmark {
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.ph-header__home:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-header__wordmark {
@@ -371,11 +391,6 @@ body {
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-seg:hover {
   text-decoration: underline;
-}
-
-.ph-seg:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-seg[aria-pressed='true'] {

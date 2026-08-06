@@ -218,7 +218,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           <p className="ph-briefing__chooser-intro">{t('briefing.modeChooserIntro')}</p>
           <div className="ph-briefing__chooser-options">
             <div className="ph-briefing__chooser-option">
-              <button type="button" className="ph-briefing__cta" disabled={hackPlayedToday} onClick={openData}>
+              <button type="button" className="ph-briefing__cta ph-focusable" disabled={hackPlayedToday} onClick={openData}>
                 {t('briefing.playHacking')}
               </button>
               {hackPlayedToday ? (
@@ -228,7 +228,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
             <div className="ph-briefing__chooser-option">
               <button
                 type="button"
-                className="ph-briefing__cta"
+                className="ph-briefing__cta ph-focusable"
                 disabled={preregPlayedToday}
                 onClick={() => chooseMode('prereg')}
               >
@@ -241,7 +241,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           </div>
         </div>
       ) : (
-        <button type="button" className="ph-briefing__cta" onClick={openData}>
+        <button type="button" className="ph-briefing__cta ph-focusable" onClick={openData}>
           {t('briefing.openData')}
         </button>
       )}

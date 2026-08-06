@@ -119,7 +119,7 @@ export function Lab() {
             discover the instructions — and gone for good once dismissed. */}
         {introSeen ? null : (
           <details className="ph-lab__intro" data-testid="lab-intro" open>
-            <summary className="ph-lab__intro-title">{t('lab.howThisWorks.title')}</summary>
+            <summary className="ph-lab__intro-title ph-focusable">{t('lab.howThisWorks.title')}</summary>
             <ol className="ph-lab__intro-steps">
               {HOW_TO_PLAY_STEPS.map((key) => (
                 <li key={key} className="ph-lab__intro-step" data-testid="lab-intro-step">
@@ -127,7 +127,7 @@ export function Lab() {
                 </li>
               ))}
             </ol>
-            <button type="button" className="ph-lab__intro-dismiss" onClick={dismissIntro}>
+            <button type="button" className="ph-lab__intro-dismiss ph-focusable" onClick={dismissIntro}>
               {t('lab.howThisWorks.dismiss')}
             </button>
           </details>
@@ -139,7 +139,7 @@ export function Lab() {
         <DataCut cut={result?.cut ?? null} treatmentLabel={scenario.treatmentLabel} />
         <button
           type="button"
-          className="ph-lab__collect"
+          className="ph-lab__collect ph-focusable"
           disabled={!canCollectMore}
           onClick={() => void peekAndExtend()}
         >
@@ -203,7 +203,7 @@ export function Lab() {
           at the foot of the controls (R8.1's Don't: two buttons with one
           meaning). */}
       <div className="ph-lab__actions">
-        <button type="button" className="ph-lab__submit" disabled={!canSubmit} onClick={() => void submit()}>
+        <button type="button" className="ph-lab__submit ph-focusable" disabled={!canSubmit} onClick={() => void submit()}>
           {t('lab.submit')}
         </button>
         {/* gr6-061 — A SCREEN-READER PLAYER WAS NEVER TOLD PUBLISHING BECAME
@@ -231,7 +231,7 @@ export function Lab() {
             {t('legend.significant')}
           </p>
         ) : null}
-        <button type="button" className="ph-lab__abandon" onClick={() => void abandon()}>
+        <button type="button" className="ph-lab__abandon ph-focusable" onClick={() => void abandon()}>
           {t('lab.reportNull')}
         </button>
       </div>

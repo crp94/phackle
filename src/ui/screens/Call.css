@@ -95,11 +95,6 @@
   cursor: pointer;
 }
 
-.ph-call__option:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-call__option[disabled] {
   cursor: default;
 }

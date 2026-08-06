@@ -117,8 +117,3 @@
 .ph-about__close:hover {
   text-decoration: underline;
 }
-
-.ph-about__close:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}

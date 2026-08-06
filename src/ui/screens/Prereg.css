@@ -62,11 +62,6 @@
   cursor: pointer;
 }
 
-.ph-prereg__commit input[type='checkbox']:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-prereg__commit input[type='checkbox']:disabled {
   cursor: default;
 }
@@ -91,11 +86,6 @@
 
 .ph-prereg__submit:hover:not(:disabled) {
   text-decoration: underline;
-}
-
-.ph-prereg__submit:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-prereg__submit:disabled {

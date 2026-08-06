@@ -82,7 +82,7 @@ export function RadioGroup<T extends string | number>({
               aria-checked={selected}
               tabIndex={selected ? 0 : -1}
               disabled={disabled}
-              className={selected ? 'ph-radio ph-radio--selected' : 'ph-radio'}
+              className={selected ? 'ph-radio ph-radio--selected ph-focusable' : 'ph-radio ph-focusable'}
               onClick={() => onChange(opt.value)}
             >
               {opt.label}

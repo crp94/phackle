@@ -96,7 +96,7 @@ export function Legend({ t, onClose }: LegendProps) {
       </ul>
       {/* T22: no aria-label — not a dialog. See Stats.tsx's note. */}
       {onClose && (
-        <button type="button" className="ph-legend__close" onClick={onClose}>
+        <button type="button" className="ph-legend__close ph-focusable" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

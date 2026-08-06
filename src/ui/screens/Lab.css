@@ -94,11 +94,6 @@
   cursor: pointer;
 }
 
-.ph-lab__intro-title:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 /* R3.6-adjacent: a real ordered list, numbered by the browser, so the
    sequence survives a screen reader and no number has to be typed as copy. */
 .ph-lab__intro-steps {
@@ -137,11 +132,6 @@
   cursor: pointer;
 }
 
-.ph-lab__intro-dismiss:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-lab__collect {
   margin-block-start: var(--space-16);
   font-family: var(--font-ui);
@@ -156,11 +146,6 @@
 
 .ph-lab__collect:hover {
   text-decoration: underline;
-}
-
-.ph-lab__collect:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-lab__collect:disabled {
@@ -230,11 +215,6 @@
   text-decoration: underline;
 }
 
-.ph-lab__submit:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-lab__submit:disabled {
   color: var(--muted);
   border-block-end-color: var(--rule);
@@ -254,11 +234,6 @@
 
 .ph-lab__abandon:hover {
   text-decoration: underline;
-}
-
-.ph-lab__abandon:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* R3.4's ONE breakpoint. The two-pane layout is a grid rather than

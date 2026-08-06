@@ -107,11 +107,6 @@
   text-decoration: underline;
 }
 
-.ph-summary__share-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 /* DESIGN.md R5.2 site 7: THE COPY CONFIRMATION.
    Writing to the clipboard is invisible by definition, so this line IS the
    whole feedback for the share action — and a line of text that simply
@@ -303,9 +298,4 @@
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-summary__next-button:hover {
   text-decoration: underline;
-}
-
-.ph-summary__next-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

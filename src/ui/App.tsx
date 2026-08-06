@@ -308,7 +308,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
             <h1 className="ph-boot-error__title">{t('errors.workerCrash')}</h1>
             <button
               type="button"
-              className="ph-boot-error__reload"
+              className="ph-boot-error__reload ph-focusable"
               data-testid="app-boot-error-reload"
               onClick={() => window.location.reload()}
             >
@@ -347,7 +347,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
           locales. W2's own batch lists a skip-link key for this row;
           `a11y.skipToContent` ("Skip to today's puzzle") is what this
           element wants, and it is a one-word edit here when it lands. */}
-      <a className="ph-visually-hidden ph-skip-link" href={`#${MAIN_ID}`} data-testid="app-skip-link">
+      <a className="ph-visually-hidden ph-skip-link ph-focusable" href={`#${MAIN_ID}`} data-testid="app-skip-link">
         {t('nav.play')}
       </a>
       <header className="ph-header">
@@ -361,7 +361,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
               a dialog can. The accessible name opens with the wordmark so
               the visible label survives inside it (WCAG 2.5.3).
               The wordmark is the one permitted raw string besides emoji. */}
-          <button type="button" className="ph-header__home" aria-label={t('a11y.backToGame')} onClick={backToGame}>
+          <button type="button" className="ph-header__home ph-focusable" aria-label={t('a11y.backToGame')} onClick={backToGame}>
             <span className="ph-header__wordmark">P-hackle</span>
           </button>
           <span className="ph-header__vol">
@@ -375,13 +375,13 @@ export default function App({ puzzleNumber, children }: AppProps) {
               The theme/locale controls beside it stay role="group": they
               choose a setting, they do not navigate anywhere. */}
           <nav className="ph-header__nav">
-            <button type="button" className="ph-seg" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
               {t('nav.stats')}
             </button>
-            <button type="button" className="ph-seg" aria-pressed={page === 'legend'} onClick={() => setPage('legend')}>
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'legend'} onClick={() => setPage('legend')}>
               {t('nav.legend')}
             </button>
-            <button type="button" className="ph-seg" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
               {t('nav.about')}
             </button>
             {/* The second affordance, and the explicit one: on screen for
@@ -401,7 +401,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
                 Legend and About now keep their coordinates for the whole
                 session. */}
             {page === 'game' ? null : (
-              <button type="button" className="ph-seg ph-seg--action" onClick={backToGame}>
+              <button type="button" className="ph-seg ph-seg--action ph-focusable" onClick={backToGame}>
                 {t('nav.play')}
               </button>
             )}
@@ -483,13 +483,13 @@ export function ThemeToggle({ theme, setTheme, t }: ThemeToggleProps) {
     <div className="ph-theme-toggle" role="group" aria-label={t('a11y.themeToggle')}>
       <button
         type="button"
-        className="ph-seg"
+        className="ph-seg ph-focusable"
         aria-pressed={theme === 'paper'}
         onClick={() => setTheme('paper')}
       >
         {t('nav.themePaper')}
       </button>
-      <button type="button" className="ph-seg" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
+      <button type="button" className="ph-seg ph-focusable" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
         {t('nav.themeDark')}
       </button>
     </div>
@@ -540,7 +540,7 @@ export function LocaleToggle({ locales, locale, setLocale, t }: LocaleToggleProp
         <button
           key={loc}
           type="button"
-          className="ph-seg ph-seg--locale"
+          className="ph-seg ph-seg--locale ph-focusable"
           aria-pressed={loc === locale}
           aria-label={t(LOCALE_NAME_KEY[loc])}
           onClick={() => setLocale(loc)}

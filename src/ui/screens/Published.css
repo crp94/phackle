@@ -314,11 +314,6 @@
   text-decoration: underline;
 }
 
-.ph-published__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 /* The "Face the truth" overlay: R4.2's "dimmed backdrop" -- var(--scrim) is
    the registered derived colour (DESIGN.md §0/R1.3a; --ink at 60% alpha,
    declared once in tokens.css), covering the whole viewport (R4.7's
@@ -342,9 +337,4 @@
   justify-content: center;
   overflow-y: auto;
   background: var(--scrim);
-}
-
-.ph-call-overlay:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

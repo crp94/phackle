@@ -119,7 +119,7 @@ export function Call() {
               buttons.current[i] = node;
             }}
             type="button"
-            className="ph-call__option"
+            className="ph-call__option ph-focusable"
             disabled={busy}
             onClick={() => choose(option.verdict)}
           >

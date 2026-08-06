@@ -181,7 +181,7 @@ function TrailKey() {
     >
       <button
         type="button"
-        className="ph-fork-trail__key-button"
+        className="ph-fork-trail__key-button ph-focusable"
         data-testid="fork-trail-key"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}

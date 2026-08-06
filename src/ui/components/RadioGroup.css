@@ -44,11 +44,6 @@
   text-decoration: underline;
 }
 
-.ph-radio:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-radio:disabled {
   color: var(--muted);
   cursor: default;

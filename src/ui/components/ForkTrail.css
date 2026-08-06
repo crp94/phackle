@@ -69,11 +69,6 @@
   color: var(--ink);
 }
 
-.ph-fork-trail__key-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 /* DESIGN.md R5.2 site 6: the key opening is the ONLY feedback the player
    gets that their hover/tap did anything, and it used to be a hard cut. One
    --dur-quick rise of the 2px R5.3 pins for a quick beat — enough to read as

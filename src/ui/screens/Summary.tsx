@@ -214,7 +214,7 @@ export function Summary({
         <div className="ph-summary__next">
           <button
             type="button"
-            className="ph-summary__next-button"
+            className="ph-summary__next-button ph-focusable"
             data-testid="summary-stats-action"
             onClick={onViewStats}
           >
@@ -264,7 +264,7 @@ export function Summary({
             override the visible text as the accessible name entirely, which
             is exactly the WCAG 2.5.3 "Label in Name" trap: an accessible name
             that doesn't even contain the visible label. */}
-        <button type="button" className="ph-summary__share-button" onClick={() => void handleShare()}>
+        <button type="button" className="ph-summary__share-button ph-focusable" onClick={() => void handleShare()}>
           {t('summary.share')}
         </button>
         {toastVisible && (

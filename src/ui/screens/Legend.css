@@ -74,8 +74,3 @@
 .ph-legend__close:hover {
   text-decoration: underline;
 }
-
-.ph-legend__close:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}

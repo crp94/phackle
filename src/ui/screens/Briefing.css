@@ -88,11 +88,6 @@
   text-decoration: underline;
 }
 
-.ph-briefing__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-briefing__cta:disabled {
   color: var(--muted);
   border-block-end-color: var(--rule);
