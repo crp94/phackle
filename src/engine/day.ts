@@ -20,13 +20,20 @@
 //
 // Acceptance (§3.3, controller-amended):
 //   attempt = 0, 1, 2, ... MAX_ATTEMPTS-1, dataset from a per-mode seed:
+//   - EVERY day type EXCEPT an effect day whose true outcome is the lab
+//     default's own (GR6 ruling §1(d), gr2-013): the LAB'S DEFAULT SPEC must
+//     not itself be significant at N=200 -- see labDefaultIsSignificant and
+//     labDefaultGateApplies below for the measurements that forced both the
+//     predicate and its one exception. Checked FIRST on both paths, because it
+//     is the cheapest gate either one has (one regression against the null
+//     path's up-to-256 and the effect path's two).
 //   - null day: a fixed stride-7 subsample of the 1792 specs (256 of them, in
 //     allSpecs()'s own fixed order) must contain at least one significant
-//     point ("precheck") -- checked FIRST, via direct runSpec calls, and
+//     point ("precheck") -- checked SECOND, via direct runSpec calls, and
 //     gating the expensive step: only when it passes do we run the full
 //     1792-spec enumeration (enumerateCurve) to get sigCount(...,200), which
-//     must then land in NULL_SIG_BAND. Both are required for acceptance;
-//     either failing rejects the attempt -- but the precheck failing means
+//     must then land in NULL_SIG_BAND. All three are required for acceptance;
+//     any failing rejects the attempt -- but the precheck failing means
 //     the (expensive) full enumeration is never even computed for that
 //     attempt. See acceptNullDay's own comment and the T9 fix report for the
 //     measured cost of getting this ordering wrong (T9 review round 1 caught
@@ -35,7 +42,8 @@
 //     decision, but never actually gated anything).
 //   - effect day: the canonical spec (true outcome j*, everyone, both
 //     covariates, no exclusion, canonicalTransform(j*), two-tailed) must have
-//     p < .05 at N=400 AND p < .15 at N=200. p@200 < .15 always implies the
+//     p < .05 at N=400 AND p < .15 at N=200 (and, per the clause above, the
+//     lab default must still be non-significant at N=200). p@200 < .15 always implies the
 //     precheck's p@200 < .3, so both p@200 and p@400 are always computed for
 //     every attempt (cheap -- single-spec regressions, unlike the null-day
 //     path's full enumeration) and the "precheck" exists here purely as its
@@ -46,6 +54,12 @@
 //   - cap: if no attempt passes within MAX_ATTEMPTS, accept the best-scoring
 //     attempt among the ones already generated (bandDistance for null days,
 //     pickBestEffectAttempt for effect days) and console.warn exactly once.
+//     §1(d) adds ONE lexicographic preference ahead of both scores: among the
+//     generated attempts, those whose lab default is non-significant win
+//     outright, and the existing tie-break then runs inside that subset. Only
+//     if EVERY attempt failed the new gate does the old rule run over all of
+//     them -- so the fallback can never be made worse by the new conjunct,
+//     which is the property a "best effort" cap has to keep.
 import { runSpec, runSpecCore } from './analyze';
 import { daysFromCivil, parseIso } from './civil';
 import type { Dataset, EffectSpec } from './dgp';
@@ -55,7 +69,7 @@ import { daySeed, dayTypeFor, effectParamsFor, scenarioIndexFor } from './seeds'
 import type { CurvePoint } from './specGrid';
 import { allSpecs, enumerateCurve, sigCount, specKey } from './specGrid';
 import { meanSd } from './stats';
-import type { DailyPuzzle, Outcome, Spec } from './types';
+import type { DailyPuzzle, DayType, Outcome, Spec } from './types';
 import { EPOCH, HETERO_MULTIPLIER, MAX_ATTEMPTS, NULL_SIG_BAND } from '../game/tuning';
 
 export interface GeneratedDay {
@@ -87,6 +101,115 @@ export function canonicalSpecFor(outcome: Outcome): Spec {
   };
 }
 
+// ---- the lab default, and the §1(d) acceptance predicate ----
+
+/**
+ * The free, un-hacked starting point (§2.4 defaults) — the spec a player is
+ * looking at before they touch a single knob.
+ *
+ * MIRRORS `src/game/store.ts`'s `DEFAULT_SPEC`, and is a second copy for the
+ * same reason `puzzleNumberFor` below is: engine purity (docs/implementation_plan.md
+ * §5) lets `src/engine/**` import `src/game/tuning.ts` and nothing else from
+ * the game layer, and store.ts is a zustand store — importing it here would
+ * drag the whole app state into the engine. The two are pinned byte-for-byte
+ * against each other in `tests/engine/day.test.ts`, exactly as the two
+ * `puzzleNumber` computations are, so a future edit to either one that
+ * forgets the other fails a named test rather than silently making the
+ * acceptance gate judge a spec no player ever sees.
+ */
+export const LAB_DEFAULT_SPEC: Spec = {
+  outcome: 0,
+  subgroup: 'all',
+  covariates: { income: false, risk: false },
+  exclusion: 'none',
+  transform: 'raw',
+  tails: 'two',
+};
+
+/** The window the predicate below judges at: the one a player starts in
+ * (§3.8), which is the only window that exists before their first fork. */
+const DEFAULT_SPEC_WINDOW = 200;
+
+/**
+ * GR6 RULING §1(d) (gr2-013) — "the default spec is already significant on
+ * one day in eight".
+ *
+ * MEASURED, before this predicate existed: over 120 consecutive real dates
+ * from 2026-08-11 the lab default was significant at N=200 on 14 of them
+ * (11.7%) — 5/91 null days, 9/29 effect days — and ONE move (flipping to
+ * one-tailed) reached significance on 27 of 120 (22.5%). Over the calibration
+ * suite's own 1,000-day population the same figure is 214/1,000 (9.2% of null
+ * days, 33.6% of effect days; 15.3% re-weighted to the 75/25 mix the game
+ * serves). On such a day Act I is one tap: the player opens the lab, sees
+ * p < .05 on a spec they never chose, publishes, and the reveal then exonerates
+ * them for a fork trail that is empty. A daily whose central mechanic is
+ * skipped on one day in eight has a variance problem worth one conjunct.
+ *
+ * So this is now part of §3.3's acceptance gate on BOTH day types. It costs
+ * one regression per attempt and is checked before every other gate (it is the
+ * cheapest one either path has); the headroom it spends is measured in the W11
+ * report and re-measured by `npm run cal` on every run (band e, attempts p99).
+ *
+ * SCOPE, AND THE ONE MEASURED EXCEPTION (documented deviation from the
+ * ruling's literal "one more conjunct"). The gate applies to every null day
+ * and to every effect day EXCEPT one whose true outcome is the lab default's
+ * own outcome (Y1). Two independent reasons, both measured, neither
+ * anticipated by the brief:
+ *
+ *   1. COST. The canonical spec for outcome 0 differs from the lab default
+ *      only by the two covariates, so "the covariate-adjusted spec finds the
+ *      effect at N=400 (p < .05) and at N=200 (p < .15), but the unadjusted
+ *      one misses it at N=200" is a narrow window. Measured with the gate
+ *      applied unconditionally, over the calibration suite's own 1,000-day
+ *      population: effect days with trueOutcome = 0 (n = 107) needed a mean
+ *      of 9.83 attempts and blew the MAX_ATTEMPTS = 20 cap on 46 of 107
+ *      (43%), which is 46 console warnings per 1,000 days and an overall
+ *      attempts p99 of 18 against §3.9's own band (e) ceiling of 20 (it was
+ *      5 before). Every other true outcome was untouched: 1.43 / 1.84 / 1.90
+ *      mean attempts, zero cap exhaustions.
+ *   2. THE GATE WOULD SELECT A DIFFERENT DGP. Those attempts are not merely
+ *      slow, they are BIASED: X is built from the same latents Y1 loads on
+ *      (dgp.ts), so demanding that the unadjusted Y1 spec miss while the
+ *      adjusted one hits selects precisely the draws where the confounding
+ *      runs NEGATIVE — suppression days. Shipping that would hand players an
+ *      effect-day population chosen for a property the game never intended
+ *      to teach, in order to fix a pacing problem.
+ *
+ * And the exception costs nothing pedagogically, because the pathology being
+ * fixed is not "the day was easy": it is gr2-013's "the reveal EXONERATES the
+ * player". A significant default on a day whose true outcome IS the default's
+ * outcome is a TRUE positive on the day's own truth, on a day §3.3 already
+ * guarantees the truth is findable on (the canonical gate). There is nothing
+ * to exonerate. A significant default on any other day — null, or effect with
+ * the truth in another column — is a false positive collected in one tap, and
+ * that is exactly what this gate now makes impossible.
+ *
+ * DELIBERATELY NOT A TUNABLE. The 0.05 here is the same α the whole game is
+ * about (`specGrid.ts`'s `sigCount`, `analyze.ts`, the reveal's chance line),
+ * not a balance knob: a "significant by the game's own definition" gate that
+ * used a different threshold from the game's own definition would be a bug
+ * wearing a constant's clothes. §3.9's tunables are in tuning.ts and this is
+ * not one of them — which is also why `dgpConstantVector()` does not move
+ * (see src/engine/reveal.ts: nothing about the DGP changed here, only which
+ * of its draws are accepted).
+ */
+function labDefaultIsSignificant(data: Dataset): boolean {
+  const result = runSpecCore(data, LAB_DEFAULT_SPEC, DEFAULT_SPEC_WINDOW);
+  return result.valid && result.p < 0.05;
+}
+
+/**
+ * The exception above, as a predicate on the day rather than a comment: an
+ * effect day whose true outcome is the lab default's own outcome is the one
+ * day type where a significant default is the day's own truth, so §1(d)'s
+ * gate does not apply to it. Exported for direct testing — it is the boundary
+ * of a documented deviation, and a boundary that is only asserted through
+ * whole-day behaviour is a boundary nobody can see move.
+ */
+export function labDefaultGateApplies(dayType: DayType, trueOutcome: Outcome | null): boolean {
+  return !(dayType === 'effect' && trueOutcome === LAB_DEFAULT_SPEC.outcome);
+}
+
 // ---- best-attempt fallback scoring (§3.3 controller amendment) ----
 
 /** Distance from `sig` to the closed band `[lo, hi]`; 0 when `sig` is inside
@@ -113,6 +236,26 @@ function pickMinBy<T>(items: T[], score: (item: T) => number): T {
     }
   }
   return best;
+}
+
+/**
+ * §1(d)'s cap-exhaustion preference, as a pure rule both day types share: the
+ * attempts whose lab default is NON-significant win outright, and the day
+ * type's own tie-break then runs inside that subset. When the new gate
+ * rejected every attempt (or never applied), the subset is empty and the
+ * caller's original rule runs over everything — which is the property that
+ * makes this strictly a refinement: the fallback can never get worse than it
+ * was before §1(d), only more selective.
+ *
+ * Exported for direct unit testing, exactly like `bandDistance` and
+ * `pickBestEffectAttempt` below: a cap exhaustion is measured at 0 in 1,000
+ * simulated days (see the W11 report), so this rule would otherwise be
+ * reachable only through a mocked-impossible band, which tests the mock as
+ * much as the rule.
+ */
+export function preferCleanDefault<T extends { defaultSig: boolean }>(candidates: T[]): T[] {
+  const clean = candidates.filter((c) => !c.defaultSig);
+  return clean.length > 0 ? clean : candidates;
 }
 
 /** Cap-exhaustion tie-break for effect days (§3.3 controller amendment):
@@ -184,10 +327,15 @@ function nullDayPrecheckHit(data: Dataset): boolean {
 interface NullCandidate {
   attempt: number;
   data: Dataset;
-  // null iff the precheck failed and the full curve was therefore never
-  // computed for this attempt (see acceptNullDay) -- there is no sigCount to
-  // record in that case, by construction of the fix this type exists for.
+  // null iff the precheck failed (or §1(d)'s default-spec gate rejected the
+  // attempt before it) and the full curve was therefore never computed for
+  // this attempt (see acceptNullDay) -- there is no sigCount to record in
+  // that case, by construction of the fix this type exists for.
   sig: number | null;
+  /** §1(d): did the lab default come back significant at N=200 on this
+   * attempt? Recorded rather than merely branched on, because the cap
+   * fallback prefers attempts where it is false (see acceptNullDay). */
+  defaultSig: boolean;
 }
 
 function hasSig(c: NullCandidate): c is NullCandidate & { sig: number } {
@@ -200,12 +348,25 @@ function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext:
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const data = generateDataset(seedForAttempt(attempt), null);
 
-    // Precheck FIRST -- gates the expensive step. Only when it passes do we
+    // §1(d) FIRST -- one regression, the cheapest gate on this path, so an
+    // attempt it rejects costs neither the 256-spec precheck nor the full
+    // enumeration. (Same gating logic the precheck's own ordering is built
+    // on, one rung cheaper.) No `labDefaultGateApplies` call here: its one
+    // exception is an EFFECT-day exception (see its doc comment), so on this
+    // path it is true by construction and calling it would read as though a
+    // null day could somehow be excepted.
+    const defaultSig = labDefaultIsSignificant(data);
+    if (defaultSig) {
+      candidates.push({ attempt, data, sig: null, defaultSig });
+      continue;
+    }
+
+    // Precheck SECOND -- gates the expensive step. Only when it passes do we
     // pay for the full 1792-spec enumeration; when it fails, this attempt is
     // rejected without ever computing enumerateCurve at all (§3.3: "only if
     // the precheck passes do you run the full enumeration gates").
     if (!nullDayPrecheckHit(data)) {
-      candidates.push({ attempt, data, sig: null });
+      candidates.push({ attempt, data, sig: null, defaultSig });
       continue;
     }
 
@@ -213,7 +374,7 @@ function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext:
     if (sig >= NULL_SIG_BAND[0] && sig <= NULL_SIG_BAND[1]) {
       return { attemptUsed: attempt, data, capExhausted: false };
     }
-    candidates.push({ attempt, data, sig });
+    candidates.push({ attempt, data, sig, defaultSig });
   }
 
   // Best-attempt fallback (§3.3 controller amendment): nearest-to-band among
@@ -226,10 +387,24 @@ function acceptNullDay(seedForAttempt: (attempt: number) => number, warnContext:
   // to compare, so this deterministically falls back to the first attempt
   // rather than paying for an enumeration just to break a tie that's
   // otherwise undecidable from the data we have.
-  const scored = candidates.filter(hasSig);
-  const chosen = scored.length > 0 ? pickMinBy(scored, (c) => bandDistance(c.sig, NULL_SIG_BAND)) : candidates[0];
+  // §1(d)'s lexicographic preference: an attempt whose lab default is
+  // non-significant beats one where it is, whatever their sigCounts. Inside
+  // that subset (or over everything, if the gate rejected every attempt) the
+  // original nearest-to-band rule is unchanged.
+  const pool = preferCleanDefault(candidates);
+  const scored = pool.filter(hasSig);
+  const chosen = scored.length > 0 ? pickMinBy(scored, (c) => bandDistance(c.sig, NULL_SIG_BAND)) : pool[0];
 
-  const sigDisplay = chosen.sig === null ? 'n/a (precheck never passed)' : String(chosen.sig);
+  // Two ways a candidate can have no sigCount now: §1(d)'s gate rejected it
+  // before anything else ran, or the precheck did. The message says which,
+  // because "no curve was ever computed" has two different diagnoses and the
+  // warn line is the only place either is visible.
+  const sigDisplay =
+    chosen.sig !== null
+      ? String(chosen.sig)
+      : chosen.defaultSig
+        ? 'n/a (lab default significant at N=200 on every attempt)'
+        : 'n/a (precheck never passed)';
   console.warn(
     `P-hackle acceptance loop: ${warnContext} exhausted MAX_ATTEMPTS=${MAX_ATTEMPTS} without a passing ` +
       `attempt (null day); using best-attempt fallback (attempt ${chosen.attempt}, sigCount=${sigDisplay}).`,
@@ -243,21 +418,30 @@ function acceptEffectDay(
   seedForAttempt: (attempt: number) => number,
   warnContext: string,
 ): AcceptanceResult {
-  const candidates: { attempt: number; data: Dataset; p200: number; p400: number }[] = [];
+  const candidates: { attempt: number; data: Dataset; p200: number; p400: number; defaultSig: boolean }[] = [];
+  const gateApplies = labDefaultGateApplies('effect', effect.outcome);
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const data = generateDataset(seedForAttempt(attempt), effect);
+    // §1(d) first, for the same cost reason as the null path (one regression
+    // ahead of two) -- but every candidate still records all three numbers,
+    // because the cap fallback below reads them. On the excepted day type
+    // (see labDefaultGateApplies) the regression is not run at all: the
+    // verdict could not change any decision below, and skipping it keeps the
+    // excepted day's attempt cost byte-for-byte what it was before §1(d).
+    const defaultSig = gateApplies && labDefaultIsSignificant(data);
     const p200 = runSpec(data, canonical, 200).p;
     const p400 = runSpec(data, canonical, 400).p;
 
     const precheckHit = p200 < EFFECT_PRECHECK_P200_MAX;
-    const accepted = precheckHit && p200 < EFFECT_P200_MAX && p400 < EFFECT_P400_MAX;
+    const accepted = !defaultSig && precheckHit && p200 < EFFECT_P200_MAX && p400 < EFFECT_P400_MAX;
     if (accepted) return { attemptUsed: attempt, data, capExhausted: false };
 
-    candidates.push({ attempt, data, p200, p400 });
+    candidates.push({ attempt, data, p200, p400, defaultSig });
   }
 
-  const chosen = pickBestEffectAttempt(candidates);
+  // Same lexicographic preference as the null path (see acceptNullDay).
+  const chosen = pickBestEffectAttempt(preferCleanDefault(candidates));
   console.warn(
     `P-hackle acceptance loop: ${warnContext} exhausted MAX_ATTEMPTS=${MAX_ATTEMPTS} without a passing ` +
       `attempt (effect day); using best-attempt fallback (attempt ${chosen.attempt}, ` +

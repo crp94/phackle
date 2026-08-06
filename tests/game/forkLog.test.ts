@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerAction, Spec } from '../../src/engine/types';
-import { classifyChange, countForks, distinctExplored } from '../../src/game/forkLog';
+import { classifyChange, countForks, distinctExplored, distinctOutcomeFamilies } from '../../src/game/forkLog';
 
 // --- fixtures -------------------------------------------------------------
 
@@ -142,6 +142,53 @@ describe('distinctExplored', () => {
 });
 
 // --- property: distinctExplored.length <= countForks(log) + 1 -----------
+
+// --- distinctOutcomeFamilies (GR6 §1(f)) ------------------------------------
+
+describe('distinctOutcomeFamilies (the statistic §2.8\'s parsimony row is scored on)', () => {
+  it('counts one family for a log that never leaves the default outcome, however long', () => {
+    const log = [
+      view(spec(), false),
+      view(spec({ subgroup: 'urban' }), true),
+      view(spec({ subgroup: 'urban', tails: 'one' }), true),
+      view(spec({ subgroup: 'urban', tails: 'one', exclusion: 'z2' }), true),
+      view(spec({ covariates: { income: true } }), true),
+    ];
+    // Five specs, five forks' worth of knob-turning, ONE outcome column: this
+    // is the robustness probing §2.7.6 teaches, and §1(f) makes it free.
+    expect(distinctExplored(log)).toHaveLength(5);
+    expect(distinctOutcomeFamilies(log)).toBe(1);
+  });
+
+  it('counts one per distinct outcome, and re-visiting one does not count it twice', () => {
+    const log = [
+      view(spec({ outcome: 0 }), false),
+      view(spec({ outcome: 2 }), true),
+      view(spec({ outcome: 0, subgroup: 'urban' }), true),
+      view(spec({ outcome: 2, tails: 'one' }), true),
+    ];
+    expect(distinctOutcomeFamilies(log)).toBe(2);
+  });
+
+  it('counts all four when the player shops every outcome — the move §1(f) prices', () => {
+    const log = [0, 1, 2, 3].map((outcome, i) => view(spec({ outcome: outcome as Spec['outcome'] }), i > 0, i));
+    expect(distinctOutcomeFamilies(log)).toBe(4);
+  });
+
+  it('ignores the `seen` flag entirely (a glance at another outcome still counts)', () => {
+    // Unlike countForks, which is about what the player DID after seeing a
+    // result. This is about which columns they looked in, and the outcome
+    // selector renders its result on arrival.
+    const log = [view(spec({ outcome: 0 }), false), view(spec({ outcome: 3 }), false)];
+    expect(countForks(log)).toBe(0);
+    expect(distinctOutcomeFamilies(log)).toBe(2);
+  });
+
+  it('ignores every non-VIEW_SPEC entry, and is 0 for a log with no view at all', () => {
+    expect(distinctOutcomeFamilies([peek(), { t: 'ABANDON', at: 9 }])).toBe(0);
+    expect(distinctOutcomeFamilies([])).toBe(0);
+  });
+});
 
 describe('property: k (distinct explored) <= forks + 1 (§2.10)', () => {
   // Tiny seeded LCG (Numerical Recipes / glibc constants) — deterministic

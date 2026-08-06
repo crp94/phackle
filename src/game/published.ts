@@ -3,9 +3,11 @@
 // is a plain function of its arguments, unit-tested directly in
 // tests/game/published.test.ts, and called by src/ui/screens/Published.tsx.
 import { fnv1a32 } from '../engine/prng';
+import { LAB_DEFAULT_SPEC } from '../engine/day';
 import { JOURNALS } from '../content/journals';
 import type { PressBlurb } from '../content/types';
-import { TIER_FORKS } from './tuning';
+import type { Spec } from '../engine/types';
+import { TIER_FORKS, TIER_MOVES } from './tuning';
 
 export type EgregiousnessTier = 1 | 2 | 3;
 
@@ -14,10 +16,80 @@ export type EgregiousnessTier = 1 | 2 | 3;
  * letter"); `forks >= editorsPick` -> tier 3 ("Editor's Pick"); otherwise
  * tier 2. Reads the live tuning constants (never retypes their values) so a
  * future tuning change can't silently drift out of sync with this function.
+ *
+ * @deprecated GR6 RULING §1(h) REPLACES THIS RULE with
+ * `egregiousnessTierFromSpec` below. This function still ships, and is still
+ * tested, only because its ONE call site is `src/ui/screens/Published.tsx`,
+ * which W11 was scoped out of (the wave owns the engine, tuning, the
+ * calibration script and the data; another wave was live in the screens at the
+ * same time). The adoption is two lines and is BOOKED, not optional — see
+ * `egregiousnessTierFromSpec`'s own comment for the exact patch. Delete this
+ * function, `TIER_FORKS`, and this file's `forks` import in the same commit
+ * that lands it.
  */
 export function egregiousnessTier(forks: number): EgregiousnessTier {
   if (forks <= TIER_FORKS.polite) return 1;
   if (forks >= TIER_FORKS.editorsPick) return 3;
+  return 2;
+}
+
+/**
+ * §1(h)'s "distance from the default spec": how many of the four moves a
+ * methods section would have to confess are switched on in `spec` — a
+ * one-tailed test, a subgroup restriction, an outlier exclusion, a transform.
+ *
+ * WHY THESE FOUR AND NOT SIX. The two axes left out are the two that leave no
+ * mark on the paper:
+ *  - OUTCOME. Publishing Y3 instead of Y1 is a hack, but it is the SEARCH that
+ *    was hacky, not the write-up: a straight regression on one outcome reads
+ *    identically however many outcomes were tried first, and the reader cannot
+ *    see the others. That move is priced by §2.8's parsimony row, which since
+ *    §1(f) charges per distinct outcome family the player looked at — so the
+ *    two rows divide the work rather than double-count it: parsimony prices
+ *    what was SEARCHED, the tier prices what was PUBLISHED.
+ *  - COVARIATES. Adjusting for income and risk is the one move here that is
+ *    ordinary good practice (it is in the canonical spec, day.ts), and the
+ *    default spec has both switched OFF — so counting them would award
+ *    egregiousness for doing the honest thing.
+ *
+ * Read against `LAB_DEFAULT_SPEC`'s own values via the engine's copy of the
+ * default (day.ts), never against retyped literals: "distance from the
+ * default" has to move if the default ever does.
+ */
+export function hackingMoves(spec: Spec): number {
+  let moves = 0;
+  if (spec.tails !== LAB_DEFAULT_SPEC.tails) moves++;
+  if (spec.subgroup !== LAB_DEFAULT_SPEC.subgroup) moves++;
+  if (spec.exclusion !== LAB_DEFAULT_SPEC.exclusion) moves++;
+  if (spec.transform !== LAB_DEFAULT_SPEC.transform) moves++;
+  return moves;
+}
+
+/**
+ * THE §1(h) TIER RULE: `hackingMoves(published) <= TIER_MOVES.polite` -> tier 1,
+ * `>= TIER_MOVES.editorsPick` -> tier 3, otherwise tier 2. A day with no
+ * published spec cannot have escalated anything, so it is tier 1 — the same
+ * answer the fork rule gave for a player who never forked, and unreachable in
+ * the app anyway (this screen only renders after a publish).
+ *
+ * THE ADOPTION THIS FUNCTION IS WAITING ON (booked to whoever next owns
+ * `src/ui/screens/Published.tsx`; W11 was scoped out of `src/ui/**`):
+ *
+ *     -  const tier = egregiousnessTier(forks);
+ *     +  const tier = egregiousnessTierFromSpec(result?.spec ?? null);
+ *
+ * `result` is already read there (its `beta` feeds `substituteEffect`) and
+ * `PathResult` carries the spec it was run for, so nothing new has to be
+ * plumbed and the `forks` selector on line ~176 becomes dead with it. Until
+ * that lands, the shipped screen still uses the fork rule and gr2-018 is
+ * measured-but-unfixed on the live tier; the rule below, its constants and its
+ * tests are ready, and this file is the only thing the patch needs.
+ */
+export function egregiousnessTierFromSpec(published: Spec | null): EgregiousnessTier {
+  if (published === null) return 1;
+  const moves = hackingMoves(published);
+  if (moves <= TIER_MOVES.polite) return 1;
+  if (moves >= TIER_MOVES.editorsPick) return 3;
   return 2;
 }
 
@@ -83,18 +155,69 @@ export function fakeDoi(puzzleNumber: number): string {
 }
 
 /**
+ * The magnitude `{effect}` prints, as a string that is TRUE at the scale it is
+ * given: whole numbers at or above 1 (24.6 -> "25", T6's rounding rule,
+ * unchanged), two significant figures below it (0.043 -> "0.043", 0.5 -> "0.5").
+ *
+ * THE FLOOR THIS REPLACES, AND WHY NEITHER OF THE OBVIOUS MOVES WAS TAKEN
+ * (booked to W11 by W3's review, with w3-r-011's re-measured attribution).
+ *
+ * The rule here was `Math.max(1, Math.round(Math.abs(beta)))`. Measured over 20
+ * consecutive days from EPOCH, all 1,792 specs at both windows: 71,680 of
+ * 71,680 valid paths printed "1" — 69,336 of them (96.7%) lifted there by the
+ * floor from a rounding of 0, and 2,344 (3.3%) rounding to 1 unaided. Median
+ * |beta| runs 0.04 to 0.08.
+ *
+ *  - KEEPING THE FLOOR was not an option: it prints "1" for a measured 0.04.
+ *    On the largest string of the celebration screen, in a game whose whole
+ *    subject is numbers that are not what they are presented as, that is the
+ *    one lie this codebase cannot ship — and it is dormant rather than gone,
+ *    since it fires again the moment any author re-adds a token.
+ *  - DELETING THE FLOOR was the move W3's review explicitly warned against:
+ *    96.7% of paths round to 0, so "1 Minutes" would become "0 Minutes".
+ *
+ * Both are symptoms of the same defect, and neither is the floor: the rule
+ * ROUNDED A 0.0x QUANTITY TO AN INTEGER. Formatting it at its own scale is
+ * true at every magnitude — "0.04" is exactly what the regression found — and
+ * it prints "0" only when beta really is 0.
+ *
+ * WHAT THIS DOES NOT FIX, deliberately. gr3-001's deeper finding stands: the
+ * frame is fixed per scenario ("... Minutes Longer") while the number comes
+ * from whichever of the four outcomes — and under whichever transform — the
+ * player published, so a log1p coefficient can be printed as minutes and a
+ * 1-10 self-rating as euros. No formatter can fix that; only a unit-free
+ * effect can (gr3-001's percentage-of-control-mean alternative). So the token
+ * stays RETIRED from all 20 scenarios in all three locales, the retirement
+ * condition in tests/content/shape.test.ts is unchanged and still names the
+ * unit-free expression AND the independent "1 Minutes" plural trap as its two
+ * prerequisites, and this function keeps being a no-op on every shipped
+ * headline. What changed is only that the code no longer contains a rule that
+ * manufactures a false number if the token ever comes back.
+ */
+function formatEffectMagnitude(beta: number): string {
+  const magnitude = Math.abs(beta);
+  if (magnitude >= 1) return String(Math.round(magnitude));
+  if (magnitude === 0) return '0';
+  // Two significant figures, however small: 0.043, 0.0075, 0.00061. Capped at
+  // six decimals so a pathologically tiny beta degrades to "0" rather than to
+  // toPrecision's exponential form, which no headline frame could carry.
+  const decimals = Math.min(6, 1 - Math.floor(Math.log10(magnitude)));
+  return magnitude.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+/**
  * T6 ruling (controller pin): substitutes the headline's optional `{effect}`
  * token with the published spec's effect magnitude — `Math.abs` because the
  * headline's own wording carries the direction ("Faster", "Higher Returns"),
- * rounded to the nearest whole number, and floored at 1 so no headline ever
- * prints "0%" or "€0k". A headline with no token (content: legal, no rule
- * requires one) is returned unchanged — `.replace` is a no-op when there's
+ * formatted by `formatEffectMagnitude` above (READ ITS COMMENT: it carries the
+ * GR6 ruling on the floor that used to live on this line). A headline with no
+ * token (content: legal, no rule requires one, and as of GR6 no shipped
+ * headline has one) is returned unchanged — `.replace` is a no-op when there's
  * nothing to match. At most one token ever appears (shape-tested in
  * tests/content/shape.test.ts), so a single non-global replace is exact.
  */
 export function substituteEffect(headline: string, beta: number): string {
-  const magnitude = Math.max(1, Math.round(Math.abs(beta)));
-  return headline.replace('{effect}', String(magnitude));
+  return headline.replace('{effect}', formatEffectMagnitude(beta));
 }
 
 /**

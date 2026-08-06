@@ -65,6 +65,22 @@ function makeResult(overrides: Partial<PathResult> = {}): PathResult {
   };
 }
 
+
+/** §1(h): the tier now reads distance-from-default on the PUBLISHED SPEC, not
+ * the fork count (gr2-018 — a greedy player forked a lot and still printed
+ * tier 1). These build a spec at a chosen number of confessable moves. */
+function specWithMoves(moves: number): PathResult['spec'] {
+  const spec = { ...DEFAULT_SPEC, covariates: { ...DEFAULT_SPEC.covariates } };
+  if (moves >= 1) spec.tails = 'one';
+  if (moves >= 2) spec.subgroup = 'age_lt40';
+  if (moves >= 3) spec.exclusion = 'z2_5';
+  if (moves >= 4) spec.transform = 'log1p';
+  return spec;
+}
+const TIER1 = { result: makeResult({ spec: specWithMoves(0) }) };
+const TIER2 = { result: makeResult({ spec: specWithMoves(1) }) };
+const TIER3 = { result: makeResult({ spec: specWithMoves(3) }) };
+
 /** Isolated fake store: a real (non-singleton) createGameStore() instance,
  * seeded directly via setState, bound through zustand/react's own generic
  * useStore -- never the app's real singleton (src/game/store.ts's own
@@ -210,7 +226,7 @@ describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th c
     const expectedScore = altmetricScore(iso, tier);
     const expectedPercentile = altmetricPercentile(iso, tier);
 
-    renderPublished({ forks: 5 });
+    renderPublished({ forks: 5, ...TIER2 });
 
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(expectedScore))).toBeTruthy());
     expect(screen.getByText(altmetricPercentileLine(expectedPercentile))).toBeTruthy();
@@ -220,19 +236,19 @@ describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th c
     const iso = isoFromPuzzleNumber(1);
 
     const tier1Score = altmetricScore(iso, 1);
-    const tier1 = renderPublished({ forks: 1 });
+    const tier1 = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier1Score))).toBeTruthy());
     tier1.unmount();
 
     const tier3Score = altmetricScore(iso, 3);
-    const tier3 = renderPublished({ forks: 12 });
+    const tier3 = renderPublished({ forks: 12, ...TIER3 });
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier3Score))).toBeTruthy());
     expect(tier3Score).toBeGreaterThan(tier1Score);
     tier3.unmount();
   });
 
   it('renders no animation/transition class on the altmetric block (§2.5\'s "spinning up" would be a 5th, un-budgeted motion)', async () => {
-    const { container } = renderPublished({ forks: 1 });
+    const { container } = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() =>
       expect(screen.getByText(altmetricScoreLine(altmetricScore(isoFromPuzzleNumber(1), 1)))).toBeTruthy()
     );
@@ -263,7 +279,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
     // like the scenario-bound-preference test above.
     const expectedTexts = [...new Set([card1.text, card2.text])];
 
-    renderPublished({ forks: 5 });
+    renderPublished({ forks: 5, ...TIER2 });
     await waitFor(() => {
       for (const text of expectedTexts) {
         expect(screen.getAllByText(text).length).toBeGreaterThan(0);
@@ -274,7 +290,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
   });
 
   it('prefers a scenario-bound press blurb when one exists for the tier (cat-crypto tier 1 -> Morning Chirp)', async () => {
-    renderPublished({ forks: 1 }); // tier 1
+    renderPublished({ forks: 1, ...TIER1 }); // tier 1
     // The FIRST card is the scenario-bound one (T39a's guarantee: an unsalted
     // pickPress prefers the bound pool); the second salts `iso` and therefore
     // takes the generic pool, so this asserts presence, not count --
@@ -288,7 +304,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
     const scenario = enContent.scenarios[0];
     const chyron = pickPress(enContent.press, 3, scenario.id, `${iso}#chyron`);
 
-    const { unmount } = renderPublished({ forks: 12 });
+    const { unmount } = renderPublished({ forks: 12, ...TIER3 });
     await waitFor(() => expect(screen.getByText("Editor's Pick")).toBeTruthy());
     // getAllByText: the chyron's blurb text could coincidentally match one of
     // the two press cards' picks (same pool, different salted index) --
@@ -330,7 +346,7 @@ describe('Published: confetti (R5.4: 150/250/400 particles by tier, capped at 40
 
   it('is gone from the DOM once ConfettiLayer signals done (onDone), matching R5.4', async () => {
     installMatchMedia({ '(prefers-reduced-motion: reduce)': true }); // reduced motion resolves onDone synchronously-ish
-    const { container } = renderPublished({ forks: 1 });
+    const { container } = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() => expect(container.querySelector('canvas')).toBeNull());
   });
 });
