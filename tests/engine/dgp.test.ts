@@ -483,4 +483,16 @@ describe('generateDataset — row-order generation / prefix property', () => {
     expect(viaDataset.age).toEqual(viaRows.age);
     expect(viaDataset.y[0]).toEqual(viaRows.y[0]);
   });
+
+  // gr6-094: effect injection is whole-array (scales by the sample sd), so a
+  // partial generation with an effect would silently break the prefix property
+  // this describe exists to pin. The guard makes the trap unreachable.
+  it('generateRows throws when an effect is requested at any n other than 400', () => {
+    const effect = { outcome: 0, d: 0.25 } as Parameters<typeof generateRows>[2];
+    for (const n of [200, 250, 399, 401]) {
+      expect(() => generateRows(1, n, effect)).toThrow();
+    }
+    expect(() => generateRows(1, 400, effect)).not.toThrow();
+    expect(() => generateRows(1, 200, null)).not.toThrow();
+  });
 });

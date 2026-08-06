@@ -290,8 +290,8 @@ describe('null-day precheck gates enumerateCurve', () => {
         // every attempt, deterministically (no date-mining required to find
         // a real day whose fixed 256-spec subsample happens to miss).
         // nullDayPrecheckHit calls runSpecCore, not runSpec (gr6-046: runSpec
-        // additionally builds a DataCut the precheck never reads, 51% of the
-        // pass). Both are mocked: runSpecCore is what the precheck actually
+        // additionally builds a DataCut the precheck never reads — a
+        // machine-dependent but always-positive share of the pass). Both are mocked: runSpecCore is what the precheck actually
         // reads, runSpec is mocked to match so nothing else in day.ts can
         // observe a different verdict from the same mocked pipeline.
         runSpecCore: (): SpecCore => ({

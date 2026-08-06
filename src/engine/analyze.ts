@@ -190,7 +190,9 @@ export interface SpecCore {
  *
  * Split out from `runSpec` (gr6-046) because day.ts's null-day precheck calls
  * this pipeline 256 times per acceptance attempt purely to read `.valid` and
- * `.p`, and `buildCut` was 51% of that pass's wall clock — a four-array
+ * `.p`, and `buildCut` was a measurable fraction of that pass's wall clock
+ * (~5-50% depending on machine and load; every measurement agrees it is
+ * pure waste on that path) — a four-array
  * payload built and immediately discarded, up to `MAX_ATTEMPTS = 20` times per
  * day boot. `runSpec` below is this function plus one `buildCut` call, so the
  * numbers cannot diverge: same helpers, same inputs, same order, one code
@@ -296,7 +298,8 @@ export function runSpec(d: Dataset, spec: Spec, n: WindowN): PathResult {
     // T31: always attached, including when `valid` is false — the Lab's
     // DataCut still draws the sample the dial has declined to analyse.
     // Cheap by construction (one pass, <=400 pushes) but NOT free: it was
-    // measured at 51% of the null-day precheck's 256-spec pass, which is why
+    // a measurable fraction of the null-day precheck's 256-spec pass
+    // (machine-dependent; measured 5-50% across runs), which is why
     // `runSpecCore` exists and why day.ts's precheck calls that instead
     // (gr6-046). specGrid.enumerateCurve reimplements this pipeline with its
     // own memoized intermediates and never calls either function, so the
