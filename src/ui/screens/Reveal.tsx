@@ -29,6 +29,7 @@ import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve
 import type { CopyKey } from '../../content/en/copy';
 import type { RevealCurveEntry, RevealMetricsFull } from '../../engine/reveal';
 import type { RevealPayload } from '../../engine/protocol';
+import { typographicMinus } from '../format';
 import './Reveal.css';
 
 /**
@@ -74,7 +75,10 @@ export function formatSigFigs(value: number, digits: number): string {
   if (value === 0) return (0).toFixed(digits - 1);
   const rounded = Number(value.toPrecision(digits));
   const magnitude = Math.floor(Math.log10(Math.abs(rounded)));
-  return rounded.toFixed(Math.max(0, digits - 1 - magnitude));
+  // gr6-074: same digits, U+2212 for the sign (src/ui/format.ts). Act II's
+  // truth line prints a signed true effect, and a screen that typesets β, α
+  // and ≥ correctly should not spell its minus with a keyboard hyphen.
+  return typographicMinus(rounded.toFixed(Math.max(0, digits - 1 - magnitude)));
 }
 
 /** Whole counts, with NO thousands separator: "1,792" reads as 1.792 in

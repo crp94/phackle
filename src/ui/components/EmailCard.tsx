@@ -14,15 +14,20 @@ export interface EmailCardProps {
 export function EmailCard({ from, subject, body }: EmailCardProps) {
   const { t } = useLocale();
 
+  // gr6-024: the two value spans carried `ph-email__value`, a class no
+  // stylesheet has ever mentioned — .ph-email__header owns the mono face and
+  // the size for the whole line, and only the LABEL half differs from it
+  // (.ph-email__label's medium weight). A span that changes nothing needs no
+  // name; the `{' '}` between them is the space, as before.
   return (
     <div className="ph-email">
       <p className="ph-email__header">
         <span className="ph-email__label">{t('email.from')}</span>{' '}
-        <span className="ph-email__value">{from}</span>
+        <span>{from}</span>
       </p>
       <p className="ph-email__header">
         <span className="ph-email__label">{t('email.subject')}</span>{' '}
-        <span className="ph-email__value">{subject}</span>
+        <span>{subject}</span>
       </p>
       <p className="ph-email__body">{body}</p>
     </div>

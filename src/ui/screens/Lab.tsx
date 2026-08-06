@@ -146,9 +146,16 @@ export function Lab() {
           {t('lab.collectMore', { n: STEP })}
         </button>
         {peeks >= 1 ? <p className="ph-lab__footnote">{t('lab.peekFootnote')}</p> : null}
-        {peeks >= 2 ? (
-          <p className="ph-lab__footnote ph-lab__footnote--armitage">{t('lab.peekFootnoteArmitage')}</p>
-        ) : null}
+        {/* gr6-024 — `--armitage` was a BEM modifier with no rule anywhere
+            in the corpus, and it was the player-visible one: the two peek
+            footnotes are documented as differentiated and rendered
+            identically, because the only thing that differed was a class
+            name nothing styled. The modifier is gone rather than
+            implemented — what distinguishes these two lines is what they
+            SAY (the sincere note after the first peek, §2.4's sanctioned
+            Armitage wink after the second), and R8.3 does not want a second
+            typographic voice down here competing with the dial. */}
+        {peeks >= 2 ? <p className="ph-lab__footnote">{t('lab.peekFootnoteArmitage')}</p> : null}
         <ForkTrail log={log} mode={mode} />
         {/* T31 fix round (review finding 4, "RESTORED REQUIREMENT"): the
             trail's own emoji are otherwise unexplained anywhere in the Lab —

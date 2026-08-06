@@ -82,6 +82,15 @@
   margin: var(--space-24) 0 0;
 }
 
+/* gr6-012 — SHARE IS THE ONE SOCIAL ACTION, AND IT HAD NO RESTING SHAPE.
+   The 2px block-end was reserved and left `transparent`, which is the close
+   button's idiom (a button whose whole job is to be quiet, holding space so
+   its label does not shift when a sibling paints one). Share is not that
+   button: it is the last thing the day asks you to do, and until it was
+   hovered or focused it looked exactly like a line of text. Filling the
+   reserve is the product's own answer — R4.6's 2px --ink underline, the same
+   stroke T29 pin 4 gave the segmented controls — and it costs no layout,
+   because the space was already there. */
 .ph-summary__share-button {
   font-family: var(--font-ui);
   font-size: var(--text-15);
@@ -89,7 +98,7 @@
   color: var(--ink);
   background: none;
   border-style: none;
-  border-block-end: 2px solid transparent;
+  border-block-end: 2px solid var(--ink);
   padding: var(--space-12) var(--space-16);
   cursor: pointer;
 }
@@ -266,20 +275,57 @@
   margin: var(--space-16) 0 0;
 }
 
-.ph-summary__prereg-button {
-  font-family: var(--font-ui);
+/* gr6-024 (the other direction): `.ph-summary__prereg-button`'s two rules
+   used to sit here, dressing a permanently-disabled CTA — `cursor:
+   not-allowed`, --muted, an underline reserve that could never fill. gr6-020
+   deleted the control (a dead "tomorrow" button is a sentence, not a
+   destination), and CSS for an element nothing renders is the same defect as
+   a className with no CSS, read from the other end. */
+
+/* gr6-024 — three of W6's new classNames shipped with no rules, so the
+   career line and the stats action rendered at the user agent's defaults
+   (16px Times, 1em margins) in the middle of a screen built on a closed
+   scale. */
+
+/* gr6-018's career line. Mono/tabular like every other numeral (R2.4) and
+   --muted like the streak and countdown it sits with: R1.6 names Published's
+   own career line as the ONE place --hack-gold-ink paints characters, and
+   R8.3 keeps Act II's quietest screen quiet. */
+.ph-summary__career {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-15);
   line-height: var(--leading-ui);
   color: var(--muted);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
-  margin: var(--space-16) 0 0;
-  cursor: not-allowed;
+  margin: var(--space-8) 0 0;
 }
 
-.ph-summary__prereg-button:focus-visible {
+.ph-summary__next {
+  margin-block-start: var(--space-24);
+}
+
+/* The same button anatomy as the share action beside it, one register down:
+   this is the day's last offer, not its last instruction, so it carries
+   R4.6's 2px stroke at --rule rather than --ink. R6.4's tap target comes out
+   of the §3 scale exactly as it does there. */
+.ph-summary__next-button {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid var(--rule);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-summary__next-button:hover {
+  text-decoration: underline;
+}
+
+.ph-summary__next-button:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }

@@ -164,8 +164,27 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
                 // nothing at all (its only other content is aria-hidden). The
                 // blind stamp IS an image; saying so is what makes its one
                 // sanctioned, name-free text alternative reach a reader.
+                //
+                // gr6-013 — `▦▦▦` READ AS BROKEN GLYPHS, six rows deep. The
+                // blind-stamp idea was right and its execution was a tofu
+                // box: U+25A6 has no coverage in either shipped face
+                // (DESIGN.md R2.1 vendors STIX Two Text + JetBrains Mono,
+                // latin and latin-ext only), so the fallback chain decided
+                // what a locked award looked like, and on the measured build
+                // it looked like a font that had failed. The row keeps the
+                // name-free contract exactly — no id, no name, no citation,
+                // the same `stats.locked` label — and borrows the UNLOCKED
+                // row's anatomy instead of inventing a texture: the mark
+                // column takes ☆, the outline of the ★ beside it, and the
+                // name column takes a --muted rule where the name will go.
+                // An award you have not won, drawn in the same hand as the
+                // ones you have; and both glyphs are in the vendored latin
+                // range, so what ships is what renders.
                 <span className="ph-stats__ach-locked" role="img" aria-label={t('stats.locked')}>
-                  <span aria-hidden="true">▦▦▦</span>
+                  <span className="ph-stats__ach-mark ph-stats__ach-mark--locked" aria-hidden="true">
+                    ☆
+                  </span>
+                  <span className="ph-stats__ach-blank" aria-hidden="true" />
                 </span>
               )}
             </li>

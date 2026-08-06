@@ -71,7 +71,11 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
       <p className="ph-about__prose">{t('about.contact')}</p>
 
       <p className="ph-about__meta">
-        <span className="ph-about__version">{t('about.version', { version: displayVersion })}</span>
+        {/* gr6-024: no className. This span carries no rule of its own —
+            .ph-about__meta's flex row, mono face and --muted are the whole
+            treatment — and a class with no CSS is a promise the stylesheet
+            never made. */}
+        <span>{t('about.version', { version: displayVersion })}</span>
         <a className="ph-about__link" href={REPO_URL}>
           {t('about.sourceLink')}
         </a>

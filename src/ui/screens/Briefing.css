@@ -146,3 +146,40 @@
   color: var(--muted);
   margin: var(--space-4) 0 0;
 }
+
+/* gr6-024 — W6's finished-day block (gr6-008) shipped three classNames with
+   no rules at all, so the day's closing state rendered at the browser's own
+   defaults: a <p> at 16px Times with 1em margins, in a product whose every
+   other line comes off a closed type scale. Same treatment as the chooser's
+   own status line above (which the block already reuses for its first
+   paragraph) — this is a quiet end-of-day note, not a screen of its own.
+   R3.2's rhythm above it, R4.4's hairline to close the screen, no fill. */
+.ph-briefing__finished {
+  max-width: var(--measure);
+  margin-block-start: var(--space-40);
+  padding-block-start: var(--space-16);
+  border-block-start: var(--hairline);
+}
+
+/* The day's share string is a run of glyphs and a numeral — mono/tabular by
+   R2.4, at --ink because it is the thing the player came back to see. */
+.ph-briefing__finished-share {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  margin: var(--space-12) 0 0;
+  white-space: pre-wrap;
+}
+
+/* R2.4 again: a countdown is numerals. Caption register (R1.2) — it is the
+   quietest thing on a finished screen. */
+.ph-briefing__finished-countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: var(--space-8) 0 0;
+}

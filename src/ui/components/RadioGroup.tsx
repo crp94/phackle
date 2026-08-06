@@ -42,6 +42,13 @@ export function RadioGroup<T extends string | number>({
   const noteId = `ph-spec-${name}-note`;
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    // gr6-104 — the buttons carry `disabled`, so a POINTER cannot reach them
+    // while a spec change is in flight; the keyboard could. Arrow keys ran
+    // the full roving-focus path and called onChange, which is the one
+    // interaction in this component that is supposed to be shut off. A
+    // guard, not a `tabindex` change: the group must stay reachable and
+    // readable while it is inert.
+    if (disabled) return;
     const idx = options.findIndex((o) => o.value === value);
     let next = -1;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % options.length;

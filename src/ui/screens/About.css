@@ -85,10 +85,20 @@
   margin: var(--space-40) 0 0;
 }
 
+/* gr6-016 — THE 320w OVERFLOW, AND ITS OWNER.
+   `about.sourceLink` prints the repository URL as one unbreakable 304px
+   token at --text-13 mono. A 320px viewport minus two --space-24 gutters
+   leaves 272px, so `documentElement.scrollWidth` came out at 328 against a
+   320 client width — in all three locales and both themes, because a URL is
+   the same URL in every language. `overflow-wrap: anywhere` is the one
+   declaration that lets a token with no break opportunity take one; `normal`
+   and `break-word` both refuse, because neither may introduce a soft wrap
+   inside a word that has no separator at all. */
 .ph-about__link {
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 .ph-about__close {

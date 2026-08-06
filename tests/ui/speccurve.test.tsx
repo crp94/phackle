@@ -8,6 +8,9 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { copy } from '../../src/content/en/copy';
+import { content as enFullContent } from '../../src/content/en';
+import { content as itFullContent } from '../../src/content/it';
+import { content as esFullContent } from '../../src/content/es';
 import type { CopyKey } from '../../src/content/en/copy';
 import type { Outcome, Spec } from '../../src/engine/types';
 import {
@@ -20,6 +23,7 @@ import {
   curveY,
   formatP,
   bandLabel,
+  BAND_LABEL_MIN_CHARS,
   geometryFor,
   leaderAnchorX,
   nearestIndex,
@@ -578,17 +582,22 @@ describe('review I3 — band labels degrade instead of colliding', () => {
   // Caught by looking at a real 320px render: a band is 57px wide there, so a
   // single word of a shipped label overran its band and overlapped the
   // neighbour's. §7.4's own notation is the honest fallback.
-  it('names the outcome where the band is wide enough', () => {
-    for (const width of [660, 720, 1088]) {
+  // gr6-023 raised the threshold from 12 to 20 — the longest single token in
+  // any shipped outcome label, in any locale (IT's "passivo-aggressività").
+  // 660 moved below it in the process, which is the POINT: at 660 a band was
+  // 12-to-19 characters wide and `wrapLabel` was being handed a 20-character
+  // word, which it placed unwrapped straight across the neighbour's band.
+  it('names the outcome where the band is wide enough for the longest word it could hold', () => {
+    for (const width of [720, 1088]) {
       const geom = geometryFor(width, true);
-      expect(geom.bandLabelMaxChars).toBeGreaterThanOrEqual(12);
+      expect(geom.bandLabelMaxChars).toBeGreaterThanOrEqual(BAND_LABEL_MIN_CHARS);
       expect(bandLabel(1, OUTCOME_LABELS, geom)).toBe(OUTCOME_LABELS[1]);
     }
   });
 
   it('falls back to §7.4 notation on a phone-width band', () => {
     const geom = geometryFor(320, true);
-    expect(geom.bandLabelMaxChars).toBeLessThan(12);
+    expect(geom.bandLabelMaxChars).toBeLessThan(BAND_LABEL_MIN_CHARS);
     expect(bandLabel(0, OUTCOME_LABELS, geom)).toBe('Y₁');
     expect(bandLabel(3, OUTCOME_LABELS, geom)).toBe('Y₄');
     // Never the label that would have collided.
@@ -598,5 +607,55 @@ describe('review I3 — band labels degrade instead of colliding', () => {
   it('uses the same abbreviation the callout does, so the figure is self-consistent', () => {
     const geom = geometryFor(320, true);
     expect(recipeLabelCompact(spec({ outcome: 1 }), copy).startsWith(bandLabel(1, OUTCOME_LABELS, geom))).toBe(true);
+  });
+});
+
+/* ==========================================================================
+   gr6-023 — THE THRESHOLD IS A CLAIM ABOUT THE CONTENT, SO THE CONTENT
+   CHECKS IT.
+   `BAND_LABEL_MIN_CHARS` says "below this many characters per band, a shipped
+   outcome label cannot be drawn without colliding". That is only true while
+   no shipped label contains a token longer than it. Nothing enforced that,
+   and Italian shipped a 20-character one ("passivo-aggressività") against a
+   threshold of 12 — which `wrapLabel`'s forced-placement branch then drew
+   unwrapped, straight across the neighbouring band, at every container from
+   440 to 663px.
+   This reads the REAL content of all three locales, so a new label in any of
+   them reds here rather than in a screenshot nobody takes.
+   ========================================================================== */
+describe('gr6-023 — the band-label threshold covers the longest token actually shipped', () => {
+  const LOCALES = [
+    ['en', enFullContent],
+    ['it', itFullContent],
+    ['es', esFullContent],
+  ] as const;
+
+  function longestToken(content: (typeof LOCALES)[number][1]): string {
+    let longest = '';
+    for (const scenario of content.scenarios) {
+      for (const label of scenario.outcomeLabels) {
+        for (const token of label.split(' ')) if (token.length > longest.length) longest = token;
+      }
+    }
+    return longest;
+  }
+
+  it.each(LOCALES.map(([name]) => name))('%s: no outcome-label token is wider than the threshold', (name) => {
+    const content = LOCALES.find(([n]) => n === name)![1];
+    const longest = longestToken(content);
+    expect(longest.length, `${name}'s longest token is "${longest}"`).toBeLessThanOrEqual(BAND_LABEL_MIN_CHARS);
+  });
+
+  it('is not vacuous — the measured worst case really is 20 characters (IT)', () => {
+    expect(longestToken(itFullContent)).toBe('passivo-aggressività');
+    expect(BAND_LABEL_MIN_CHARS).toBe(20);
+  });
+
+  it('and wrapLabel now truncates the forced placement instead of overflowing it', () => {
+    // The exact case measured: a 20-character single word into a band that
+    // has room for 12. Before gr6-023 this returned the word untouched.
+    const [line] = wrapLabel('passivo-aggressività', 12);
+    expect(line.length).toBe(12);
+    expect(line.endsWith('…')).toBe(true);
   });
 });

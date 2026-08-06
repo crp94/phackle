@@ -545,10 +545,12 @@ export function LocaleToggle({ locales, locale, setLocale, t }: LocaleToggleProp
           aria-label={t(LOCALE_NAME_KEY[loc])}
           onClick={() => setLocale(loc)}
         >
-          <span className="ph-seg__flag" aria-hidden="true">
-            {LOCALE_FLAG[loc]}
-          </span>
-          <span className="ph-seg__code">{loc.toUpperCase()}</span>
+          {/* gr6-024: neither span carries a rule — .ph-seg--locale's
+              inline-flex row and its --space-4 gap are the whole layout (see
+              App.css's own note on why the gap is not a space character) —
+              so neither carries a class. */}
+          <span aria-hidden="true">{LOCALE_FLAG[loc]}</span>
+          <span>{loc.toUpperCase()}</span>
         </button>
       ))}
     </div>

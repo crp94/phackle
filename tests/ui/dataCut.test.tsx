@@ -522,7 +522,11 @@ describe('DataCut as an instrument (T29 pin 9)', () => {
   it('formats every number it prints with digits only — this pin adds no copy', () => {
     expect(formatCutValue(0)).toBe('0.00');
     expect(formatCutValue(1.23456)).toBe('1.23');
-    expect(formatCutValue(-0.0004567)).toBe('-0.000457');
+    // gr6-074: the DIGITS are unchanged; the sign is U+2212 MINUS SIGN, not
+    // U+002D HYPHEN-MINUS. Written as an escape rather than as the glyph so
+    // this assertion cannot be satisfied by a look-alike character.
+    expect(formatCutValue(-0.0004567)).toBe('\u22120.000457');
+    expect(formatCutValue(-0.0004567)).not.toContain('-');
     expect(formatCutValue(1423)).toBe('1420'); // positional at every magnitude
     expect(formatCutValue(1423)).not.toContain('e');
   });

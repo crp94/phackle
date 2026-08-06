@@ -290,9 +290,29 @@ export function recipeLabelCompact(spec: Spec, copy: Record<CopyKey, string>): s
 }
 
 /** Under this many characters per band, even a single word of a shipped
- * outcome label ("Attendee-rated") runs past its band and collides with the
- * neighbour's -- observed at a 320px container, where a band is 57px wide. */
-const BAND_LABEL_MIN_CHARS = 12;
+ * outcome label runs past its band and collides with the neighbour's --
+ * observed at a 320px container, where a band is 57px wide.
+ *
+ * gr6-023 raised this from 12 to 20, and 20 is a MEASURED number rather than
+ * a comfortable one: it is the longest whitespace-delimited token in any
+ * shipped outcome label, in any locale — Italian's "passivo-aggressività"
+ * (EN's "Passive-aggression" and ES's "pasivo-agresividad" are 18). At 12 the
+ * threshold admitted the NAME at every container from ~440px up, and then
+ * `wrapLabel` had to place a 20-character word inside a 12-to-19-character
+ * budget; it did so by giving up on the budget entirely, which is the defect
+ * that row names. Two changes close it from both ends: wrapLabel now
+ * truncates instead of overflowing (above), and this threshold no longer
+ * promises room the band does not have.
+ *
+ * The cost is stated rather than hidden: between 440 and ~663px the band now
+ * shows §7.4's notation where it used to show the name. That degrades
+ * honestly — the same abbreviation the callout uses, with the full label one
+ * tap away in the tooltip and spelled out in the truth line above — whereas
+ * the alternative degraded by printing a word across its neighbour.
+ *
+ * `tests/ui/speccurve.test.ts`'s longest-token shape test is what keeps this
+ * number true when a locale ships a longer label. */
+export const BAND_LABEL_MIN_CHARS = 20;
 
 /**
  * Fig. 2's band label: the outcome's name where it fits, and §7.4's notation
@@ -377,11 +397,34 @@ export function wrapLabel(label: string, maxChars: number, maxLines = 3): string
   for (const word of label.split(' ')) {
     const last = lines.length - 1;
     const candidate = lines[last] === '' ? word : `${lines[last]} ${word}`;
-    if (candidate.length <= maxChars || lines[last] === '') lines[last] = candidate;
-    else if (lines.length < maxLines) lines.push(word);
+    // gr6-023 — THE ESCAPE HATCH THAT NEVER CLOSED.
+    //
+    // `|| lines[last] === ''` exists so a single word longer than the budget
+    // is PLACED rather than dropped, which is right; but it placed it
+    // UNWRAPPED and untruncated, so the one case the guard exists for was
+    // also the one case the budget did not apply to. Measured: Italian's
+    // "passivo-aggressività" (20 characters, one word, no space and no
+    // hyphenation opportunity SVG text will take) overran Fig. 2's band at
+    // every container from 440 to 663px, where `bandLabelMaxChars` sits
+    // between 12 and 19 — running into the neighbouring band's label rather
+    // than into the caption the ellipsis branch below assumes it can fall
+    // into. Hard-truncating in the forced-placement branch closes it: the
+    // word is still placed (nothing vanishes), it just cannot be wider than
+    // the column it is placed in, and the ellipsis says so.
+    if (candidate.length <= maxChars) lines[last] = candidate;
+    else if (lines[last] === '') lines[last] = truncate(candidate, maxChars);
+    else if (lines.length < maxLines) lines.push(truncate(word, maxChars));
     else if (!lines[last].endsWith('…')) lines[last] = `${lines[last]}…`;
   }
   return lines.filter((line) => line !== '');
+}
+
+/** `maxChars - 1` characters plus the ellipsis, so the RESULT is `maxChars`
+ * wide — the budget is a budget for what is drawn, not for what is kept. A
+ * word already inside the budget is returned untouched. */
+function truncate(word: string, maxChars: number): string {
+  if (word.length <= maxChars) return word;
+  return maxChars <= 1 ? '…' : `${word.slice(0, maxChars - 1)}…`;
 }
 
 /**
@@ -398,13 +441,18 @@ export function wrapLabel(label: string, maxChars: number, maxLines = 3): string
  * a hover now reconciles the tooltip and nothing else.
  */
 const Dots = memo(function Dots({ placed, published }: { placed: Placed[]; published: Placed | null }) {
+  // gr6-024: this <g> and the three dot BASE classes below carried no rule
+  // anywhere in the corpus — every declaration lives on the
+  // `--base`/`--explored`/`--published` modifiers, which is where R6.3's
+  // shape-not-hue distinction actually is. A BEM base whose stylesheet never
+  // mentions it is a promise nothing keeps.
   return (
-    <g className="ph-speccurve__dots">
+    <g>
       {placed.map((entry, i) =>
         entry.point.published || entry.point.explored ? null : (
           <circle
             key={i}
-            className="ph-speccurve__dot ph-speccurve__dot--base"
+            className="ph-speccurve__dot--base"
             cx={entry.x}
             cy={entry.y}
             data-p={entry.point.p}
@@ -416,7 +464,7 @@ const Dots = memo(function Dots({ placed, published }: { placed: Placed[]; publi
         entry.point.explored && !entry.point.published ? (
           <circle
             key={i}
-            className="ph-speccurve__dot ph-speccurve__dot--explored"
+            className="ph-speccurve__dot--explored"
             cx={entry.x}
             cy={entry.y}
             data-p={entry.point.p}
@@ -429,7 +477,7 @@ const Dots = memo(function Dots({ placed, published }: { placed: Placed[]; publi
           {/* R6.3: shape as well as colour -- the ring is the shape. */}
           <circle className="ph-speccurve__ring" cx={published.x} cy={published.y} />
           <circle
-            className="ph-speccurve__dot ph-speccurve__dot--published"
+            className="ph-speccurve__dot--published"
             cx={published.x}
             cy={published.y}
             data-p={published.point.p}
@@ -659,13 +707,13 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
       <ul data-role="legend" className="ph-speccurve__legend">
         <li className="ph-speccurve__legend-item">
           <svg className="ph-speccurve__swatch" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="ph-speccurve__key-dot ph-speccurve__key-dot--base" cx="12" cy="12" />
+            <circle className="ph-speccurve__key-dot--base" cx="12" cy="12" />
           </svg>
           {copy['legend.unexplored']}
         </li>
         <li className="ph-speccurve__legend-item">
           <svg className="ph-speccurve__swatch" viewBox="0 0 24 24" aria-hidden="true">
-            <circle className="ph-speccurve__key-dot ph-speccurve__key-dot--explored" cx="12" cy="12" />
+            <circle className="ph-speccurve__key-dot--explored" cx="12" cy="12" />
           </svg>
           {copy['legend.explored']}
         </li>
@@ -675,7 +723,7 @@ export function SpecCurve({ points, grouped, outcomeLabels, copy }: SpecCurvePro
           <li className="ph-speccurve__legend-item">
             <svg className="ph-speccurve__swatch" viewBox="0 0 24 24" aria-hidden="true">
               <circle className="ph-speccurve__key-ring" cx="12" cy="12" />
-              <circle className="ph-speccurve__key-dot ph-speccurve__key-dot--published" cx="12" cy="12" />
+              <circle className="ph-speccurve__key-dot--published" cx="12" cy="12" />
             </svg>
             {copy['legend.published']}
           </li>

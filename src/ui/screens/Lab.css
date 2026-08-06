@@ -174,7 +174,11 @@
 
 /* Two quiet footnotes (T6 review ruling): sincere after the 1st peek, the
    sanctioned Act-I wink after the 2nd. Both --muted, --text-13 — neither
-   competes with the dial (R8.3). */
+   competes with the dial (R8.3), and gr6-024 records that they are
+   deliberately the SAME rule: the difference between them is the sentence,
+   not the type. (A `--armitage` modifier used to ride on the second one
+   with no matching rule anywhere, which is how "differentiated" ended up in
+   a comment describing two identical lines.) */
 .ph-lab__footnote {
   margin: var(--space-8) 0 0 0;
   max-width: var(--measure);

@@ -217,7 +217,10 @@ describe('§2.7.1 truth line', () => {
     expect(formatSigFigs(14.27, 2)).toBe('14');
     expect(formatSigFigs(1423, 2)).toBe('1400');
     expect(formatSigFigs(0.00432, 2)).toBe('0.0043');
-    expect(formatSigFigs(-0.351, 2)).toBe('-0.35');
+    // gr6-074: U+2212 MINUS SIGN, not U+002D HYPHEN-MINUS — same two
+    // significant figures, a typeset sign. Escaped so no look-alike passes.
+    expect(formatSigFigs(-0.351, 2)).toBe('\u22120.35');
+    expect(formatSigFigs(-0.351, 2)).not.toContain('-');
     expect(formatSigFigs(0, 2)).toBe('0.0');
   });
 });

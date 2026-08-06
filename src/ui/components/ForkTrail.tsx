@@ -138,6 +138,26 @@ function TrailKey() {
     setOpen(true);
   }
 
+  /**
+   * gr6-075 — THE TAP THAT OPENED IT ALSO CLOSED IT.
+   *
+   * `onMouseLeave={dismiss}` was unguarded, and a touchscreen synthesises the
+   * whole mouse sequence: a tap fired pointerenter (recording 'touch', so
+   * handleMouseEnter above correctly declined to open), then click (which
+   * opened the panel), then — as the finger lifted and left — mouseleave,
+   * which closed it again. The panel appeared and vanished inside one tap.
+   * The enter side already consulted the pointer type; the leave side is the
+   * same check, one line, and it is the only reason this control worked with
+   * a mouse and not with a finger.
+   *
+   * A touch player still closes it the two ways they can: tapping the trigger
+   * again (handleClick's toggle) or moving focus away (handleBlur).
+   */
+  function handleMouseLeave() {
+    if (lastPointerType.current !== 'mouse') return;
+    dismiss();
+  }
+
   function handleClick() {
     if (hoverOpened.current) {
       hoverOpened.current = false; // the hover already opened it: not a close
@@ -154,7 +174,7 @@ function TrailKey() {
         lastPointerType.current = event.pointerType || 'mouse';
       }}
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={dismiss}
+      onMouseLeave={handleMouseLeave}
       onFocus={() => setOpen(true)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}

@@ -190,11 +190,30 @@
 }
 
 /* Embossed blind stamp: a quiet, --muted mark. No name, no citation — ever. */
+/* gr6-013 — a locked row wears the unlocked row's anatomy, one register
+   down. Same flex baseline row, same mark column, same gap; what changes is
+   that the mark is the ★'s outline and the name is a --muted rule instead of
+   a word (the name-free contract in Stats.tsx is what forbids the word).
+   R4.4 is satisfied the way R4.4 asks — a hairline BORDER on a real inline
+   box, never `background: var(--rule); height: 1px` on a spacer — and the
+   rule's width is a `ch` measure, the same unit .ph-legend__glyph and
+   .ph-stats__hist-row already use for a type-relative column. */
 .ph-stats__ach-locked {
+  display: flex;
+  align-items: baseline;
   font-family: var(--font-ui);
   font-size: var(--text-15);
   line-height: var(--leading-ui);
   color: var(--muted);
+}
+
+.ph-stats__ach-mark--locked {
+  color: var(--muted);
+}
+
+.ph-stats__ach-blank {
+  inline-size: 12ch;
+  border-block-end: var(--hairline);
 }
 
 .ph-stats__close {

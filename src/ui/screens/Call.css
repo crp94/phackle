@@ -15,10 +15,32 @@
    that did, against every other screen's --space-24 page gutter. The Call
    overlay drops its own inline padding to match, so the two never stack into
    an unmeasurable 48. */
+/* gr6-006 (BLOCKER) — THE OVERLAY HAD NO SURFACE OF ITS OWN.
+   R4.2's Do names the treatment in full: "separate the Call modal from the
+   cover with a --hairline and a dimmed backdrop, background: var(--scrim)".
+   Only the second half shipped. Published.css painted the scrim and this
+   column painted nothing, so the modal's own text sat directly on a dimmed
+   journal cover — measured on the production build, `call.prompt` came out
+   at 3.64:1 on paper and 2.45:1 in dark, both under §7.5's 4.5:1 floor,
+   because the "background" behind those glyphs was whatever headline
+   happened to be under the scrim. At 360, where the overlay is centred over
+   a header that starts at y=0, the prompt was painted straight across the
+   header's own theme and locale controls.
+   `--paper` is the fix and it is not a new fill: R4.1 counts the SpecCurve
+   band as the product's ONE filled area and names --paper as what everything
+   else's background is. The two hairlines are the other half of R4.2's Do —
+   single edges, so R4.5 is untouched — and they are what makes the column
+   read as a card set down on the cover rather than as text floating over it.
+   The option cards' own `background: var(--paper)` is dropped in the same
+   pass: it existed only to buy each button a legible surface one at a time,
+   which is exactly the job this rule now does for the whole column. */
 .ph-call {
   max-width: var(--measure);
   margin-inline: auto;
   padding: var(--space-40) var(--space-24);
+  background: var(--paper);
+  border-block-start: var(--hairline);
+  border-block-end: var(--hairline);
 }
 
 /* R2.7, T29 pin 6: `call.title` is a SENTENCE with an ellipsis ("Before you
@@ -62,7 +84,10 @@
   width: 100%;
   padding: var(--space-24) var(--space-16);
   text-align: start;
-  background: var(--paper);
+  /* gr6-006: `background: var(--paper)` was here, and it is redundant now
+     that .ph-call itself carries the surface — a --paper rectangle inside a
+     --paper column is a no-op that reads, in a diff, like a second fill. */
+  background: none;
   border-block-start: var(--hairline);
   border-block-end: var(--hairline);
   border-inline: 0;
