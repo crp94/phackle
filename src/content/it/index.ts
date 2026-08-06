@@ -190,7 +190,7 @@ export const content: LocaleContent = {
         'Revisioni approvate senza richieste di modifica',
         'Sicurezza autovalutata al momento del commit',
       ],
-      outcomeUnits: ['migliaia di righe', 'ore', 'approvazioni/sprint', 'scala 1–10'],
+      outcomeUnits: ['migliaia di righe', 'giorni', 'approvazioni/sprint', 'scala 1–10'],
       covariateLabels: { income: 'Fascia stipendiale', risk: 'Voglia di rilasciare di venerdì' },
       journalTags: ['technology', 'productivity'],
     },
@@ -354,7 +354,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: 'Chi piega i calzini arriva prima?',
       coverStory:
-        "L'obiezione ovvia è che non se ne accorgerebbe nessuno. Abbiamo misurato se qualcuno se ne accorge. I partecipanti fotografano come tengono i calzini (piegati, arrotolati o sfusi), e noi incrociamo la classificazione con sei settimane di orari da calendario e da badge; la ricerca sull'uso del tempo ha documentato il pendolarismo in un dettaglio straordinario e il cassetto dei calzini per niente. Due codificatori indipendenti valutano le fotografie. Vanno d'accordo molto più spesso di quanto avessimo messo a bilancio, il che è una piccola crisi a sé.",
+        "L'obiezione ovvia è che non se ne accorgerebbe nessuno. Abbiamo misurato se qualcuno se ne accorgesse. I partecipanti fotografano come tengono i calzini (piegati, arrotolati o sfusi), e noi incrociamo la classificazione con sei settimane di orari da calendario e da badge; la ricerca sull'uso del tempo ha documentato il pendolarismo in un dettaglio straordinario e il cassetto dei calzini per niente. Due codificatori indipendenti valutano le fotografie. Vanno d'accordo molto più spesso di quanto avessimo messo a bilancio, il che è una piccola crisi a sé.",
       treatmentLabel: 'Piega i calzini',
       headline: 'Chi piega i calzini arriva prima, e i dati dei badge lo confermano',
       outcomeLabels: [
@@ -399,7 +399,7 @@ export const content: LocaleContent = {
       headline: 'Gli sviluppatori con più schede aperte pubblicano più progetti personali',
       outcomeLabels: [
         'Ricavi dai progetti personali sopra la mediana degli sviluppatori',
-        'Ore di sviluppo senza interruzioni',
+        'Sviluppo senza interruzioni in una sessione',
         'Progetti personali pubblicati con link pubblico',
         'Padronanza autovalutata della situazione',
       ],

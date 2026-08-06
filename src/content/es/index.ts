@@ -60,7 +60,7 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: '¿Tener gato mejora la rentabilidad en criptomonedas?',
       coverStory:
-        'Una fundación con cuatro gatos y una distribución a priori muy informativa nos hizo una pregunta: ¿convivir con un gato ejerce de verdad una influencia calmante que estabiliza el apetito de riesgo de la cartera? La hipótesis lleva años susurrándose en los foros de finanzas personales y no la ha comprobado nadie. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. La fundación agradecería un parte semanal.',
+        'Una fundación con cuatro gatos y una distribución a priori muy informativa nos hizo una pregunta: ¿convivir con un gato ejerce de verdad una influencia calmante que estabiliza el apetito de riesgo de la cartera? La hipótesis lleva años susurrándose en los foros de finanzas personales y no la ha comprobado nadie. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. La fundación agradecería un informe semanal.',
       treatmentLabel: 'Tiene gato',
       headline: 'Quienes tienen gato ganan más, según un estudio',
       // Same deliberate divergence as the English original: the cover story
@@ -193,7 +193,7 @@ export const content: LocaleContent = {
         'Revisiones aprobadas sin cambios solicitados',
         'Confianza autopercibida al hacer commit',
       ],
-      outcomeUnits: ['miles de líneas', 'horas', 'aprobaciones/sprint', 'escala 1–10'],
+      outcomeUnits: ['miles de líneas', 'días', 'aprobaciones/sprint', 'escala 1–10'],
       covariateLabels: { income: 'Banda salarial', risk: 'Apetito por desplegar en viernes' },
       journalTags: ['technology', 'productivity'],
     },
@@ -357,7 +357,7 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: '¿Quien dobla los calcetines llega antes?',
       coverStory:
-        'La objeción evidente es que no lo notaría nadie. Hemos medido si alguien lo notó. Los participantes fotografían cómo guardan los calcetines (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje; del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
+        'La objeción evidente es que no lo notaría nadie. Hemos medido si alguien lo notaba. Los participantes fotografían cómo guardan los calcetines (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje; del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
       treatmentLabel: 'Dobla los calcetines',
       headline: 'Quien dobla los calcetines llega antes, y los datos de fichaje lo confirman',
       outcomeLabels: [
@@ -396,7 +396,7 @@ export const content: LocaleContent = {
       headline: 'Los desarrolladores con más pestañas abiertas publican más proyectos personales',
       outcomeLabels: [
         'Ingresos por proyectos personales por encima de la mediana del sector',
-        'Horas de desarrollo sin interrupciones',
+        'Desarrollo sin interrupciones en una sesión',
         'Proyectos publicados con enlace público',
         'Dominio autopercibido de la situación',
       ],

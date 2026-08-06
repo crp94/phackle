@@ -225,7 +225,7 @@ export const content: LocaleContent = {
         'Reviews approved with no changes requested',
         'Self-rated confidence at commit time',
       ],
-      outcomeUnits: ['thousand lines', 'hours', 'approvals/sprint', '1–10 scale'],
+      outcomeUnits: ['thousand lines', 'days', 'approvals/sprint', '1–10 scale'],
       covariateLabels: { income: 'Salary band', risk: 'Appetite for shipping on a Friday' },
       journalTags: ['technology', 'productivity'],
     },
@@ -431,7 +431,7 @@ export const content: LocaleContent = {
       headline: 'Developers With the Most Open Tabs Ship More Side Projects',
       outcomeLabels: [
         'Side-project revenue above the developer median',
-        'Hours in an uninterrupted build session',
+        'Uninterrupted stretch of build time',
         'Side projects shipped with a public link',
         'Self-rated grip on the situation',
       ],
