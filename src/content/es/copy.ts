@@ -169,9 +169,15 @@ export const copy: Record<CopyKey, string> = {
   // con la condición de la que depende, y es IMPERSONAL a propósito: no dice
   // "tus vistazos", porque cinco vistazos aquí son inalcanzables (el máximo es
   // cuatro). No devolverla a la segunda persona.
+  // w2-r-012 — EL ORDEN DE PALABRAS ES PORTANTE: "lotes IGUALES de datos", no
+  // "lotes de datos iguales". Pospuesto, el adjetivo se engancha al sustantivo
+  // más cercano, y "lotes" y "datos" son ambos masculinos plurales: la
+  // morfología no desambigua, así que la lectura por defecto pasa a ser "datos
+  // iguales" y se pierde la condición (que los lotes son del mismo tamaño). El
+  // pin verbatim de shape.test.ts fija este orden.
   // gr6-027: `α = .05` → `α = 0.05`. El cero delante ya no tiene excepciones.
   'lab.peekFootnoteArmitage':
-    'Dato curioso: contrastar después de cada uno de cinco lotes de datos iguales convierte α = 0.05 en una tasa de falsos positivos de cerca del 14% (Armitage, 1969).',
+    'Dato curioso: contrastar después de cada uno de cinco lotes iguales de datos convierte α = 0.05 en una tasa de falsos positivos de cerca del 14% (Armitage, 1969).',
   // gr6-096: la cadena antigua abría con `n < 30` y afirmaba así una causa que
   // no podía conocer. MIN_CELL es una de las dos razones por las que una celda
   // no es analizable, y es la que nunca ata (0 puntos de 215.040 enumerados).

@@ -67,9 +67,13 @@
 //      per string, and at least 2,500 characters of corpus per dash. Italian
 //      carries one extra rule Spanish does not — a RATCHET, dashes(it) <=
 //      dashes(en) (it.shape.test.ts) — so Italian can never out-dash its own
-//      source. Measured today: en 3 dashes / 35,874 chars, it 3 / 41,232,
-//      es 1 / 41,264; among copy VALUES the only dash in any locale is
-//      stats.noData's "no data" mark, and the rest are press blurbs. The
+//      source. Measured: 3 dashes in en, 3 in it, 1 in es, every locale
+//      several times inside the density floor. Among copy VALUES the only
+//      dash in any locale is stats.noData's "no data" mark; the rest are
+//      press blurbs. (Dash COUNTS are quoted and character counts are not, on
+//      purpose: the counts move only when someone adds a dash, whereas the
+//      corpus length moves on every copy edit — twice in this round alone —
+//      and always in the direction that buys headroom.) The
 //      round convention of "IT/ES budget 0" is a good habit and is NOT a
 //      compiled rule; do not cite it as one.
 // ---------------------------------------------------------------------------

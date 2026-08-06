@@ -178,9 +178,15 @@ export const copy: Record<CopyKey, string> = {
   // la condizione da cui dipende, ed è IMPERSONALE di proposito: non dice
   // "le tue sbirciate", perché cinque sbirciate qui non sono raggiungibili (il
   // massimo è quattro). Non riportarla alla seconda persona.
+  // w2-r-012 — ORDINE DELLE PAROLE PORTANTE: "lotti UGUALI di dati", non
+  // "lotti di dati uguali". Posposto, l'aggettivo si attacca al nome più
+  // vicino, e "lotti" e "dati" sono entrambi maschili plurali: la morfologia
+  // non disambigua, quindi la lettura di default diventa "dati uguali" e la
+  // condizione (i lotti sono di uguale dimensione) sparisce. Il pin verbatim
+  // in shape.test.ts tiene questo ordine.
   // gr6-027: `α = .05` → `α = 0.05`. Lo zero iniziale non ha più eccezioni.
   'lab.peekFootnoteArmitage':
-    'Curiosità: fare un test dopo ciascuno di cinque lotti di dati uguali trasforma α = 0.05 in un tasso di falsi positivi di circa il 14% (Armitage, 1969).',
+    'Curiosità: fare un test dopo ciascuno di cinque lotti uguali di dati trasforma α = 0.05 in un tasso di falsi positivi di circa il 14% (Armitage, 1969).',
   // gr6-096: la vecchia stringa apriva con `n < 30` e affermava così una causa
   // che non poteva conoscere. MIN_CELL è una delle due ragioni per cui una
   // cella non è analizzabile, ed è quella che non vincola mai (0 punti su

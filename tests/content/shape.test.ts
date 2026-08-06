@@ -576,7 +576,7 @@ describe('GR6 W2 — terminology and notation locks hold in every locale, not ju
       confound: 'confondimento da età e reddito',
       retiredTerm: /rivelazion/i,
       streakTerm: 'Serie',
-      armitageCondition: /cinque lotti di dati uguali/,
+      armitageCondition: /cinque lotti uguali di dati/,
       secondPerson: /\b(tuo|tua|tuoi|tue)\b/i,
     },
     {
@@ -585,7 +585,7 @@ describe('GR6 W2 — terminology and notation locks hold in every locale, not ju
       confound: 'confundido con la edad y la renta',
       retiredTerm: /revelaci/i,
       streakTerm: 'Racha',
-      armitageCondition: /cinco lotes de datos iguales/,
+      armitageCondition: /cinco lotes iguales de datos/,
       secondPerson: /\btus?\b/i,
     },
   ] as const;
