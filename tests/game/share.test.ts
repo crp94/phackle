@@ -394,6 +394,28 @@ describe('§1(i) — the fork run is read as groups of five, and line 1 says wha
     }
   });
 
+  // The generic-contract case (same class as the hand-built logs above): a
+  // log that never terminated. `store.submit()/abandon()` always leave one,
+  // so this is not a shape a real day produces — but it is the shape in which
+  // the hack branch has an EMPTY part to join, and an unguarded join puts a
+  // trailing space on a string that leaves the app.
+  it('a log with no terminal at all still produces no trailing space', () => {
+    const midPlay: PlayerAction[] = [
+      view(spec(), false, 0),
+      view(spec({ outcome: 1 }), true, 1),
+      view(spec({ outcome: 2 }), true, 2),
+    ];
+    const line2 = shareString({ puzzleNumber: 2, log: midPlay, mode: 'hack', callCorrect: null, streak: 0, copy: enCopy })
+      .split('\n')[1];
+    expect(line2).toBe(`${FORK_EMOJI.spec}${FORK_EMOJI.spec}`);
+    expect(line2).not.toMatch(/^ | $| {2}/);
+    // ...and the same log with no forks either is the empty line 2 it has
+    // always been, not a lone space.
+    const bare = shareString({ puzzleNumber: 2, log: [view(spec(), false, 0)], mode: 'hack', callCorrect: null, streak: 0, copy: enCopy })
+      .split('\n')[1];
+    expect(bare).toBe('');
+  });
+
   it('grouping is presentation only: strip the separators and the ungrouped trail is exactly there', () => {
     for (let k = 0; k <= 30; k++) {
       const log = logWithForks(k);
