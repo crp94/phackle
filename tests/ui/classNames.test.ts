@@ -76,13 +76,68 @@ export function writtenClasses(sources: { file: string; code: string }[]): Map<s
   return out;
 }
 
+/** Every `className` literal, as the SET of `ph-` names written together on
+ * one element. `writtenClasses` above flattens this; the exemption below needs
+ * the grouping, because what it forgives is a name's relationship to a
+ * SIBLING class on the same element. */
+export function writtenLiterals(sources: { file: string; code: string }[]): string[][] {
+  const out: string[][] = [];
+  for (const { code } of sources) {
+    const stripped = stripComments(code);
+    const literals = [
+      ...[...stripped.matchAll(/className\s*=\s*"([^"]*)"/g)].map((m) => m[1]),
+      ...[...stripped.matchAll(/className=\{[^}]*\}/g)].flatMap((m) =>
+        [...m[0].matchAll(/['"`]([^'"`]*)['"`]/g)].map((q) => q[1])
+      ),
+    ];
+    for (const literal of literals) {
+      const names = literal.split(/\s+/).filter((name) => name.startsWith('ph-'));
+      if (names.length > 0) out.push(names);
+    }
+  }
+  return out;
+}
+
+/**
+ * gr6-050 / DESIGN.md §9.1 — THE ONE WAY A WRITTEN CLASS IS ANSWERED BY
+ * SOMETHING OTHER THAN ITS OWN RULE, enumerated, name by name.
+ *
+ * §9.1's `.ph-page` took over the page shell. For these four screens the shell
+ * was the WHOLE rule — `max-width`, `margin-inline`, `padding` and nothing
+ * else — so consolidating emptied it, and the screen's own class now names the
+ * screen (for the suites and the flow specs that address it) while styling
+ * nothing. Every other adopter kept declarations of its own: `.ph-lab` its flex
+ * column, `.ph-prereg` its stack, `.ph-briefing` its `.ph-email` scoping rule.
+ *
+ * THE LIST IS CLOSED AND IT IS NOT A LOOSENING. The predicate did not become
+ * "a class is fine if a sibling class is declared" — that is exactly what
+ * `ph-lab__footnote--armitage` would have satisfied, and the test below still
+ * reds on it. A name is forgiven only if it is ON this list AND every element
+ * that writes it also writes the specific utility named here AND that utility
+ * is itself declared. So a screen that quietly loses `.ph-page` goes red rather
+ * than silently rendering unstyled at full viewport width.
+ */
+const SHELL_CONSOLIDATED = new Map<string, string>([
+  ['ph-about', 'ph-page'],
+  ['ph-legend', 'ph-page'],
+  ['ph-stats', 'ph-page'],
+  ['ph-summary', 'ph-page'],
+]);
+
 export function unmatchedClasses(
   sources: { file: string; code: string }[],
   css: string[]
 ): string[] {
   const declared = declaredClasses(css);
+  const literals = writtenLiterals(sources);
+  const answered = (name: string): boolean => {
+    if (declared.has(name)) return true;
+    const utility = SHELL_CONSOLIDATED.get(name);
+    if (utility === undefined || !declared.has(utility)) return false;
+    return literals.every((names) => !names.includes(name) || names.includes(utility));
+  };
   return [...writtenClasses(sources)]
-    .filter(([name]) => !declared.has(name))
+    .filter(([name]) => !answered(name))
     .map(([name, file]) => `${file}: ${name} has no CSS rule`)
     .sort();
 }
@@ -115,6 +170,33 @@ describe('gr6-024 — no className ships without a rule', () => {
       { file: join(UI_DIR, 'probe.tsx'), code: '<p className="ph-lab__footnote ph-lab__footnote--armitage" />' },
     ];
     expect(unmatchedClasses(probe, ['.ph-lab__footnote { margin: 0; }'])).toEqual([
+      'src/ui/probe.tsx: ph-lab__footnote--armitage has no CSS rule',
+    ]);
+  });
+
+  // --- §9.1's shell exemption, from both ends -------------------------------
+
+  it('forgives a consolidated shell root only while the element also carries .ph-page', () => {
+    const carried = [{ file: join(UI_DIR, 'probe.tsx'), code: '<section className="ph-page ph-stats" />' }];
+    expect(unmatchedClasses(carried, ['.ph-page { padding: 0; }'])).toEqual([]);
+
+    // The same name, written WITHOUT the utility that took its declarations:
+    // a screen that loses the shell renders unstyled at full viewport width,
+    // and that is a defect, not a consolidation.
+    const bare = [{ file: join(UI_DIR, 'probe.tsx'), code: '<section className="ph-stats" />' }];
+    expect(unmatchedClasses(bare, ['.ph-page { padding: 0; }'])).toEqual([
+      'src/ui/probe.tsx: ph-stats has no CSS rule',
+    ]);
+  });
+
+  it('does not forgive a sibling class in general — the list is four names, not a pattern', () => {
+    // `.ph-lab__footnote--armitage` beside a declared `.ph-lab__footnote` is
+    // the ORIGINAL defect. If the exemption had been "a declared sibling
+    // vouches", this would pass. It does not.
+    const probe = [
+      { file: join(UI_DIR, 'probe.tsx'), code: '<p className="ph-page ph-lab__footnote--armitage" />' },
+    ];
+    expect(unmatchedClasses(probe, ['.ph-page { padding: 0; }'])).toEqual([
       'src/ui/probe.tsx: ph-lab__footnote--armitage has no CSS rule',
     ]);
   });

@@ -176,7 +176,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const minutesLeft = Math.floor((msLeft % 3_600_000) / 60_000);
 
   return (
-    <article className="ph-briefing">
+    <article className="ph-page ph-page--titled ph-briefing">
       {/* Manuscript title page (master spec §2.3/§7.3): the research
           question set as the title, in display serif (R2.1). */}
       <h1 className="ph-briefing__question">{scenario.question}</h1>

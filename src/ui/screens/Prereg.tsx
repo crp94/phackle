@@ -86,7 +86,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
   }
 
   return (
-    <section className="ph-prereg" data-testid="prereg-screen">
+    <section className="ph-page ph-page--titled ph-prereg" data-testid="prereg-screen">
       {/* T22: <h1> — the screen's own title, and the only heading on it. */}
       <h1 className="ph-prereg__title">{t('prereg.title')}</h1>
       <p className="ph-prereg__intro">{t('prereg.intro')}</p>

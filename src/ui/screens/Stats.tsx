@@ -53,7 +53,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
     // from that heading additionally exposes it as a landmark, which is what
     // gives the plain "Close" button below the context its old aria-label was
     // faking.
-    <section className="ph-stats" aria-labelledby={titleId}>
+    <section className="ph-page ph-stats" aria-labelledby={titleId}>
       <h1 className="ph-stats__title" id={titleId}>
         {t('stats.title')}
       </h1>

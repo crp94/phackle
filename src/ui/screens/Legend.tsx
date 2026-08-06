@@ -81,7 +81,7 @@ export function Legend({ t, onClose }: LegendProps) {
   const titleId = useId();
   return (
     // T22: a named region with its own <h1> — see Stats.tsx's identical note.
-    <section className="ph-legend" aria-labelledby={titleId}>
+    <section className="ph-page ph-legend" aria-labelledby={titleId}>
       <h1 className="ph-legend__title" id={titleId}>
         {t('legend.title')}
       </h1>

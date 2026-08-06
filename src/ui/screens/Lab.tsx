@@ -73,7 +73,7 @@ export function Lab() {
   const canCollectMore = !atMaxN && !pending && !!result;
 
   return (
-    <section className="ph-lab" data-testid="lab-screen">
+    <section className="ph-page ph-lab" data-testid="lab-screen">
       {/* T29 pin 10 (owner, third play-test round): "the question lives on
           screen 1 but the instructions on screen 2 — by the time you read the
           how-to, the question is gone." The scenario's own question, rendered

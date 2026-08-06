@@ -1,12 +1,8 @@
 /* Summary screen — the score breakdown styled as a journal fee invoice
    (DESIGN.md hairline table rules: R4.4/R4.5 — hairlines only, never a
    box, never a border on all four sides; R2.4 every numeral is mono and
-   tabular). */
-.ph-summary {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
-}
+   tabular). The page shell is `.ph-page` (§9.1, App.css), composed in
+   Summary.tsx on both the loaded screen and its loading placeholder. */
 
 .ph-summary__title {
   font-family: var(--font-display);

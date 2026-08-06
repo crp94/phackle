@@ -79,6 +79,47 @@ body {
   letter-spacing: var(--tracking-label);
 }
 
+/* R3.5's page column and R3.1's gutter: the shell every screen sits in.
+   Composed as `class="ph-page ph-about"` — the utility carries the shell, the
+   screen's own class carries whatever else that screen is (`.ph-lab` keeps the
+   flex column it lays its panes out with, because a utility replaces the
+   declarations it NAMES and nothing else).
+
+   FIVE SCREENS, ENUMERATED BY §9.1 CONSTRAINT 3: .ph-about, .ph-legend,
+   .ph-stats, .ph-summary, .ph-lab — the five that already agreed in all three
+   declarations. Two shells stay off it, for two different reasons, and both
+   are recorded at their own rules rather than here:
+   - `.ph-call` is not a page at all. It is capped at `--measure` rather than
+     R3.5's `--page-max` because it is the Call modal's column: modal chrome,
+     sized by R2.8's measure. Counting it as a fourth page-shell spelling was
+     the category error §9.1 corrected.
+   - `.ph-reveal` IS a page and pads 40 at BOTH block ends. §9.1 left that open
+     to be ruled against a 360 shot; W7 ruled it, in Reveal.css, and the answer
+     was KEEP THE 40 — see the modifier below. */
+.ph-page {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-24);
+}
+
+/* The same shell with --space-40 above and --space-24 on the other three
+   sides: a screen that opens on a title needs the extra air over it (R3.1).
+   A MODIFIER, so it re-states only the declaration it changes and is written
+   beside its base — `class="ph-page ph-page--titled ph-briefing"` — exactly as
+   `.ph-radio--selected` re-states only its border. Two adopters: `.ph-briefing`
+   and `.ph-prereg`.
+
+   `.ph-reveal` IS NOT ONE, and the ruling is Reveal.css's (restated here so
+   the next consolidation does not re-open it from this end): that screen pads
+   40 at both block ends, its last element is a full-width control whose whole
+   affordance is a hairline UNDERLINE, and 24 beneath a rule at the foot of the
+   longest screen in the product reads as the page having been cut off rather
+   than finished. One value, one reason, ruled against a 360 shot on the
+   production build. */
+.ph-page--titled {
+  padding: var(--space-40) var(--space-24) var(--space-24);
+}
+
 /* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
    The screen change is the biggest state change in the product and, until
    this task, the only one with no beat at all: briefing -> lab -> published

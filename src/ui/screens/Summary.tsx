@@ -156,7 +156,7 @@ export function Summary({
   const minutes = Math.floor((ms % 3_600_000) / 60_000);
 
   return (
-    <section className="ph-summary">
+    <section className="ph-page ph-summary">
       {/* T22: <h1>. Each screen of this single-page app is its own document to
           assistive technology (App.tsx rebuilds <main> on every swap), so the
           screen's own title is its level-one heading and the unlock/prereg
@@ -396,7 +396,7 @@ export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) 
   // achievements bank below, and narrowing on the bundle itself is what makes
   // that read type-safe without a second guard.
   if (!content || !computed) {
-    return <div className="ph-summary" aria-busy="true" data-testid="summary-loading" />;
+    return <div className="ph-page ph-summary" aria-busy="true" data-testid="summary-loading" />;
   }
 
   return (

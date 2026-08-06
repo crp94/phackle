@@ -37,7 +37,7 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
 
   return (
     // T22: a named region with its own <h1> — see Stats.tsx's identical note.
-    <section className="ph-about" aria-labelledby={titleId}>
+    <section className="ph-page ph-about" aria-labelledby={titleId}>
       <h1 className="ph-about__title" id={titleId}>
         {t('about.title')}
       </h1>

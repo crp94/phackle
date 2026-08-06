@@ -1,11 +1,9 @@
 /* About/Methods nav page. DESIGN.md R3.2 (space-40 marks a new section: the
    glossary heading, and the closing meta line), R2.8 (prose capped at
-   --measure), R6.2 (links always underlined). */
-.ph-about {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
-}
+   --measure), R6.2 (links always underlined).
+   THE SHELL IS `.ph-page` (§9.1, App.css), composed in About.tsx: R3.5's
+   column cap, centring and gutter were this rule's entire content, so the
+   screen's own class now names the screen and styles nothing. */
 
 .ph-about__title {
   font-family: var(--font-display);
