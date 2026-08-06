@@ -144,9 +144,21 @@ const EM_DASH = '—';
 const MAX_EM_DASHES_PER_STRING = 1;
 export const MIN_CHARS_PER_EM_DASH = 2500;
 
-/** Every user-facing value in a locale, flattened. Keys are never included. */
-function localeProse(content: LocaleContent): { where: string; text: string }[] {
-  const rows: { where: string; text: string }[] = [...scenarioProse(content)];
+export interface ProseRow {
+  where: string;
+  text: string;
+}
+
+/**
+ * Every user-facing value in the CORPUS — the scenario bank and the flavour
+ * banks — flattened, keys never included. Split out from `localeProse` in W3
+ * (gr6-085, w2-r-005) because two laws needed the corpus WITHOUT the copy
+ * catalog: the copy catalog has its own guards, and both of those laws would
+ * otherwise have had to re-list every bank and would have drifted the first
+ * time a bank was added. One list, three consumers.
+ */
+export function corpusProse(content: LocaleContent): ProseRow[] {
+  const rows: ProseRow[] = [...scenarioProse(content)];
 
   content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
   // gr6-070 / gr6-037: both banks joined this sweep in the same commit that
@@ -168,10 +180,15 @@ function localeProse(content: LocaleContent): { where: string; text: string }[] 
     rows.push({ where: `glossary[${i}].term`, text: entry.term });
     rows.push({ where: `glossary[${i}].def`, text: entry.def });
   });
+  return rows;
+}
+
+/** The corpus plus the copy catalog: every user-facing value in the locale. */
+function localeProse(content: LocaleContent): ProseRow[] {
+  const rows: ProseRow[] = [...corpusProse(content)];
   for (const [key, text] of Object.entries(content.copy)) {
     rows.push({ where: `copy["${key}"]`, text });
   }
-
   return rows;
 }
 
@@ -236,7 +253,7 @@ export function findEmDashProblems(content: LocaleContent): string[] {
   return problems;
 }
 
-function scenarioProse(content: LocaleContent): { where: string; text: string }[] {
+function scenarioProse(content: LocaleContent): ProseRow[] {
   return content.scenarios.flatMap((s) => [
     { where: `${s.id}.question`, text: s.question },
     { where: `${s.id}.coverStory`, text: s.coverStory },
@@ -407,33 +424,15 @@ export function findPressTokens(content: LocaleContent): string[] {
  * disagree about that.
  */
 export function findParamFieldTokens(content: LocaleContent): string[] {
-  const rows: { where: string; text: string }[] = [];
-
-  for (const s of content.scenarios) {
-    rows.push({ where: `${s.id}.question`, text: s.question });
-    rows.push({ where: `${s.id}.coverStory`, text: s.coverStory });
-    rows.push({ where: `${s.id}.treatmentLabel`, text: s.treatmentLabel });
-    s.outcomeLabels.forEach((t, i) => rows.push({ where: `${s.id}.outcomeLabels[${i}]`, text: t }));
-    s.outcomeUnits.forEach((t, i) => rows.push({ where: `${s.id}.outcomeUnits[${i}]`, text: t }));
-    rows.push({ where: `${s.id}.covariateLabels.income`, text: s.covariateLabels.income });
-    rows.push({ where: `${s.id}.covariateLabels.risk`, text: s.covariateLabels.risk });
-  }
-  content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
-  content.grantwellSubjects.forEach((text, i) => rows.push({ where: `grantwellSubjects[${i}]`, text }));
-  content.press.forEach((b, i) => rows.push({ where: `press[${i}].outlet`, text: b.outlet }));
-  content.retractionSublines.forEach((text, i) => rows.push({ where: `retractionSublines[${i}]`, text }));
-  content.nullReportedSublines.forEach((text, i) => rows.push({ where: `nullReportedSublines[${i}]`, text }));
-  for (const [id, a] of Object.entries(content.achievements)) {
-    rows.push({ where: `achievements.${id}.name`, text: a.name });
-    rows.push({ where: `achievements.${id}.citation`, text: a.citation });
-  }
-  content.glossary.forEach((e, i) => {
-    rows.push({ where: `glossary[${i}].term`, text: e.term });
-    rows.push({ where: `glossary[${i}].def`, text: e.def });
-  });
-
   const problems: string[] = [];
-  for (const { where, text } of rows) {
+  for (const { where, text } of corpusProse(content)) {
+    // Two exclusions, both load-bearing. `.headline` is the one content field
+    // the game substitutes into, so its rule lives in validateLocaleContent and
+    // is DIFFERENT (at most one token, and it must be {effect}); sweeping it
+    // here would ban what that rule permits. `press[].text` has its own guard
+    // (findPressTokens) with its own message, and two problems for one string
+    // would be noise.
+    if (where.endsWith('.headline') || /^press\[\d+\]\.text$/.test(where)) continue;
     const tokens = text.match(/\{[^}]*\}/g) ?? [];
     if (tokens.length > 0) {
       problems.push(
@@ -443,6 +442,7 @@ export function findParamFieldTokens(content: LocaleContent): string[] {
   }
   return problems;
 }
+
 
 /**
  * T39a's coverage law, and the whole point of the task: "Every day must feel

@@ -36,6 +36,7 @@ import {
   findPressVoiceProblems,
   findParamFieldTokens,
   findScenariosWithoutPress,
+  corpusProse,
   upperCaseRatio,
   validateLocaleContent,
   type ContentLexicons,
@@ -646,12 +647,13 @@ describe('GR6 W2 — terminology and notation locks hold in every locale, not ju
   // positives (`0.05`, `|z| > 2.5`, `Fig. 1`, `Vol. 1, No. 11`, `et al.`, a
   // full stop followed by a space and a digit — none match).
   //
-  // SCOPE IS THE COPY CATALOG, deliberately. Sweeping the scenario corpus too
-  // would fire on one string per locale, and it is the same joke each time:
+  // SCOPE IS THE COPY CATALOG here, and the CORPUS is swept by its own block at
+  // the bottom of this file (W3 took the booking): the same law, over
+  // src/content/*/index.ts, with one allow-listed location per locale —
   // Grantwell's "a p-value of .06 is just a p-value of .05 with poor time
-  // management". That is a character writing sloppily in an email, not the
-  // app's own notation, and `src/content/*/index.ts` is W3's file. BOOKED FOR
-  // W3 with that reading attached, not silently swept here.
+  // management" — and the reasoning for keeping it written at that entry. The
+  // split is not an exemption: it is two scopes because the copy catalog admits
+  // no exceptions at all and the corpus admits exactly one, argued.
   it('every locale writes a decimal with its leading zero', () => {
     const LEADING_ZERO = /(?<![\d\w.])\.\d/;
     for (const { name, content } of LOCALES) {
@@ -1086,5 +1088,124 @@ describe('GR6 W3 gr6-085 — no interpolation token in a field rendered raw', ()
       scenarios: [{ ...enContent.scenarios[0], headline: 'Cat Owners See {n}% More' }, ...enContent.scenarios.slice(1)],
     };
     expect(validateLocaleContent(withForeignToken, EN_LEXICONS).some((p) => p.includes('only use {effect}'))).toBe(true);
+  });
+});
+
+/**
+ * w2-r-005, ADJUDICATED (booked to W3 by the W2 fix round and confirmed by the
+ * W2 re-review).
+ *
+ * THE FINDING. W2's leading-zero law started as a two-digit regex, so it caught
+ * `p < .05` and missed `p = .049` — including inside `about.decimalNote`, the
+ * string whose entire job is to promise the leading zero. Broadened to
+ * `/(?<![\d\w.])\.\d/` it fires on nothing in any of the three copy catalogs,
+ * and W2 scoped it to `copy` because sweeping the corpus fires on exactly one
+ * string per locale, the same joke each time. That scoping was correct and
+ * temporary: an unswept corpus is not a corpus that obeys the law, it is a
+ * corpus nobody checked. So the law now sweeps it — 476 rows per locale — and
+ * the one deviation is an entry with its reasoning, not a silence.
+ *
+ * THE ADJUDICATION: KEEP THE STRING. Three reasons, in the order they decided
+ * it.
+ *
+ *  1. THE LAW IS ABOUT THE GAME'S OWN NOTATION, and this is not the game
+ *     writing a number. `about.decimalNote` makes a promise to the reader about
+ *     how THIS APP typesets statistics; `legend.significant`, `lab.pBelow` and
+ *     `reveal.pValue` are the app keeping it. grantwell[0] is an email from a
+ *     character, quoted verbatim, inside a mail client the game draws. The
+ *     apostrophes, the capitals and the decimals in a quoted email are that
+ *     character's, the same way the tier-3 chyrons say "ZERO VIRGOLA ZERO
+ *     CINQUE" and "CERO COMA CERO CINCO" because an anchor is speaking and not
+ *     typesetting.
+ *  2. THE SLOPPINESS IS THE JOKE, AND THE CHARACTER. "A p-value of .06 is just
+ *     a p-value of .05 with poor time management" is a principal investigator
+ *     treating .06 and .05 as the same number with different luck — which is
+ *     the exact error this entire game exists to dramatize, from the man whose
+ *     function in it is to pressure the player into committing it. Typesetting
+ *     his email to the house standard would make him a more careful
+ *     statistician than the joke can afford him to be.
+ *  3. THE COST OF "FIXING" IT IS MEASURED, NOT HYPOTHETICAL. GR3's quotable
+ *     audit ranked this the third most screenshot-worthy string in the product
+ *     (gr3-014). Rewriting the best line in the Grantwell bank to satisfy a
+ *     typographic rule it is not addressed by is a bad trade at any exchange
+ *     rate.
+ *
+ * WHY AN ALLOW-LIST AND NOT A NARROWED REGEX. A regex that spared "a p-value of
+ * .06" would spare it everywhere, including in the copy catalog, where the same
+ * phrasing WOULD be the app writing a number badly. The exemption belongs to a
+ * location and a reason, so it is written as a location and a reason. It is
+ * self-retiring in both directions: if the line is ever rewritten, assertion
+ * (b) fails and the stale entry has to go; if a second string ever wants the
+ * same licence, it has to be argued for here rather than absorbed.
+ */
+describe('GR6 W3 w2-r-005 — the leading-zero law reaches the corpus, with one entry that says why', () => {
+  const LEADING_ZERO = /(?<![\d\w.])\.\d/;
+
+  // ONE entry per locale, and it is the same string in three languages.
+  const CHARACTER_VOICE_ALLOWANCE = [
+    {
+      name: 'en',
+      content: enContent,
+      where: 'grantwell[0]',
+      // Quoted so a rewrite of the joke is a decision and not an accident.
+      text: 'Remember: a p-value of .06 is just a p-value of .05 with poor time management.',
+    },
+    {
+      name: 'it',
+      content: itContent,
+      where: 'grantwell[0]',
+      text: 'Ricorda: un p-value di .06 è solo un p-value di .05 con una pessima gestione del tempo.',
+    },
+    {
+      name: 'es',
+      content: esContent,
+      where: 'grantwell[0]',
+      text: 'Recuerda: un p-valor de .06 es un p-valor de .05 con mala gestión del tiempo.',
+    },
+  ] as const;
+
+  it.each(CHARACTER_VOICE_ALLOWANCE)(
+    '$name: every corpus value writes its decimals with a leading zero, except the one allowed above',
+    ({ content, where }) => {
+      const offenders = corpusProse(content)
+        .filter((row) => LEADING_ZERO.test(row.text))
+        .map((row) => `${row.where}: "${row.text}"`);
+      expect(offenders).toHaveLength(1);
+      expect(offenders[0].startsWith(`${where}:`)).toBe(true);
+    }
+  );
+
+  it.each(CHARACTER_VOICE_ALLOWANCE)(
+    '$name: the allow-listed string is still the string the reasoning is about (a stale entry fails)',
+    ({ content, text }) => {
+      // (b). If Grantwell's opener is ever rewritten — with or without the
+      // leading zero — this fails, and whoever rewrote it has to re-read the
+      // three reasons above and either delete this entry or restate them.
+      expect(content.grantwell[0]).toBe(text);
+      expect(LEADING_ZERO.test(content.grantwell[0])).toBe(true);
+    }
+  );
+
+  it('catches a leading-zero omission anywhere else in the corpus (guards the guard)', () => {
+    // The exemption is one location, not one phrasing: the SAME sentence in a
+    // different bank is still a defect.
+    const inASubline: LocaleContent = {
+      ...enContent,
+      retractionSublines: ['The p-value was .049 the whole time.', ...enContent.retractionSublines.slice(1)],
+    };
+    const offenders = corpusProse(inASubline).filter((row) => LEADING_ZERO.test(row.text));
+    expect(offenders.map((o) => o.where)).toEqual(['grantwell[0]', 'retractionSublines[0]']);
+  });
+
+  it('does not fire on the notation the corpus writes correctly (no false positives)', () => {
+    // The forms the broadened regex was checked against when W2 widened it, now
+    // asserted rather than remembered — every one of these appears in shipped
+    // content or in its immediate neighbourhood.
+    for (const ok of ['0.05', 'p = 0.049', '|z| > 2.5', 'Fig. 1', 'Vol. 1, No. 11', 'et al.', 'It was 0.000. 3 groups tried.', 'α = 0.05']) {
+      expect(LEADING_ZERO.test(ok), `false positive on "${ok}"`).toBe(false);
+    }
+    for (const bad of ['p < .05', 'p = .049', 'about .5 of them']) {
+      expect(LEADING_ZERO.test(bad), `missed "${bad}"`).toBe(true);
+    }
   });
 });
