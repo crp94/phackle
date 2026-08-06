@@ -155,17 +155,48 @@ function criticalT(df: number): number {
 }
 
 /**
- * Runs one specification against dataset `d` at window size `n` (§3.4):
- * subgroup filter -> transform the (filtered) outcome -> outlier exclusion
- * (z-scores of the *transformed* outcome computed *within the filtered
- * sample*, order matters) -> OLS of [1, x, log(income)?, risk?] -> t/p per
- * `spec.tails` -> a 95% CI around beta. `valid` is false whenever the
+ * Everything `runSpec` computes, plus the three intermediates `buildCut` needs
+ * — so a caller that only wants the statistics can skip the figure payload
+ * entirely. Engine-internal (not on the wire, not a §6 type): `PathResult` is
+ * unchanged and is still what `runSpec` returns.
+ */
+export interface SpecCore {
+  n: number;
+  beta: number;
+  se: number;
+  t: number;
+  p: number;
+  ci: [number, number];
+  excludedCount: number;
+  valid: boolean;
+  /** Window rows surviving the subgroup filter, in source order. */
+  filteredIdx: number[];
+  /** The transformed outcome, parallel to `filteredIdx`. */
+  transformedY: Float64Array;
+  /** Ascending local indices (into `filteredIdx`) that exclusion kept. */
+  keptLocal: number[];
+}
+
+/**
+ * The single-specification pipeline (§3.4), WITHOUT the `DataCut` figure
+ * payload: subgroup filter -> transform the (filtered) outcome -> outlier
+ * exclusion (z-scores of the *transformed* outcome computed *within the
+ * filtered sample*, order matters) -> OLS of [1, x, log(income)?, risk?] ->
+ * t/p per `spec.tails` -> a 95% CI around beta. `valid` is false whenever the
  * post-exclusion count is below MIN_CELL or the OLS itself is invalid
  * (singular design or df<=0); beta/se/t/p/ci/excludedCount are always
  * populated with real numbers whenever OLS could run at all, even when
  * `valid` ends up false purely for falling short of MIN_CELL.
+ *
+ * Split out from `runSpec` (gr6-046) because day.ts's null-day precheck calls
+ * this pipeline 256 times per acceptance attempt purely to read `.valid` and
+ * `.p`, and `buildCut` was 51% of that pass's wall clock — a four-array
+ * payload built and immediately discarded, up to `MAX_ATTEMPTS = 20` times per
+ * day boot. `runSpec` below is this function plus one `buildCut` call, so the
+ * numbers cannot diverge: same helpers, same inputs, same order, one code
+ * path. specGrid.test.ts's runSpec-parity suite is the regression net.
  */
-export function runSpec(d: Dataset, spec: Spec, n: WindowN): PathResult {
+export function runSpecCore(d: Dataset, spec: Spec, n: WindowN): SpecCore {
   const mask = subgroupMask(d, spec.subgroup, n);
   const filteredIdx: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -222,28 +253,54 @@ export function runSpec(d: Dataset, spec: Spec, n: WindowN): PathResult {
     const tCrit = criticalT(fit.df);
     ci = [fit.beta - tCrit * fit.se, fit.beta + tCrit * fit.se];
   } else {
+    // Unreachable in practice, not dead by accident: MIN_CELL has never bound
+    // and no fit has ever come back singular (0 invalid points in 215,040
+    // enumerated: 60 days x {200,400} x all 1,792 specs; smallest OLS pivot
+    // ever observed 1.159, against a scale-relative threshold ~1e-8). Kept as
+    // the defensive branch it is — see MIN_CELL's note at `valid` below.
     p = 1;
     ci = [0, 0];
   }
 
+  // MIN_CELL is a defensive guard that has never bound. The smallest
+  // post-exclusion cell measured across 40 days x every (subgroup, outcome,
+  // transform, exclusion) combination was 46 rows — the binding case is
+  // exp_high/exp_low (about a third of 200) minus a |z|>2 exclusion, still
+  // clear of 30 by 16. It is not reachable with the current N_SCHEDULE, so
+  // `valid === false` is an unreached state by design, not a state the player
+  // is expected to hit. Do not delete it on that evidence: it is what keeps a
+  // future subgroup or N-schedule change from silently rendering a p-value
+  // computed on a handful of rows.
   const valid = fit.valid && finalN >= MIN_CELL;
 
+  return { n: finalN, beta: fit.beta, se: fit.se, t: fit.t, p, ci, excludedCount, valid, filteredIdx, transformedY, keptLocal };
+}
+
+/**
+ * `runSpecCore` plus the Lab's `DataCut` figure payload — the function the
+ * game loop calls on every knob turn. Public surface and `PathResult` are
+ * exactly as before; `cut` is still always attached.
+ */
+export function runSpec(d: Dataset, spec: Spec, n: WindowN): PathResult {
+  const core = runSpecCore(d, spec, n);
   return {
     spec,
-    n: finalN,
-    beta: fit.beta,
-    se: fit.se,
-    t: fit.t,
-    p,
-    ci,
-    excludedCount,
-    valid,
+    n: core.n,
+    beta: core.beta,
+    se: core.se,
+    t: core.t,
+    p: core.p,
+    ci: core.ci,
+    excludedCount: core.excludedCount,
+    valid: core.valid,
     // T31: always attached, including when `valid` is false — the Lab's
     // DataCut still draws the sample the dial has declined to analyse.
-    // Cheap by construction (one pass, <=400 pushes) and NOT on the reveal's
-    // hot path: specGrid.enumerateCurve reimplements this pipeline with its
-    // own memoized intermediates and never calls runSpec, so the 1,792-path
-    // enumeration pays nothing for this field.
-    cut: buildCut(d, filteredIdx, transformedY, keptLocal),
+    // Cheap by construction (one pass, <=400 pushes) but NOT free: it was
+    // measured at 51% of the null-day precheck's 256-spec pass, which is why
+    // `runSpecCore` exists and why day.ts's precheck calls that instead
+    // (gr6-046). specGrid.enumerateCurve reimplements this pipeline with its
+    // own memoized intermediates and never calls either function, so the
+    // 1,792-path reveal enumeration pays nothing for this field.
+    cut: buildCut(d, core.filteredIdx, core.transformedY, core.keptLocal),
   };
 }
