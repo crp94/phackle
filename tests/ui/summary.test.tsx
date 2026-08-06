@@ -259,38 +259,122 @@ describe('Summary — share button: navigator.share -> clipboard fallback -> toa
   });
 });
 
-describe('Summary — prereg upsell, gated on achievements.first_retraction, disabled-for-now', () => {
+describe('Summary — prereg block (gr6-020): gated on the unlock AND on the day still having one to give', () => {
+  const props = {
+    t,
+    breakdown: [['summary.breakdownCallCorrect', 100]] as [Parameters<typeof t>[0], number][],
+    score: 100,
+    streak: 1,
+    now: new Date(2026, 7, 10, 20, 0, 0, 0),
+    shareText: 'x',
+  };
+
   it('renders nothing prereg-related when not unlocked', () => {
-    render(
-      <Summary
-        t={t}
-        breakdown={[['summary.breakdownCallCorrect', 100]]}
-        score={100}
-        streak={1}
-        now={new Date(2026, 7, 10, 20, 0, 0, 0)}
-        shareText="x"
-        preregUnlocked={false}
-      />
-    );
+    render(<Summary {...props} preregUnlocked={false} />);
     expect(screen.queryByText(t('summary.preregUpsell'))).toBeNull();
-    expect(screen.queryByText(t('summary.playPrereg'))).toBeNull();
+    expect(screen.queryByText(t('prereg.title'))).toBeNull();
   });
 
-  it('renders the upsell body text and a DISABLED playPrereg affordance when unlocked', () => {
-    render(
-      <Summary
-        t={t}
-        breakdown={[['summary.breakdownCallCorrect', 100]]}
-        score={100}
-        streak={1}
-        now={new Date(2026, 7, 10, 20, 0, 0, 0)}
-        shareText="x"
-        preregUnlocked={true}
-      />
-    );
+  it('renders the block when unlocked and prereg has NOT been played today', () => {
+    render(<Summary {...props} preregUnlocked={true} />);
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
-    const button = screen.getByRole('button', { name: t('summary.playPrereg') });
-    expect(button.hasAttribute('disabled')).toBe(true);
+  });
+
+  it('renders NO dead CTA: the block is heading + sentence, never a permanently disabled button', () => {
+    render(<Summary {...props} preregUnlocked={true} />);
+    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
+    for (const button of screen.getAllByRole('button')) {
+      expect(button.hasAttribute('disabled'), `"${button.textContent}" is a dead control`).toBe(false);
+    }
+  });
+
+  it('hides the block entirely on a prereg day — the mode being advertised is the one just played', () => {
+    render(<Summary {...props} preregUnlocked={true} preregPlayedToday={true} />);
+    expect(screen.queryByText(t('summary.preregUpsell'))).toBeNull();
+  });
+});
+
+// --- gr6-018: the invoice itemises, career track included -------------------
+
+describe('Summary — the career line (gr6-018)', () => {
+  const props = {
+    t,
+    breakdown: [
+      ['summary.breakdownCallIncorrect', 0],
+      ['summary.breakdownParsimony', 0],
+    ] as [Parameters<typeof t>[0], number][],
+    score: 0,
+    streak: 1,
+    now: new Date(2026, 7, 10, 20, 0, 0, 0),
+    shareText: 'x',
+    preregUnlocked: false,
+  };
+
+  it('reconciles with what the Published screen printed two screens earlier', () => {
+    render(<Summary {...props} career={25} />);
+    expect(screen.getByTestId('summary-career').textContent).toBe(t('published.careerPoints', { n: 25 }));
+  });
+
+  it('shows the career track at 0 on an abandoned day rather than omitting it', () => {
+    render(<Summary {...props} career={0} />);
+    expect(screen.getByTestId('summary-career').textContent).toBe(t('published.careerPoints', { n: 0 }));
+  });
+
+  it('omits the line entirely on a prereg day, which has no career track at all (§2.8)', () => {
+    render(<Summary {...props} career={null} />);
+    expect(screen.queryByTestId('summary-career')).toBeNull();
+  });
+
+  it('the career figure is NOT an invoice row: it never joins the sum that must equal the score', () => {
+    render(<Summary {...props} career={25} />);
+    const rowValues = screen.getAllByTestId('invoice-row-value').map((el) => Number(el.textContent));
+    expect(rowValues).toEqual([0, 0]);
+    expect(rowValues.reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  it('the modal first day is no longer a one-line table of zeros', () => {
+    render(<Summary {...props} career={25} />);
+    expect(screen.getAllByTestId('invoice-row-value').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(t('summary.breakdownParsimony'))).toBeTruthy();
+    expect(screen.getByTestId('summary-career')).toBeTruthy();
+  });
+});
+
+// --- gr6-062: the day ends where the day's reward is ------------------------
+
+describe('Summary — the "your stats" action (gr6-062)', () => {
+  const props = {
+    t,
+    breakdown: [['summary.breakdownCallCorrect', 100]] as [Parameters<typeof t>[0], number][],
+    score: 100,
+    streak: 1,
+    now: new Date(2026, 7, 10, 20, 0, 0, 0),
+    shareText: 'x',
+    preregUnlocked: false,
+  };
+
+  it('renders an enabled action that calls back to the app shell', () => {
+    const onViewStats = vi.fn();
+    render(<Summary {...props} onViewStats={onViewStats} />);
+    const button = screen.getByTestId('summary-stats-action');
+    expect(button.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(button);
+    expect(onViewStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('sits AFTER the countdown, where the day actually ends', () => {
+    render(<Summary {...props} onViewStats={vi.fn()} />);
+    const section = document.querySelector('.ph-summary') as HTMLElement;
+    const children = Array.from(section.children);
+    const countdown = children.findIndex((el) => el.classList.contains('ph-summary__countdown'));
+    const action = children.findIndex((el) => el.querySelector('[data-testid="summary-stats-action"]') || el.matches('[data-testid="summary-stats-action"]'));
+    expect(countdown).toBeGreaterThanOrEqual(0);
+    expect(action).toBeGreaterThan(countdown);
+  });
+
+  it('renders nothing at all when the shell supplies no route (never a dead control)', () => {
+    render(<Summary {...props} />);
+    expect(screen.queryByTestId('summary-stats-action')).toBeNull();
   });
 });
 
@@ -746,11 +830,11 @@ describe('SummaryScreen — achievement evaluation wired into the one persist mo
     // call) — never a wall-clock read.
     expect(saved.achievements.first_retraction).toBe('2026-08-10');
 
-    // The upsell renders on THIS SAME render — proving preregUnlocked flips
+    // The block renders on THIS SAME render — proving preregUnlocked flips
     // true the instant the achievement is earned, not only on some later day.
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
-    const button = screen.getByRole('button', { name: t('summary.playPrereg') });
-    expect(button.hasAttribute('disabled')).toBe(true);
+    // gr6-020: and it is a sentence, not a permanently disabled button.
+    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
   });
 
   it('a remount does not move the unlock date (saveAchievements is not re-invoked; alreadySaved skips the whole persist block)', async () => {

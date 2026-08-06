@@ -138,3 +138,49 @@ describe('persistAndComputeSummary (gr6-019) — the ceremony celebrates only wh
     expect(loadState().achievements).toEqual({});
   });
 });
+
+// --- gr6-018 / gr6-020: what the finished day hands the screen -------------
+
+describe('persistAndComputeSummary — career (gr6-018) and preregPlayedToday (gr6-020)', () => {
+  it('carries the +25 career track a published hack day earned, so the invoice and the cover agree', () => {
+    const result = persistAndComputeSummary(fields({ puzzleIso: isoForDay(0) }));
+    expect(result.career).toBe(25);
+  });
+
+  it('carries a real 0 on an abandoned hack day rather than dropping the line', () => {
+    const abandonLog: PlayerAction[] = [
+      { t: 'VIEW_SPEC', spec: baseSpec, seen: false, at: 0 },
+      { t: 'ABANDON', at: 1 },
+      { t: 'CALL', verdict: 'noise', at: 2 },
+    ];
+    const result = persistAndComputeSummary(
+      fields({ puzzleIso: isoForDay(0), published: false, call: 'noise', stamp: 'NULL_REPORTED', log: abandonLog })
+    );
+    expect(result.career).toBe(0);
+  });
+
+  it('carries null on a prereg day — §2.8 gives Prereg Mode no career track at all', () => {
+    const result = persistAndComputeSummary(
+      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' })
+    );
+    expect(result.career).toBeNull();
+  });
+
+  it('reports preregPlayedToday on the prereg day being finished right now', () => {
+    const result = persistAndComputeSummary(
+      fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' })
+    );
+    expect(result.preregPlayedToday).toBe(true);
+  });
+
+  it('reports preregPlayedToday on a HACK summary for a date whose prereg play is already spent', () => {
+    persistAndComputeSummary(fields({ mode: 'prereg', puzzleIso: isoForDay(0), call: null, stamp: 'NULL_REPORTED' }));
+    const result = persistAndComputeSummary(fields({ puzzleIso: isoForDay(0) }));
+    expect(result.preregPlayedToday).toBe(true);
+  });
+
+  it('reports false on an ordinary hack day that still has its prereg attempt', () => {
+    const result = persistAndComputeSummary(fields({ puzzleIso: isoForDay(0) }));
+    expect(result.preregPlayedToday).toBe(false);
+  });
+});

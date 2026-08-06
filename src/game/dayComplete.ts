@@ -156,7 +156,17 @@ export interface ComputedSummary {
   score: number;
   streak: number;
   shareText: string;
+  /** gr6-018 — `scoreDay`'s own `career` figure, or `null` on a Prereg Mode
+   * day (§2.8 lists the career track only among the Hacking Mode rows).
+   * Carried here rather than recomputed by the screen so the invoice and the
+   * Published cover cannot disagree about the same day's +25. */
+  career: number | null;
   preregUnlocked: boolean;
+  /** gr6-020 — whether Prereg Mode has already been spent on this puzzle
+   * date, today's own play included. The Summary's prereg block is an
+   * invitation, and there is nothing to invite on a day whose prereg attempt
+   * is already gone. */
+  preregPlayedToday: boolean;
   /** T38 — the achievements this call newly unlocked, straight out of the
    * SAME `unlockedToday` the function already persisted (see below): the
    * value is returned, not recomputed, so the screen can never disagree with
@@ -350,6 +360,12 @@ export function persistAndComputeSummary(fields: FinishedGameFields): ComputedSu
     score: scoreResult.score,
     streak,
     shareText,
+    career: mode === 'prereg' ? null : scoreResult.career,
+    // `state` is the PRE-save snapshot, so today's own prereg record is not in
+    // it yet — `mode === 'prereg'` is what covers the day being finished right
+    // now, and the history read covers a prereg day finished earlier and
+    // revisited (or a hack day played after this date's prereg one).
+    preregPlayedToday: mode === 'prereg' || state.history[puzzleIso]?.prereg !== undefined,
     // True if EITHER a past day already unlocked first_retraction, OR today
     // just did (`unlockedToday` — see its own doc comment above for why
     // "today" must be included here, not only what was already in storage

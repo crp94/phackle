@@ -5,8 +5,9 @@
 // OS's own share sheet is already the confirmation for the other one); the
 // streak strip; the countdown to next local midnight; T38's unlock block (the
 // achievements TODAY earned, named and cited — DESIGN.md R5.2 site 9, and the
-// screen's only entrance); and a (currently disabled-for-now,
-// achievement-gated) Prereg Mode upsell.
+// screen's only entrance); the route back to the honours board the day just
+// added to (gr6-062); and the achievement-gated Prereg Mode block (gr6-020 —
+// no longer a permanently disabled button).
 //
 // A "standalone store-reading screen" (T17 controller pin): the default
 // export reads the game store + storage/locale directly. The named `Summary`
@@ -55,6 +56,24 @@ export interface SummaryProps {
   now: Date;
   shareText: string;
   preregUnlocked: boolean;
+  /** gr6-020 — whether a prereg day has ALREADY been played for this puzzle
+   * date. The block below is an invitation to a mode; on the day that mode
+   * was just played, and on any day it has already been spent, there is
+   * nothing to invite. Defaults to false so every existing caller keeps its
+   * behaviour. */
+  preregPlayedToday?: boolean;
+  /** gr6-018 — the day's career-points figure (`scoreDay`'s `career`), or
+   * `null` on a Prereg Mode day, which has no career track at all (§2.8
+   * lists it only among the Hacking Mode rows). Deliberately NOT a breakdown
+   * row: career points are a separate cosmetic account and are never a
+   * summand of `score`, so folding them into the invoice table would break
+   * the "rows sum to the total" contract that makes the invoice honest. */
+  career?: number | null;
+  /** gr6-062 — the route to the honours board this day just added to. The
+   * app shell owns page state (App.tsx's `setPage`), so the action is a
+   * callback, and it renders ONLY when one is supplied: a screen with no
+   * route to offer shows no control rather than a disabled one. */
+  onViewStats?: () => void;
   /** T38 — what today unlocked, in `unlockAchievements`' own order. Defaults
    * to none: an EMPTY day renders no block at all (no heading, no
    * empty-state line), which is the whole point of an award ceremony that
@@ -87,7 +106,19 @@ function UnlockLine({ award, index }: { award: UnlockedAchievement; index: numbe
   );
 }
 
-export function Summary({ t, breakdown, score, streak, now, shareText, preregUnlocked, unlocked = [] }: SummaryProps) {
+export function Summary({
+  t,
+  breakdown,
+  score,
+  streak,
+  now,
+  shareText,
+  preregUnlocked,
+  preregPlayedToday = false,
+  career = null,
+  onViewStats,
+  unlocked = [],
+}: SummaryProps) {
   const [toastVisible, setToastVisible] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,9 +179,48 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
       </table>
       <p className="ph-summary__total">{t('summary.score', { score })}</p>
 
+      {/* gr6-018 — the career track, reconciled with the cover the player saw
+          two screens ago. Its own line beside the total rather than a table
+          row, deliberately: `career` is a separate cosmetic account (§2.8) and
+          is never a summand of `score`, so it must not enter the invoice's
+          "rows sum to the total" arithmetic. Rendered at its computed value
+          including 0 — an invoice itemises what you did not earn too — and
+          omitted entirely on a prereg day, which has no career track.
+          TODO-W2: reuses `published.careerPoints` ("+{n} career points"),
+          the exact string the Published screen printed, so the two visibly
+          agree. W2's own summary-side key may reword it for invoice register
+          ("Career points +25 — separate account"). */}
+      {career !== null && (
+        <p className="ph-summary__career" data-testid="summary-career">
+          {t('published.careerPoints', { n: career })}
+        </p>
+      )}
+
       <p className="ph-summary__streak">{t('summary.streak', { n: streak })}</p>
 
       <p className="ph-summary__countdown">{t('summary.nextIn', { hours, minutes })}</p>
+
+      {/* gr6-062 — the day ends where the day's reward is. The screen's last
+          word used to be an upsell, with no route to the honours board it had
+          just added to; getting to Stats meant going back up to the header.
+          Rendered only when the shell hands down a route (App.tsx owns the
+          nav page-state), so this is never the disabled control gr6-020 just
+          removed from the block below.
+          TODO-W2: labelled with the existing `nav.stats` key as a
+          placeholder; W2 supplies the sentence-register "stats action" key
+          listed in its own §3 batch. */}
+      {onViewStats && (
+        <div className="ph-summary__next">
+          <button
+            type="button"
+            className="ph-summary__next-button"
+            data-testid="summary-stats-action"
+            onClick={onViewStats}
+          >
+            {t('nav.stats')}
+          </button>
+        </div>
+      )}
 
       {/* T38 — the day's best beat, and until now the one it swallowed:
           persistAndComputeSummary computed `unlockedToday`, persisted it, and
@@ -212,27 +282,51 @@ export function Summary({ t, breakdown, score, streak, now, shareText, preregUnl
         )}
       </div>
 
-      {preregUnlocked && (
+      {/* gr6-020 — the block that announced Prereg Mode used to end in a
+          permanently disabled "Try Prereg Mode" button, whose comment still
+          claimed T18 would wire it. T18 shipped and wired the BRIEFING chooser
+          instead; this control was never revisited, so the one screen that
+          explains what Prereg Mode is offered a dead control and never said
+          where the live entrance was. The CTA is gone rather than enabled:
+          today's play is already spent, so it could only ever have meant
+          "tomorrow", which is a sentence, not a destination. And the whole
+          block is now gated on the day still HAVING a prereg play to offer —
+          it used to render on prereg days too, advertising the mode the
+          player had just finished.
+          TODO-W2: `summary.preregUpsell` stands in as the block's only body
+          line. W2's "prereg-upsell replacement" key points it at the real
+          door ("Tomorrow's briefing will let you choose it before you see any
+          data."), which is the sentence this block is currently missing. */}
+      {preregUnlocked && !preregPlayedToday && (
         <div className="ph-summary__prereg">
           <h2 className="ph-summary__prereg-title">{t('prereg.title')}</h2>
           <p className="ph-summary__prereg-body">{t('summary.preregUpsell')}</p>
-          {/* T18 wires the actual mode switch (boot(client, iso, {mode:
-              'prereg'})); this affordance is intentionally disabled-for-now —
-              rendering the achievement-gated upsell is T17's whole job here. */}
-          <button type="button" className="ph-summary__prereg-button" disabled>
-            {t('summary.playPrereg')}
-          </button>
         </div>
       )}
     </section>
   );
 }
 
+export interface SummaryScreenProps {
+  /** gr6-062 — handed down by the app shell, which owns the nav page-state
+   * (App.tsx's `setPage`). Optional so the screen still renders standalone
+   * (the registry types every screen as a bare `ComponentType`); when it is
+   * absent the "your stats" action is simply not rendered, never rendered
+   * dead.
+   *
+   * FLAGGED FOR THE W7 MERGE: nothing passes this yet. App.tsx ->
+   * ScreenRouter -> registry.ts is W7's chain, and the wiring there is
+   * `onViewStats={() => setPage('stats')}` threaded through as a prop on the
+   * 'summary' entry. Until that lands the action is dark, which is exactly
+   * what an unsupplied route should look like. */
+  onViewStats?: () => void;
+}
+
 /** Standalone, store-reading machine screen (T17 controller pin) — the
  * registry's ONE 'summary' screen. Reads the finished day's fields off the
  * store, persists + scores them exactly once per mount, and renders the
  * presentational `Summary` above. */
-export default function SummaryScreen() {
+export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) {
   const { content, copy, t } = useLocale();
   const mode = useGameStore((s) => s.mode);
   const practice = useGameStore((s) => s.practice);
@@ -305,7 +399,10 @@ export default function SummaryScreen() {
       streak={computed.streak}
       now={now}
       shareText={computed.shareText}
+      career={computed.career}
       preregUnlocked={computed.preregUnlocked}
+      preregPlayedToday={computed.preregPlayedToday}
+      onViewStats={onViewStats}
       // T38: ids -> the locale's OWN name/citation, resolved here (§2.11's
       // award ceremony is content, not chrome — see UnlockedAchievement).
       // Order is unlockAchievements' order, preserved end to end.
