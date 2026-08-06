@@ -680,6 +680,80 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-2 cells, transcreated off
+    // the ITALIAN scenarios. Same midmarket rules as the block above — TU and
+    // never Lei, the second person in every line, and the joke landing on
+    // something the reader owns or already does. Where this locale's scenario
+    // diverges, the blurb follows the ITALIAN furniture and not the English
+    // source: the mortgage line counts to 17, the poetry jury reads what was
+    // posted to the canale Slack di poesia aziendale, and the peer-review
+    // panel sat at the bar rather than in a café.
+    {
+      text: "Il tuo gatto non è nel libro paga della fondazione, ma sono stati quattro gatti a far partire lo studio. Bastavano trenta giorni delle tue operazioni per entrare nel campione.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: "La giuria di ex studenti di Lettere è pagata in pizza e valuta tutto alla cieca. Anche un trimestre di quello che scrivi tu sarebbe finito nella stessa pila.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: "Una felce di Boston per ogni responsabile acquisti, un ciclo di gare intero, e poi qualcuno ha chiesto le condizioni finali. Una felce ce l'hai anche tu a due passi dalla scrivania.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: "Ogni nome di animale è stato classificato a mano contro un elenco di economisti, e su un Milton ci è voluta una settimana. Il nome del tuo cane o è in quell'elenco o non c'è.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: "Ci sono dentro diciotto mesi di registri di calendario, e la società di consulenza ha già chiesto quali riunioni pensiamo di nominare. Anche la tua delle quattro sta nei dati di qualcuno.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: "Ai passanti di tre città hanno chiesto prima la strada e poi il telescopio. Stanno aggiungendo una quarta città, quindi occhio a chi ti ferma.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: "Il collegio che valuta la severità è fatto di ex direttori, recensiti tutti al bar almeno una volta. Se il tuo manoscritto è tornato indietro lungo, finalmente sai dove puntare il dito.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: "La parte difficile è stata trovare qualcuno che il contratto lo legga davvero. Se sei tu, dodici mesi delle tue telefonate all'assistenza valevano una trascrizione.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: "Hanno montato un tavolino pieghevole al gate 14 e misurato quello che i viaggiatori avevano caricato contro la borsa che lo conteneva. Il tuo bagaglio a mano sarebbe stato il prossimo.",
+      outlet: 'Lo Scroll Quotidiano',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: "Dodici piani di dati dei badge, e dei badge lo hanno saputo tutti al debriefing. Ogni volta che prendi le scale con un collega, quella è l'unità di analisi.",
+      outlet: 'Clamore & Lenzuolo',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: "Due codificatori hanno studiato le fotografie di come gli altri tengono i calzini e si sono trovati d'accordo quasi sempre. Apri il tuo cassetto e puoi valutarti da solo.",
+      outlet: 'Clickeria',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     {
       text: 'STUDIO: FELCI = POTERE CONTRATTUALE?',
       outlet: 'Rete Sottopancia',

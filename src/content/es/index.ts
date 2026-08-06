@@ -667,6 +667,80 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-2 cells, transcreated off
+    // the SPANISH scenarios. Same midmarket rules as the block above — TÚ and
+    // never usted, the second person in every line, the joke landing on
+    // something the reader owns or already does. Where this locale's scenario
+    // has its own furniture the blurb takes that and not the English source's:
+    // the poetry jury is the one de licenciados en Filología, the stairs study
+    // says fichaje and sesión informativa final, and the peer reviewers sat in
+    // a cafetería.
+    {
+      text: 'Tu gato no está en la nómina de la fundación, pero fueron cuatro gatos los que pusieron en marcha el estudio. Con treinta días de tus operaciones habrías entrado en la muestra.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: 'Al jurado de licenciados en Filología se le paga en pizza y lo puntúa todo a ciegas. Un trimestre de lo que escribes tú habría ido al mismo montón.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Un helecho de Boston por cada responsable de compras, un ciclo de contratación entero, y después alguien pidió las condiciones finales. Tú también tienes un helecho a dos pasos de la mesa.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Cada nombre de mascota se clasificó a mano contra una lista de economistas, y con un Milton hizo falta una semana entera. El nombre de tu perro o está en esa lista o no está.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Aquí dentro hay dieciocho meses de registros de calendario, y la consultora ya ha preguntado a qué reuniones pensamos señalar por su nombre. Tu reunión de las cuatro también está en los datos de alguien.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: 'A los desconocidos de tres ciudades les preguntaron primero por la calle y después por el telescopio. Van a añadir una cuarta ciudad, así que ojo con quien te pare.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'El panel que puntúa la severidad son exeditores, todos ellos revisados alguna vez desde una cafetería. Si tu manuscrito volvió largo, por fin sabes hacia dónde señalar.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'Lo difícil fue encontrar a alguien que se lea el contrato de verdad. Si eres tú, doce meses de tus llamadas a soporte merecían una transcripción.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'Montaron una mesa plegable en la puerta 14 y midieron lo que los viajeros habían metido contra la maleta que lo llevaba. Tu equipaje de mano habría sido el siguiente.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'Doce plantas de datos de fichaje, y lo de las tarjetas se supo en la sesión informativa final. Cada vez que subes por las escaleras con un compañero, esa es la unidad de análisis.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'Dos personas estudiaron fotografías de cómo guardan los calcetines los demás y coincidieron casi siempre. Abre tu cajón y ya puedes puntuarte.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     {
       text: 'ESTUDIO: ¿HELECHOS = PODER DE NEGOCIACIÓN?',
       outlet: 'Cadena Rótulo 24H',

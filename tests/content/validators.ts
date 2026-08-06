@@ -464,6 +464,49 @@ export function findScenariosWithoutPress(content: LocaleContent): string[] {
   return content.scenarios.map((s) => s.id).filter((id) => !bound.has(id));
 }
 
+/**
+ * gr3-024 / gr2-014 — THE 60-CELL PRESS MATRIX, and why `findScenariosWithoutPress`
+ * above was not enough.
+ *
+ * That law asks whether a scenario is named by SOME blurb at SOME tier, and by
+ * that measure the bank has been complete since T39a. The picker does not work
+ * at that granularity. `resolveSlot` filters by tier FIRST and only then looks
+ * for a scenario binding, so the unit that decides whether the day's first card
+ * names the study is the (scenario, tier) CELL — and 34 of the 60 cells were
+ * empty. Two review lanes measured the consequence independently: on 55-58% of
+ * days the entire press page was generic, and of six live days driven through
+ * the real UI, three rendered no scenario-bound press at all.
+ *
+ * The gap was invisible because both laws are true statements about the same
+ * bank: every scenario IS covered, and most (scenario, tier) pairs are NOT.
+ * This function measures the granularity the picker actually uses.
+ *
+ * Language-independent (it reads ids and tiers, never prose), so it lives here
+ * and all three locales inherit it through their own `validateLocaleContent`
+ * call — which matters more than usual for this law, because press tiers and
+ * scenarioIds are pinned index-by-index across locales: a cell that is filled
+ * in English is structurally filled everywhere, and a locale that drifted would
+ * be failing a parity law rather than this one.
+ */
+export const PRESS_TIERS: readonly (1 | 2 | 3)[] = [1, 2, 3];
+
+export function findUncoveredPressCells(content: LocaleContent): string[] {
+  const uncovered: string[] = [];
+  for (const scenario of content.scenarios) {
+    for (const tier of PRESS_TIERS) {
+      const bespoke = content.press.some((p) => p.tier === tier && p.scenarioIds?.includes(scenario.id));
+      if (!bespoke) uncovered.push(`${scenario.id}/tier${tier}`);
+    }
+  }
+  return uncovered;
+}
+
+/** Measured, so a report can quote the number rather than the verdict. */
+export function pressCellCoverage(content: LocaleContent): { covered: number; total: number } {
+  const total = content.scenarios.length * PRESS_TIERS.length;
+  return { covered: total - findUncoveredPressCells(content).length, total };
+}
+
 /** Whole-word matches, so "wellness" does not trip "less" nor "slower" trip "lower". */
 export function findNegativeDirectionTerms(
   content: LocaleContent,

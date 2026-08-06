@@ -595,14 +595,33 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
    * Salting the agnostic draw with the scenario id decorrelates the twenty
    * scenarios from each other.
    */
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4). This test used to select "scenarios with no
+   * bound blurb at tier 2", on the reasoning that a cell with no bespoke entry
+   * renders a WHOLE generic day and is where the repetition was most visible.
+   * The 60-cell press matrix filled every such cell, so that selector now
+   * matches nothing and the fixture's own `> 1` guard fired — the premise was
+   * the defect W4 removes, not the property this test is about.
+   *
+   * The property is unchanged and is still exactly gr6-064's second half: two
+   * different scenarios, same date, same tier, must not draw the same GENERIC
+   * material. What moved is where the generic material now lives. Card 1 is
+   * bespoke by construction post-matrix, so the generic draw is the follow-up
+   * tail — which is the pool the scenario salt was added to decorrelate in the
+   * first place, and therefore the sharper place to measure it.
+   */
   it('does not run the same generic pair for two different scenarios on the same date and tier', () => {
-    const genericOnly = enContent.scenarios.filter((sc) => enContent.press.every((p) => !isBoundTo(p, sc.id) || p.tier !== 2));
-    // The interesting cells are the ones with no bound blurb at this tier —
-    // where the WHOLE day is generic and the repetition was most visible.
-    expect(genericOnly.length).toBeGreaterThan(1);
-    const signatures = new Set(
-      genericOnly.map((sc) => pressForDay(enContent.press, 2, sc.id, ISO).map((b) => b.text).join('|'))
-    );
-    expect(signatures.size).toBeGreaterThan(1);
+    // The follow-up slots are the agnostic ones (pickPress inverts the
+    // preference for a salted seed), so the tail is the generic signature.
+    const genericTail = (scenarioId: string, tier: 1 | 2 | 3) =>
+      pressForDay(enContent.press, tier, scenarioId, ISO)
+        .slice(1)
+        .map((b) => b.text)
+        .join('|');
+    expect(enContent.scenarios.length).toBeGreaterThan(1);
+    for (const tier of TIERS) {
+      const signatures = new Set(enContent.scenarios.map((sc) => genericTail(sc.id, tier)));
+      expect(signatures.size, `tier ${tier} generic tails on ${ISO}`).toBeGreaterThan(1);
+    }
   });
 });

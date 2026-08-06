@@ -18,7 +18,14 @@ import { content as esContent } from '../../src/content/es';
 import { copy as enCopy } from '../../src/content/en/copy';
 import { NULL_SIG_BAND } from '../../src/game/tuning';
 import { allSpecs } from '../../src/engine/specGrid';
-import { substituteEffect } from '../../src/game/published';
+// `pressForDay` joins `substituteEffect` here for the 60-cell matrix block
+// below (gr3-024). Importing the picker into a CONTENT suite is deliberate: the
+// question that block asks is not "does the picker work" (tests/game owns that)
+// but "is the BANK rich enough for the picker to keep its promises" — whether
+// the day's first card can name the study, and whether two cards can always be
+// found under two different mastheads. Neither is answerable from the data
+// alone, and both are properties of the content rather than of the function.
+import { pressForDay, substituteEffect } from '../../src/game/published';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 import {
@@ -36,6 +43,8 @@ import {
   findPressVoiceProblems,
   findParamFieldTokens,
   findScenariosWithoutPress,
+  findUncoveredPressCells,
+  pressCellCoverage,
   corpusProse,
   localeProse,
   upperCaseRatio,
@@ -323,7 +332,11 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
     // scenario — so the demonstration moves to a fixture. It is the same string
     // the bank shipped, which is what keeps this an argument about real content
     // rather than an invented edge case.
-    const properNounChyron = { ...enContent.press[29], text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)' };
+    // gr3-024 de-indexed this: the fixture wants A TIER-3 BLURB as its base,
+    // and pinning `press[29]` spelled that as an integer which the matrix wave
+    // then moved twice. The lookup says what the fixture actually needs.
+    const aChyron = enContent.press.find((p) => p.tier === 3)!;
+    const properNounChyron = { ...aChyron, text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)' };
     expect(properNounChyron.text).not.toBe(properNounChyron.text.toUpperCase());
     expect(upperCaseRatio(properNounChyron.text)).toBeGreaterThan(0.9);
     expect(findPressVoiceProblems({ ...enContent, press: [properNounChyron] })).toEqual([]);
@@ -335,14 +348,19 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
   });
 
   it('catches a tier-3 blurb that forgot to shout, and a tier-1 blurb that did (guards the guard)', () => {
+    // Both fixtures pick their victim by TIER rather than by index, for the
+    // reason above: a quiet blurb at tier 3 and a shouting one at tier 1 are
+    // what these two assertions are about, and neither cares which row it is.
+    const firstTier3 = enContent.press.findIndex((p) => p.tier === 3);
+    const firstTier1 = enContent.press.findIndex((p) => p.tier === 1);
     const quietChyron: LocaleContent = {
       ...enContent,
-      press: enContent.press.map((p, i) => (i === 29 ? { ...p, text: 'Study: ferns may be leverage.' } : p)),
+      press: enContent.press.map((p, i) => (i === firstTier3 ? { ...p, text: 'Study: ferns may be leverage.' } : p)),
     };
     expect(findPressVoiceProblems(quietChyron).some((p) => p.includes('not in the chyron'))).toBe(true);
     const shoutingBroadsheet: LocaleContent = {
       ...enContent,
-      press: enContent.press.map((p, i) => (i === 1 ? { ...p, text: 'THE EFFECT IS MODEST, SAY THE AUTHORS' } : p)),
+      press: enContent.press.map((p, i) => (i === firstTier1 ? { ...p, text: 'THE EFFECT IS MODEST, SAY THE AUTHORS' } : p)),
     };
     expect(findPressVoiceProblems(shoutingBroadsheet).some((p) => p.includes('shouts like a chyron'))).toBe(true);
   });
@@ -414,6 +432,137 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
     };
     expect(validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes('asserts a verdict'))).toBe(true);
     expect(validateLocaleContent(broken, empty).some((p) => p.includes('asserts a verdict'))).toBe(false);
+  });
+});
+
+/**
+ * gr3-024 / gr2-014 — THE 60-CELL PRESS MATRIX.
+ *
+ * WHAT THE OLD LAW MISSED. T39a's `findScenariosWithoutPress` asks whether a
+ * scenario is named by SOME blurb at SOME tier, and the bank has satisfied it
+ * since T39a shipped. `resolveSlot` does not select at that granularity: it
+ * filters by TIER first and only then looks for a scenario binding, so the unit
+ * that decides whether the day's first card can name the study is the
+ * (scenario, tier) CELL. 26 of 60 were filled, which is why two review lanes
+ * independently measured a press page that was entirely generic on 55-58% of
+ * days, and why three of six live days driven through the real UI rendered no
+ * scenario-bound press at all.
+ *
+ * A RATCHET WHILE THE WAVE IS IN FLIGHT, A LAW WHEN IT LANDS. The matrix is
+ * authored tier by tier (tier 2, then tier 3, then tier 1; English first, then
+ * the transcreation), so a hard 60 would be red for five of the six commits and
+ * would tell nobody anything they did not already know. MIN_COVERED_CELLS rises
+ * once per tier pair and the final commit both sets it to 60 and wires
+ * `findUncoveredPressCells` into `validateLocaleContent`, where every locale
+ * inherits it. The asymmetry is the point, exactly as in the dosage ratchets:
+ * filling a cell early passes silently, emptying one fails.
+ */
+describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
+  const MIN_COVERED_CELLS = 37;
+
+  const LOCALES = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALES)('$name: covers at least the cells this wave has reached', ({ content }) => {
+    const { covered, total } = pressCellCoverage(content);
+    expect(total).toBe(60);
+    expect(covered, `uncovered cells:\n  ${findUncoveredPressCells(content).join('\n  ')}`).toBeGreaterThanOrEqual(
+      MIN_COVERED_CELLS
+    );
+  });
+
+  /**
+   * The structural reason the three locales cannot drift apart on this law, and
+   * therefore the reason it is measured once rather than argued three times:
+   * press tiers and scenarioIds are pinned index-by-index across locales by the
+   * IT/ES suites. Filling a cell in English fills it everywhere by construction.
+   * Asserted here rather than assumed, because "by construction" is a claim.
+   */
+  it('fills the same cells in every locale, because tiers and bindings are index-pinned', () => {
+    const cells = (c: LocaleContent) => findUncoveredPressCells(c).join('|');
+    expect(cells(itContent)).toBe(cells(enContent));
+    expect(cells(esContent)).toBe(cells(enContent));
+  });
+
+  it('catches an emptied cell, and does not fire on a filled one (guards the guard)', () => {
+    // Strip the tier-2 binding off cat-crypto, which is bound at all three
+    // tiers: every OTHER law stays green (the scenario is still named at tiers
+    // 1 and 3, so T39a's check passes and reports nothing), which is precisely
+    // the blind spot this law exists to cover. Choosing a multi-tier scenario
+    // is what makes the two assertions disagree — on a single-tier scenario
+    // both would fire and the fixture would prove nothing about granularity.
+    const emptied: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p) =>
+        p.tier === 2 && p.scenarioIds?.includes('cat-crypto') ? { ...p, scenarioIds: ['sourdough-marathon'] } : p
+      ),
+    };
+    expect(findUncoveredPressCells(emptied)).toContain('cat-crypto/tier2');
+    expect(findScenariosWithoutPress(emptied)).toEqual([]);
+    expect(findUncoveredPressCells(enContent)).not.toContain('cat-crypto/tier2');
+  });
+
+  /**
+   * THE SIMULATION, and what it is for. The matrix is authored so that the
+   * day's FIRST card names the study; that promise is only real if the picker
+   * actually reaches a bespoke item, which depends on the bank rather than on
+   * the function. 3,000 consecutive dates x 20 scenarios x 3 tiers, driven
+   * through the shipped `pressForDay`, is the cheapest honest way to say so.
+   *
+   * Two properties, both about the CONTENT:
+   *   1. Whenever the cell is filled, card 1 is bespoke. (The picker prefers
+   *      the bound pool for the unsalted slot; this asserts the bank leaves it
+   *      something to prefer.)
+   *   2. No two cards on one screen share an outlet. gr6-064 made the picker
+   *      reject-and-advance past a used masthead, but it can only do that if
+   *      the pool HOLDS another masthead — a content property, and the one a
+   *      careless outlet assignment on 34 new blurbs would break.
+   */
+  const SIM_DAYS = 3000;
+  const simDates = Array.from({ length: SIM_DAYS }, (_, i) =>
+    new Date(Date.UTC(2026, 0, 1) + i * 86_400_000).toISOString().slice(0, 10)
+  );
+
+  it.each(LOCALES)('$name: 3,000 dates x every cell, card 1 is bespoke and no two cards share an outlet', ({ content }) => {
+    const uncovered = new Set(findUncoveredPressCells(content));
+    const misses: string[] = [];
+    const clashes: string[] = [];
+    for (const iso of simDates) {
+      for (const scenario of content.scenarios) {
+        for (const tier of [1, 2, 3] as const) {
+          const cards = pressForDay(content.press, tier, scenario.id, iso);
+          const where = `${iso} ${scenario.id}/tier${tier}`;
+          if (!uncovered.has(`${scenario.id}/tier${tier}`) && !cards[0].scenarioIds?.includes(scenario.id)) {
+            misses.push(where);
+          }
+          const outlets = cards.map((c) => c.outlet);
+          if (new Set(outlets).size !== outlets.length) clashes.push(`${where}: ${outlets.join(' + ')}`);
+          const texts = cards.map((c) => c.text);
+          if (new Set(texts).size !== texts.length) clashes.push(`${where}: repeated line`);
+        }
+      }
+    }
+    // Sliced so a regression prints five readable rows rather than 180,000.
+    expect(misses.slice(0, 5)).toEqual([]);
+    expect(clashes.slice(0, 5)).toEqual([]);
+  });
+
+  /**
+   * The generic pool is what the FOLLOW-UP cards draw from, so the matrix must
+   * not be paid for by starving it. Restated at the cell level: every tier
+   * keeps enough agnostic blurbs to fill the day's remaining slots under
+   * distinct mastheads, which for tier 3 (three slots) means three outlets.
+   */
+  it.each(LOCALES)('$name: every tier keeps enough agnostic mastheads for the follow-up slots', ({ content }) => {
+    for (const tier of [1, 2, 3] as const) {
+      const agnostic = content.press.filter((p) => p.tier === tier && !p.scenarioIds?.length);
+      const outlets = new Set(agnostic.map((p) => p.outlet));
+      expect(agnostic.length, `tier ${tier} generic pool`).toBeGreaterThanOrEqual(5);
+      expect(outlets.size, `tier ${tier} generic mastheads`).toBeGreaterThanOrEqual(tier === 3 ? 3 : 2);
+    }
   });
 });
 

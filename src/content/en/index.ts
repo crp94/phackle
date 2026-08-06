@@ -657,6 +657,80 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // ---- gr3-024, the 60-cell matrix: the eleven tier-2 cells T39a left
+    // empty. Same midmarket voice as the nine above it — the outlet has read
+    // the abstract and made it about the reader, so every line turns on the
+    // second person and lands on something the reader already owns, already
+    // does, or is already inside somebody's dataset for. Mastheads rotate
+    // Buzz / Clickwell / Scroll so no scenario's first card can collide with
+    // its own follow-ups. Spoiler law as above: the question, the method and
+    // the cover story's furniture, never the verdict. ----
+    {
+      text: 'Your cat is not on the trust\'s payroll, but four of them started this study. Thirty days of your trading would have been enough to get you into the sample.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: 'The panel of English-department alumni is paid in pizza and scores every submission blind. A quarter of your writing would have gone into the same pile.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'One Boston fern per procurement officer, one full contracting cycle, and then somebody asked for the closed terms. There is a fern somewhere near your desk right now.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Every pet name was hand-classified against a list of economists, and one Milton took a week to settle. Your dog is either on that list or it is not.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Eighteen months of calendar records went into this, and the consultancy has already asked which of its meetings we intend to name. Your four o\'clock is in somebody\'s dataset too.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: 'Strangers in three cities were asked for directions first and about their telescope second. A fourth city is being added, so watch who stops you.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'The panel scoring severity is made of former editors who have all been reviewed in a café. If your manuscript came back long, you finally have somewhere to point.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'The hard part was finding anybody who reads the agreement at all. If that is you, twelve months of your support calls were worth transcribing.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'They put a folding table at gate 14 and measured what travelers had packed against the bag it came in. Your carry-on would have been next.',
+      outlet: 'The Daily Scroll',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'Twelve floors of badge data, and everybody found out about the badges at the debrief. Every time you took the stairs with a colleague, that was the unit of analysis.',
+      outlet: 'Buzz & Broadsheet',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'Two coders studied photographs of other people\'s sock storage and agreed almost every time. Open yours and you can score it yourself.',
+      outlet: 'Clickwell',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     // ---- TIER 3: the chyron. The broadcast has reduced the abstract to
     // whatever fits a lower third. ----
     { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
