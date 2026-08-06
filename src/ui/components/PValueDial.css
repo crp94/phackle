@@ -77,6 +77,44 @@
   animation: ph-dial-settle var(--dur-quick) var(--ease-out);
 }
 
+/* gr6-063 / DESIGN.md R5.2's GRANT 1 — site 2's SECOND identity.
+   The owner ruled AMPLIFY, and the law fixed the shape before this commit
+   existed: the dial spent the quiet pair — 2px at --dur-quick — on every
+   settled result alike, including the one crossing that carries the whole
+   game. A BAND CHANGE (a move between R1.8's five steps, which
+   PValueDial.tsx already computes with dialBand(p)) now settles at the loud
+   pair R5.3 already pins, --dur-scene over the scene distance; a re-settle
+   INSIDE the same band keeps the rule above.
+
+   THE SIGN IS PART OF THE GRANT, and it is the one thing an implementer can
+   get wrong without changing a value this document could catch: the quiet
+   settle drops the numeral IN FROM ABOVE (-2px -> 0) and the loud version is
+   the same gesture at the scene distance (-6px -> 0). R5.3's own Do example
+   is written positive because a SCENE rises into place; copying that sign
+   here would reverse Act I's signature.
+
+   Everything else is unchanged and deliberately so: no new distance (6px is
+   R5.3's own), no new duration, no new easing, no new token, no colour, no
+   second keyframe body shape, and reduced motion still collapses both to one
+   imperceptible frame because both read the same scale (R5.6). R8.1 binds
+   exactly as hard as it does above — no glow, no halo, no pulse, no ring, no
+   disc, no font-size change. The ruling's illustrative "numeral weight-snap"
+   is OUT OF LAW (R2.4 makes every numeral mono, R2.3 says mono is never
+   anything but 400) and is not implemented here. */
+@keyframes ph-dial-settle-band {
+  from {
+    transform: translateY(-6px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.ph-dial__value--tick-band {
+  animation: ph-dial-settle-band var(--dur-scene) var(--ease-out);
+}
+
 .ph-dial__insufficient {
   max-width: var(--measure);
   margin-inline: auto;

@@ -1296,3 +1296,68 @@ describe('gr6-025 — the collect button says what the collection buys', () => {
     expect(gain?.textContent).toMatch(/250/);
   });
 });
+
+/* ==========================================================================
+   gr6-063 / DESIGN.md R5.2 GRANT 1 — site 2's two settles.
+   The owner ruled AMPLIFY within R8.1, and the law fixed the shape: a BAND
+   CHANGE (a move between R1.8's five steps) takes R5.3's loud pair, a
+   re-settle inside the same band keeps the quiet one. The sign is part of
+   the grant — both drop the numeral IN FROM ABOVE — and the "numeral
+   weight-snap" the ruling used as an illustration is out of law (R2.3/R2.4)
+   and must not appear.
+   ========================================================================== */
+describe('gr6-063 — the dial settles loudly only when it crosses a band', () => {
+  const settleClass = () =>
+    (document.querySelector('[data-testid="pvalue-dial"] p') as HTMLElement | null)?.className ?? '';
+
+  async function renderDial(p: number, n = 200) {
+    return render(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p, n })} pending={false} />
+      </LocaleProvider>
+    );
+  }
+
+  it('arms the QUIET settle for a new number inside the same band', async () => {
+    const view = await renderDial(0.42); // step-1 (.2 < p <= .5)
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    view.rerender(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p: 0.31, n: 200 })} pending={false} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value--tick'));
+    expect(settleClass()).not.toContain('ph-dial__value--tick-band');
+  });
+
+  it('arms the LOUD settle when the result crosses into another band', async () => {
+    const view = await renderDial(0.42); // step-1
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    view.rerender(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p: 0.043, n: 200 })} pending={false} />
+      </LocaleProvider>
+    ); // significant — the crossing that carries the whole game
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value--tick-band'));
+  });
+
+  it('does not arm the loud settle on the FIRST result of the day (no band to have crossed)', async () => {
+    await renderDial(0.043);
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    expect(settleClass()).not.toContain('--tick-band');
+    expect(settleClass()).not.toContain('--tick');
+  });
+
+  it('drops the numeral IN FROM ABOVE at both distances, and snaps no weight (R2.3/R2.4)', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/PValueDial.css'), 'utf8');
+    const quiet = /@keyframes\s+ph-dial-settle\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const loud = /@keyframes\s+ph-dial-settle-band\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    // The SIGN is the part a value table cannot catch: positive would
+    // reverse Act I's signature without changing a single distance.
+    expect(quiet).toContain('translateY(-2px)');
+    expect(loud).toContain('translateY(-6px)');
+    expect(loud).not.toContain('translateY(6px)');
+    // R8.1's Don'ts, and the ruling's own out-of-law illustration.
+    expect(css).not.toMatch(/font-weight|box-shadow|filter:|scale\(/);
+  });
+});

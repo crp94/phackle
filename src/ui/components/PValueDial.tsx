@@ -78,12 +78,14 @@ function degreesOfFreedom(result: PathResult): number {
 // parseFloat('') is NaN, and the guard falls through to the same value
 // tokens.css declares — no mocking needed, exactly as in Published.tsx.
 const FALLBACK_DUR_QUICK_MS = 140;
+/** R5.1's scene duration, the loud half of gr6-063's pair. */
+const FALLBACK_DUR_SCENE_MS = 260;
 
-function readDurQuickMs(): number {
-  if (typeof window === 'undefined') return FALLBACK_DUR_QUICK_MS;
-  const raw = getComputedStyle(document.documentElement).getPropertyValue('--dur-quick').trim();
+function readDurMs(token: '--dur-quick' | '--dur-scene', fallback: number): number {
+  if (typeof window === 'undefined') return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
   const parsed = Number.parseFloat(raw);
-  return Number.isFinite(parsed) ? parsed : FALLBACK_DUR_QUICK_MS;
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 /**
@@ -171,24 +173,51 @@ export function PValueDialCaption() {
 export function PValueDial({ result, pending }: PValueDialProps) {
   const { t } = useLocale();
   const reducedMotion = useReducedMotion();
-  const [ticking, setTicking] = useState(false);
+  /** gr6-063: which of site 2's two settles is armed, if either. */
+  const [settle, setSettle] = useState<'quiet' | 'band' | null>(null);
   const prevKeyRef = useRef<string | null>(null);
+  const prevBandRef = useRef<DialBand | undefined>(undefined);
 
   // Keyed on the values that actually change the DISPLAYED number (not
   // merely a same-valued re-render), so the tick fires once per genuinely
   // new result rather than on every parent re-render.
   const tickKey = result ? `${result.p}|${result.n}|${result.spec.outcome}` : null;
+  // R5.2 row 2's trigger, narrowed by Grant 1: the LOUD settle is keyed on
+  // the band, not on the number. `undefined` (never seen a band) is
+  // deliberately distinct from `null` (the resting p > .5 band), so the
+  // first result of the day cannot be read as a crossing.
+  const currentBand = result && result.valid ? dialBand(result.p) : undefined;
 
   useEffect(() => {
     const prevKey = prevKeyRef.current;
+    const prevBand = prevBandRef.current;
     prevKeyRef.current = tickKey;
+    prevBandRef.current = currentBand;
     if (prevKey !== null && tickKey !== null && tickKey !== prevKey && !reducedMotion) {
-      setTicking(true);
-      const handle = setTimeout(() => setTicking(false), readDurQuickMs());
+      // A band CHANGE — a move between R1.8's five steps — takes R5.3's loud
+      // pair; a re-settle inside the same band keeps the quiet one. Both
+      // collapse to one imperceptible frame under reduced motion, because
+      // both read tokens tokens.css collapses (R5.6) — and the timer that
+      // re-arms the class reads the SAME token as the animation it re-arms,
+      // so it shortens with it instead of holding a class on for 260ms in a
+      // build that has no motion at all.
+      const crossed = prevBand !== undefined && currentBand !== undefined && currentBand !== prevBand;
+      setSettle(crossed ? 'band' : 'quiet');
+      const handle = setTimeout(
+        () => setSettle(null),
+        crossed ? readDurMs('--dur-scene', FALLBACK_DUR_SCENE_MS) : readDurMs('--dur-quick', FALLBACK_DUR_QUICK_MS)
+      );
       return () => clearTimeout(handle);
     }
     return undefined;
-  }, [tickKey, reducedMotion]);
+  }, [tickKey, currentBand, reducedMotion]);
+
+  const valueClassName =
+    settle === 'band'
+      ? 'ph-dial__value ph-dial__value--tick-band'
+      : settle === 'quiet'
+        ? 'ph-dial__value ph-dial__value--tick'
+        : 'ph-dial__value';
 
   if (!result) {
     return (
@@ -213,7 +242,7 @@ export function PValueDial({ result, pending }: PValueDialProps) {
 
   return (
     <DialShell className={dialClassName} pending={pending}>
-      <p className={ticking ? 'ph-dial__value ph-dial__value--tick' : 'ph-dial__value'}>{formatted}</p>
+      <p className={valueClassName}>{formatted}</p>
       <p className="ph-dial__meta">
         {t('lab.nLabel', { n: result.n })} · {t('lab.dfLabel', { df })}
       </p>
