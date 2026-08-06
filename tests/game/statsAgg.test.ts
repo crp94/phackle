@@ -46,6 +46,39 @@ describe('rollingCallAccuracy — windows to the last N calls, chronologically, 
     expect(rollingCallAccuracy(history, 20)).toBe(0); // last 20 (days 6-25) are all wrong
   });
 
+  // gr6-111 / gr1c-023: the boundary. 0, 3 (fewer than the window), 25 and 30
+  // (more than it) were covered; `length === window` exactly was not. It is
+  // the value the whole off-by-one family turns on — `slice(-20)` on a
+  // length-20 array, `slice(len - window)` with a negative index, a
+  // `length > window` guard that skips the slice — and the pair below pins
+  // both sides of it: at exactly 20 nothing may be dropped, and at 21 exactly
+  // one must be, from the FRONT.
+  it('exactly 20 calls (length === window): every call counts, nothing is dropped', () => {
+    const history: ModeHistory = {};
+    for (let d = 1; d <= 20; d++) {
+      const iso = `2026-08-${String(d).padStart(2, '0')}`;
+      history[iso] = { hack: day({ callCorrect: d <= 10 }) }; // first 10 correct, last 10 wrong
+    }
+    // 10/20 = 0.5. An implementation that dropped the oldest at exactly the
+    // window size would report 9/19; one that kept only 19 from the end would
+    // report 9/19 too. Both are visibly different numbers.
+    expect(rollingCallAccuracy(history, 20)).toBe(0.5);
+  });
+
+  it('21 calls: exactly one is dropped, and it is the OLDEST', () => {
+    const history: ModeHistory = {};
+    // Day 1 is the only correct call. In the last 20 (days 2-21) there is none,
+    // so the windowed figure is 0 while the all-time figure would be 1/21.
+    for (let d = 1; d <= 21; d++) {
+      const iso = `2026-08-${String(d).padStart(2, '0')}`;
+      history[iso] = { hack: day({ callCorrect: d === 1 }) };
+    }
+    expect(rollingCallAccuracy(history, 20)).toBe(0);
+    // ...and with a window of 21 the same history includes it, which is what
+    // makes the line above an exclusion rather than an accident of the fixture.
+    expect(rollingCallAccuracy(history, 21)).toBeCloseTo(1 / 21);
+  });
+
   it('takes the chronologically LAST 20, not an arbitrary 20, when there are more than 20 calls', () => {
     const history: ModeHistory = {};
     for (let d = 1; d <= 30; d++) {
