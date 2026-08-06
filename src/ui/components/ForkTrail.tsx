@@ -181,7 +181,7 @@ function TrailKey() {
     >
       <button
         type="button"
-        className="ph-fork-trail__key-button ph-focusable"
+        className="ph-fork-trail__key-button ph-focusable ph-label"
         data-testid="fork-trail-key"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
@@ -209,7 +209,7 @@ export function ForkTrail({ log, mode }: ForkTrailProps) {
 
   return (
     <p className="ph-fork-trail">
-      <span className="ph-fork-trail__label">{t('lab.forkTrailLabel')}</span>
+      <span className="ph-fork-trail__label ph-label">{t('lab.forkTrailLabel')}</span>
       <span className="ph-fork-trail__glyphs">{trail || '—'}</span>
       <TrailKey />
     </p>

@@ -62,7 +62,7 @@ export function RadioGroup<T extends string | number>({
 
   return (
     <div className="ph-spec-group">
-      <p className="ph-spec-group__legend" id={legendId}>
+      <p className="ph-spec-group__legend ph-label" id={legendId}>
         {legend}
       </p>
       <div

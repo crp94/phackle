@@ -246,7 +246,7 @@ export function Summary({
           nothing before it does. */}
       {unlocked.length > 0 && (
         <div className="ph-summary__unlock">
-          <h2 className="ph-summary__unlock-title">{t('summary.unlockedToday')}</h2>
+          <h2 className="ph-summary__unlock-title ph-label">{t('summary.unlockedToday')}</h2>
           <ul className="ph-summary__unlock-list">
             {unlocked.map((award, i) => (
               <UnlockLine key={award.id} award={award} index={i} />

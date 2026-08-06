@@ -31,8 +31,6 @@
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
   font-size: var(--text-40);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* gr6-077: THE THREE COLOUR PAIRS, UNGROUPED. Each verdict used to be two

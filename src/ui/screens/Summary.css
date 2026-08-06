@@ -145,7 +145,7 @@
   max-width: var(--measure);
 }
 
-/* R2.7's uppercase label treatment: this is a small heading over a list, the
+/* R2.7's uppercase label treatment (`.ph-label`, §9.1): this is a small heading over a list, the
    same job .ph-press-card__outlet does over a clipping — --ink and
    --weight-medium, because it opens the block rather than captioning it. */
 .ph-summary__unlock-title {
@@ -154,8 +154,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin: 0;
 }
 

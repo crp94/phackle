@@ -27,8 +27,12 @@ export function JournalCover({ journal, headline, authors, doi, tier }: JournalC
 
   return (
     <div className="ph-journal-cover" data-tier={tier}>
-      <p className="ph-journal-cover__watermark">{t('published.simulatedPress')}</p>
-      <p className={tier === 3 ? 'ph-journal-cover__masthead ph-journal-cover__masthead--pick' : 'ph-journal-cover__masthead'}>
+      <p className="ph-journal-cover__watermark ph-label">{t('published.simulatedPress')}</p>
+      <p className={
+          tier === 3
+            ? 'ph-journal-cover__masthead ph-journal-cover__masthead--pick ph-label'
+            : 'ph-journal-cover__masthead ph-label'
+        }>
         {journal}
       </p>
       <h1 className={tier === 3 ? 'ph-journal-cover__headline ph-journal-cover__headline--pick' : 'ph-journal-cover__headline'}>

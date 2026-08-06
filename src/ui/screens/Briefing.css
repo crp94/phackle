@@ -64,7 +64,7 @@
 }
 
 /* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
-   carries --tracking-label. R4.5: a hairline underline, never a 4-side
+   carries --tracking-label (`.ph-label`, §9.1). R4.5: a hairline underline, never a 4-side
    border or a filled pill (matches Published's own CTA treatment). */
 .ph-briefing__cta {
   display: inline-block;
@@ -73,8 +73,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   background: none;
   border-style: none;
   border-block-end: var(--hairline);

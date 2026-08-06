@@ -61,6 +61,24 @@ body {
   outline-offset: var(--focus-offset);
 }
 
+/* R2.7's uppercase label: the PAIR, never one without the other. "Uppercase
+   labels carry --tracking-label (0.08em); nothing else is uppercased" is one
+   rule about two properties, and splitting them is the drift it forbids —
+   uppercase without the tracking is a shout, and the tracking is what makes
+   the shout legible at 13px.
+   IT CARRIES NOTHING ELSE, which is why it composes onto elements as different
+   as a 13px --muted caption, a 15px --ink CTA and R8.2's 40px display stamp:
+   the family, the size, the weight and the colour are the site's business and
+   stay at the site.
+   TWO SITES SET `--tracking-label` WITHOUT THE TRANSFORM and are deliberately
+   NOT `.ph-label` — .ph-fork-trail__glyphs and .ph-glyph-mark space runs of
+   emoji, where there are no letterforms to case at all. §9.1 constraint 3:
+   a utility is adopted only where the value already matches it. */
+.ph-label {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
 /* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
    The screen change is the biggest state change in the product and, until
    this task, the only one with no beat at all: briefing -> lab -> published
@@ -225,7 +243,7 @@ body {
 }
 
 /* The same CTA treatment as .ph-published__cta / .ph-reveal__cta: R6.4's tap
-   target in scale padding, R2.7's uppercase label, R4.5's single hairline
+   target in scale padding, R2.7's uppercase label (`.ph-label`), R4.5's single hairline
    underline. */
 .ph-boot-error__reload {
   display: inline-block;
@@ -235,8 +253,6 @@ body {
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   background: none;
   border-style: none;
   border-block-end: var(--hairline);
@@ -404,13 +420,11 @@ body {
    see — 400 vs 500 at --text-15 is imperceptible next to three siblings, and
    CSS must not claim a difference the eye does not get. This is now the
    product's OWN registered idiom for "this is the action, not a label":
-   R2.7's uppercase label with --tracking-label, exactly the treatment
+   R2.7's uppercase label with --tracking-label (`.ph-label`), exactly the treatment
    .ph-briefing__cta / .ph-published__cta / .ph-reveal__cta already wear. No
    new token, no new colour, and a distinction that reads at a glance. */
 .ph-seg--action {
   font-weight: var(--weight-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* T40 (FINDING F1) — the storage-blocked notice (App.tsx). Same block shape

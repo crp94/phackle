@@ -26,8 +26,6 @@
 
 .ph-fork-trail__label {
   font-size: var(--text-13);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* T29: the glyph run itself, set large enough to actually read (the owner's
@@ -54,8 +52,6 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   text-decoration: underline;
   text-underline-offset: 2px;
   background: none;

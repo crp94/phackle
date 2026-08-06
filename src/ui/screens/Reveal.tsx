@@ -398,7 +398,7 @@ export function Reveal() {
             <div className="ph-reveal__cover-card" data-role="cover-echo">
               {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
                   never a second literal — see src/ui/masthead.ts. */}
-              <p className="ph-reveal__cover-vol">
+              <p className="ph-reveal__cover-vol ph-label">
                 {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
               </p>
               <p className="ph-reveal__cover-title">{scenario.question}</p>
@@ -466,7 +466,7 @@ export function Reveal() {
           that can be hidden by an IntersectionObserver that never fires is an
           action that can strand the player. Full width, after everything, so
           it cannot be mistaken for one more caption. */}
-      <button type="button" className="ph-reveal__cta ph-focusable" data-role="to-summary" onClick={finishReveal}>
+      <button type="button" className="ph-reveal__cta ph-focusable ph-label" data-role="to-summary" onClick={finishReveal}>
         {t('reveal.toSummary')}
       </button>
     </div>

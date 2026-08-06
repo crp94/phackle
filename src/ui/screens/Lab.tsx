@@ -119,7 +119,7 @@ export function Lab() {
             discover the instructions — and gone for good once dismissed. */}
         {introSeen ? null : (
           <details className="ph-lab__intro" data-testid="lab-intro" open>
-            <summary className="ph-lab__intro-title ph-focusable">{t('lab.howThisWorks.title')}</summary>
+            <summary className="ph-lab__intro-title ph-focusable ph-label">{t('lab.howThisWorks.title')}</summary>
             <ol className="ph-lab__intro-steps">
               {HOW_TO_PLAY_STEPS.map((key) => (
                 <li key={key} className="ph-lab__intro-step" data-testid="lab-intro-step">

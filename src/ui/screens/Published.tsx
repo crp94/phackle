@@ -112,9 +112,9 @@ function PressCard({ blurb, t, index }: BlurbCardProps) {
       className={entered ? 'ph-press-card ph-entered' : 'ph-press-card'}
       style={staggerStyle(index)}
     >
-      <p className="ph-press-card__outlet">{blurb.outlet}</p>
+      <p className="ph-press-card__outlet ph-label">{blurb.outlet}</p>
       <p className="ph-press-card__text">{blurb.text}</p>
-      <p className="ph-press-card__watermark">{t('published.simulatedPress')}</p>
+      <p className="ph-press-card__watermark ph-label">{t('published.simulatedPress')}</p>
     </li>
   );
 }
@@ -138,11 +138,11 @@ function ChyronBar({ blurb, t, index }: BlurbCardProps) {
   const { ref, entered } = useEnterOnce<HTMLDivElement>();
   return (
     <div ref={ref} className={entered ? 'ph-chyron ph-entered' : 'ph-chyron'} style={staggerStyle(index)}>
-      <p className="ph-chyron__badge">{t('published.editorsPick')}</p>
+      <p className="ph-chyron__badge ph-label">{t('published.editorsPick')}</p>
       <p className="ph-chyron__text">{blurb.text}</p>
       <p className="ph-chyron__strap">
-        <span className="ph-chyron__outlet">{blurb.outlet}</span>
-        <span className="ph-chyron__watermark">{t('published.simulatedPress')}</span>
+        <span className="ph-chyron__outlet ph-label">{blurb.outlet}</span>
+        <span className="ph-chyron__watermark ph-label">{t('published.simulatedPress')}</span>
       </p>
     </div>
   );
@@ -391,7 +391,7 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
           <PressCard blurb={card2} t={t} index={1} />
         </ul>
         {chyron && <ChyronBar blurb={chyron} t={t} index={2} />}
-        <button type="button" className="ph-published__cta ph-focusable" ref={ctaRef} onClick={handleFaceTruth}>
+        <button type="button" className="ph-published__cta ph-focusable ph-label" ref={ctaRef} onClick={handleFaceTruth}>
           {t('published.faceTruth')}
         </button>
       </div>

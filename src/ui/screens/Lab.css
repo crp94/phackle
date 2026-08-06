@@ -87,8 +87,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   padding-block: var(--space-12);
   border-block-end: 2px solid transparent;
   cursor: pointer;

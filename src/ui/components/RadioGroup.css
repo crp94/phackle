@@ -16,8 +16,6 @@
   font-size: var(--text-13);
   font-weight: var(--weight-medium);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 .ph-spec-group__options {

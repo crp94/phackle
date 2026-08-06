@@ -74,8 +74,6 @@
   font-size: var(--text-15);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   background: none;
   border-style: none;
   border-block-end: 2px solid var(--ink);

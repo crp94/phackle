@@ -106,7 +106,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
         <span>{t('prereg.commit')}</span>
       </label>
 
-      <button type="button" className="ph-prereg__submit ph-focusable" disabled={!canSubmit} onClick={handleSubmit}>
+      <button type="button" className="ph-prereg__submit ph-focusable ph-label" disabled={!canSubmit} onClick={handleSubmit}>
         {t('prereg.submit')}
       </button>
 

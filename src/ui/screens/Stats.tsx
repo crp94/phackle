@@ -60,23 +60,23 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
 
       <dl className="ph-stats__summary">
         <div className="ph-stats__stat">
-          <dt>{t('stats.played')}</dt>
+          <dt className="ph-label">{t('stats.played')}</dt>
           <dd>{played}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.currentStreak')}</dt>
+          <dt className="ph-label">{t('stats.currentStreak')}</dt>
           <dd>{stats.streak}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.maxStreak')}</dt>
+          <dt className="ph-label">{t('stats.maxStreak')}</dt>
           <dd>{stats.maxStreak}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.callAccuracy')}</dt>
+          <dt className="ph-label">{t('stats.callAccuracy')}</dt>
           <dd>{formatPct(allTimeAccuracy, t)}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.callAccuracyLast20')}</dt>
+          <dt className="ph-label">{t('stats.callAccuracyLast20')}</dt>
           <dd>{formatPct(rolling, t)}</dd>
         </div>
       </dl>
@@ -87,11 +87,11 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
           hidden panel. */}
       <div className="ph-stats__success">
         <div className="ph-stats__success-panel" data-testid="success-panel-hack">
-          <p className="ph-stats__success-label">{t('stats.hackModeLabel')}</p>
+          <p className="ph-stats__success-label ph-label">{t('stats.hackModeLabel')}</p>
           <p className="ph-stats__success-value">{formatPct(hackRate, t)}</p>
         </div>
         <div className="ph-stats__success-panel" data-testid="success-panel-prereg">
-          <p className="ph-stats__success-label">{t('stats.preregModeLabel')}</p>
+          <p className="ph-stats__success-label ph-label">{t('stats.preregModeLabel')}</p>
           <p className="ph-stats__success-value">{formatPct(preregRate, t)}</p>
         </div>
       </div>

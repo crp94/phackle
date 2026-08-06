@@ -219,8 +219,6 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 .ph-reveal__cover-title {
@@ -362,7 +360,7 @@
  * this screen and the reveal is long enough to scroll past a modest inline
  * link. Otherwise the Published/Briefing CTA treatment exactly: R6.4's tap
  * target bought in scale padding, R2.7's uppercase label with
- * --tracking-label, and R4.5's single hairline underline rather than a
+ * --tracking-label (`.ph-label`, §9.1), and R4.5's single hairline underline rather than a
  * four-side border or a filled pill. --space-40 above it is the same block
  * rhythm .ph-fade + .ph-fade sets, so it reads as the sequence's last beat
  * rather than as furniture bolted on underneath. Nothing transitions (R5.5).
@@ -376,8 +374,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   text-align: start;
   background: none;
   border-style: none;

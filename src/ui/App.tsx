@@ -308,7 +308,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
             <h1 className="ph-boot-error__title">{t('errors.workerCrash')}</h1>
             <button
               type="button"
-              className="ph-boot-error__reload ph-focusable"
+              className="ph-boot-error__reload ph-focusable ph-label"
               data-testid="app-boot-error-reload"
               onClick={() => window.location.reload()}
             >
@@ -401,7 +401,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
                 Legend and About now keep their coordinates for the whole
                 session. */}
             {page === 'game' ? null : (
-              <button type="button" className="ph-seg ph-seg--action ph-focusable" onClick={backToGame}>
+              <button type="button" className="ph-seg ph-seg--action ph-focusable ph-label" onClick={backToGame}>
                 {t('nav.play')}
               </button>
             )}

@@ -3,7 +3,7 @@
    histogram "bars" are a 2px --ink border, never a fill — R4.1's single
    filled area stays exactly the SpecCurve significance band), R1.6
    (achievement-wall gold marks vs. gold-ink text), R2.7 (uppercase labels
-   carry --tracking-label). */
+   carry --tracking-label — the pair is `.ph-label`, §9.1). */
 .ph-stats {
   max-width: var(--page-max);
   margin-inline: auto;
@@ -55,8 +55,6 @@
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   color: var(--muted);
   margin: 0;
 }
@@ -93,8 +91,6 @@
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   color: var(--muted);
   margin: 0;
 }
