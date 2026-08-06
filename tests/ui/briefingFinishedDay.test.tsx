@@ -275,16 +275,63 @@ describe('Briefing — practice mode is exempt from the finished-day guard (w6-r
         achievements: { first_retraction: '2026-08-01' },
       })
     );
+    const { openData, chooseMode } = renderBriefing({ practice: true });
+
+    // The chooser, with BOTH options live: in a practice session nothing has
+    // been "already played", because a practice session records nothing.
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
+    expect(screen.queryByTestId('briefing-finished')).toBeNull();
+    const hack = screen.getByRole('button', { name: enCopy['briefing.playHacking'] });
+    const prereg = screen.getByRole('button', { name: enCopy['briefing.playPrereg'] });
+    expect(hack.hasAttribute('disabled')).toBe(false);
+    expect(prereg.hasAttribute('disabled')).toBe(false);
+    expect(screen.queryByText(enCopy['briefing.alreadyPlayedToday'])).toBeNull();
+
+    fireEvent.click(hack);
+    expect(openData).toHaveBeenCalledTimes(1);
+    fireEvent.click(prereg);
+    expect(chooseMode).toHaveBeenCalledWith('prereg');
+  });
+
+  it('[re-review] the exemption reaches the CHOOSER\'s per-option guards, not just the finished block', async () => {
+    // The residual the re-review caught. `dayFinished` was exempt, but the
+    // chooser's own `disabled={hackPlayedToday}` was not — so a practice
+    // player who had unlocked prereg and already played today's REAL hack day
+    // got a chooser whose hacking option was dead:
+    //     hacking disabled: true, prereg disabled: false
+    // The exemption belongs at the two definitions, where every consumer sees
+    // it, not at one of the three places that read them.
+    seed(
+      freshV1({
+        history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } },
+        achievements: { first_retraction: '2026-08-01' },
+      })
+    );
     const { openData } = renderBriefing({ practice: true });
 
-    // The plain CTA, not the chooser: `showChooser` is still false because the
-    // real day's prereg attempt is spent, and App.tsx boots practice as
-    // `mode: 'hack'` anyway — practice is a hacking-mode replay. What matters
-    // is that there IS a way in.
-    await waitFor(() => expect(screen.getByText(enCopy['briefing.openData'])).toBeTruthy());
-    expect(screen.queryByTestId('briefing-finished')).toBeNull();
-    fireEvent.click(screen.getByText(enCopy['briefing.openData']));
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
+    const hack = screen.getByRole('button', { name: enCopy['briefing.playHacking'] });
+    expect(hack.hasAttribute('disabled'), 'practice hacking was locked out by the real day').toBe(false);
+    expect(screen.queryByText(enCopy['briefing.alreadyPlayedToday'])).toBeNull();
+    fireEvent.click(hack);
     expect(openData).toHaveBeenCalledTimes(1);
+  });
+
+  it('[re-review] the same storage in a REAL session still disables the spent hacking option', async () => {
+    // The other half: the exemption must be practice-only at the chooser too.
+    seed(
+      freshV1({
+        history: { [ISO]: { hack: record({ stamp: 'RETRACTED' }) } },
+        achievements: { first_retraction: '2026-08-01' },
+      })
+    );
+    renderBriefing({ practice: false });
+
+    await waitFor(() => expect(screen.getByTestId('mode-chooser')).toBeTruthy());
+    expect(
+      screen.getByRole('button', { name: enCopy['briefing.playHacking'] }).hasAttribute('disabled')
+    ).toBe(true);
+    expect(screen.getByText(enCopy['briefing.alreadyPlayedToday'])).toBeTruthy();
   });
 
   it('the exemption is practice-ONLY: the same storage locks the real day', async () => {

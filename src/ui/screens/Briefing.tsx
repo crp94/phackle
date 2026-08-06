@@ -70,8 +70,32 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   // this is the separate UI-layer guard against double ENTRY.
   const state = loadState();
   const today = state.history[iso];
-  const hackPlayedToday = today?.hack !== undefined;
-  const preregPlayedToday = today?.prereg !== undefined;
+
+  // w6-r-001 — PRACTICE MODE IS EXEMPT, and the exemption lives HERE.
+  //
+  // `history` is keyed by the real calendar date, and App.tsx boots with
+  // `localIsoDate()` even under `?practice=1`, so a practice session reads the
+  // REAL day's record. Practice replays are legitimate and documented (they
+  // are what testers and streamers use), and the persistence layer already
+  // agrees: `dayComplete.ts`'s persistAndComputeSummary skips `saveDay`
+  // entirely on a practice day, so a practice run can neither consume the real
+  // day's one-play budget nor be consumed by it. A rule whose whole claim is
+  // "your RECORDED day is already recorded" has nothing to say about a session
+  // that records nothing.
+  //
+  // Fix round 2 (re-review): this started life as a `!practice` conjunct on
+  // `dayFinished` alone, which left the chooser's OWN per-option guards —
+  // `disabled={hackPlayedToday}` / `disabled={preregPlayedToday}` below —
+  // still reading the real day. Measured: a practice session with prereg
+  // unlocked and the real hack day spent rendered `hacking disabled: true,
+  // prereg disabled: false`, so the one mode practice actually boots into was
+  // the one it could not enter. Putting the exemption at the two DEFINITIONS
+  // is the one-place form: every consumer (the finished-day guard, both
+  // chooser options, both "already played" status lines, the chooser's own
+  // visibility) inherits it, and no future reader of these two booleans has to
+  // remember to re-apply it.
+  const hackPlayedToday = !practice && today?.hack !== undefined;
+  const preregPlayedToday = !practice && today?.prereg !== undefined;
 
   // gr6-008 — THE ONE-PLAY-PER-DAY RULE, MOVED TO WHERE IT BELONGS.
   //
@@ -104,20 +128,10 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const hackPlayable = !hackPlayedToday;
   const preregPlayable = preregAvailable && !preregPlayedToday;
 
-  // w6-r-001 — PRACTICE MODE IS EXEMPT, and must be.
-  //
-  // The guard reads `history[iso]`, and App.tsx boots with `localIsoDate()`
-  // even under `?practice=1`, so a practice session lands on the REAL day's
-  // key. Once that day was finished, the practice URL rendered the finished
-  // block with zero CTAs and no way to play at all — confirmed on the
-  // production build. Practice replays are legitimate and documented (they are
-  // what testers and streamers use), and the persistence layer already agrees:
-  // `dayComplete.ts`'s persistAndComputeSummary skips `saveDay` entirely on a
-  // practice day, so a practice run can neither consume the real day's
-  // one-play budget nor be consumed by it. A guard whose whole purpose is
-  // "your recorded day is already recorded" has nothing to say about a session
-  // that records nothing.
-  const dayFinished = !practice && !hackPlayable && !preregPlayable;
+  // No `!practice` conjunct needed here: it is already carried by
+  // `hackPlayedToday` above, which makes `hackPlayable` unconditionally true
+  // in a practice session — see that definition for the whole reasoning.
+  const dayFinished = !hackPlayable && !preregPlayable;
 
   // The chooser itself only makes sense while there is still a choice left
   // to make today: once prereg is filed, "Open Data" (below) is the only
