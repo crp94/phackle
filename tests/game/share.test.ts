@@ -465,6 +465,7 @@ describe('spoiler-safety property test: the string never leaks day type', () => 
       trueOutcome: significant ? committed.outcome : null,
       trueBeta: significant ? 0.4 : 0,
       hetero: null,
+      capExhausted: false,
     };
     const client: EngineClient = {
       init: async () => ({ scenarioIndex: 0, n: N_SCHEDULE[0] }),
