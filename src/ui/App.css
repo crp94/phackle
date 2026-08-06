@@ -205,6 +205,37 @@ body {
   }
 }
 
+/* gr6-050 / §9.1 / R5.6 — THE ENTERED FLAG'S RESTORER, DECLARED ONCE.
+   `.ph-entered` is §9.1's fifth utility and this is where it lives, beside
+   the four others and beside the keyframe its sites fire. The utility carries
+   exactly ONE declaration — the restore — and that is the whole of what the
+   four entrance sites share.
+
+   WHY THE SELECTORS ARE COMPOUND, AND NOT A BARE `.ph-entered`. Each site's
+   base rule (`.ph-fade`, `.ph-press-card`, `.ph-chyron`,
+   `.ph-summary__unlock-item`) declares `opacity: 0` in its own stylesheet,
+   and those stylesheets are IMPORTED AFTER this one — App.css lands at byte
+   ~6,000 of the bundle, the three bases at 25,062 / 33,075 / 39,106. A bare
+   `.ph-entered { opacity: 1 }` here would tie with each base at (0,1,0) and
+   LOSE on source order, which does not mean a subtle bug: it means all four
+   entrance sites are permanently invisible. Naming the base beside the flag
+   makes each selector (0,2,0), so it wins on specificity and the outcome no
+   longer depends on which stylesheet the bundler happens to emit first.
+   Order-independence is the property being bought here, not tidiness.
+
+   WHAT STAYS IN THE FOUR STYLESHEETS: the `animation` and `animation-delay`
+   pair. R5.2's table has a File column and it pins each site's animation to
+   that site's own stylesheet, so the four screens still own WHEN they fire
+   and with what stagger; only the one declaration they genuinely share moved.
+   Each of those rules is now written against its own base class too, so no
+   two of them are byte-identical and each one names the site it belongs to. */
+.ph-fade.ph-entered,
+.ph-press-card.ph-entered,
+.ph-chyron.ph-entered,
+.ph-summary__unlock-item.ph-entered {
+  opacity: 1;
+}
+
 /* R5.3's QUICK distance, the other pinned one. Fired by site 6 (the
    fork-trail popover) and site 7 (the share toast). */
 @keyframes ph-enter-quick {

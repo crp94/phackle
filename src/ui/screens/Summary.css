@@ -195,8 +195,10 @@
   opacity: 0;
 }
 
-.ph-entered {
-  opacity: 1;
+/* Site 9's own timing — see Reveal.css's note on the same rule. The restore
+   lives once in App.css (§9.1's fifth utility); R5.2's File column keeps the
+   animation pair here, named against this site's own base class. */
+.ph-summary__unlock-item.ph-entered {
   animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }

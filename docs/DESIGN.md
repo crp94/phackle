@@ -523,16 +523,42 @@ No guard, no rename.
 **And the check iterates the CORPUS, not each file.** This is the second cost,
 found while landing the rename and recorded here because the "ten places"
 below did not predict it. `unguardedHiddenRules` was invoked once per
-stylesheet, which was iteration structure rather than a guarantee: the
-check's substance is class-name-based — a restorer either extends the hidden
-rule's class by name or is co-written with it by a component — and class names
-are global in CSS. One shared flag cannot live in three files, so a single
-`.ph-entered` declaration could not answer base rules in `Reveal.css`,
-`Published.css` and `Summary.css` at once; declaring it three times would
-recreate the exact defect §9.1 exists to remove. The iteration widened and
-nothing else did. Every association the check makes is still an association,
-and a hidden rule with no restorer anywhere in the corpus still fails — which
-is driven by a probe of its own, alongside T38's original one.
+stylesheet, which was iteration structure rather than a guarantee: one shared
+flag cannot live in four files, so a single `.ph-entered` declaration cannot
+answer base rules in `Reveal.css`, `Published.css` and `Summary.css` while
+being invoked one stylesheet at a time — and declaring it once per file would
+recreate the exact defect §9.1 exists to remove.
+
+**Corrected 2026-08-06 (w7-r-001), because the first version of this
+paragraph described a tree that never shipped.** The rename landed with
+`.ph-entered` declared three times, byte-identical, in the three entrance
+stylesheets — the triplication the sentence above calls a defect — and this
+paragraph asserted it had not happened. Two facts were missing, and both are
+now compiled rather than described:
+
+- **The restorer is one rule, in `App.css`, and its selectors are COMPOUND:**
+  `.ph-fade.ph-entered, .ph-press-card.ph-entered, .ph-chyron.ph-entered,
+  .ph-summary__unlock-item.ph-entered { opacity: 1 }`. A bare
+  `.ph-entered { opacity: 1 }` there loses: `App.css` is bundled ahead of the
+  screens, so at equal specificity every base rule's `opacity: 0` wins on
+  source order and all four entrance sites are permanently invisible —
+  measured in Chromium against the production build, press cards at computed
+  opacity 0. Naming the base beside the flag makes each selector (0,2,0) and
+  the outcome independent of bundle order. The `animation`/`animation-delay`
+  pair stays in each screen's own stylesheet, because R5.2's File column
+  pins it there; each of those rules names its own base class, so no two are
+  the identical block again.
+- **Only the co-writing association crosses a file boundary.** A `--`
+  modifier that merely *extends a name* now vouches only inside its own
+  stylesheet: across files a shared prefix is a coincidence, and the widened
+  check used to accept a hidden `.ph-ghost` in one screen "restored" by a
+  `.ph-ghost--in` in another that no component ever brings together. What
+  legitimately crosses files is a component writing both classes onto one
+  element, which is the evidence `.ph-entered` actually has.
+
+Every association the check makes is still an association, and a hidden rule
+with no restorer anywhere in the corpus still fails — which is driven by a
+probe of its own, alongside T38's original one.
 
 **And the cost is ten places, not one.** The three names are load-bearing
 wherever they are typed, and the rename is not done until all of them move in

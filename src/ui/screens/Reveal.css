@@ -75,8 +75,14 @@
   opacity: 0;
 }
 
-.ph-entered {
-  opacity: 1;
+/* Site 3's own timing. The RESTORE (`opacity: 1`) is not here — it is the one
+   declaration all four entrance sites share, so §9.1's fifth utility carries
+   it, once, in App.css. What is left is what R5.2's File column requires this
+   stylesheet to own: when this site fires and with what stagger. Written
+   against `.ph-fade` rather than as a bare `.ph-entered` so the rule names
+   the site it belongs to and cannot be confused with Published's or
+   Summary's. */
+.ph-fade.ph-entered {
   animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }

@@ -304,7 +304,38 @@ describe('R5.2 — DESIGN.md\'s motion register and the stylesheets agree', () =
     const reveal = uiCss.find(({ file }) => file.endsWith('screens/Reveal.css'))?.code ?? '';
     expect(stamp).toMatch(/@keyframes\s+ph-stamp-slam/);
     expect(shorthandDecls(stamp)).toEqual([]);
-    expect(reveal).toMatch(/\.ph-entered\s+\.ph-stamp--animate/);
+    // w7-r-005 — R5.6's "never bare as a descendant gate" clause, COMPILED.
+    // This used to be `/\.ph-entered\s+\.ph-stamp--animate/`, which matches
+    // the bare form as readily as the scoped one: rewriting both gates to
+    // `.ph-entered .ph-stamp--animate` left the suite green and e2e 22/22.
+    // The base class is the whole point of the clause — a bare shared flag
+    // matches a stamp inside ANY entered element (a press card, the chyron,
+    // an unlock line), and R8.2's once-only signature becomes a pattern
+    // (R8.3). Requiring `.ph-fade` immediately before the flag is what makes
+    // the gate say which entrance it belongs to.
+    expect(reveal).toMatch(/\.ph-fade\.ph-entered\s+\.ph-stamp--animate/);
+    expect(reveal, 'a bare .ph-entered descendant gate is exactly what R5.6 forbids').not.toMatch(
+      /(^|[\s,{])\.ph-entered\s+\./m
+    );
+  });
+
+  it('rejects a bare .ph-entered descendant gate anywhere in the corpus (w7-r-005 negative)', () => {
+    // The corpus half, so the clause is not held only by the one file that
+    // happens to have a stamp in it today.
+    const bare: string[] = [];
+    for (const { file, code } of uiCss) {
+      for (const { selector } of styleRules(code)) {
+        for (const compound of selector.split(',').map((part) => part.trim())) {
+          if (/(^|[\s>+~])\.ph-entered(?=\s)/.test(compound)) bare.push(`${file}: ${compound}`);
+        }
+      }
+    }
+    expect(bare).toEqual([]);
+    // Non-vacuous: the same predicate over a rewritten gate names it.
+    const probe = [...styleRules('.ph-entered .ph-stamp--animate { animation: x 1ms; }')].map(
+      ({ selector }) => selector
+    );
+    expect(probe.filter((s) => /(^|[\s>+~])\.ph-entered(?=\s)/.test(s))).toEqual(['.ph-entered .ph-stamp--animate']);
   });
 });
 
@@ -431,17 +462,53 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
     // answered by a MODIFIER class that restores it — a class the component
     // adds, never the animation itself.
     // gr6-050 — CORPUS-WIDE, not per file, and that is not a relaxation.
-    // The check's substance is class-name-based (a restorer extends the
-    // hidden rule's class by name, or a component co-writes the two), and
-    // class names are global in CSS: the per-file invocation was iteration
-    // structure, never a guarantee. `.ph-entered` is ONE declaration
-    // answering base rules in three stylesheets — it cannot live in three
-    // files, and triplicating it would recreate the exact defect §9.1
-    // exists to remove. Every association the check makes is still an
-    // association; a hidden rule with no restorer anywhere in the corpus
-    // still reds, which the probes below drive.
-    const corpus = uiCss.map(({ code }) => code).join('\n');
-    expect(unguardedHiddenRules(corpus, COMPONENT_CLASS_PAIRS)).toEqual([]);
+    // `.ph-entered`'s restorer is ONE declaration in App.css answering base
+    // rules in three other stylesheets, so the per-file invocation could not
+    // see it at all. w7-r-001 then made the widening pay for itself: the
+    // corpus is passed as FILE-TAGGED sources, and only the
+    // component-attested association crosses a file boundary (see
+    // `unguardedHiddenRules`). A `--` name extension in some unrelated
+    // stylesheet no longer vouches, which is the one thing the flat
+    // concatenation used to let through.
+    expect(unguardedHiddenRules(uiCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
+  });
+
+  it('does NOT let a restorer in an unrelated stylesheet vouch by NAME alone (w7-r-001)', () => {
+    // The cost the corpus-wide widening originally shipped with, now priced.
+    // `.ph-ghost` is hidden in one stylesheet and "restored" by a
+    // `.ph-ghost--in` in another that no component ever brings together. The
+    // shared prefix is the only thing connecting them, and a shared prefix
+    // across two files is a coincidence, not a guarantee.
+    const split: CssSource[] = [
+      { file: 'screens/Reveal.css', code: '.ph-ghost { opacity: 0; }' },
+      { file: 'screens/Summary.css', code: '.ph-ghost--in { opacity: 1; }' },
+    ];
+    expect(unguardedHiddenRules(split, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-ghost has no restoring modifier']);
+    // ...and the SAME two rules in one stylesheet are a perfectly ordinary
+    // BEM base/modifier pair, which must still pass. The file is the whole
+    // difference, which is the claim being pinned.
+    expect(
+      unguardedHiddenRules(
+        [{ file: 'screens/Reveal.css', code: '.ph-ghost { opacity: 0; }\n.ph-ghost--in { opacity: 1; }' }],
+        COMPONENT_CLASS_PAIRS
+      )
+    ).toEqual([]);
+  });
+
+  it('lets §9.1\'s ONE App.css restorer answer base rules in three other stylesheets (the association that does cross files)', () => {
+    // The reason the widening exists at all. `.ph-entered`'s restore is
+    // declared once, in App.css, and the four hidden base rules live in
+    // Reveal.css, Published.css and Summary.css — a cross-file association
+    // that is legitimate precisely because each component writes the two
+    // class names onto one element.
+    const hoisted: CssSource[] = [
+      { file: 'App.css', code: '.ph-fade.ph-entered { opacity: 1; }' },
+      { file: 'screens/Reveal.css', code: '.ph-fade { opacity: 0; }' },
+    ];
+    expect(unguardedHiddenRules(hoisted, COMPONENT_CLASS_PAIRS)).toEqual([]);
+    // And it is the COMPONENT evidence carrying it, not the file names: with
+    // no component writing the pair, the same two files go red.
+    expect(unguardedHiddenRules(hoisted, new Set())).toEqual(['.ph-fade has no restoring modifier']);
   });
 
   /* ---------------------------------------------------------------- T38 --
@@ -461,10 +528,47 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
   const summaryCss = uiCss.find(({ file }) => file.endsWith('screens/Summary.css'))?.code ?? '';
   const revealCss = uiCss.find(({ file }) => file.endsWith('screens/Reveal.css'))?.code ?? '';
 
+  const appCss = uiCss.find(({ file }) => file.endsWith('ui/App.css'))?.code ?? '';
+
   it('sees a hidden rule in both entrance stylesheets at all (the scan is not vacuous)', () => {
     expect(revealCss).toMatch(/\.ph-fade\s*\{[^{}]*opacity:\s*0/);
     expect(summaryCss).toMatch(/\.ph-summary__unlock-item\s*\{[^{}]*opacity:\s*0/);
-    expect(summaryCss).toMatch(/\.ph-entered\s*\{[^{}]*opacity:\s*1/);
+    // w7-r-001: the restore is no longer retyped in Summary.css (nor in
+    // Reveal.css or Published.css). It is §9.1's fifth utility and it is
+    // declared ONCE, in App.css, against every base class it answers — which
+    // is also what keeps it winning the cascade over bases that are imported
+    // after it.
+    expect(summaryCss).not.toMatch(/opacity:\s*1/);
+    expect(appCss).toMatch(/\.ph-summary__unlock-item\.ph-entered[^{}]*\{[^{}]*opacity:\s*1/);
+  });
+
+  it('declares the entered flag\'s restore exactly once in the whole corpus (§9.1: utilities are declared once, in App.css)', () => {
+    // The defect w7-r-001 caught: three byte-identical `.ph-entered` rules,
+    // one per entrance stylesheet, which is precisely the "one idea under N
+    // spellings" §9.1 exists to remove — and it had landed underneath a
+    // DESIGN.md paragraph asserting it had not happened.
+    const restoring = uiCss.filter(({ code }) =>
+      styleRules(code).some(
+        ({ selector, body }) => selector.includes('.ph-entered') && /opacity\s*:\s*1/.test(body)
+      )
+    );
+    expect(restoring.map(({ file }) => file.replace(/.*src\/ui\//, ''))).toEqual(['App.css']);
+  });
+
+  it('leaves each site\'s animation in its OWN stylesheet, named for that site (R5.2\'s File column)', () => {
+    // The half that does NOT hoist. R5.2 pins each site's animation to its
+    // own file, so the four screens keep `animation`/`animation-delay` — and
+    // each rule now names its own base class, so no two of them are the
+    // byte-identical block that started this.
+    expect(revealCss).toMatch(/\.ph-fade\.ph-entered\s*\{[^{}]*animation:\s*ph-enter-scene/);
+    expect(summaryCss).toMatch(/\.ph-summary__unlock-item\.ph-entered\s*\{[^{}]*animation:\s*ph-enter-scene/);
+    // ...and nothing is left declaring the flag bare, in any stylesheet.
+    for (const { file, code } of uiCss) {
+      const bare = styleRules(code).filter(({ selector }) =>
+        selector.split(',').some((part) => part.trim() === '.ph-entered')
+      );
+      expect(bare, `${file} declares a bare .ph-entered rule`).toEqual([]);
+    }
   });
 
   it('now catches the unrestored rule the per-file count let through (mutation: the probe that beat the old check)', () => {
@@ -477,19 +581,27 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
     // boundary. The orphan has no restorer anywhere, so it reds; every real
     // hidden rule beside it is still vouched for by the flag its own
     // component co-writes.
-    const corpusCss = uiCss.map(({ code }) => code).join('\n');
-    const probe = `${corpusCss}\n.ph-orphan-block { opacity: 0; }\n`;
-    expect(legacyRestorerCount(probe)).toBeGreaterThan(0); // ...which is all the old check asked
+    const probe: CssSource[] = [...uiCss, { file: 'screens/Reveal.css', code: '.ph-orphan-block { opacity: 0; }' }];
+    expect(legacyRestorerCount(uiCss.map(({ code }) => code).join('\n'))).toBeGreaterThan(0); // ...all the old check asked
     expect(unguardedHiddenRules(probe, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-orphan-block has no restoring modifier']);
-    // ...and the same file WITHOUT the orphan is still clean, so the probe is
-    // measuring the orphan and not some pre-existing failure.
-    expect(unguardedHiddenRules(corpusCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
+    // ...and the same corpus WITHOUT the orphan is still clean, so the probe
+    // is measuring the orphan and not some pre-existing failure.
+    expect(unguardedHiddenRules(uiCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
   });
 
   it('catches a restorer that stops restoring T38\'s own unlock lines (mutation: this site is really guarded)', () => {
-    expect(unguardedHiddenRules(summaryCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
-    const noRestore = summaryCss.replace(/(\.ph-entered\s*\{)\s*opacity:\s*1;/, '$1');
-    expect(noRestore).not.toBe(summaryCss);
+    // w7-r-001 re-pointed this. The restore it removes now lives in App.css,
+    // one rule for all four sites — so the mutation drops the unlock line's
+    // own compound selector out of that rule and asserts the corpus notices.
+    // Dropping the WHOLE rule would red four sites at once and prove less:
+    // this is still the question "is T38's own site really guarded".
+    expect(unguardedHiddenRules(uiCss, COMPONENT_CLASS_PAIRS)).toEqual([]);
+    const noRestore = uiCss.map(({ file, code }) =>
+      file.endsWith('ui/App.css')
+        ? { file, code: code.replace('.ph-summary__unlock-item.ph-entered {', '.ph-unrelated-probe {') }
+        : { file, code }
+    );
+    expect(noRestore.map(({ code }) => code).join('')).not.toBe(uiCss.map(({ code }) => code).join(''));
     expect(unguardedHiddenRules(noRestore, COMPONENT_CLASS_PAIRS)).toEqual([
       '.ph-summary__unlock-item has no restoring modifier',
     ]);
@@ -517,12 +629,29 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
     // Published's group is the case that forces the second association form.
     expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-press-card', 'ph-entered'))).toBe(true);
     expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-chyron', 'ph-entered'))).toBe(true);
-    // gr6-050: the negative control had to move. `.ph-entered` is now the ONE
-    // flag and every entrance co-writes it, so the pair that used to be false
-    // (press-card + the reveal's flag) is true by construction. `.ph-fade` is
-    // the reveal's own base class and no press card ever carries it, which is
-    // the same evidence the old assertion was making.
-    expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-press-card', 'ph-fade'))).toBe(false);
+    // THE NEGATIVE CONTROL, and w7-r-001 moved it again. It has to be a pair
+    // the predicate could ACTUALLY be fooled by, which means the second
+    // member must be in the flag vocabulary — otherwise the pair is rejected
+    // by the vocabulary arm before the co-writing arm is ever consulted, and
+    // the control stops exercising the mechanism it exists to control for.
+    // (`ph-fade`, chosen at gr6-050, is exactly that dead control: it carries
+    // no `--`, it is not `ph-entered`, so it can never vouch for anything
+    // under any pairing.) `ph-stamp--animate` IS a `--` modifier and IS
+    // co-written with `ph-stamp` — just never with a press card, which is the
+    // evidence this assertion is really making.
+    expect(COMPONENT_CLASS_PAIRS.has(pairKey('ph-press-card', 'ph-stamp--animate'))).toBe(false);
+    // Non-vacuous from the other end: the modifier is real and IS paired with
+    // its own base somewhere in the corpus, so a false above means "not this
+    // element", never "no such class".
+    expect([...COMPONENT_CLASS_PAIRS].some((key) => key.includes('ph-stamp--animate'))).toBe(true);
+    // And the control is load-bearing: fed to the predicate as a pairing, a
+    // vocabulary member DOES vouch — which is why it must not be one here.
+    expect(
+      unguardedHiddenRules(
+        '.ph-press-card { opacity: 0; }\n.ph-stamp--animate { opacity: 1; }',
+        new Set([pairKey('ph-press-card', 'ph-stamp--animate')])
+      )
+    ).toEqual([]);
   });
 
   /* gr6-050 — THE GUARD THE RENAME LANDS WITH, prescribed by R5.6 itself.
@@ -544,7 +673,7 @@ describe('R5.6 — reduced motion is parity, and it reaches every site', () => {
   });
 
   it('a stray hidden rule with no association ANYWHERE in the corpus still reds under the widened check', () => {
-    const corpus = uiCss.map(({ code }) => code).join('\n') + '\n.ph-orphan { opacity: 0; }\n';
+    const corpus: CssSource[] = [...uiCss, { file: 'screens/Reveal.css', code: '.ph-orphan { opacity: 0; }' }];
     expect(unguardedHiddenRules(corpus, COMPONENT_CLASS_PAIRS)).toEqual(['.ph-orphan has no restoring modifier']);
   });
 
@@ -620,42 +749,104 @@ const COMPONENT_CLASS_PAIRS: Set<string> = (() => {
   return pairs;
 })();
 
+/** A stylesheet, carried with its own name so the check below can tell a
+ * same-file association from a cross-file one. A bare string is accepted too
+ * and is treated as a single anonymous stylesheet, which is what every
+ * in-test probe wants. */
+type CssSource = { file: string; code: string };
+
 /**
- * The R5.6 check itself: which hidden base selectors in this stylesheet have
- * NO restoring modifier associated with them. Each comma-separated selector
- * is judged on its own — `.ph-press-card, .ph-chyron` is two rules wearing
- * one head — and a restorer qualifies only if it carries a modifier class
- * (`--`) that either extends one of the hidden classes by name or is written
- * beside one of them by a component. A restorer that merely lives in the
- * same file proves nothing about a rule it cannot reach.
+ * The R5.6 check itself: which hidden base selectors in the corpus have NO
+ * restoring modifier associated with them. Each comma-separated selector is
+ * judged on its own — `.ph-press-card, .ph-chyron` is two rules wearing one
+ * head — and a restorer qualifies only if it carries a class from the flag
+ * vocabulary (a `--` modifier, or `.ph-entered`) that is associated with the
+ * hidden rule in one of exactly two ways.
+ *
+ * THE TWO ASSOCIATIONS ARE NOT INTERCHANGEABLE, AND THE DIFFERENCE IS THE
+ * FILE (w7-r-001). This used to accept either form anywhere in the corpus,
+ * and that was too generous in one specific direction, measured: a hidden
+ * `.ph-ghost` in `Reveal.css` whose only restorer is a `.ph-ghost--in` in
+ * `Summary.css` — two stylesheets that never meet, a restorer no component
+ * ever writes beside the thing it claims to restore — was vouched for by the
+ * NAME alone and passed.
+ *
+ *   (1) NAME EXTENSION (`.ph-thing` restored by `.ph-thing--in`) is a BEM
+ *       convention, and a convention's guarantee is local to the stylesheet
+ *       that declares the block. Across files the shared prefix is a
+ *       coincidence a reader cannot verify, so this arm requires SAME FILE.
+ *
+ *   (2) COMPONENT CO-WRITING (`Published.tsx` writes
+ *       `'ph-press-card ph-entered'`) is evidence from the DOM rather than
+ *       from a naming habit, and it does not weaken by crossing a file
+ *       boundary — the element carries both classes wherever the rules are
+ *       written. So this arm is file-independent, and it is what lets §9.1's
+ *       one `.ph-entered` restorer in `App.css` legitimately answer base
+ *       rules in three other stylesheets.
+ *
+ * That split is what makes the corpus-wide iteration LOAD-BEARING rather than
+ * merely wider: the only thing it newly permits is the association that
+ * carries its own evidence.
  */
-function unguardedHiddenRules(code: string, pairs: Set<string>): string[] {
-  const rules = styleRules(code);
-  const restorerClassSets = rules
-    .filter(({ body }) => /opacity\s*:\s*1(?:\s*;|\s*$)/.test(body))
-    .map(({ selector }) => classesOf(selector));
+function unguardedHiddenRules(source: string | CssSource[], pairs: Set<string>): string[] {
+  const sources: CssSource[] = typeof source === 'string' ? [{ file: '<probe>', code: source }] : source;
+  // Each comma-separated RESTORER selector is its own restorer, exactly as
+  // each hidden one is its own rule (w7-r-001). Reading a group's classes as
+  // one bag was survivable while restorers were single-class flags; it is not
+  // now that §9.1's restorer is a group of four compounds, because dropping
+  // one compound — which strands that one site — left `ph-entered` in the bag
+  // via the other three and the check saw nothing.
+  const restorers = sources.flatMap(({ file, code }) =>
+    styleRules(code)
+      .filter(({ body }) => /opacity\s*:\s*1(?:\s*;|\s*$)/.test(body))
+      .flatMap(({ selector }) =>
+        selector
+          .split(',')
+          .map((part) => part.trim())
+          .filter((part) => part !== '' && !part.startsWith('@'))
+          .map((compound) => ({ file, classes: classesOf(compound) }))
+      )
+  );
   const offenders: string[] = [];
-  for (const { selector, body } of rules) {
-    if (!/opacity\s*:\s*0(?:\s*;|\s*$)/.test(body)) continue;
-    for (const compound of selector.split(',').map((part) => part.trim())) {
-      if (compound === '' || compound.startsWith('@')) continue;
-      const hidden = classesOf(compound);
-      const guarded = restorerClassSets.some((restorer) =>
-        restorer.some(
-          (modifier) =>
-            // gr6-050 / DESIGN.md R5.6's own words: an explicit flag
-            // VOCABULARY, never a loosened test. Deleting the `--` clause
-            // instead is the relaxation the rule forbids, and it is forbidden
-            // because it is invisible — with that clause gone the suite is
-            // still green and any co-written class at all would vouch for a
-            // hidden rule, undoing T38's precision fix without one red test.
-            // The guard below reds when this vocabulary is widened.
-            (modifier.includes('--') || modifier === 'ph-entered') &&
-            !hidden.includes(modifier) &&
-            hidden.some((base) => modifier.startsWith(base) || pairs.has(pairKey(base, modifier)))
-        )
-      );
-      if (!guarded) offenders.push(`${compound} has no restoring modifier`);
+  for (const { file, code } of sources) {
+    for (const { selector, body } of styleRules(code)) {
+      if (!/opacity\s*:\s*0(?:\s*;|\s*$)/.test(body)) continue;
+      for (const compound of selector.split(',').map((part) => part.trim())) {
+        if (compound === '' || compound.startsWith('@')) continue;
+        const hidden = classesOf(compound);
+        const guarded = restorers.some((restorer) =>
+          restorer.classes.some(
+            (modifier) =>
+              // gr6-050 / DESIGN.md R5.6's own words: an explicit flag
+              // VOCABULARY, never a loosened test. Deleting the `--` clause
+              // instead is the relaxation the rule forbids, and it is
+              // forbidden because it is invisible — with that clause gone the
+              // suite is still green and any co-written class at all would
+              // vouch for a hidden rule, undoing T38's precision fix without
+              // one red test. The guard below reds when this vocabulary is
+              // widened.
+              (modifier.includes('--') || modifier === 'ph-entered') &&
+              !hidden.includes(modifier) &&
+              // THE RESTORER'S SELECTOR MUST BE SATISFIABLE ON THIS ELEMENT.
+              // `.ph-fade.ph-entered` reaches only elements carrying BOTH, so
+              // it cannot vouch for a hidden `.ph-summary__unlock-item` no
+              // matter how well `ph-entered` is attested — every other class
+              // in the restorer's compound has to be one the hidden rule
+              // already names. Without this, §9.1's four-compound restorer
+              // vouched for all four sites even with a site's own compound
+              // deleted, i.e. exactly when that site had gone invisible.
+              restorer.classes.every((other) => other === modifier || hidden.includes(other)) &&
+              hidden.some(
+                (base) =>
+                  // (2) component-attested: crosses files, carries evidence.
+                  pairs.has(pairKey(base, modifier)) ||
+                  // (1) name extension: same stylesheet only.
+                  (restorer.file === file && modifier.startsWith(base))
+              )
+          )
+        );
+        if (!guarded) offenders.push(`${compound} has no restoring modifier`);
+      }
     }
   }
   return offenders;
