@@ -56,10 +56,47 @@ export const CALL_CORRECT = '⚖️✅';
 export const CALL_INCORRECT = '⚖️❌';
 
 /**
- * The emoji trail: 🧾 prefix iff prereg, then one glyph per counted fork (via
- * classifyChange, using the SAME "first VIEW_SPEC is free, later ones count
- * iff seen" rule as forkLog.ts's countForks — so the trail's marker count and
- * line 3's `{forks}` figure are always in lockstep by construction), then a
+ * §2.10's WALK, and the one place it lives (gr6-092).
+ *
+ * One glyph per counted fork: `classifyChange` for a spec change, `➕` for a
+ * peek, under the SAME "the first VIEW_SPEC is free, later ones count iff
+ * `seen`" rule as forkLog.ts's `countForks` — so the glyph count and line 3's
+ * `{forks}` figure are in lockstep by construction rather than by care.
+ *
+ * Exported because there are two consumers and this rule may only have one
+ * home. `buildTrail` below wraps it with the share string's prefix and
+ * terminal; `components/ForkTrail.tsx` (the Lab's live strip) used to restate
+ * the walk verbatim, with a comment explaining that it had to because only
+ * `FORK_EMOJI` and `classifyChange` were exported. Now the walk is exported
+ * too, and the rule cannot be half-changed in one place.
+ *
+ * Deliberately covers ONLY the fork/peek run: no prereg prefix, no
+ * SUBMIT/ABANDON terminal, no call mark. Those are the two consumers'
+ * differences, and they are exactly what stays at the call sites — the Lab is
+ * by definition mid-play, before any terminal exists.
+ */
+export function walkForkGlyphs(log: PlayerAction[]): string {
+  let glyphs = '';
+  let prevSpec: Spec | undefined;
+
+  for (const action of log) {
+    if (action.t === 'VIEW_SPEC') {
+      if (prevSpec === undefined) {
+        prevSpec = action.spec; // the initial default spec is free (§2.10)
+        continue;
+      }
+      if (action.seen) glyphs += FORK_EMOJI[classifyChange(prevSpec, action.spec)];
+      prevSpec = action.spec;
+    } else if (action.t === 'PEEK_AND_EXTEND') {
+      glyphs += FORK_EMOJI.peek;
+    }
+    // SUBMIT/ABANDON/CALL contribute no in-trail glyph — see the callers.
+  }
+  return glyphs;
+}
+
+/**
+ * The emoji trail: 🧾 prefix iff prereg, then the §2.10 walk above, then a
  * terminal marker. CALL entries contribute nothing: the trail shows whether
  * the call was right, never what it was (that's line 2's trailing
  * " → ⚖️✅|⚖️❌", appended by the caller below, and omitted entirely when
@@ -83,36 +120,21 @@ export const CALL_INCORRECT = '⚖️❌';
  * test in tests/game/share.test.ts, extended to assert exactly this.
  */
 function buildTrail(log: PlayerAction[], prereg: boolean): string {
-  let trail = prereg ? PREREG_PREFIX : '';
-  let prevSpec: Spec | undefined;
+  const glyphs = walkForkGlyphs(log);
+  // Prereg: a FIXED, outcome-independent terminal, and any literal
+  // SUBMIT/ABANDON in the log deliberately ignored (see the doc comment).
+  if (prereg) return `${PREREG_PREFIX}${glyphs}${SUBMIT_EMOJI}`;
 
+  // Hack: the log's own terminal(s). store.submit()/abandon() both leave the
+  // lab for good, so at most one ever appears and it is always last — this
+  // loop is written to be total anyway, so a hand-built log in a
+  // generic-contract test cannot silently drop its marker.
+  let terminal = '';
   for (const action of log) {
-    switch (action.t) {
-      case 'VIEW_SPEC':
-        if (prevSpec === undefined) {
-          prevSpec = action.spec; // the initial default spec is free (§2.10)
-          break;
-        }
-        if (action.seen) {
-          trail += FORK_EMOJI[classifyChange(prevSpec, action.spec)];
-        }
-        prevSpec = action.spec;
-        break;
-      case 'PEEK_AND_EXTEND':
-        trail += FORK_EMOJI.peek;
-        break;
-      case 'SUBMIT':
-        if (!prereg) trail += SUBMIT_EMOJI;
-        break;
-      case 'ABANDON':
-        if (!prereg) trail += ABANDON_EMOJI;
-        break;
-      case 'CALL':
-        break; // represented only by the trailing ⚖️ marker, never inline
-    }
+    if (action.t === 'SUBMIT') terminal += SUBMIT_EMOJI;
+    else if (action.t === 'ABANDON') terminal += ABANDON_EMOJI;
   }
-  if (prereg) trail += SUBMIT_EMOJI; // always run & reported — see doc comment above
-  return trail;
+  return glyphs + terminal;
 }
 
 export interface ShareStringInput {
