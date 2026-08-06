@@ -17,7 +17,6 @@ import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
 import { useReducedMotion } from '../../src/ui/hooks/useReducedMotion';
-import { copy as enCopy } from '../../src/content/en/copy';
 
 /**
  * jsdom has no matchMedia (brief note). This fakes one MediaQueryList per
