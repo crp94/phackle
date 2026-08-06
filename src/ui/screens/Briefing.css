@@ -1,10 +1,7 @@
 /* Briefing -- R3.5's default page column (capped and centred; unlike
-   Published, this is not the one full-bleed exception). */
-.ph-briefing {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-40) var(--space-24) var(--space-24);
-}
+   Published, this is not the one full-bleed exception), with R3.1's extra air
+   over the title: `.ph-page ph-page--titled` (§9.1, App.css), composed in
+   Briefing.tsx. */
 
 /* R2.1: headlines are --font-display; the research question IS the title. */
 .ph-briefing__question {
@@ -64,7 +61,7 @@
 }
 
 /* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
-   carries --tracking-label. R4.5: a hairline underline, never a 4-side
+   carries --tracking-label (`.ph-label`, §9.1). R4.5: a hairline underline, never a 4-side
    border or a filled pill (matches Published's own CTA treatment). */
 .ph-briefing__cta {
   display: inline-block;
@@ -73,8 +70,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   background: none;
   border-style: none;
   border-block-end: var(--hairline);
@@ -86,11 +81,6 @@
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-briefing__cta:hover {
   text-decoration: underline;
-}
-
-.ph-briefing__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-briefing__cta:disabled {
@@ -145,4 +135,41 @@
   line-height: var(--leading-ui);
   color: var(--muted);
   margin: var(--space-4) 0 0;
+}
+
+/* gr6-024 — W6's finished-day block (gr6-008) shipped three classNames with
+   no rules at all, so the day's closing state rendered at the browser's own
+   defaults: a <p> at 16px Times with 1em margins, in a product whose every
+   other line comes off a closed type scale. Same treatment as the chooser's
+   own status line above (which the block already reuses for its first
+   paragraph) — this is a quiet end-of-day note, not a screen of its own.
+   R3.2's rhythm above it, R4.4's hairline to close the screen, no fill. */
+.ph-briefing__finished {
+  max-width: var(--measure);
+  margin-block-start: var(--space-40);
+  padding-block-start: var(--space-16);
+  border-block-start: var(--hairline);
+}
+
+/* The day's share string is a run of glyphs and a numeral — mono/tabular by
+   R2.4, at --ink because it is the thing the player came back to see. */
+.ph-briefing__finished-share {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  margin: var(--space-12) 0 0;
+  white-space: pre-wrap;
+}
+
+/* R2.4 again: a countdown is numerals. Caption register (R1.2) — it is the
+   quietest thing on a finished screen. */
+.ph-briefing__finished-countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: var(--space-8) 0 0;
 }

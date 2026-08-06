@@ -26,8 +26,6 @@
 
 .ph-fork-trail__label {
   font-size: var(--text-13);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* T29: the glyph run itself, set large enough to actually read (the owner's
@@ -54,8 +52,6 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   text-decoration: underline;
   text-underline-offset: 2px;
   background: none;
@@ -67,11 +63,6 @@
 
 .ph-fork-trail__key-button:hover {
   color: var(--ink);
-}
-
-.ph-fork-trail__key-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* DESIGN.md R5.2 site 6: the key opening is the ONLY feedback the player
@@ -94,20 +85,10 @@
    `min(var(--measure), 100%)` caps it at the column's own width. Both bounds
    are needed: --measure alone overflowed the viewport, and 100% alone would
    let a wide desktop column stretch the rows past R2.6's measure. */
-@keyframes ph-popover-enter {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-quick`. This component
+   still owns WHEN it fires, which is the whole of site 6. */
 .ph-fork-trail__popover {
-  animation: ph-popover-enter var(--dur-quick) var(--ease-out);
+  animation: ph-enter-quick var(--dur-quick) var(--ease-out);
   position: absolute;
   inset-block-end: 100%;
   inset-inline-start: 0;

@@ -8,9 +8,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-24);
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
 }
 
 /* T29 pin 10: the day's question, on the same screen as the instructions.
@@ -87,16 +84,9 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   padding-block: var(--space-12);
   border-block-end: 2px solid transparent;
   cursor: pointer;
-}
-
-.ph-lab__intro-title:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* R3.6-adjacent: a real ordered list, numbered by the browser, so the
@@ -137,11 +127,6 @@
   cursor: pointer;
 }
 
-.ph-lab__intro-dismiss:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-lab__collect {
   margin-block-start: var(--space-16);
   font-family: var(--font-ui);
@@ -158,11 +143,6 @@
   text-decoration: underline;
 }
 
-.ph-lab__collect:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-lab__collect:disabled {
   color: var(--muted);
   cursor: default;
@@ -174,7 +154,11 @@
 
 /* Two quiet footnotes (T6 review ruling): sincere after the 1st peek, the
    sanctioned Act-I wink after the 2nd. Both --muted, --text-13 — neither
-   competes with the dial (R8.3). */
+   competes with the dial (R8.3), and gr6-024 records that they are
+   deliberately the SAME rule: the difference between them is the sentence,
+   not the type. (A `--armitage` modifier used to ride on the second one
+   with no matching rule anywhere, which is how "differentiated" ended up in
+   a comment describing two identical lines.) */
 .ph-lab__footnote {
   margin: var(--space-8) 0 0 0;
   max-width: var(--measure);
@@ -184,11 +168,30 @@
   color: var(--muted);
 }
 
+/* §1(e) ruling + DESIGN.md R8.1's 2026-08-06 amendment — THE SECOND, AND
+   LAST, STICKY ELEMENT IN THE PRODUCT.
+   R8.1 grants exactly one besides the dial and describes it exhaustively:
+   the Lab's actions row, below R3.4's breakpoint, `position: sticky; bottom:
+   0`, on --paper, with a `border-block-start: var(--hairline)` and nothing
+   else. No fill (R4.1), no shadow (R4.2), no second colour, no motion
+   (R5.5), on the same --z-sticky rung as the dial (R4.7). The two pin to
+   OPPOSITE edges, which is what keeps them from colliding — and R8.1 makes
+   that a condition rather than a hope, so the sum is what has to be short:
+   MEASURED on the production build at 360x640 — the dial block 153px (R8.1's
+   own recorded number, reproduced exactly) and this row 67px: 220px of a
+   640px phone, 34%, leaving 420px of live scroll between the two edges.
+   The inline padding is the page gutter the results pane above it supplies
+   through .ph-lab; on a sticky row that spans the viewport the buttons would
+   otherwise sit flush against the edge at 360. */
 .ph-lab__actions {
   display: flex;
   align-items: center;
   gap: var(--space-16);
-  margin-block-start: var(--space-24);
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  background: var(--paper);
+  border-block-start: var(--hairline);
 }
 
 .ph-lab__submit {
@@ -205,11 +208,6 @@
 
 .ph-lab__submit:hover:not(:disabled) {
   text-decoration: underline;
-}
-
-.ph-lab__submit:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-lab__submit:disabled {
@@ -231,11 +229,6 @@
 
 .ph-lab__abandon:hover {
   text-decoration: underline;
-}
-
-.ph-lab__abandon:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* R3.4's ONE breakpoint. The two-pane layout is a grid rather than
@@ -273,8 +266,37 @@
     border-block-end: none;
   }
 
+  /* R8.1's own Do: "make it static at and above 768px. The grid already puts
+     the knobs and the actions on screen together there, so there is nothing
+     for stickiness to buy" — the same argument that makes the dial static
+     above the breakpoint. The hairline goes with the stickiness: it is what
+     separates a pinned bar from the content sliding under it, and there is
+     nothing sliding under it here. */
+  .ph-lab__actions {
+    position: static;
+    grid-column: 2;
+    grid-row: 4;
+    background: none;
+    border-block-start: none;
+    margin-block-start: var(--space-24);
+  }
+
   .ph-lab__controls {
     grid-column: 1;
-    grid-row: 2 / span 2;
+    grid-row: 2 / span 3;
   }
+}
+
+/* gr6-025 — what a peek buys, printed at the button that buys it. Caption
+   register (R1.2/R8.3: it must not compete with the dial), mono because it
+   is entirely numerals (R2.4), and gone the moment there is nothing left to
+   collect — the button is disabled then, and an offer that cannot be taken
+   is noise. */
+.ph-lab__collect-gain {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
 }

@@ -58,7 +58,7 @@ test('an abandoned day: report a null result, call as a full page, and reveal wi
 
   const stampBlock = page.locator('[data-block="stamp"]');
   await stampBlock.scrollIntoViewIfNeeded();
-  await expect(stampBlock).toHaveClass(/ph-fade--in/);
+  await expect(stampBlock).toHaveClass(/ph-entered/);
   await expect(page.locator('.ph-stamp__label')).not.toBeEmpty();
 
   await page.locator('[data-role="to-summary"]').click();

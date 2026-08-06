@@ -53,30 +53,64 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
     // from that heading additionally exposes it as a landmark, which is what
     // gives the plain "Close" button below the context its old aria-label was
     // faking.
-    <section className="ph-stats" aria-labelledby={titleId}>
+    <section className="ph-page ph-stats" aria-labelledby={titleId}>
       <h1 className="ph-stats__title" id={titleId}>
         {t('stats.title')}
       </h1>
 
+      {/* gr6-035 — DAY ONE, ONE TAP FROM EVERY SCREEN, AND NOT A SENTENCE IN
+          IT. A player who opens Stats before finishing anything met eleven
+          censored blocks and six em-dashes: five zeros in the summary list,
+          two `stats.noData` dashes, both success panels dashed, an empty fork
+          histogram and a wall of blind stamps. Every one of those is correct
+          and none of them says what a reader is actually asking, which is
+          whether the page is broken.
+
+          One sentence, under the title, and ONLY at `played === 0`. It is a
+          note about the page rather than a replacement for it: the panels
+          stay exactly as they are underneath — §2.8's whole lesson is the
+          prereg-vs-hacking juxtaposition, and hiding the empty version of it
+          on day one would hide the shape the player is about to fill in.
+          `played` is already computed above for the summary list, so this
+          gates on the same number the first row prints and cannot disagree
+          with it.
+
+          Register is caption, not placeholder, and that is why this does NOT
+          reuse `.ph-stats__empty`: that class is the em-dash the histogram
+          prints when it has no data, and it is deliberately mono, tabular and
+          --text-22 because a dash standing in for a NUMERAL has to be set
+          like one (R2.4). This is a sentence, so it is set like one — UI face
+          at caption size, capped at --measure, --muted per R1.2's "captions
+          and footnotes, never --ink". It must not out-shout the <h1> above
+          it. No role="status" — nothing arrives here dynamically; the
+          screen is read from the top on arrival (App.tsx moves focus to
+          <main> on every swap), so it is reached in document order exactly as
+          a sighted player reaches it. */}
+      {played === 0 ? (
+        <p className="ph-stats__empty-state" data-testid="stats-empty-state">
+          {t('stats.emptyState')}
+        </p>
+      ) : null}
+
       <dl className="ph-stats__summary">
         <div className="ph-stats__stat">
-          <dt>{t('stats.played')}</dt>
+          <dt className="ph-label">{t('stats.played')}</dt>
           <dd>{played}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.currentStreak')}</dt>
+          <dt className="ph-label">{t('stats.currentStreak')}</dt>
           <dd>{stats.streak}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.maxStreak')}</dt>
+          <dt className="ph-label">{t('stats.maxStreak')}</dt>
           <dd>{stats.maxStreak}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.callAccuracy')}</dt>
+          <dt className="ph-label">{t('stats.callAccuracy')}</dt>
           <dd>{formatPct(allTimeAccuracy, t)}</dd>
         </div>
         <div className="ph-stats__stat">
-          <dt>{t('stats.callAccuracyLast20')}</dt>
+          <dt className="ph-label">{t('stats.callAccuracyLast20')}</dt>
           <dd>{formatPct(rolling, t)}</dd>
         </div>
       </dl>
@@ -87,11 +121,11 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
           hidden panel. */}
       <div className="ph-stats__success">
         <div className="ph-stats__success-panel" data-testid="success-panel-hack">
-          <p className="ph-stats__success-label">{t('stats.hackModeLabel')}</p>
+          <p className="ph-stats__success-label ph-label">{t('stats.hackModeLabel')}</p>
           <p className="ph-stats__success-value">{formatPct(hackRate, t)}</p>
         </div>
         <div className="ph-stats__success-panel" data-testid="success-panel-prereg">
-          <p className="ph-stats__success-label">{t('stats.preregModeLabel')}</p>
+          <p className="ph-stats__success-label ph-label">{t('stats.preregModeLabel')}</p>
           <p className="ph-stats__success-value">{formatPct(preregRate, t)}</p>
         </div>
       </div>
@@ -164,8 +198,27 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
                 // nothing at all (its only other content is aria-hidden). The
                 // blind stamp IS an image; saying so is what makes its one
                 // sanctioned, name-free text alternative reach a reader.
+                //
+                // gr6-013 — `▦▦▦` READ AS BROKEN GLYPHS, six rows deep. The
+                // blind-stamp idea was right and its execution was a tofu
+                // box: U+25A6 has no coverage in either shipped face
+                // (DESIGN.md R2.1 vendors STIX Two Text + JetBrains Mono,
+                // latin and latin-ext only), so the fallback chain decided
+                // what a locked award looked like, and on the measured build
+                // it looked like a font that had failed. The row keeps the
+                // name-free contract exactly — no id, no name, no citation,
+                // the same `stats.locked` label — and borrows the UNLOCKED
+                // row's anatomy instead of inventing a texture: the mark
+                // column takes ☆, the outline of the ★ beside it, and the
+                // name column takes a --muted rule where the name will go.
+                // An award you have not won, drawn in the same hand as the
+                // ones you have; and both glyphs are in the vendored latin
+                // range, so what ships is what renders.
                 <span className="ph-stats__ach-locked" role="img" aria-label={t('stats.locked')}>
-                  <span aria-hidden="true">▦▦▦</span>
+                  <span className="ph-stats__ach-mark ph-stats__ach-mark--locked" aria-hidden="true">
+                    ☆
+                  </span>
+                  <span className="ph-stats__ach-blank" aria-hidden="true" />
                 </span>
               )}
             </li>
@@ -181,7 +234,7 @@ export function Stats({ t, stats, history, achievements, achievementDefs, onClos
           on its own, and the labelled region above supplies the context the
           false label was standing in for. */}
       {onClose && (
-        <button type="button" className="ph-stats__close" onClick={onClose}>
+        <button type="button" className="ph-stats__close ph-close ph-focusable" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

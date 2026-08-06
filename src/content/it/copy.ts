@@ -118,7 +118,6 @@ export const copy: Record<CopyKey, string> = {
   'briefing.correspondingAuthor': 'Autore corrispondente: tu',
   'briefing.vol': 'Vol. {volume}, n. {issue}',
   'briefing.emailFrom': 'Prof. R. Grantwell',
-  'briefing.emailSubject': 'Re: la scadenza',
   'briefing.goal': 'Il tuo compito: trovare un effetto statisticamente significativo (p < 0.05) e pubblicarlo.',
 
   'briefing.modeChooserIntro':
@@ -293,7 +292,7 @@ export const copy: Record<CopyKey, string> = {
   'published.altmetricScore': 'Già menzionato {n} volte online',
   // "prodotti della ricerca" is the exact phrase the Italian research-assessment
   // machinery uses for a paper. The bureaucratic noun IS the joke.
-  'published.altmetricPercentile': 'Top {n}% di tutti i prodotti della ricerca, di sempre',
+  'published.altmetricPercentile': 'Top {pct}% di tutti i prodotti della ricerca, di sempre',
 
   // Act I's last beat and the hinge into Act II: conspiratorial, not accusing.
   // "Rumore che ho vestito bene" is the player's own admission to make.
@@ -448,11 +447,6 @@ export const copy: Record<CopyKey, string> = {
   // mai confrontate). *Serie* è anche quello che dicono i giochi quotidiani
   // italiani. Regola 7 ora lo elenca.
   'summary.streak': 'Serie: {n}',
-  // RITIRATA: W6 (gr6-020) ha eliminato il pulsante disabilitato che questa
-  // stringa etichettava. Non è cancellata solo perché due asserzioni in
-  // tests/ui/summary.test.tsx la nominano ancora, e quel file non è di questa
-  // ondata. Vedi la nota completa in en/copy.ts.
-  'summary.playPrereg': 'Prova la modalità Preregistrazione',
 
   'summary.breakdownCallCorrect': 'Verdetto giusto',
   'summary.breakdownCallIncorrect': 'Verdetto sbagliato',

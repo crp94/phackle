@@ -11,11 +11,12 @@ import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testi
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
 import App, { ThemeToggle, LocaleToggle } from '../../src/ui/App';
+import { gameStore } from '../../src/game/store';
+import { copy as enCopy } from '../../src/content/en/copy';
 import { Stamp, type StampProps } from '../../src/ui/components/Stamp';
 import { ConfettiLayer } from '../../src/ui/components/ConfettiLayer';
 import { EmailCard } from '../../src/ui/components/EmailCard';
 import { useReducedMotion } from '../../src/ui/hooks/useReducedMotion';
-import { copy as enCopy } from '../../src/content/en/copy';
 
 /**
  * jsdom has no matchMedia (brief note). This fakes one MediaQueryList per
@@ -66,11 +67,24 @@ function hasClass(el: Element | null, className: string): boolean {
   return !!el && (el.getAttribute('class') ?? '').split(/\s+/).includes(className);
 }
 
+
+// gr6-007 — THE SHELL UNDER TEST IS THE BOOTED SHELL.
+//
+// App now renders the boot-failure screen INSTEAD of the shell when a boot
+// never produced a day (`storeError && !booted`), because the alternative was
+// a real-looking briefing for scenario #0 with a live CTA into a Lab that can
+// never compute. Every test in this file exercises the shell, and jsdom has
+// no `Worker`, so App's own boot attempt throws harmlessly into `store.error`
+// and would now take the page. Seeding `booted` says out loud what these
+// tests always assumed: the header, the nav and the screen slot are what a
+// player sees AFTER a day exists. The boot-failure screen has its own tests
+// (tests/ui/shell.test.tsx's "boot failure" block).
 beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.lang = '';
   installMatchMedia();
+  gameStore.setState({ booted: true });
 });
 
 // This project doesn't enable vitest's test.globals, so @testing-library/react's
@@ -99,6 +113,119 @@ describe('App loading gate', () => {
     await waitFor(() => expect(screen.queryByTestId('child')).not.toBeNull());
     expect(screen.queryByTestId('app-loading')).toBeNull();
     expect(screen.getByText('P-hackle')).toBeTruthy();
+  });
+});
+
+/* ==========================================================================
+   gr6-007 (BLOCKER) — A BOOT FAILURE MUST NOT RENDER A STUDY.
+
+   Before this row, `storeError && !booted` fell through to the whole shell,
+   and the shell mounted the Briefing on initialState()'s placeholders: the
+   WRONG scenario's question, cover story, Grantwell email and issue number,
+   under a one-line error banner, with a live "Open the data" CTA into a Lab
+   that can never compute a p-value (nothing ever answers runSpec). The error
+   is the screen now.
+
+   These tests deliberately do NOT seed `booted` — they want the failure the
+   file's own beforeEach otherwise papers over.
+   ========================================================================== */
+describe('boot failure (gr6-007)', () => {
+  async function renderFailedBoot() {
+    gameStore.setState({ booted: false, error: 'engine crashed' });
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1}>
+          <div data-testid="child">the running game</div>
+        </App>
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByTestId('app-boot-error')).toBeTruthy());
+  }
+
+  it('renders the error as the WHOLE screen — no header, no nav, and above all no placeholder study', async () => {
+    await renderFailedBoot();
+    // The study, and every route into it, is gone.
+    expect(screen.queryByTestId('child')).toBeNull();
+    expect(screen.queryByText('P-hackle')).toBeNull();
+    expect(screen.queryByRole('navigation')).toBeNull();
+    expect(screen.queryByRole('banner')).toBeNull();
+  });
+
+  it("gives the screen the copy's own sentence as its one h1 (R6.6)", async () => {
+    await renderFailedBoot();
+    const headings = screen.getAllByRole('heading', { level: 1 });
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent).toBe(enCopy['errors.workerCrash']);
+  });
+
+  it('offers the reload control the copy promises, and reloading is what it does', async () => {
+    await renderFailedBoot();
+    const reload = screen.getByTestId('app-boot-error-reload');
+    const spy = vi.fn();
+    // jsdom's location.reload is a non-configurable no-op that logs "Not
+    // implemented"; replacing the whole descriptor is how this file's
+    // sibling suites stub browser APIs it cannot drive.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload: spy },
+    });
+    fireEvent.click(reload);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('a MID-DAY crash keeps the shell — only a boot that never produced a day takes the page', async () => {
+    gameStore.setState({ booted: true, error: 'engine crashed' });
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1}>
+          <div data-testid="child">the running game</div>
+        </App>
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByTestId('child')).toBeTruthy());
+    expect(screen.queryByTestId('app-boot-error')).toBeNull();
+    expect(screen.getByText('P-hackle')).toBeTruthy();
+  });
+});
+
+/* ==========================================================================
+   gr6-017 — the skip link. Nine chrome tab stops sat ahead of the first
+   content control on every screen, with no way past them.
+   ========================================================================== */
+describe('skip link (gr6-017)', () => {
+  async function renderShell() {
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1}>
+          <div data-testid="child">the running game</div>
+        </App>
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText('P-hackle')).toBeTruthy());
+  }
+
+  it('is the very FIRST focusable thing in the document, ahead of the masthead', async () => {
+    await renderShell();
+    const focusable = Array.from(
+      document.querySelectorAll<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])')
+    );
+    expect(focusable[0]).toBe(screen.getByTestId('app-skip-link'));
+  });
+
+  it('points at the <main> R6.6 already made focusable — no second focus target invented', async () => {
+    await renderShell();
+    const link = screen.getByTestId('app-skip-link') as HTMLAnchorElement;
+    const target = document.querySelector('main.ph-screen') as HTMLElement;
+    expect(link.getAttribute('href')).toBe(`#${target.id}`);
+    expect(target.getAttribute('tabindex')).toBe('-1');
+    expect(target.id).not.toBe('');
+  });
+
+  it('is hidden by R6.6\'s own clip idiom rather than by display/visibility (it must stay in the a11y tree)', async () => {
+    await renderShell();
+    const link = screen.getByTestId('app-skip-link');
+    expect(link.className.split(' ')).toContain('ph-visually-hidden');
+    expect(link.className.split(' ')).toContain('ph-skip-link');
   });
 });
 

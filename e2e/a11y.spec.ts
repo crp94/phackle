@@ -126,7 +126,7 @@ interface Finding {
  * theoretical.
  *
  * `.ph-screen` fades `opacity: 0 -> 1` over `--dur-scene` on every screen swap
- * (App.css `@keyframes ph-screen-enter`). axe-core composites ancestor opacity
+ * (App.css `@keyframes ph-enter-scene`). axe-core composites ancestor opacity
  * into its contrast computation, so a scan that lands mid-fade reads
  * `var(--muted)` text as though it were mixed with `--paper` and reports
  * `color-contrast` at SERIOUS. Measured over three consecutive runs before this

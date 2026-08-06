@@ -24,23 +24,35 @@ import { useLocale, type Theme } from '../i18n/LocaleProvider';
 import { AVAILABLE_LOCALES } from '../i18n/locale';
 import type { Locale } from '../engine/types';
 import type { CopyKey } from '../content/en/copy';
+import type { TFunction } from '../i18n/t';
 import { gameStore, useGameStore } from '../game/store';
-import { createEngineClient } from '../game/engineClient';
+import { createEngineClient, type EngineClient } from '../game/engineClient';
 import { isPractice, localIsoDate } from '../game/daily';
 import { isStorageOff } from '../game/storage';
+import { AppNavContext, type AppNav } from './nav';
 import { JOURNAL_VOLUME } from './masthead';
 import StatsScreen from './screens/Stats';
 import LegendScreen from './screens/Legend';
 import AboutScreen from './screens/About';
 import './App.css';
 
-type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
-
 /** The header nav's own page-state — orthogonal to game/store.ts's `Screen`
  * union entirely. 'game' renders whatever `children` is (the running game
  * machine, whatever screen IT is on); the other three replace <main>'s
  * content with a standalone nav page until its own close button returns here. */
 type NavPage = 'game' | 'stats' | 'legend' | 'about';
+
+/** The skip link's target (gr6-017) and R6.6's focus container: one element,
+ * one id, so the anchor can never point at a node that is not the one focus
+ * management already owns. */
+const MAIN_ID = 'ph-main';
+
+/** How often the midnight-rollover check below runs while the tab is
+ * foregrounded. A minute is far finer than the thing it watches (a date
+ * boundary) and coarse enough to cost nothing; the `visibilitychange`
+ * listener beside it is what covers a backgrounded tab, whose timers the
+ * browser throttles to minutes anyway. */
+const ROLLOVER_CHECK_MS = 60_000;
 
 export interface AppProps {
   /** Pre-boot fallback: main.tsx's own `puzzleNumber(localIsoDate())`, which
@@ -77,7 +89,26 @@ export default function App({ puzzleNumber, children }: AppProps) {
   // which screen renders; this is the animation hook, nothing more.
   const gameScreen = useGameStore((s) => s.screen);
   const didBootRef = useRef(false);
+  const clientRef = useRef<EngineClient | null>(null);
   const [page, setPage] = useState<NavPage>('game');
+  /**
+   * gr6-080 — `isStorageOff()` is a module-level mutable `let` in
+   * storage.ts, and this component used to CALL IT DURING RENDER. That is the
+   * textbook React-19 tearing shape: an external mutable value read straight
+   * out of the render body has no subscription, so React is free to render
+   * with one value and commit with another, and today it works only by the
+   * accident that the flag flips inside the very first `loadState()` — before
+   * this component's first paint. Nothing in the file said so, and any future
+   * lazy first read would flip it mid-session with no re-render to show it.
+   *
+   * `useState`'s lazy initialiser reads it ONCE, at mount, into state that
+   * React owns; the boot effect below re-reads it after the store's own first
+   * storage access, which is the only other moment it can change. That is
+   * R18-safe without reaching into storage.ts to add the `subscribe` half a
+   * `useSyncExternalStore` would need (the flag is one-way — false -> true,
+   * never back — so a second read is a complete answer, not a poll).
+   */
+  const [storageOff, setStorageOff] = useState(() => isStorageOff());
 
   // T22 — FOCUS MANAGEMENT ACROSS THE ONE ROUTE CHANGE THIS APP HAS.
   //
@@ -115,15 +146,26 @@ export default function App({ puzzleNumber, children }: AppProps) {
     mainRef.current?.focus();
   }, [screenKey]);
 
-  // Guarded by a ref (not only the dependency array): `content`'s reference
-  // never actually changes mid-session in any of today's flows (locale
-  // never switches after first load), but the ref is cheap insurance against
-  // ever booting — and silently resetting the player's progress — twice.
+  // Guarded by a ref, and the ref is LOAD-BEARING rather than the "cheap
+  // insurance" an earlier version of this comment called it. `content`'s
+  // reference does change mid-session, by design: the header's own
+  // LocaleToggle calls setLocale, LocaleProvider fetches that locale's bundle
+  // and hands down a new `content` object, and this effect's dependency array
+  // fires again the moment it lands. Without the ref that second run would
+  // call boot() — which begins `set({ ...initialState(), … })` — and a player
+  // who switched to Italian three knobs into the day would silently lose the
+  // day. The ref is the only thing standing between the language menu and
+  // that reset. (A locale switch does not need a re-boot: the puzzle is the
+  // same puzzle in every language; only the strings around it change.)
   useEffect(() => {
     if (!content || didBootRef.current) return;
     didBootRef.current = true;
     try {
       const client = createEngineClient();
+      // Held so the midnight-rollover effect below can re-boot on the SAME
+      // worker. createEngineClient() has no dispose, so calling it a second
+      // time would leak the first one for the rest of the session.
+      clientRef.current = client;
       void boot(client, localIsoDate(), {
         practice: isPractice(window.location.search),
         mode: 'hack',
@@ -132,6 +174,88 @@ export default function App({ puzzleNumber, children }: AppProps) {
     } catch (err) {
       gameStore.setState({ error: err instanceof Error ? err.message : String(err) });
     }
+    // gr6-080's second read: boot() is what first touches localStorage, so
+    // this is the one moment the one-way flag can have flipped since mount.
+    setStorageOff(isStorageOff());
+  }, [content, boot]);
+
+  /**
+   * MIDNIGHT (W6's booked staleness note, W7's ruling).
+   *
+   * `localIsoDate()` is read exactly once, at boot. A tab left open across
+   * midnight therefore keeps yesterday's day: yesterday's scenario, yesterday's
+   * Grantwell email, yesterday's issue number in the masthead, and a countdown
+   * to a rollover that has already happened (W6 suppressed the countdown,
+   * correctly, but that treats the symptom this effect owns).
+   *
+   * THE RULING, and what it deliberately does not do. A re-boot is a
+   * `set({ ...initialState(), … })`: it is the right answer for a tab that
+   * has been sitting on the briefing overnight and the WRONG answer for
+   * anything else, because it would take a half-hacked spec, a finished
+   * summary or an open reveal away from the player at the exact moment they
+   * came back to it. So the rollover is honoured at ONE resting state — the
+   * briefing, with nothing yet done — and ignored everywhere else. A player
+   * mid-day at midnight finishes the day they started, which is the courteous
+   * answer and also the one that loses no work; the store's own
+   * `alreadyPlayedToday`/finished-day logic picks the new day up on their next
+   * visit.
+   *
+   * HOW "NOTHING YET DONE" IS TESTED, and why it is not `log.length === 0`
+   * (w7-r-003, found while writing this effect's first test). It WAS
+   * `log.length === 0`, and that condition can never hold: `store.boot()`
+   * seeds one free `VIEW_SPEC` entry for the default spec (§2.10 — logged so
+   * the fork trail has a first entry, never itself a fork), so a booted store
+   * has `log.length === 1` before the player has touched anything. The whole
+   * effect was therefore dead code — it never re-booted in ANY state, which
+   * no test noticed because no test existed.
+   *
+   * `screen === 'briefing'` alone is the correct and complete test, and it is
+   * stronger than the arithmetic it replaces: `'briefing'` is set in exactly
+   * one place in the entire store — `initialState()` — and no transition ever
+   * returns to it. Being on the briefing therefore MEANS the player has taken
+   * no action today; `openData()` leaves for the Lab and `chooseMode()` for
+   * Prereg, and neither has a way back. That includes the finished-day
+   * briefing, where a re-boot is not merely safe but wanted: the block is
+   * showing yesterday's result and the new day is exactly what should replace
+   * it.
+   *
+   * STILL OPEN, and narrowed by what W2 actually shipped: the mid-play case
+   * has no affordance at all (no "a new puzzle is ready — reload" line). Two
+   * keys were booked for it. `errors.reload` LANDED and is wired, but at the
+   * boot-failure screen below, which is the only place a reload control is
+   * unambiguous; `errors.newDay` — the sentence that would say WHY a mid-day
+   * player should press it — was not written, in any locale. One word with no
+   * sentence around it is not an affordance, it is a button that appears
+   * during play for no stated reason, so nothing hangs here yet. RE-BOOKED:
+   * this effect is still where the notice belongs the day `errors.newDay`
+   * exists in all three catalogs.
+   *
+   * The check runs on an interval AND on `visibilitychange`, because a
+   * backgrounded tab's timers are throttled to the point of uselessness and
+   * "came back to it" is exactly the moment that matters.
+   */
+  useEffect(() => {
+    if (!content) return undefined;
+    function checkRollover() {
+      const client = clientRef.current;
+      if (!client || !content) return;
+      const state = gameStore.getState();
+      if (!state.booted || state.iso === localIsoDate()) return;
+      // See the ruling above: the briefing is the one state the player can be
+      // in having done nothing, because nothing ever navigates back to it.
+      if (state.screen !== 'briefing') return;
+      void boot(client, localIsoDate(), {
+        practice: isPractice(window.location.search),
+        mode: state.mode,
+        scenarioCount: content.scenarios.length,
+      });
+    }
+    const handle = setInterval(checkRollover, ROLLOVER_CHECK_MS);
+    document.addEventListener('visibilitychange', checkRollover);
+    return () => {
+      clearInterval(handle);
+      document.removeEventListener('visibilitychange', checkRollover);
+    };
   }, [content, boot]);
 
   // Loading-gate convention (ratified by the controller alongside T4): content
@@ -170,15 +294,95 @@ export default function App({ puzzleNumber, children }: AppProps) {
     );
   }
 
+  /**
+   * gr6-007 (BLOCKER) — A BOOT FAILURE MUST NOT RENDER A STUDY.
+   *
+   * Until this gate, `storeError && !booted` fell straight through to the
+   * full shell, and the shell mounted ScreenRouter, and ScreenRouter mounted
+   * the Briefing — on `initialState()`'s placeholders. So the one screen a
+   * player saw when the engine failed to start was a REAL-LOOKING briefing
+   * for scenario #0: the wrong question, the wrong cover story, the wrong
+   * Grantwell email, the wrong issue number, and a live "Open the data" CTA
+   * into a Lab that can never compute a single p-value (nothing ever answers
+   * runSpec, so the dial sits on "—" forever and SUBMIT never enables). The
+   * error banner rendered above all of that as a one-line aside, which is
+   * exactly the wrong weight: this is not an error that happened DURING a day,
+   * it is the absence of a day.
+   *
+   * The error is now the whole screen. `!booted` is the load-bearing half of
+   * the condition — an engine crash MID-DAY (booted already true) keeps the
+   * additive banner over the screen the player is on, because there the state
+   * behind it is real and their day is recoverable; only a boot that never
+   * produced a day takes the page.
+   *
+   * The reload control is the one the copy has promised all along
+   * ("Reloading usually fixes it"), and it now says so: `errors.reload`
+   * ("Reload") landed with W2 and replaces the `nav.play` stand-in this
+   * comment used to describe. One word, because the <h1> above it is the
+   * sentence that already explained what pressing it does. It renders here
+   * and nowhere else — this screen has no header and no nav — so the word
+   * cannot be read as a second, competing PLAY.
+   */
+  if (!booted && storeError) {
+    return (
+      <div className="ph-app">
+        {/* Same keyed, focusable, animated <main> as the shell's own below
+            (R5.2 site 1, R6.6): this is a screen like any other, and it must
+            arrive the same way rather than teleporting in. */}
+        <main className="ph-screen" id={MAIN_ID} key={screenKey} ref={mainRef} tabIndex={-1}>
+          {/* §9.1's page shell, composed rather than retyped (see App.css's
+              own note for why this rule was adopted after the section that
+              enumerated its adopters was written). */}
+          <section className="ph-page ph-page--titled ph-boot-error" data-testid="app-boot-error">
+            {/* R6.6: every screen carries exactly one <h1>, its own title.
+                This screen's title is what went wrong. */}
+            <h1 className="ph-boot-error__title">{t('errors.workerCrash')}</h1>
+            <button
+              type="button"
+              className="ph-boot-error__reload ph-focusable ph-label"
+              data-testid="app-boot-error-reload"
+              onClick={() => window.location.reload()}
+            >
+              {t('errors.reload')}
+            </button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   // storePuzzleNumber is 0 (initialState()'s default) until boot() resolves,
   // so this prefers the prop until then and switches over exactly once the
   // store has a real number of its own.
   const displayedPuzzleNumber = storePuzzleNumber || puzzleNumber;
 
   const backToGame = () => setPage('game');
+  const nav: AppNav = { viewStats: () => setPage('stats') };
 
   return (
     <div className="ph-app">
+      {/* gr6-017 — NINE TAB STOPS OF CHROME, ON EVERY SCREEN.
+          Measured: the masthead, four nav buttons, two theme options and
+          three locale options all sit ahead of the first control a player
+          actually came for, on every screen, with no way past them. A
+          keyboard or switch player pays that toll on every screen change,
+          because R6.6 rebuilds <main> on each one and focus starts over.
+          The standard fix and the first thing a screen-reader user reaches
+          for: a skip link as the very first child, hidden until it takes
+          focus. It reuses R6.6's own `.ph-visually-hidden` idiom (so the
+          1px clipped box stays the one place that value is typed) and
+          .ph-skip-link:focus un-hides it; the target is the <main> element
+          that is already `tabindex="-1"` for R6.6's focus management, so
+          there is no new focus target and no new tab stop.
+          The label is its own key now: `nav.skipToContent` ("Skip to the main
+          content") replaces the `nav.play` stand-in this comment used to
+          describe. The generic wording is deliberate over a puzzle-flavoured
+          one — the destination is <main>, which is the About page or the
+          Stats page as often as it is today's study, and a link that promises
+          "today's puzzle" would be lying on three of the four routes. */}
+      <a className="ph-visually-hidden ph-skip-link ph-focusable" href={`#${MAIN_ID}`} data-testid="app-skip-link">
+        {t('nav.skipToContent')}
+      </a>
       <header className="ph-header">
         <p className="ph-header__masthead">
           {/* T33 (owner: "hard to go back to the main page when you click one
@@ -190,7 +394,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
               a dialog can. The accessible name opens with the wordmark so
               the visible label survives inside it (WCAG 2.5.3).
               The wordmark is the one permitted raw string besides emoji. */}
-          <button type="button" className="ph-header__home" aria-label={t('a11y.backToGame')} onClick={backToGame}>
+          <button type="button" className="ph-header__home ph-focusable" aria-label={t('a11y.backToGame')} onClick={backToGame}>
             <span className="ph-header__wordmark">P-hackle</span>
           </button>
           <span className="ph-header__vol">
@@ -204,24 +408,36 @@ export default function App({ puzzleNumber, children }: AppProps) {
               The theme/locale controls beside it stay role="group": they
               choose a setting, they do not navigate anywhere. */}
           <nav className="ph-header__nav">
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
+              {t('nav.stats')}
+            </button>
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'legend'} onClick={() => setPage('legend')}>
+              {t('nav.legend')}
+            </button>
+            <button type="button" className="ph-seg ph-focusable" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
+              {t('nav.about')}
+            </button>
             {/* The second affordance, and the explicit one: on screen for
                 exactly as long as a nav page is, so "get me back" is never a
                 thing the player has to deduce. An ACTION, not a page — hence
-                no aria-pressed (there is no state it could report). */}
+                no aria-pressed (there is no state it could report).
+
+                gr6-060 — LAST IN THE ROW, not first. PLAY used to be inserted
+                at the HEAD of this nav, so the instant a player pressed
+                "Stats" every remaining item shifted right by the width of the
+                word "Play" — and the next tap, aimed at Legend, landed on
+                Stats. Measured at 320 the header also grew 267 -> 318px, which
+                the owner has ruled acceptable as-is (rulings 2026-08-06, #2);
+                the buttons moving under the finger is the part that is not,
+                and appending rather than prepending fixes it with no
+                always-rendered inert control and no reserved gap. Stats,
+                Legend and About now keep their coordinates for the whole
+                session. */}
             {page === 'game' ? null : (
-              <button type="button" className="ph-seg ph-seg--action" onClick={backToGame}>
+              <button type="button" className="ph-seg ph-seg--action ph-focusable ph-label" onClick={backToGame}>
                 {t('nav.play')}
               </button>
             )}
-            <button type="button" className="ph-seg" aria-pressed={page === 'stats'} onClick={() => setPage('stats')}>
-              {t('nav.stats')}
-            </button>
-            <button type="button" className="ph-seg" aria-pressed={page === 'legend'} onClick={() => setPage('legend')}>
-              {t('nav.legend')}
-            </button>
-            <button type="button" className="ph-seg" aria-pressed={page === 'about'} onClick={() => setPage('about')}>
-              {t('nav.about')}
-            </button>
           </nav>
           <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
           <LocaleToggle locales={AVAILABLE_LOCALES} locale={locale} setLocale={setLocale} t={t} />
@@ -243,7 +459,7 @@ export default function App({ puzzleNumber, children }: AppProps) {
           dismiss it FROM — role="status" (not "alert": this is not urgent,
           the game is fully playable) and --muted register (R1.2: captions,
           footnotes and this notice, never --ink) are the whole treatment. */}
-      {isStorageOff() ? (
+      {storageOff ? (
         <p className="ph-storage-notice" role="status">
           {t('errors.storageOff')}
         </p>
@@ -259,11 +475,17 @@ export default function App({ puzzleNumber, children }: AppProps) {
           introduced for it: the landmark <main> already had to be here.
           Nothing else about the element changes; a screen swap that used to
           teleport now lands. */}
-      <main className="ph-screen" key={screenKey} ref={mainRef} tabIndex={-1}>
-        {page === 'game' && children}
-        {page === 'stats' && <StatsScreen onClose={backToGame} />}
-        {page === 'legend' && <LegendScreen onClose={backToGame} />}
-        {page === 'about' && <AboutScreen onClose={backToGame} />}
+      <main className="ph-screen" id={MAIN_ID} key={screenKey} ref={mainRef} tabIndex={-1}>
+        {/* gr6-062's other half: the shell owns the nav page-state, so the
+            shell is what can hand a machine screen a route to it. Provided
+            around <main> only — the header's own controls call setPage
+            directly and need nothing from a context. */}
+        <AppNavContext.Provider value={nav}>
+          {page === 'game' && children}
+          {page === 'stats' && <StatsScreen onClose={backToGame} />}
+          {page === 'legend' && <LegendScreen onClose={backToGame} />}
+          {page === 'about' && <AboutScreen onClose={backToGame} />}
+        </AppNavContext.Provider>
       </main>
     </div>
   );
@@ -294,13 +516,13 @@ export function ThemeToggle({ theme, setTheme, t }: ThemeToggleProps) {
     <div className="ph-theme-toggle" role="group" aria-label={t('a11y.themeToggle')}>
       <button
         type="button"
-        className="ph-seg"
+        className="ph-seg ph-focusable"
         aria-pressed={theme === 'paper'}
         onClick={() => setTheme('paper')}
       >
         {t('nav.themePaper')}
       </button>
-      <button type="button" className="ph-seg" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
+      <button type="button" className="ph-seg ph-focusable" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>
         {t('nav.themeDark')}
       </button>
     </div>
@@ -351,15 +573,17 @@ export function LocaleToggle({ locales, locale, setLocale, t }: LocaleToggleProp
         <button
           key={loc}
           type="button"
-          className="ph-seg ph-seg--locale"
+          className="ph-seg ph-seg--locale ph-focusable"
           aria-pressed={loc === locale}
           aria-label={t(LOCALE_NAME_KEY[loc])}
           onClick={() => setLocale(loc)}
         >
-          <span className="ph-seg__flag" aria-hidden="true">
-            {LOCALE_FLAG[loc]}
-          </span>
-          <span className="ph-seg__code">{loc.toUpperCase()}</span>
+          {/* gr6-024: neither span carries a rule — .ph-seg--locale's
+              inline-flex row and its --space-4 gap are the whole layout (see
+              App.css's own note on why the gap is not a space character) —
+              so neither carries a class. */}
+          <span aria-hidden="true">{LOCALE_FLAG[loc]}</span>
+          <span>{loc.toUpperCase()}</span>
         </button>
       ))}
     </div>

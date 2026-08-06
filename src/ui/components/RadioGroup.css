@@ -1,14 +1,21 @@
 /* One radiogroup (DESIGN.md R6.5): options reuse the exact selected-state
    pattern App.css already established for the header's toggles: a 2px
    --ink underline on the checked option (R4.6), never a filled pill. */
+/* gr6-089: moved here from SpecControls.css, which used to own this one
+   selector while this file owned every other `.ph-spec-group*` rule. R3.6's
+   hairline-separated stack, not a grid of cards — the declarations are
+   byte-identical to the ones that were there. */
+.ph-spec-group + .ph-spec-group {
+  border-block-start: var(--hairline);
+  padding-block-start: var(--space-16);
+}
+
 .ph-spec-group__legend {
   margin: 0 0 var(--space-8) 0;
   font-family: var(--font-ui);
   font-size: var(--text-13);
   font-weight: var(--weight-medium);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 .ph-spec-group__options {
@@ -33,11 +40,6 @@
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-radio:hover {
   text-decoration: underline;
-}
-
-.ph-radio:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-radio:disabled {

@@ -138,6 +138,26 @@ function TrailKey() {
     setOpen(true);
   }
 
+  /**
+   * gr6-075 — THE TAP THAT OPENED IT ALSO CLOSED IT.
+   *
+   * `onMouseLeave={dismiss}` was unguarded, and a touchscreen synthesises the
+   * whole mouse sequence: a tap fired pointerenter (recording 'touch', so
+   * handleMouseEnter above correctly declined to open), then click (which
+   * opened the panel), then — as the finger lifted and left — mouseleave,
+   * which closed it again. The panel appeared and vanished inside one tap.
+   * The enter side already consulted the pointer type; the leave side is the
+   * same check, one line, and it is the only reason this control worked with
+   * a mouse and not with a finger.
+   *
+   * A touch player still closes it the two ways they can: tapping the trigger
+   * again (handleClick's toggle) or moving focus away (handleBlur).
+   */
+  function handleMouseLeave() {
+    if (lastPointerType.current !== 'mouse') return;
+    dismiss();
+  }
+
   function handleClick() {
     if (hoverOpened.current) {
       hoverOpened.current = false; // the hover already opened it: not a close
@@ -154,20 +174,31 @@ function TrailKey() {
         lastPointerType.current = event.pointerType || 'mouse';
       }}
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={dismiss}
+      onMouseLeave={handleMouseLeave}
       onFocus={() => setOpen(true)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
     >
       <button
         type="button"
-        className="ph-fork-trail__key-button"
+        className="ph-fork-trail__key-button ph-focusable ph-label"
         data-testid="fork-trail-key"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
         onClick={handleClick}
       >
-        {t('nav.legend')}
+        {/* gr6-029's component half. This rendered `nav.legend`, so the word
+            "Legend" named two different affordances three times within one
+            glance on the Lab: the header's page name, this trigger, and
+            `lab.forkTrailHint` between them pointing at the one the player was
+            NOT standing next to. Both affordances stay — GR4 measured them
+            rendering the same seven rows and answering different questions
+            ("what do these mean, here, now" versus "take me to the reference
+            page") — so the fix is that each says which question it answers.
+            `lab.forkTrailKey` is the question, not a page name: "What these
+            mean". `nav.legend` goes back to being the page name and nothing
+            else, and W2 rewrote the hint's English idiom in the same batch. */}
+        {t('lab.forkTrailKey')}
       </button>
       {open ? (
         <span className="ph-fork-trail__popover" id={popoverId} role="list" data-testid="fork-trail-popover">
@@ -189,7 +220,7 @@ export function ForkTrail({ log, mode }: ForkTrailProps) {
 
   return (
     <p className="ph-fork-trail">
-      <span className="ph-fork-trail__label">{t('lab.forkTrailLabel')}</span>
+      <span className="ph-fork-trail__label ph-label">{t('lab.forkTrailLabel')}</span>
       <span className="ph-fork-trail__glyphs">{trail || '—'}</span>
       <TrailKey />
     </p>

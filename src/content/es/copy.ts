@@ -112,7 +112,6 @@ export const copy: Record<CopyKey, string> = {
   // Untranslated by design: the joke's realism depends on him being the same
   // Prof. Grantwell in every language.
   'briefing.emailFrom': 'Prof. R. Grantwell',
-  'briefing.emailSubject': 'Re: lo del plazo',
   'briefing.goal': 'Tu tarea: encontrar un efecto estadísticamente significativo (p < 0.05) y publicarlo.',
 
   'briefing.modeChooserIntro':
@@ -290,7 +289,7 @@ export const copy: Record<CopyKey, string> = {
   // hacen la primera. Regla 3 del preámbulo.
   // gr6-065: el adverbio va delante, como en inglés desde este mismo cambio.
   'published.altmetricScore': 'Ya mencionado {n} veces en internet',
-  'published.altmetricPercentile': 'En el {n}% superior de toda la producción científica de la historia',
+  'published.altmetricPercentile': 'En el {pct}% superior de toda la producción científica de la historia',
 
   // The call is conspiratorial, not accusatory: Act I's last beat. "Ruido que
   // disfracé" is the player's own admission to make.
@@ -432,11 +431,6 @@ export const copy: Record<CopyKey, string> = {
   // nunca contrastadas). *Racha* es además lo que dicen los juegos diarios en
   // español. La regla 6 ya lo recoge.
   'summary.streak': 'Racha: {n}',
-  // RETIRADA: W6 (gr6-020) eliminó el botón deshabilitado que esta cadena
-  // etiquetaba. No se borra solo porque dos aserciones de
-  // tests/ui/summary.test.tsx la siguen nombrando y ese archivo no es de esta
-  // oleada. La nota completa está en en/copy.ts.
-  'summary.playPrereg': 'Probar el modo Preregistro',
 
   'summary.breakdownCallCorrect': 'Veredicto correcto',
   'summary.breakdownCallIncorrect': 'Veredicto erróneo',

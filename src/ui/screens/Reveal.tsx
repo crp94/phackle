@@ -29,6 +29,7 @@ import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve
 import type { CopyKey } from '../../content/en/copy';
 import type { RevealCurveEntry, RevealMetricsFull } from '../../engine/reveal';
 import type { RevealPayload } from '../../engine/protocol';
+import { typographicMinus } from '../format';
 import './Reveal.css';
 
 /**
@@ -74,7 +75,10 @@ export function formatSigFigs(value: number, digits: number): string {
   if (value === 0) return (0).toFixed(digits - 1);
   const rounded = Number(value.toPrecision(digits));
   const magnitude = Math.floor(Math.log10(Math.abs(rounded)));
-  return rounded.toFixed(Math.max(0, digits - 1 - magnitude));
+  // gr6-074: same digits, U+2212 for the sign (src/ui/format.ts). Act II's
+  // truth line prints a signed true effect, and a screen that typesets β, α
+  // and ≥ correctly should not spell its minus with a keyboard hyphen.
+  return typographicMinus(rounded.toFixed(Math.max(0, digits - 1 - magnitude)));
 }
 
 /** Whole counts, with NO thousands separator: "1,792" reads as 1.792 in
@@ -138,7 +142,7 @@ function interpolate(template: string, parts: Record<string, Part>): ReactNode[]
  * `useEnterOnce`, which Published's clippings (site 5) now share — see that
  * module for why a mount-triggered entrance was the wrong trigger in the
  * first place. The behaviour here is unchanged: `entered` fails OPEN in
- * every direction that could hide content, and `.ph-fade--in`'s own
+ * every direction that could hide content, and `.ph-fade ph-entered`'s own
  * `opacity: 1` (not the animation) is what holds the block visible.
  */
 function Block({ name, index, children }: { name: string; index: number; children: ReactNode }) {
@@ -148,7 +152,7 @@ function Block({ name, index, children }: { name: string; index: number; childre
     <section
       ref={ref}
       data-block={name}
-      className={entered ? 'ph-fade ph-fade--in' : 'ph-fade'}
+      className={entered ? 'ph-fade ph-entered' : 'ph-fade'}
       // The animation hook, and the only reason this component takes an
       // index at all: Reveal.css multiplies it by --dur-stagger to get this
       // block's animation-delay. A custom property, not an inline duration —
@@ -287,19 +291,44 @@ export function Reveal() {
           mult: { text: formatCount(payload.peeks + 1), numeral: true },
         });
 
-  // 4 — the verdict (§2.7.4). Only a retraction carries a subline; §4.5's
-  // bank rotates by puzzle number, so the day decides which one, not chance.
+  // 4 — the verdict (§2.7.4). §4.5's banks rotate by puzzle number, so the day
+  // decides which line, not chance.
   //
-  // gr6-003: NEVER IN PREREG MODE. Every line in that bank is written for a
-  // player who hacked ("The journal has issued a correction", "Your co-authors
-  // have asked to be listed as 'consulted'"); a preregistered analysis that
-  // landed on RETRACTED did nothing to be corrected for, and §2.8 already
-  // supplies the right sentence for it (reveal.preregFalsePositive, hoisted
-  // above the stamp below).
-  const subline =
-    !isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0
-      ? content.retractionSublines[puzzleNumber % content.retractionSublines.length]
-      : undefined;
+  // gr6-003: THE RETRACTION BANK IS NEVER USED IN PREREG MODE. Every line in
+  // it is written for a player who hacked ("The journal has issued a
+  // correction", "Your co-authors have asked to be listed as 'consulted'"); a
+  // preregistered analysis that landed on RETRACTED did nothing to be
+  // corrected for, and §2.8 already supplies the right sentence for it
+  // (reveal.preregFalsePositive, hoisted above the stamp below).
+  //
+  // gr6-037: NULL REPORTED NOW CARRIES ONE TOO. It was the only stamp that
+  // rendered with no subline at all — Act II's quietest moment and, until W3
+  // wrote this bank, its emptiest.
+  //
+  // THE CONSTRAINT W3 ATTACHED TO THIS WIRING (w3-r-001), because it is the
+  // one thing about the bank that its name does not tell you: THE STAMP IS
+  // DAY-TYPE-BLIND. `verdictStamp` (src/engine/reveal.ts) returns
+  // NULL_REPORTED on `published === null` alone, so an ABANDONED EFFECT DAY
+  // lands here too — one block under a `reveal.truthEffect` line that has
+  // just declared the effect real. Every line in the bank is therefore
+  // authored to be true on BOTH day types (each says what happened to the
+  // REPORT, never what the day contained), which is exactly why this needs no
+  // branch and gets none.
+  //
+  // IF A FUTURE CHANGE EVER GIVES IT ONE — a second, effect-day variant — the
+  // branch must key on `payload.dayType`, NEVER on the stamp, which cannot
+  // tell the two apart. And the retraction bank's `!isPrereg` gate above is
+  // NOT the precedent for that: RETRACTED requires a published spec, so its
+  // claims are scoped to that spec and true of it; nothing scopes these.
+  const subline = (() => {
+    if (!isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0) {
+      return content.retractionSublines[puzzleNumber % content.retractionSublines.length];
+    }
+    if (payload.stamp === 'NULL_REPORTED' && content.nullReportedSublines.length > 0) {
+      return content.nullReportedSublines[puzzleNumber % content.nullReportedSublines.length];
+    }
+    return undefined;
+  })();
 
   return (
     <div className="ph-reveal">
@@ -394,7 +423,7 @@ export function Reveal() {
             <div className="ph-reveal__cover-card" data-role="cover-echo">
               {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
                   never a second literal — see src/ui/masthead.ts. */}
-              <p className="ph-reveal__cover-vol">
+              <p className="ph-reveal__cover-vol ph-label">
                 {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
               </p>
               <p className="ph-reveal__cover-title">{scenario.question}</p>
@@ -462,7 +491,7 @@ export function Reveal() {
           that can be hidden by an IntersectionObserver that never fires is an
           action that can strand the player. Full width, after everything, so
           it cannot be mistaken for one more caption. */}
-      <button type="button" className="ph-reveal__cta" data-role="to-summary" onClick={finishReveal}>
+      <button type="button" className="ph-reveal__cta ph-focusable ph-label" data-role="to-summary" onClick={finishReveal}>
         {t('reveal.toSummary')}
       </button>
     </div>

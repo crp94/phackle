@@ -8,7 +8,37 @@
 
 /* The readable content still sits in a contained column (R2.8's measure
    discipline would otherwise be meaningless on a 1440px headline) -- only
-   the outer .ph-published itself is exempted from the page-max cap. */
+   the outer .ph-published itself is exempted from the page-max cap.
+
+   §9.1 VALUE MATCH: DECLINED, DELIBERATELY, AND HERE IS THE REASONING.
+   These four declarations spell `.ph-page` plus `.ph-page--titled` exactly,
+   and §9.1's constraint 3 is "a utility is adopted only where the value
+   already matches it" — so on values alone this qualifies. It is not
+   adopted, because the value test is the SECOND test that constraint
+   applies, not the first. §9.1 ruled `.ph-call` out with the first one:
+   "not a page at all... counting it as a fourth page-shell spelling was a
+   category error." `.ph-call` fails both tests; this rule passes the value
+   test and fails the category test, which is the case the section never had
+   to name and the one that matters here.
+
+   THE CATEGORY. `.ph-published` is §7.3's full-bleed takeover — the ONE
+   element in the product deliberately exempted from R3.5's page cap. This is
+   the readable column INSIDE that exemption, and its cap exists for a
+   different reason than the page shell's: it is a measure-discipline guard
+   on a headline that would otherwise set 1440px wide, not the app's page
+   frame. That the two numbers coincide today is arithmetic, not agreement.
+
+   WHAT ADOPTING WOULD COST, concretely, since a coincidence is a weak thing
+   to build on: `.ph-page` is the screen frame, so it is where a future
+   gutter, cap or breakpoint change to the SHELL lands — and every adopter
+   follows it by design. This column must not follow. It is the inside of a
+   takeover that has already opted out of the shell once; a shell change that
+   correctly moved five nav pages would silently re-frame the one screen
+   whose whole design is that it is not framed. Keeping the four declarations
+   here means a future change to the page shell has to decide about this
+   column on purpose, which is the outcome §9.1 wants — consolidation buys a
+   single place to change a shared idiom, and these were never the same
+   idiom. */
 .ph-published__cover {
   max-width: var(--page-max);
   margin-inline: auto;
@@ -85,38 +115,32 @@
    viewport, so all three ran and finished (~450ms) while below the fold and
    the player scrolled down to press that had always been there. That is
    precisely the defect T35 had just diagnosed for the stamp, reproduced one
-   screen over. `.ph-clipping--in` is now added by useEnterOnce's one-way
+   screen over. `.ph-entered` is now added by useEnterOnce's one-way
    observer at the moment each clipping actually arrives on screen — the
    same idiom, the same hook, as the reveal's blocks (site 3). At >=768,
    where the cards are usually in view at mount already, the observer's very
    first callback flips them together and the cascade is unchanged.
 
-   The base rule holds `opacity: 0` and `.ph-clipping--in` restores it — so
+   The base rule holds `opacity: 0` and `.ph-entered` restores it — so
    what makes the content visible is the CLASS, never the animation, and
    `useEnterOnce` resolves to entered-now under reduced motion, without an
    IntersectionObserver, or if the node never mounts (R5.6's
    no-content-behind-motion clause). `backwards` supplies the from-state
    during the stagger delay and does not persist afterwards. */
-@keyframes ph-clipping-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene`. This screen
+   still owns WHEN it fires, which is the whole of site 5. */
 .ph-press-card,
 .ph-chyron {
   opacity: 0;
 }
 
-.ph-clipping--in {
-  opacity: 1;
-  animation: ph-clipping-enter var(--dur-scene) var(--ease-out) backwards;
+/* Site 5's own timing — see Reveal.css's note on the same rule. The restore
+   lives once in App.css (§9.1's fifth utility); R5.2's File column keeps the
+   animation pair here, and the two base classes are named beside the flag so
+   this rule says which site it is. */
+.ph-press-card.ph-entered,
+.ph-chyron.ph-entered {
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 
@@ -128,7 +152,7 @@
   padding-block: var(--space-16) var(--space-8);
 }
 
-/* 1. The masthead. R2.7's uppercase label treatment, but --ink and
+/* 1. The masthead. R2.7's uppercase label treatment (`.ph-label`, §9.1), but --ink and
    --weight-medium rather than the --muted caption it used to be at the foot
    of the block: on a clipping, the paper names itself first and loudest of
    the small type. */
@@ -138,8 +162,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin: 0;
 }
 
@@ -158,16 +180,31 @@
 }
 
 /* 4. The compliance stamp (S4.4: every fake-press asset carries it). A
-   caption at the foot of the clipping, not a title over it. */
+   caption at the foot of the clipping, not a title over it.
+
+   gr6-088: the two watermarks shared this rule and then `.ph-chyron__watermark`
+   RE-DECLARED `margin: 0` 114 lines further down — the only equal-specificity
+   redefinition in the corpus, decided by source order alone and invisible to
+   anyone reading either half on its own. The shared type stays shared; the
+   margin, which is the one thing they never agreed on, is stated once at each
+   site. Nothing computes differently. */
 .ph-press-card__watermark,
 .ph-chyron__watermark {
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
+}
+
+/* At the foot of a clipping the stamp is separated from the pull-quote. */
+.ph-press-card__watermark {
   margin: var(--space-12) 0 0;
+}
+
+/* In the chyron's strap it is a flex item on the same baseline as the outlet,
+   so the row's own gap is the whole spacing. */
+.ph-chyron__watermark {
+  margin: 0;
 }
 
 /* Tier 3 only: master spec S4.4's TV-chyron mock, read as a broadcast LOWER
@@ -193,11 +230,46 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin: 0;
 }
 
+/* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
+   authored strings, e.g. "STUDY: FERNS = LEVERAGE?") -- no text-transform
+   here, so this never becomes a second, CSS-driven uppercase headline (R2.7:
+   "Headlines and prose are sentence case"; only labels are transformed). */
+.ph-chyron__text {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* The strap under the headline: attribution left, compliance stamp right —
+   the two things a real lower third carries in its bottom bar. */
+.ph-chyron__strap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-16);
+  margin: 0;
+}
+
+.ph-chyron__outlet {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+}
+
+/* gr6-088: this block used to sit ABOVE `.ph-chyron__text`, `.ph-chyron__strap`
+   and `.ph-chyron__outlet` — the corpus's only media-query-before-its-base-rules
+   arrangement. Nothing computed wrongly (the properties it sets and the ones
+   they set are disjoint), which is exactly the hazard: the next declaration
+   either file adds in common would be silently overridden BY THE BASE RULE, at
+   every width, because equal specificity is decided by source order. Moved
+   below the rules it modifies, where a media query belongs. */
 /* R3.4's one breakpoint. Above it the badge moves into its own left-hand
    channel, closed by a vertical hairline — a single edge, which R4.4/R4.5
    permit (R4.5 bars four sides and the `border` shorthand) — and the band
@@ -241,44 +313,8 @@
   }
 }
 
-/* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
-   authored strings, e.g. "STUDY: FERNS = LEVERAGE?") -- no text-transform
-   here, so this never becomes a second, CSS-driven uppercase headline (R2.7:
-   "Headlines and prose are sentence case"; only labels are transformed). */
-.ph-chyron__text {
-  font-family: var(--font-display);
-  font-size: var(--text-28);
-  line-height: var(--leading-display);
-  color: var(--ink);
-  margin: 0;
-}
-
-/* The strap under the headline: attribution left, compliance stamp right —
-   the two things a real lower third carries in its bottom bar. */
-.ph-chyron__strap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-8) var(--space-16);
-  margin: 0;
-}
-
-.ph-chyron__outlet {
-  font-family: var(--font-ui);
-  font-size: var(--text-13);
-  line-height: var(--leading-ui);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-}
-
-.ph-chyron__watermark {
-  margin: 0;
-}
-
 /* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label
-   carries --tracking-label. R4.5: a hairline underline, never a 4-side
+   carries --tracking-label (`.ph-label`, §9.1). R4.5: a hairline underline, never a 4-side
    border or a filled pill (R4.6 is reserved for segmented-control
    selection, so this reuses --hairline rather than inventing a bespoke
    raw-px accent). */
@@ -289,8 +325,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   background: none;
   border-style: none;
   border-block-end: var(--hairline);
@@ -302,11 +336,6 @@
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-published__cta:hover {
   text-decoration: underline;
-}
-
-.ph-published__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* The "Face the truth" overlay: R4.2's "dimmed backdrop" -- var(--scrim) is
@@ -332,9 +361,4 @@
   justify-content: center;
   overflow-y: auto;
   background: var(--scrim);
-}
-
-.ph-call-overlay:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

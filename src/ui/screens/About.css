@@ -1,11 +1,9 @@
 /* About/Methods nav page. DESIGN.md R3.2 (space-40 marks a new section: the
    glossary heading, and the closing meta line), R2.8 (prose capped at
-   --measure), R6.2 (links always underlined). */
-.ph-about {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
-}
+   --measure), R6.2 (links always underlined).
+   THE SHELL IS `.ph-page` (§9.1, App.css), composed in About.tsx: R3.5's
+   column cap, centring and gutter were this rule's entire content, so the
+   screen's own class now names the screen and styles nothing. */
 
 .ph-about__title {
   font-family: var(--font-display);
@@ -14,6 +12,29 @@
   font-weight: var(--weight-medium);
   color: var(--ink);
   margin: 0;
+}
+
+/* gr6-026/gr6-037 — the standfirst: `nav.tagline`, between the <h1> and the
+   body, which is where a line that summarises a title goes in the manuscript
+   idiom this page is set in.
+
+   IT IS DISTINGUISHED BY WEIGHT AND ATTACHMENT, NOT BY COLOUR OR SIZE, and
+   both of those were deliberate refusals. --muted would have been the obvious
+   reach and is wrong twice over: R1.2's --muted list is captions, footnotes,
+   axis labels and the quiet null action, and a standfirst is none of those —
+   it is the most load-bearing sentence on the page, not an aside. A sixth
+   size is not available either (R2.2 closes the scale at five). So it takes
+   the prose size and the second of R2.3's two weights, and --space-8 rather
+   than the paragraph rhythm's --space-16: sitting tighter to the <h1> than
+   the body does is what makes it read as belonging to the title. */
+.ph-about__standfirst {
+  font-family: var(--font-display);
+  font-size: var(--text-22);
+  line-height: var(--leading-prose);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  max-width: var(--measure);
+  margin: var(--space-8) 0 0;
 }
 
 .ph-about__subtitle {
@@ -85,30 +106,25 @@
   margin: var(--space-40) 0 0;
 }
 
+/* gr6-016 — THE 320w OVERFLOW, AND ITS OWNER.
+   `about.sourceLink` prints the repository URL as one unbreakable 304px
+   token at --text-13 mono. A 320px viewport minus two --space-24 gutters
+   leaves 272px, so `documentElement.scrollWidth` came out at 328 against a
+   320 client width — in all three locales and both themes, because a URL is
+   the same URL in every language. `overflow-wrap: anywhere` is the one
+   declaration that lets a token with no break opportunity take one; `normal`
+   and `break-word` both refuse, because neither may introduce a soft wrap
+   inside a word that has no separator at all. */
 .ph-about__link {
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
+/* `.ph-close ph-focusable` (§9.1) is the button; this is the only thing about
+   it that is About's own — the --space-24 that sets it off from the closing
+   meta line. §9.1: the margin is layout and stays at the call site. */
 .ph-about__close {
-  font-family: var(--font-ui);
-  font-size: var(--text-15);
-  line-height: var(--leading-ui);
-  color: var(--ink);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
   margin-block-start: var(--space-24);
-  cursor: pointer;
-}
-
-.ph-about__close:hover {
-  text-decoration: underline;
-}
-
-.ph-about__close:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

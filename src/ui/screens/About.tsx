@@ -37,18 +37,58 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
 
   return (
     // T22: a named region with its own <h1> — see Stats.tsx's identical note.
-    <section className="ph-about" aria-labelledby={titleId}>
+    <section className="ph-page ph-about" aria-labelledby={titleId}>
       <h1 className="ph-about__title" id={titleId}>
         {t('about.title')}
       </h1>
 
+      {/* gr6-026 / gr6-037 — THE STANDFIRST, and the end of the best line in
+          the catalog rendering nowhere. `nav.tagline` ("A daily game about
+          the garden of forking paths.") was written, transcreated into three
+          languages, and never put on screen; the grand review found it in the
+          dead-key sweep. This is its natural home: it is the one sentence
+          that tells a first-time visitor what the thing IS, and About is the
+          page they open to ask. It sits between the <h1> and `about.intro`,
+          which is exactly where a standfirst goes in the manuscript idiom
+          this product is set in — the title, the line that summarises it, and
+          then the body. */}
+      <p className="ph-about__standfirst">{t('nav.tagline')}</p>
+
+      {/* `about.intro` stands alone above the four sections, not under a
+          heading of its own: it answers "what is this" and the four headings
+          below are the essay's turns after that question is settled. */}
       <p className="ph-about__prose">{t('about.intro')}</p>
+
+      {/* gr6-036 — ABOUT WAS SEVEN UNSIGNPOSTED PARAGRAPHS WITH A TYPOGRAPHIC
+          FOOTNOTE WEDGED INTO THE MIDDLE OF IT.
+          Read as an essay it has a real argument in the right order — what
+          this is, then how it really works, then none of this is real, then
+          your data is yours, then read these instead, then vocabulary — and
+          six of those turns were invisible because nothing marked them. Four
+          short <h2>s in the page's own plain register, and the mapping is
+          W2's, documented in the CopyKey union beside the four keys. */}
+      <h2 className="ph-about__subtitle">{t('about.sectionHowItWorks')}</h2>
       <p className="ph-about__prose">{t('about.mechanism')}</p>
       <p className="ph-about__prose">{t('about.frozenFork')}</p>
+
+      <h2 className="ph-about__subtitle">{t('about.sectionNotReal')}</h2>
       <p className="ph-about__prose">{t('about.syntheticDisclaimer')}</p>
+      {/* MOVED, and this is the half of gr6-036 that is not just signposting.
+          `about.decimalNote` used to sit between "a screenshot travels further
+          than its caption" and the analytics paragraph, where a one-line note
+          about decimal points stopped the essay dead between two of its
+          heaviest disclosures. Under this heading it is in company: the other
+          facts here are all "what you are looking at is a construction", and
+          how the numerals are set is one of them. W2 rewrote it to earn the
+          place — it now states the leading-zero convention too, which is the
+          rule gr6-027 made true across the whole catalog and which this is
+          the only sentence that says out loud. */}
       <p className="ph-about__prose">{t('about.decimalNote')}</p>
+
+      <h2 className="ph-about__subtitle">{t('about.sectionYourData')}</h2>
       <p className="ph-about__prose">{t('about.dataDisclosure')}</p>
 
+      <h2 className="ph-about__subtitle">{t('about.sectionPriorArt')}</h2>
       <p className="ph-about__prose">{t('about.priorArt')}</p>
       <ul className="ph-about__citations">
         <li>{t('about.priorArtFiveThirtyEight')}</li>
@@ -58,6 +98,9 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
         <li>{t('about.priorArtOptionalStopping')}</li>
       </ul>
 
+      {/* The glossary already had the heading the other four sections were
+          missing, and it keeps it: `about.glossaryTitle` is the essay's sixth
+          and last turn (vocabulary), at the same level as the four above. */}
       <h2 className="ph-about__subtitle">{t('about.glossaryTitle')}</h2>
       <dl className="ph-about__glossary">
         {glossary.map((entry) => (
@@ -71,7 +114,11 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
       <p className="ph-about__prose">{t('about.contact')}</p>
 
       <p className="ph-about__meta">
-        <span className="ph-about__version">{t('about.version', { version: displayVersion })}</span>
+        {/* gr6-024: no className. This span carries no rule of its own —
+            .ph-about__meta's flex row, mono face and --muted are the whole
+            treatment — and a class with no CSS is a promise the stylesheet
+            never made. */}
+        <span>{t('about.version', { version: displayVersion })}</span>
         <a className="ph-about__link" href={REPO_URL}>
           {t('about.sourceLink')}
         </a>
@@ -82,7 +129,7 @@ export function About({ t, version, glossary, onClose }: AboutProps) {
 
       {/* T22: no aria-label — not a dialog. See Stats.tsx's note. */}
       {onClose && (
-        <button type="button" className="ph-about__close" onClick={onClose}>
+        <button type="button" className="ph-about__close ph-close ph-focusable" onClick={onClose}>
           {t('stats.close')}
         </button>
       )}

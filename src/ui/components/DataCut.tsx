@@ -25,6 +25,7 @@ import { useLocale } from '../../i18n/LocaleProvider';
 import { fnv1a32 } from '../../engine/prng';
 import type { DataCut as DataCutValues } from '../../engine/types';
 import { useContainerWidth } from '../charts/useContainerWidth';
+import { typographicMinus } from '../format';
 import './DataCut.css';
 
 export interface DataCutProps {
@@ -278,7 +279,9 @@ export function formatCutValue(value: number): string {
   if (value === 0) return '0.00';
   const rounded = Number(value.toPrecision(3));
   const magnitude = Math.floor(Math.log10(Math.abs(rounded)));
-  return rounded.toFixed(Math.max(0, 2 - magnitude));
+  // gr6-074: the rounding contract above is unchanged; only the sign
+  // character is (see src/ui/format.ts).
+  return typographicMinus(rounded.toFixed(Math.max(0, 2 - magnitude)));
 }
 
 /** The y-axis ticks: the domain's floor, midpoint and ceiling. Three is what
@@ -437,7 +440,8 @@ export function DataCut({ cut, treatmentLabel }: DataCutProps) {
                 data-group={GROUP_NAME[mark.column]}
                 data-x={mark.x}
                 data-y={mark.y}
-                className="ph-datacut__excluded"
+                /* gr6-024: the wrapper carries no rule — the ring and the
+                   two arms inside it do. */
               >
                 <circle className="ph-datacut__excluded-ring" cx={mark.x} cy={mark.y} />
                 <line
@@ -509,9 +513,9 @@ export function DataCut({ cut, treatmentLabel }: DataCutProps) {
           const mean = columnMean(included);
           return (
             <span className="ph-datacut__label" key={column} data-group={GROUP_NAME[column]}>
-              <span className="ph-datacut__label-name">
-                {column === 0 ? t('lab.cutControl') : treatmentLabel}
-              </span>
+              {/* gr6-024: no className — .ph-datacut__label owns the type
+                  for both of its children, and this one adds nothing. */}
+              <span>{column === 0 ? t('lab.cutControl') : treatmentLabel}</span>
               <span className="ph-datacut__label-stats">
                 {mean === null ? null : (
                   <>

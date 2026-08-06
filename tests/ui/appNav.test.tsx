@@ -12,15 +12,29 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import App from '../../src/ui/App';
+import { useAppNav } from '../../src/ui/nav';
 import { ScreenRouter } from '../../src/ui/ScreenRouter';
-import { useGameStore, type GameStore } from '../../src/game/store';
+import { gameStore, useGameStore, type GameStore } from '../../src/game/store';
 import { copy as enCopy } from '../../src/content/en/copy';
 import type { EngineClient } from '../../src/engine/protocol';
 import type { PathResult, Spec } from '../../src/engine/types';
 
+
+// gr6-007 — THE SHELL UNDER TEST IS THE BOOTED SHELL.
+//
+// App now renders the boot-failure screen INSTEAD of the shell when a boot
+// never produced a day (`storeError && !booted`), because the alternative was
+// a real-looking briefing for scenario #0 with a live CTA into a Lab that can
+// never compute. Every test in this file exercises the shell, and jsdom has
+// no `Worker`, so App's own boot attempt throws harmlessly into `store.error`
+// and would now take the page. Seeding `booted` says out loud what these
+// tests always assumed: the header, the nav and the screen slot are what a
+// player sees AFTER a day exists. The boot-failure screen has its own tests
+// (tests/ui/shell.test.tsx's "boot failure" block).
 beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
+  gameStore.setState({ booted: true });
 });
 
 afterEach(() => cleanup());
@@ -274,5 +288,67 @@ describe('App header — every nested row wraps (360w overflow regression)', () 
   it('still finds the rules it claims to be checking (guards the guard)', () => {
     expect(ruleBody('.ph-header__nav')).toMatch(/display:\s*flex/);
     expect(() => ruleBody('.ph-header__nonexistent')).toThrow(/no rule found/);
+  });
+});
+
+/* ==========================================================================
+   gr6-060 — the nav's buttons used to move under the finger. PLAY was
+   INSERTED AT THE HEAD of this row the instant a nav page opened, so every
+   remaining item shifted right by the width of the word and the next tap,
+   aimed at Legend, landed on Stats.
+   ========================================================================== */
+describe('gr6-060 — the nav row keeps its coordinates when PLAY appears', () => {
+  const navLabels = () =>
+    Array.from(document.querySelectorAll('.ph-header__nav .ph-seg')).map((b) => b.textContent);
+
+  it('appends PLAY rather than prepending it: the three page tabs never change index', async () => {
+    await renderApp();
+    expect(navLabels()).toEqual(['Stats', 'Legend', 'About']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stats' }));
+    expect(navLabels()).toEqual(['Stats', 'Legend', 'About', 'Play']);
+
+    // The property that matters, stated as the thing a finger experiences:
+    // every tab that existed before is still at the same index afterwards.
+    fireEvent.click(screen.getByRole('button', { name: 'Legend' }));
+    expect(navLabels().slice(0, 3)).toEqual(['Stats', 'Legend', 'About']);
+  });
+});
+
+/* ==========================================================================
+   gr6-062 — the Summary's "your stats" action, wired. W6 shipped the control
+   behind an `onViewStats` prop and left it dark, because registry.ts types
+   every screen as a bare ComponentType and there was nowhere to thread a
+   callback. src/ui/nav.ts's context is the route.
+   ========================================================================== */
+describe('gr6-062 — the shell hands machine screens a route to Stats', () => {
+  function StatsProbe() {
+    const nav = useAppNav();
+    return (
+      <button type="button" data-testid="probe-view-stats" onClick={() => nav?.viewStats()}>
+        {nav ? 'wired' : 'dark'}
+      </button>
+    );
+  }
+
+  it('provides the route around <main>, and using it swaps the nav page to Stats', async () => {
+    gameStore.setState({ booted: true });
+    render(
+      <LocaleProvider>
+        <App puzzleNumber={1}>
+          <StatsProbe />
+        </App>
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByTestId('probe-view-stats')).toBeTruthy());
+    expect(screen.getByTestId('probe-view-stats').textContent).toBe('wired');
+
+    fireEvent.click(screen.getByTestId('probe-view-stats'));
+    expect(screen.getByRole('button', { name: 'Stats' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('is null outside the shell, so a screen rendered standalone shows no dead control', () => {
+    render(<StatsProbe />);
+    expect(screen.getByTestId('probe-view-stats').textContent).toBe('dark');
   });
 });

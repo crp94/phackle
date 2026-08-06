@@ -1,12 +1,8 @@
 /* Summary screen — the score breakdown styled as a journal fee invoice
    (DESIGN.md hairline table rules: R4.4/R4.5 — hairlines only, never a
    box, never a border on all four sides; R2.4 every numeral is mono and
-   tabular). */
-.ph-summary {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
-}
+   tabular). The page shell is `.ph-page` (§9.1, App.css), composed in
+   Summary.tsx on both the loaded screen and its loading placeholder. */
 
 .ph-summary__title {
   font-family: var(--font-display);
@@ -82,6 +78,15 @@
   margin: var(--space-24) 0 0;
 }
 
+/* gr6-012 — SHARE IS THE ONE SOCIAL ACTION, AND IT HAD NO RESTING SHAPE.
+   The 2px block-end was reserved and left `transparent`, which is the close
+   button's idiom (a button whose whole job is to be quiet, holding space so
+   its label does not shift when a sibling paints one). Share is not that
+   button: it is the last thing the day asks you to do, and until it was
+   hovered or focused it looked exactly like a line of text. Filling the
+   reserve is the product's own answer — R4.6's 2px --ink underline, the same
+   stroke T29 pin 4 gave the segmented controls — and it costs no layout,
+   because the space was already there. */
 .ph-summary__share-button {
   font-family: var(--font-ui);
   font-size: var(--text-15);
@@ -89,18 +94,13 @@
   color: var(--ink);
   background: none;
   border-style: none;
-  border-block-end: 2px solid transparent;
+  border-block-end: 2px solid var(--ink);
   padding: var(--space-12) var(--space-16);
   cursor: pointer;
 }
 
 .ph-summary__share-button:hover {
   text-decoration: underline;
-}
-
-.ph-summary__share-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 /* DESIGN.md R5.2 site 7: THE COPY CONFIRMATION.
@@ -116,24 +116,14 @@
    technology is unaffected either way — the live region announces on insert,
    which has nothing to do with how the pixels arrive — and with no base
    `opacity: 0` the text is present even if the animation never runs (R5.6). */
-@keyframes ph-toast-enter {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-quick`. This screen
+   still owns WHEN it fires, which is the whole of site 7. */
 .ph-summary__toast {
   font-family: var(--font-ui);
   font-size: var(--text-13);
   color: var(--muted);
   margin: var(--space-8) 0 0;
-  animation: ph-toast-enter var(--dur-quick) var(--ease-out);
+  animation: ph-enter-quick var(--dur-quick) var(--ease-out);
 }
 
 /* --- T38: the day's award ceremony ---------------------------------------
@@ -151,7 +141,7 @@
   max-width: var(--measure);
 }
 
-/* R2.7's uppercase label treatment: this is a small heading over a list, the
+/* R2.7's uppercase label treatment (`.ph-label`, §9.1): this is a small heading over a list, the
    same job .ph-press-card__outlet does over a clipping — --ink and
    --weight-medium, because it opens the block rather than captioning it. */
 .ph-summary__unlock-title {
@@ -160,8 +150,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin: 0;
 }
 
@@ -190,24 +178,14 @@
    spent here: site 7's copy-confirmation toast is a single element with no
    index, not a second cascade.
 
-   The base rule holds `opacity: 0` and `.ph-summary__unlock-item--in`
+   The base rule holds `opacity: 0` and `.ph-entered`
    restores it, so what makes the citation visible is the CLASS the component
    adds, never the animation (R5.6) — and `useEnterOnce` resolves to
    entered-now under reduced motion, without an IntersectionObserver, and if
    the node never mounts. `backwards` supplies the from-state during the
    stagger delay without persisting a transform afterwards. */
-@keyframes ph-unlock-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene`. This screen
+   still owns WHEN it fires, which is the whole of site 9. */
 .ph-summary__unlock-item {
   display: flex;
   flex-direction: column;
@@ -217,9 +195,11 @@
   opacity: 0;
 }
 
-.ph-summary__unlock-item--in {
-  opacity: 1;
-  animation: ph-unlock-enter var(--dur-scene) var(--ease-out) backwards;
+/* Site 9's own timing — see Reveal.css's note on the same rule. The restore
+   lives once in App.css (§9.1's fifth utility); R5.2's File column keeps the
+   animation pair here, named against this site's own base class. */
+.ph-summary__unlock-item.ph-entered {
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
 
@@ -266,20 +246,52 @@
   margin: var(--space-16) 0 0;
 }
 
-.ph-summary__prereg-button {
-  font-family: var(--font-ui);
+/* gr6-024 (the other direction): `.ph-summary__prereg-button`'s two rules
+   used to sit here, dressing a permanently-disabled CTA — `cursor:
+   not-allowed`, --muted, an underline reserve that could never fill. gr6-020
+   deleted the control (a dead "tomorrow" button is a sentence, not a
+   destination), and CSS for an element nothing renders is the same defect as
+   a className with no CSS, read from the other end. */
+
+/* gr6-024 — three of W6's new classNames shipped with no rules, so the
+   career line and the stats action rendered at the user agent's defaults
+   (16px Times, 1em margins) in the middle of a screen built on a closed
+   scale. */
+
+/* gr6-018's career line. Mono/tabular like every other numeral (R2.4) and
+   --muted like the streak and countdown it sits with: R1.6 names Published's
+   own career line as the ONE place --hack-gold-ink paints characters, and
+   R8.3 keeps Act II's quietest screen quiet. */
+.ph-summary__career {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-15);
   line-height: var(--leading-ui);
   color: var(--muted);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
-  margin: var(--space-16) 0 0;
-  cursor: not-allowed;
+  margin: var(--space-8) 0 0;
 }
 
-.ph-summary__prereg-button:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+.ph-summary__next {
+  margin-block-start: var(--space-24);
+}
+
+/* The same button anatomy as the share action beside it, one register down:
+   this is the day's last offer, not its last instruction, so it carries
+   R4.6's 2px stroke at --rule rather than --ink. R6.4's tap target comes out
+   of the §3 scale exactly as it does there. */
+.ph-summary__next-button {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid var(--rule);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-summary__next-button:hover {
+  text-decoration: underline;
 }

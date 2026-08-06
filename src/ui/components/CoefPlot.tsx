@@ -18,6 +18,7 @@ import { useMemo, useRef } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { PathResult } from '../../engine/types';
 import { useContainerWidth } from '../charts/useContainerWidth';
+import { typographicMinus } from '../format';
 import './CoefPlot.css';
 
 export interface CoefPlotProps {
@@ -110,11 +111,14 @@ export function CoefPlot({ result, unit }: CoefPlotProps) {
   const usableHalf = geom.width / 2 - geom.inset;
   const x = (v: number) => geom.width / 2 + (v / domainHalf) * usableHalf;
 
+  // gr6-074: two decimals as before, U+2212 for the sign — this caption is
+  // the one line in the Lab that routinely prints a negative estimate, and a
+  // 95% CI that straddles zero prints two of them side by side.
   const caption = t('lab.coefPlotCaption', {
-    beta: beta.toFixed(2),
+    beta: typographicMinus(beta.toFixed(2)),
     unit,
-    lo: lo.toFixed(2),
-    hi: hi.toFixed(2),
+    lo: typographicMinus(lo.toFixed(2)),
+    hi: typographicMinus(hi.toFixed(2)),
   });
 
   return (

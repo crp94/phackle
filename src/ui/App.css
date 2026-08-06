@@ -1,9 +1,14 @@
 /* R1.1, found by measuring during T29's matrix pass: --paper is the only
    surface in the product, and it was not reaching the viewport edge.
-   Nothing in this project loads a CSS reset — Tailwind is configured as a
-   Vite plugin but `@import "tailwindcss"` appears nowhere, so preflight
-   never runs — which left the user agent's own `body { margin: 8px }` in
-   force. Measured at 360x640: `.ph-app` at left 8, top 8, width 344, with
+   NOTHING IN THIS PROJECT LOADS A CSS RESET, and that is now a plain fact
+   rather than a near-miss: this comment used to explain the absence by
+   pointing at an inert Tailwind plugin ("configured as a Vite plugin but
+   `@import \"tailwindcss\"` appears nowhere, so preflight never runs"). GR6
+   gr6-090 removed the plugin and both packages outright (see vite.config.ts's
+   own note), so there is no longer a reset in the tree to be inert — the
+   design system in `src/ui/theme/tokens.css` is the only source of style, and
+   the user agent's own `body { margin: 8px }` is in force until this rule
+   zeroes it. Measured at 360x640: `.ph-app` at left 8, top 8, width 344, with
    `body`/`html` background `rgba(0,0,0,0)`, i.e. an 8px frame of the UA's
    CANVAS around every screen at every width. In dark theme that canvas is
    the UA's near-black, not `--paper` (#141821), and reads as a pale border;
@@ -19,6 +24,133 @@ body {
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
+}
+
+/* ===========================================================================
+   DESIGN.md §9.1 — THE UTILITY LAYER (gr6-050)
+
+   Idioms that are COMBINATIONS of tokens meaning one thing, declared once
+   here and composed at the sites by a multi-class `className` written by the
+   component — §9.1 constraint 1: no @apply, no preprocessor, no mixin, and no
+   `:is()` list of every consumer maintained in this file. The stylesheet says
+   what the idiom IS; the component says which elements ARE one.
+
+   Every declaration below already existed VERBATIM at every site it replaces.
+   §9.1 constraint 2 forbids a new token or a changed value, and constraint 3
+   admits a site only where the value already matched — which is why the sites
+   that disagree stay where they are and are named at their own rules.
+
+   This file is the home because it is the one stylesheet the shell always
+   imports, so no build that composes a utility can be missing its definition
+   (the same argument App.css's shared keyframes are here on).
+   =========================================================================== */
+
+/* R6.1's focus ring, and nothing else: `--focus-ring` (2px solid --ink) at
+   `--focus-offset` (2px), on :focus-visible, in both themes — `--ink` flips
+   with the theme, so this never needs a dark-theme override.
+
+   THE ONE EXCEPTION IS NAMED BY §9.1 CONSTRAINT 4, and it is `.ph-screen`
+   further down this file: R6.6's screen container declares the same ring at a
+   NEGATED offset, because <main> is full-bleed and a ring drawn 2px outside it
+   lands in the viewport gutter (at 200% zoom, in nothing at all). It is not
+   `.ph-focusable` and must not become one — a utility that quietly straightened
+   that out would put the one ring the SPA's route change depends on where
+   nobody can see it. */
+.ph-focusable:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* R2.7's uppercase label: the PAIR, never one without the other. "Uppercase
+   labels carry --tracking-label (0.08em); nothing else is uppercased" is one
+   rule about two properties, and splitting them is the drift it forbids —
+   uppercase without the tracking is a shout, and the tracking is what makes
+   the shout legible at 13px.
+   IT CARRIES NOTHING ELSE, which is why it composes onto elements as different
+   as a 13px --muted caption, a 15px --ink CTA and R8.2's 40px display stamp:
+   the family, the size, the weight and the colour are the site's business and
+   stay at the site.
+   TWO SITES SET `--tracking-label` WITHOUT THE TRANSFORM and are deliberately
+   NOT `.ph-label` — .ph-fork-trail__glyphs and .ph-glyph-mark space runs of
+   emoji, where there are no letterforms to case at all. §9.1 constraint 3:
+   a utility is adopted only where the value already matches it. */
+.ph-label {
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+/* R3.5's page column and R3.1's gutter: the shell every screen sits in.
+   Composed as `class="ph-page ph-about"` — the utility carries the shell, the
+   screen's own class carries whatever else that screen is (`.ph-lab` keeps the
+   flex column it lays its panes out with, because a utility replaces the
+   declarations it NAMES and nothing else).
+
+   FIVE SCREENS, ENUMERATED BY §9.1 CONSTRAINT 3: .ph-about, .ph-legend,
+   .ph-stats, .ph-summary, .ph-lab — the five that already agreed in all three
+   declarations. Two shells stay off it, for two different reasons, and both
+   are recorded at their own rules rather than here:
+   - `.ph-call` is not a page at all. It is capped at `--measure` rather than
+     R3.5's `--page-max` because it is the Call modal's column: modal chrome,
+     sized by R2.8's measure. Counting it as a fourth page-shell spelling was
+     the category error §9.1 corrected.
+   - `.ph-reveal` IS a page and pads 40 at BOTH block ends. §9.1 left that open
+     to be ruled against a 360 shot; W7 ruled it, in Reveal.css, and the answer
+     was KEEP THE 40 — see the modifier below. */
+.ph-page {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--space-24);
+}
+
+/* The same shell with --space-40 above and --space-24 on the other three
+   sides: a screen that opens on a title needs the extra air over it (R3.1).
+   A MODIFIER, so it re-states only the declaration it changes and is written
+   beside its base — `class="ph-page ph-page--titled ph-briefing"` — exactly as
+   `.ph-radio--selected` re-states only its border. Three adopters:
+   `.ph-briefing`, `.ph-prereg` and — added after §9.1 was written, since
+   gr6-007's screen did not exist when it enumerated two — `.ph-boot-error`.
+   Its own ruling is recorded at its rule below.
+
+   `.ph-reveal` IS NOT ONE, and the ruling is Reveal.css's (restated here so
+   the next consolidation does not re-open it from this end): that screen pads
+   40 at both block ends, its last element is a full-width control whose whole
+   affordance is a hairline UNDERLINE, and 24 beneath a rule at the foot of the
+   longest screen in the product reads as the page having been cut off rather
+   than finished. One value, one reason, ruled against a 360 shot on the
+   production build. */
+.ph-page--titled {
+  padding: var(--space-40) var(--space-24) var(--space-24);
+}
+
+/* The overlay close button — the one the three nav pages (Stats, Legend,
+   About) end on. Written `class="ph-close ph-focusable"`, because R6.1's ring
+   is composed rather than restated (§9.1 spells this one out).
+
+   THE TRANSPARENT 2px BLOCK-END IS NOT PADDING BY ACCIDENT. It reserves R4.6's
+   underline, so the label does not shift by 2px the moment a sibling state
+   paints one — the same reserve `.ph-seg` and `.ph-radio` carry for the same
+   reason. And the `--space-12`/`--space-16` pair is what buys R6.4's >=44x44
+   target out of the §3 scale rather than out of a bigger font.
+
+   THE MARGIN IS NOT PART OF IT. Two of the three sites sit `--space-24` below
+   the block above them and one does not; §9.1's match-first test settles that
+   the same way it settles everything else — the margin is LAYOUT, it stays at
+   the call site, and the button is the utility. */
+.ph-close {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid transparent;
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-close:hover {
+  text-decoration: underline;
 }
 
 /* T35 — DESIGN.md R5.2 site 1: THE SCREEN TRANSITION.
@@ -39,7 +171,29 @@ body {
    lasts — long before the player can open the overlay — and .ph-lab's
    sticky dial (R8.1) is likewise only affected during that same window,
    which is before anything has been scrolled. */
-@keyframes ph-screen-enter {
+/* gr6-087 / DESIGN.md R5.2's GRANT 2 — THE TWO SHARED ENTRANCE BODIES,
+   DEFINED HERE, ONCE, AND FIRED FROM THE STYLESHEETS THAT OWN THE SITES.
+   Six `@keyframes` names carried two animations: `ph-screen-enter` (site 1),
+   `ph-block-enter` (3), `ph-clipping-enter` (5) and `ph-unlock-enter` (9)
+   were character-identical at R5.3's scene distance, and `ph-popover-enter`
+   (6) and `ph-toast-enter` (7) were identical at its quick one. That is
+   R5.3's two pinned distances retyped as literals in six places — the same
+   defect §10's raw-px list exists to prevent, one indirection down, and the
+   reason the register is a list of SITES rather than a list of animations.
+   The register still keeps one row per site: a shared identity is not a
+   shared row, because a row is a moment the player experiences and the
+   Motion column is only its name.
+   This is the third instance of the deliberate definition/firing split §5
+   permits (Stamp.css/Reveal.css is the first, PValueDial the second in
+   spirit), and it is safe on the same terms: every keyframe defined under
+   src/ui is referenced by some `animation:` declaration and vice versa, which
+   motion.test.ts compiles corpus-wide. App.css is the home because it is the
+   one stylesheet the shell always imports, so neither body can be missing
+   from a build that fires it.
+
+   R5.3's SCENE distance. Fired by sites 1 (here), 3 (Reveal.css), 5
+   (Published.css) and 9 (Summary.css). */
+@keyframes ph-enter-scene {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -51,8 +205,53 @@ body {
   }
 }
 
+/* gr6-050 / §9.1 / R5.6 — THE ENTERED FLAG'S RESTORER, DECLARED ONCE.
+   `.ph-entered` is §9.1's fifth utility and this is where it lives, beside
+   the four others and beside the keyframe its sites fire. The utility carries
+   exactly ONE declaration — the restore — and that is the whole of what the
+   four entrance sites share.
+
+   WHY THE SELECTORS ARE COMPOUND, AND NOT A BARE `.ph-entered`. Each site's
+   base rule (`.ph-fade`, `.ph-press-card`, `.ph-chyron`,
+   `.ph-summary__unlock-item`) declares `opacity: 0` in its own stylesheet,
+   and those stylesheets are IMPORTED AFTER this one — App.css lands at byte
+   ~6,000 of the bundle, the three bases at 25,062 / 33,075 / 39,106. A bare
+   `.ph-entered { opacity: 1 }` here would tie with each base at (0,1,0) and
+   LOSE on source order, which does not mean a subtle bug: it means all four
+   entrance sites are permanently invisible. Naming the base beside the flag
+   makes each selector (0,2,0), so it wins on specificity and the outcome no
+   longer depends on which stylesheet the bundler happens to emit first.
+   Order-independence is the property being bought here, not tidiness.
+
+   WHAT STAYS IN THE FOUR STYLESHEETS: the `animation` and `animation-delay`
+   pair. R5.2's table has a File column and it pins each site's animation to
+   that site's own stylesheet, so the four screens still own WHEN they fire
+   and with what stagger; only the one declaration they genuinely share moved.
+   Each of those rules is now written against its own base class too, so no
+   two of them are byte-identical and each one names the site it belongs to. */
+.ph-fade.ph-entered,
+.ph-press-card.ph-entered,
+.ph-chyron.ph-entered,
+.ph-summary__unlock-item.ph-entered {
+  opacity: 1;
+}
+
+/* R5.3's QUICK distance, the other pinned one. Fired by site 6 (the
+   fork-trail popover) and site 7 (the share toast). */
+@keyframes ph-enter-quick {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .ph-screen {
-  animation: ph-screen-enter var(--dur-scene) var(--ease-out);
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out);
 }
 
 /* T22 (DESIGN.md R6.6) — the screen container is the SPA route change's focus
@@ -89,6 +288,111 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
   border-style: none;
+}
+
+/* gr6-017 — THE SKIP LINK, hidden until it is focused.
+   Composed onto `.ph-visually-hidden` rather than re-typing its clip box:
+   §10's raw-pixel allow-list names that `1px` as "the idiom's own value, and
+   the ONLY place in src/ui it may appear", so the link borrows the idiom and
+   this rule only says what changes when it takes focus. Everything below is
+   a token — the padding is R6.4's tap target out of the §3 scale, the rule
+   under it is R4.4's hairline, and the ring is R6.1's, composed as
+   `.ph-focusable` (§9.1) at the ordinary positive offset (unlike R6.6's
+   full-bleed <main>, this element is inset and its ring lands on paper).
+   `position: absolute` with `inset-block-start`/`inset-inline-start` at 0
+   keeps it out of the header's flex flow entirely: a skip link that reserved
+   layout while hidden would push the masthead down on every screen.
+   Nothing transitions (R5.5): a focus affordance that fades in is a focus
+   affordance that is briefly absent. */
+.ph-skip-link:focus {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-overlay);
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  padding: var(--space-12) var(--space-16);
+  background: var(--paper);
+  border-block-end: var(--hairline);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* gr6-007 — the boot-failure screen. A boot that never produced a day is not
+   an aside over a study, it is the absence of one, so it takes the page (see
+   App.tsx). Same manuscript register as every other quiet block in the
+   product: the page shell's own column and gutter, --ink prose, and a
+   hairline-underlined action. No fill (R4.1), no box (R4.5), no red — R1.3
+   reserves --sig-red for Act II's four places, and a failed boot is not one
+   of them. */
+/* THE SHELL IS `.ph-page ph-page--titled` (§9.1), composed in App.tsx —
+   ADOPTED, and the reasoning is here because §9.1's own enumeration could not
+   have named this rule.
+
+   This screen POSTDATES the section. gr6-050 consolidated the page shells
+   that existed when §9.1 was written; gr6-007 created this one afterwards,
+   and it was typed out longhand — `--page-max`, `margin-inline: auto`, 40/24/
+   24 — which is character-for-character `.ph-page` plus `.ph-page--titled`.
+   §9.1's stated defect is "the page shell in 4 disagreeing spellings", and a
+   consolidation that only ever looks backwards regrows that one spelling at a
+   time. The match-first test in constraint 3 is satisfied exactly: the two
+   utilities carry precisely the four declarations this rule had, so nothing
+   about the rendered screen changes.
+
+   It also passes the CATEGORY test constraint 3 applies before the value one
+   — the test that ruled `.ph-call` out as "not a page at all". This IS a
+   page: it takes the whole viewport, it is the only content of <main>, and it
+   opens on an <h1> (R6.6), which is what `--space-40` above and 24 around is
+   for. It belongs beside `.ph-briefing` and `.ph-prereg`, not beside the Call
+   modal's column.
+
+   The rule is deleted rather than emptied, exactly as `.ph-about`'s and
+   `.ph-briefing`'s were: the shell was its entire content, so the block class
+   now names the screen (for its two BEM children and the shape probes) and
+   styles nothing. `tests/ui/classNames.test.ts`'s SHELL_CONSOLIDATED list
+   gains it for that reason — the list is per-name and demands the utility be
+   written beside it, so this is a fifth adopter, not a loosening.
+
+   NOT ADOPTED, ruled at the same time and recorded at its own site instead:
+   `.ph-published__cover` (see src/ui/screens/Published.css). */
+
+.ph-boot-error__title {
+  max-width: var(--measure);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+/* The same CTA treatment as .ph-published__cta / .ph-reveal__cta: R6.4's tap
+   target in scale padding, R2.7's uppercase label (`.ph-label`), R4.5's single hairline
+   underline. */
+.ph-boot-error__reload {
+  display: inline-block;
+  margin-block-start: var(--space-40);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: var(--hairline);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-boot-error__reload:hover {
+  text-decoration: underline;
 }
 
 /* R3.5: page column capped and centred; R4.4: hairline separation, not a fill. */
@@ -133,11 +437,6 @@ body {
 .ph-header__home:hover .ph-header__wordmark {
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.ph-header__home:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }
 
 .ph-header__wordmark {
@@ -240,11 +539,6 @@ body {
   text-decoration: underline;
 }
 
-.ph-seg:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
-}
-
 .ph-seg[aria-pressed='true'] {
   border-block-end: 2px solid var(--ink);
 }
@@ -256,13 +550,11 @@ body {
    see — 400 vs 500 at --text-15 is imperceptible next to three siblings, and
    CSS must not claim a difference the eye does not get. This is now the
    product's OWN registered idiom for "this is the action, not a label":
-   R2.7's uppercase label with --tracking-label, exactly the treatment
+   R2.7's uppercase label with --tracking-label (`.ph-label`), exactly the treatment
    .ph-briefing__cta / .ph-published__cta / .ph-reveal__cta already wear. No
    new token, no new colour, and a distinction that reads at a glance. */
 .ph-seg--action {
   font-weight: var(--weight-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* T40 (FINDING F1) — the storage-blocked notice (App.tsx). Same block shape

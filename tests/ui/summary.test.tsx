@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import SummaryScreen, { Summary, type UnlockedAchievement } from '../../src/ui/screens/Summary';
+import { AppNavContext } from '../../src/ui/nav';
 // gr6-081: the persistence moment moved out of the screen file it never belonged in.
 import { persistAndComputeSummary } from '../../src/game/dayComplete';
 import { scoreDay } from '../../src/game/scoring';
@@ -281,8 +282,20 @@ describe('Summary — prereg block (gr6-020): gated on the unlock AND on the day
   });
 
   it('renders NO dead CTA: the block is heading + sentence, never a permanently disabled button', () => {
-    render(<Summary {...props} preregUnlocked={true} />);
-    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
+    // gr6-020, pinned STRUCTURALLY. This used to assert the absence of a
+    // button named `summary.playPrereg` — which meant the key for a control
+    // W6 deleted had to stay alive in three catalogs purely so this line
+    // could name it, and a translator maintaining a string whose only
+    // remaining consumer is an assertion that it never appears. The shape is
+    // what gr6-020 actually decided: this block is a heading and a sentence,
+    // and it has no control of any kind. Naming the shape also catches a CTA
+    // that comes back under a DIFFERENT label, which naming the old string
+    // never could.
+    const { container } = render(<Summary {...props} preregUnlocked={true} />);
+    const block = container.querySelector('.ph-summary__prereg') as HTMLElement;
+    expect(block).not.toBeNull();
+    expect(block.querySelectorAll('button, a, input, [role="button"]')).toHaveLength(0);
+    expect(Array.from(block.children).map((el) => el.tagName)).toEqual(['H2', 'P']);
     for (const button of screen.getAllByRole('button')) {
       expect(button.hasAttribute('disabled'), `"${button.textContent}" is a dead control`).toBe(false);
     }
@@ -360,6 +373,18 @@ describe('Summary — the "your stats" action (gr6-062)', () => {
     expect(button.hasAttribute('disabled')).toBe(false);
     fireEvent.click(button);
     expect(onViewStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('is labelled as an ACTION, not as the header tab of the same name', () => {
+    // gr6-062: this rendered `nav.stats` ("Stats") as a placeholder. A tab in
+    // a row of tabs is a destination and is right to be a noun; this is the
+    // last control of a finished day and reads as what it does. They must not
+    // be the same string — a screen reader meeting the identical accessible
+    // name twice on one screen has no way to tell the two controls apart.
+    render(<Summary {...props} onViewStats={vi.fn()} />);
+    const button = screen.getByTestId('summary-stats-action');
+    expect(button.textContent).toBe(t('summary.viewStats'));
+    expect(button.textContent).not.toBe(t('nav.stats'));
   });
 
   it('sits AFTER the countdown, where the day actually ends', () => {
@@ -834,7 +859,10 @@ describe('SummaryScreen — achievement evaluation wired into the one persist mo
     // true the instant the achievement is earned, not only on some later day.
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
     // gr6-020: and it is a sentence, not a permanently disabled button.
-    expect(screen.queryByRole('button', { name: t('summary.playPrereg') })).toBeNull();
+    // Pinned as the block's SHAPE rather than by the deleted CTA's old label
+    // — see the sibling assertion in "renders NO dead CTA" above for why.
+    const block = document.querySelector('.ph-summary__prereg') as HTMLElement;
+    expect(block.querySelectorAll('button, a, input, [role="button"]')).toHaveLength(0);
   });
 
   it('a remount does not move the unlock date (saveAchievements is not re-invoked; alreadySaved skips the whole persist block)', async () => {
@@ -1037,7 +1065,7 @@ describe('Summary — R5.2 site 9: one staggered group, capped, and never hiding
       // The restoring class is present on the very first render: the citation
       // is held visible by the CLASS, and no movement is waited on.
       for (const item of screen.getAllByTestId('unlock-item')) {
-        expect(item.className).toContain('ph-summary__unlock-item--in');
+        expect(item.className).toContain('ph-entered');
       }
       // ...and the text is in the document regardless of any animation.
       expect(screen.getByText(enContent.achievements.harking.citation)).toBeTruthy();
@@ -1063,7 +1091,7 @@ describe('Summary — R5.2 site 9: one staggered group, capped, and never hiding
     expect(typeof (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver).toBe('undefined');
     renderWithUnlocks(TWO_AWARDS);
     for (const item of screen.getAllByTestId('unlock-item')) {
-      expect(item.className).toContain('ph-summary__unlock-item--in');
+      expect(item.className).toContain('ph-entered');
     }
   });
 });
@@ -1220,5 +1248,55 @@ describe('SummaryScreen — the day that earns an award shows it, and only that 
     expect(screen.getByText(t('summary.preregUpsell'))).toBeTruthy();
     const saved = JSON.parse(window.localStorage.getItem('phackle.v1') ?? '{}');
     expect(saved.achievements.first_retraction).toBe('2026-08-10');
+  });
+});
+
+/* ==========================================================================
+   gr6-062's other half, and the one an explicit-prop test cannot see: the
+   SCREEN wrapper is the registry's 'summary' entry, and the registry types
+   every screen as a bare `ComponentType` — no props at all. So the wrapper
+   has to find the route itself, and src/ui/nav.ts's context is it (App.tsx
+   provides it around <main>). Driven through the same real store + real
+   SummaryScreen harness as the remount test above, because the action only
+   exists on a finished day.
+   Mutation-checked: deleting the `?? nav?.viewStats` fallback in Summary.tsx
+   leaves the whole rest of this file green and reds the first test here.
+   ========================================================================== */
+describe('SummaryScreen — the stats route comes from the shell context (gr6-062)', () => {
+  async function driveToFinishedDay() {
+    const ready = vi.fn();
+    const harness = render(
+      <LocaleProvider>
+        <DriveToSummary onReady={ready} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(ready).toHaveBeenCalled());
+    harness.unmount();
+  }
+
+  it('picks the route up from the context, with no prop at all', async () => {
+    await driveToFinishedDay();
+    const viewStats = vi.fn();
+    render(
+      <LocaleProvider>
+        <AppNavContext.Provider value={{ viewStats }}>
+          <SummaryScreen />
+        </AppNavContext.Provider>
+      </LocaleProvider>
+    );
+    const button = await screen.findByTestId('summary-stats-action');
+    fireEvent.click(button);
+    expect(viewStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no action at all when there is neither a prop nor a shell — never a dead control', async () => {
+    await driveToFinishedDay();
+    render(
+      <LocaleProvider>
+        <SummaryScreen />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(screen.getByText(t('summary.invoiceTitle'))).toBeTruthy());
+    expect(screen.queryByTestId('summary-stats-action')).toBeNull();
   });
 });

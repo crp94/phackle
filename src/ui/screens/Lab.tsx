@@ -73,7 +73,7 @@ export function Lab() {
   const canCollectMore = !atMaxN && !pending && !!result;
 
   return (
-    <section className="ph-lab" data-testid="lab-screen">
+    <section className="ph-page ph-lab" data-testid="lab-screen">
       {/* T29 pin 10 (owner, third play-test round): "the question lives on
           screen 1 but the instructions on screen 2 — by the time you read the
           how-to, the question is gone." The scenario's own question, rendered
@@ -119,7 +119,7 @@ export function Lab() {
             discover the instructions — and gone for good once dismissed. */}
         {introSeen ? null : (
           <details className="ph-lab__intro" data-testid="lab-intro" open>
-            <summary className="ph-lab__intro-title">{t('lab.howThisWorks.title')}</summary>
+            <summary className="ph-lab__intro-title ph-focusable ph-label">{t('lab.howThisWorks.title')}</summary>
             <ol className="ph-lab__intro-steps">
               {HOW_TO_PLAY_STEPS.map((key) => (
                 <li key={key} className="ph-lab__intro-step" data-testid="lab-intro-step">
@@ -127,7 +127,7 @@ export function Lab() {
                 </li>
               ))}
             </ol>
-            <button type="button" className="ph-lab__intro-dismiss" onClick={dismissIntro}>
+            <button type="button" className="ph-lab__intro-dismiss ph-focusable" onClick={dismissIntro}>
               {t('lab.howThisWorks.dismiss')}
             </button>
           </details>
@@ -139,16 +139,67 @@ export function Lab() {
         <DataCut cut={result?.cut ?? null} treatmentLabel={scenario.treatmentLabel} />
         <button
           type="button"
-          className="ph-lab__collect"
+          className="ph-lab__collect ph-focusable"
           disabled={!canCollectMore}
           onClick={() => void peekAndExtend()}
         >
           {t('lab.collectMore', { n: STEP })}
         </button>
-        {peeks >= 1 ? <p className="ph-lab__footnote">{t('lab.peekFootnote')}</p> : null}
-        {peeks >= 2 ? (
-          <p className="ph-lab__footnote ph-lab__footnote--armitage">{t('lab.peekFootnoteArmitage')}</p>
+        {/* gr6-025 — OPTIONAL STOPPING IS §2.4's CROWN JEWEL AND NOBODY
+            PRESSED IT: `one_more_batch` unlocked twice in 96 player-days.
+            The button read only as "more data", which is a cost (another
+            press, another mark on the trail) with no visible return, so the
+            rational read was to skip it. What peeking actually buys is
+            visible and specific — the sample grows and the CoefPlot's
+            interval narrows with it — and none of that was said anywhere
+            near the control. The n it would produce, printed at the button.
+            Deliberately NOT reward-gating and NOT making search harder
+            (explicitly out of scope): the same press, the same cost, the
+            same trail mark; only the offer is legible now.
+            Symbols, not words: `→` carries no Latin letters, so this adds no
+            uncatalogued copy (tests/content/copyFreeze.test.ts's own rule).
+
+            THE OTHER HALF, NOW LANDED. The n line alone still only says the
+            sample gets bigger, which is the fact a player already assumed and
+            not the reason to press. `lab.collectMoreHint` says what bigger
+            BUYS — "A bigger sample narrows the 95% CI on your estimate" —
+            which is the CoefPlot interval, on screen, a few inches away, and
+            the one visible return gr6-025 measured as missing. Its own line
+            under the arithmetic rather than inside it: the n line is a
+            numeral (mono, tabular) and this is prose, and R8.3 does not want
+            them fighting for one line's worth of attention. Both are gated on
+            `canCollectMore` together — an offer with no button to take it is
+            worse than silence.
+
+            It reuses `.ph-lab__footnote` rather than declaring a class of its
+            own, which is the precedent the fork-trail hint below already set
+            in this file and for the same reason: the rule is exactly what
+            this line wants (--muted, --text-13, capped at --measure) and a
+            second identical rule under a second name is how a stylesheet
+            starts disagreeing with itself. The n line keeps
+            `.ph-lab__collect-gain` because it is mono and tabular — it is a
+            numeral, this is prose, and that is a real difference in type. */}
+        {canCollectMore ? (
+          <>
+            <p className="ph-lab__collect-gain" data-testid="lab-collect-gain">
+              {t('lab.nLabel', { n })} → {n + STEP}
+            </p>
+            <p className="ph-lab__footnote" data-testid="lab-collect-hint">
+              {t('lab.collectMoreHint')}
+            </p>
+          </>
         ) : null}
+        {peeks >= 1 ? <p className="ph-lab__footnote">{t('lab.peekFootnote')}</p> : null}
+        {/* gr6-024 — `--armitage` was a BEM modifier with no rule anywhere
+            in the corpus, and it was the player-visible one: the two peek
+            footnotes are documented as differentiated and rendered
+            identically, because the only thing that differed was a class
+            name nothing styled. The modifier is gone rather than
+            implemented — what distinguishes these two lines is what they
+            SAY (the sincere note after the first peek, §2.4's sanctioned
+            Armitage wink after the second), and R8.3 does not want a second
+            typographic voice down here competing with the dial. */}
+        {peeks >= 2 ? <p className="ph-lab__footnote">{t('lab.peekFootnoteArmitage')}</p> : null}
         <ForkTrail log={log} mode={mode} />
         {/* T31 fix round (review finding 4, "RESTORED REQUIREMENT"): the
             trail's own emoji are otherwise unexplained anywhere in the Lab —
@@ -158,14 +209,55 @@ export function Lab() {
         <p className="ph-lab__footnote" data-testid="lab-fork-trail-hint">
           {t('lab.forkTrailHint')}
         </p>
-        <div className="ph-lab__actions">
-          <button type="button" className="ph-lab__submit" disabled={!canSubmit} onClick={() => void submit()}>
-            {t('lab.submit')}
-          </button>
-          <button type="button" className="ph-lab__abandon" onClick={() => void abandon()}>
-            {t('lab.reportNull')}
-          </button>
-        </div>
+      </div>
+      {/* §1(e) ruling + DESIGN.md R8.1's amendment — THE EXIT ACTIONS ARE A
+          DIRECT CHILD OF .ph-lab, and sticky below the breakpoint.
+          Below 768 the Lab stacks in DOM order (R3.4), so both exit actions
+          sat at the foot of the RESULTS block, above every knob: measured at
+          360x640, "Submit for publication" at document y 1486 and the last
+          knob (One-tailed) at 2894 — a ~1,400px scroll back, about 1.9
+          screens, and the one-tailed switch is at once the most effective
+          hack in the game and the furthest control from the action it
+          enables. Hoisted here rather than left inside .ph-lab__results for
+          exactly the reason R8.1's Do gives: a sticky element's containing
+          block ends where its parent does, so inside the results pane it
+          would stop sticking at the precise scroll position where the knobs
+          begin — the distance it exists to close. NOT rendered a second time
+          at the foot of the controls (R8.1's Don't: two buttons with one
+          meaning). */}
+      <div className="ph-lab__actions">
+        <button type="button" className="ph-lab__submit ph-focusable" disabled={!canSubmit} onClick={() => void submit()}>
+          {t('lab.submit')}
+        </button>
+        {/* gr6-061 — A SCREEN-READER PLAYER WAS NEVER TOLD PUBLISHING BECAME
+            POSSIBLE. The only signal was the native `disabled` flip, which
+            is reported on ARRIVAL at the button and nowhere else: a player
+            turning knobs with the arrow keys heard the dial's new number
+            (the dial's live region is measured correct and is deliberately
+            left alone here) and nothing about the door that had just opened.
+            A polite status line, rendered only while the result is
+            publishable, so it announces on the edge and never repeats.
+            Visually hidden — R6.6's idiom, in the a11y tree, off the page —
+            because the sighted channel already exists (the button enables,
+            the dial turns green).
+            `lab.canPublish` replaces the `legend.significant` stand-in this
+            comment used to describe, and it keeps everything that made the
+            stand-in the right shape while adding the half it could not say.
+            "Below 0.05. You can submit this for publication." is the
+            threshold that just got crossed AND the door that just opened —
+            the stand-in was the first sentence only, and a bare "p < 0.05"
+            announced into a player's ear names a fact without naming the
+            consequence. Still not the dial's caption: that sentence is
+            already on the page, and a hidden second copy of a visible
+            paragraph makes a screen reader read the same explanation twice. */}
+        {canSubmit ? (
+          <p className="ph-visually-hidden" role="status" data-testid="lab-submit-status">
+            {t('lab.canPublish')}
+          </p>
+        ) : null}
+        <button type="button" className="ph-lab__abandon ph-focusable" onClick={() => void abandon()}>
+          {t('lab.reportNull')}
+        </button>
       </div>
       <div className="ph-lab__controls">
         <SpecControls spec={spec} onChange={changeSpec} scenario={scenario} disabled={false} />

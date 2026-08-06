@@ -28,14 +28,14 @@ import App from '../../src/ui/App';
 import { ScreenRouter } from '../../src/ui/ScreenRouter';
 import { Reveal } from '../../src/ui/screens/Reveal';
 import { Published } from '../../src/ui/screens/Published';
-import type { LazyScreenComponent } from '../../src/ui/screens/Published';
+import type { CallScreenComponent } from '../../src/ui/screens/Published';
 import { Stats } from '../../src/ui/screens/Stats';
 import { LEGEND_ENTRIES } from '../../src/ui/screens/Legend';
 import { Summary } from '../../src/ui/screens/Summary';
 import { PValueDial } from '../../src/ui/components/PValueDial';
 import { ForkTrail } from '../../src/ui/components/ForkTrail';
 import { SpecCurve } from '../../src/ui/charts/SpecCurve';
-import { createGameStore, useGameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
+import { createGameStore, gameStore, useGameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
 import { copy } from '../../src/content/en/copy';
 import { content as en } from '../../src/content/en';
 import { t as translate } from '../../src/i18n/t';
@@ -163,6 +163,12 @@ afterEach(() => {
  * reports two banners. Real Chrome does: axe's landmark-no-duplicate-banner
  * is clean on the Lab, checked in the browser.) */
 async function renderShell() {
+  // gr6-007: App renders the boot-failure screen instead of the shell when a
+  // boot never produced a day, and jsdom has no `Worker`, so App's own boot
+  // attempt fails harmlessly into store.error on every render here. These
+  // tests are about the BOOTED shell's landmarks and focus behaviour; the
+  // boot-failure screen has its own coverage in shell.test.tsx.
+  gameStore.setState({ booted: true });
   render(
     <LocaleProvider>
       <App puzzleNumber={1}>
@@ -175,6 +181,7 @@ async function renderShell() {
 
 /** The app shell around the REAL router, driven by the REAL store. */
 async function renderGame() {
+  gameStore.setState({ booted: true }); // see renderShell above (gr6-007)
   render(
     <LocaleProvider>
       <Capture />
@@ -559,7 +566,7 @@ describe('the Call overlay is a modal you can leave (WCAG 2.1.2)', () => {
       </div>
     );
   }
-  const fakeLoader = () => Promise.resolve(FakeCallScreen as LazyScreenComponent);
+  const fakeCallScreen = FakeCallScreen as CallScreenComponent;
 
   function renderPublished() {
     const store = createGameStore();
@@ -575,7 +582,7 @@ describe('the Call overlay is a modal you can leave (WCAG 2.1.2)', () => {
     }
     return render(
       <LocaleProvider>
-        <Published useStore={useFakeStore} loadCallScreen={fakeLoader} />
+        <Published useStore={useFakeStore} callScreen={fakeCallScreen} />
       </LocaleProvider>
     );
   }
@@ -706,7 +713,7 @@ describe('the Reveal (booked items c and e)', () => {
 
   it('booked (c): every scroll-gated block is in the DOM and in the a11y tree before it has "entered"', async () => {
     // jsdom has no IntersectionObserver, so useEnterOnce fails OPEN and every
-    // block carries ph-fade--in here (reveal.test.tsx pins that separately).
+    // block carries ph-entered here (reveal.test.tsx pins that separately).
     // What THIS asserts is the property that makes the opacity gate safe in a
     // real browser, where three of the six are still un-entered at mount:
     // the gate is opacity ONLY — no display:none, no visibility:hidden, no

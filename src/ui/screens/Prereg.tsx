@@ -86,7 +86,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
   }
 
   return (
-    <section className="ph-prereg" data-testid="prereg-screen">
+    <section className="ph-page ph-page--titled ph-prereg" data-testid="prereg-screen">
       {/* T22: <h1> — the screen's own title, and the only heading on it. */}
       <h1 className="ph-prereg__title">{t('prereg.title')}</h1>
       <p className="ph-prereg__intro">{t('prereg.intro')}</p>
@@ -98,6 +98,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
       <label className="ph-prereg__commit">
         <input
           type="checkbox"
+          className="ph-focusable"
           checked={checked}
           disabled={frozen}
           onChange={(e) => setChecked(e.target.checked)}
@@ -105,7 +106,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
         <span>{t('prereg.commit')}</span>
       </label>
 
-      <button type="button" className="ph-prereg__submit" disabled={!canSubmit} onClick={handleSubmit}>
+      <button type="button" className="ph-prereg__submit ph-focusable ph-label" disabled={!canSubmit} onClick={handleSubmit}>
         {t('prereg.submit')}
       </button>
 

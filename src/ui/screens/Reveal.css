@@ -19,6 +19,21 @@
    made them visible (Stamp.css carries the measurements). One registered
    token, matching the sibling screens exactly; it cannot introduce overflow,
    only remove it. */
+/* THE FOOT OF ACT II — DESIGN.md §9.1's one deliberately open question,
+   ruled here (W7, against a 360 shot on the production build).
+   §9.1 left `.ph-reveal` off the `.ph-page--titled` utility because it is a
+   real disagreement about ONE edge: the utility spells "40 above, 24 around",
+   and this screen pads 40 at BOTH block ends. Measured at 360x780 with the
+   page scrolled to the bottom: the last element is `.ph-reveal__cta`, a
+   full-width control whose entire affordance is a hairline UNDERLINE, and it
+   sits 40px above the document's end.
+   RULING: keep 40, and do not adopt the utility here. Every other screen ends
+   on prose or on a close button, where 24 reads as a margin; this one ends on
+   a rule, and a rule with 24 beneath it at the foot of the longest screen in
+   the product reads as the page having been cut off rather than finished —
+   the CTA's own `margin-block-start: var(--space-40)` above it makes the
+   asymmetry visible in a way it is not anywhere else. One value, one reason,
+   recorded so the next consolidation does not have to re-open it. */
 .ph-reveal {
   max-width: var(--page-max);
   margin-inline: auto;
@@ -46,34 +61,42 @@
    the end state must NOT persist — a lingering transform would make every
    block a containing block for anything fixed inside it, and R5.3's
    compositor-only discipline is cheapest when the transform simply goes
-   away. .ph-fade--in's own `opacity: 1` is what actually holds the block
+   away. .ph-entered's own `opacity: 1` is what actually holds the block
    visible afterwards, so the content is never present ONLY as the result of
    an animation (R5.6). tokens.css collapses --dur-scene to 1ms and
    --dur-stagger to 0ms under prefers-reduced-motion, and Block() additionally
    starts visible there, so nothing is ever waiting on a scroll — or on a
    delay — that a reduced-motion reader did not ask for. */
-@keyframes ph-block-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* gr6-087: the body lives in App.css as `ph-enter-scene` — it was
+   character-identical to three others. This screen still owns WHEN it
+   fires, which is the whole of site 3. */
 .ph-fade {
   display: block;
   opacity: 0;
 }
 
-.ph-fade--in {
-  opacity: 1;
-  animation: ph-block-enter var(--dur-scene) var(--ease-out) backwards;
+/* Site 3's own timing. The RESTORE (`opacity: 1`) is not here — it is the one
+   declaration all four entrance sites share, so §9.1's fifth utility carries
+   it, once, in App.css. What is left is what R5.2's File column requires this
+   stylesheet to own: when this site fires and with what stagger. Written
+   against `.ph-fade` rather than as a bare `.ph-entered` so the rule names
+   the site it belongs to and cannot be confused with Published's or
+   Summary's. */
+.ph-fade.ph-entered {
+  animation: ph-enter-scene var(--dur-scene) var(--ease-out) backwards;
   animation-delay: calc(var(--ph-stagger-index, 0) * var(--dur-stagger));
 }
+
+/* gr6-050 / DESIGN.md §9.1 — THE ENTERED FLAG HAS ONE NAME.
+   This rule used to be `.ph-fade--in`, one of three names for one idea
+   ("the observer has seen this element, so it is visible on its own
+   account"), spread over five stylesheets. R5.6 states what landing the
+   collapse costs and this file pays two parts of it: the flag is composed
+   BESIDE the base class rather than replacing it, and the stamp's gate below
+   names the base class too — `.ph-fade.ph-entered`, never `.ph-entered`
+   alone, because a bare shared flag would match a stamp inside ANY entered
+   element (a press card, the chyron, an unlock line) and R8.2's once-only
+   signature would become a pattern (R8.3). */
 
 /* R3.2: the page rhythm, and it should be measurable with a ruler. */
 .ph-fade + .ph-fade {
@@ -202,8 +225,6 @@
   font-size: var(--text-13);
   line-height: var(--leading-ui);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 .ph-reveal__cover-title {
@@ -232,18 +253,18 @@
 
    Requiring the visible ancestor moves the start to the intersection that
    reveals it: a CSS animation begins when its rule first matches, and
-   `.ph-fade--in` is added exactly then. `both` keeps the mark at its
+   `.ph-entered` is added exactly then. `both` keeps the mark at its
    resting rotate(-12deg) afterwards (identical to .ph-stamp__mark's own base
    transform, so nothing shifts); before the block is visible the rule does
    not match at all, so no fill applies and the stamp has simply not started.
    Reduced motion is handled twice over: Stamp.tsx withholds
    .ph-stamp--animate entirely (R5.6's JS half), and --dur-stamp collapses
    to 1ms besides. */
-.ph-fade--in .ph-stamp--animate {
+.ph-fade.ph-entered .ph-stamp--animate {
   animation: ph-stamp-shake var(--dur-stamp) var(--ease-stamp) both;
 }
 
-.ph-fade--in .ph-stamp--animate .ph-stamp__mark {
+.ph-fade.ph-entered .ph-stamp--animate .ph-stamp__mark {
   animation: ph-stamp-slam var(--dur-stamp) var(--ease-stamp) both;
 }
 
@@ -262,25 +283,90 @@
  * than 60% of the cover. At 360 the mark is still 43% of the viewport, so
  * R8.2's "oversized" survives the trim.
  *
- * WHAT THIS ACHIEVES, AND WHAT IT DOES NOT (w1-r-012 — an earlier version of
- * this comment claimed the 768 case was fixed; it is not). Measured on the
- * production build, label ink against the title's box:
+ * w1b-005 — THE 768 CASE, RESOLVED, AND THE COMMENT THAT WAS WRONG ABOUT IT.
  *
- *   360   title 373-470, label ink 468-511   ->   2px of overlap. Clear.
- *   768   title 399-464, label ink 425-494   ->  39px of the label's 69px
- *                                                crosses the question's
- *                                                second line.
+ * Two earlier versions of this note claimed more than the geometry delivered.
+ * Measured on the production build (viewport-relative rects, stamp beat
+ * scrolled into view, the block entered):
  *
- * 768 is not solvable from here, and the reason is the card, not the offset:
- * it is 145px tall with a 64px title at the full measure, leaving 25px of
- * interior white space beneath it. No 69px label fits in 25px, and pushing the
- * mark far enough down to clear the title (top at 464) puts its foot at 588,
- * through the subline that starts at 553. A width-conditional placement would
- * fix it and needs a breakpoint this stylesheet does not have.
- * What gr2-016 asked for is nonetheless materially delivered at both widths:
- * the mark no longer runs through "VOL. 1, NO. 5" or the title's FIRST line,
- * and the subline — the string that finding called the least readable in the
- * product — is out of the graphic entirely.
+ *   360   vol 342.8-361.0 | title 373.0-469.6 (THREE lines) | frame 441.5-536.2
+ *         | label ink 467.9-510.7
+ *         -> the frame crosses the title's THIRD line only; the label word
+ *            grazes the title's last 1.7px. Clear, and always was.
+ *
+ *         CORRECTED 2026-08-06 (w7-r-007). This line said "two lines" and
+ *         "the SECOND line only", and its own arithmetic refutes it:
+ *         469.6-373.0 = 96.6, which is exactly 3x the 32.2px line box the
+ *         768 row below uses. It also contradicted the media-query note
+ *         further down this file, which says the title stops wrapping to
+ *         three lines at the wider size. Re-measured at 360 with a Range
+ *         over the title's text node, which yields one rect per LINE BOX
+ *         rather than the paragraph's border box (the likeliest way the
+ *         original count went wrong):
+ *             line 1  149.56-177.56   cleared by 38.50px
+ *             line 2  181.75-209.75   cleared by  6.31px
+ *             line 3  213.94-241.94   CROSSED (frame top 216.06)
+ *         Three runs; the frame crosses the third and clears the second.
+ *         THE RULING BELOW IS UNAFFECTED — it turns on the volume line and
+ *         the label word, both of which re-measure exactly as recorded.
+ *
+ *   768   vol 369.3-387.4 | title 399.4-463.8 (two lines, ~32.2 each)
+ *         | frame 383.2-533.8 | label ink 425.4-493.9      [BEFORE]
+ *         -> the label crossed the title's FIRST line by 6.2px and its second
+ *            by all of it; and the FRAME'S TOP BORDER, at 383.2, sat inside
+ *            the volume line's own box (369.3-387.4). The claim "the mark no
+ *            longer runs through VOL. 1, NO. 5 or the title's FIRST line" was
+ *            true of the label WORD at 360 and false at 768 on both counts —
+ *            false of the word by 6px and false of the frame by 4px.
+ *
+ * THE RULING. gr6-059's goal and the owner's taste agree that a stamp SHOULD
+ * obliterate the text it stamps, so the question's two lines are not the
+ * problem and are deliberately left stamped. The volume line is: it is the
+ * cover's identity, gr6-059 exists because the mark used to run through it,
+ * and "the stamp crosses it at 768 but not at 360" is not a design, it is a
+ * width the rule never looked at.
+ *
+ * So the trim becomes width-conditional at R3.4's ONE breakpoint — 45% at
+ * and above 768, 50% below — which is the smallest thing that makes the
+ * sentence above true at both widths. It is a trim, not a new placement: the
+ * anchor, the corner, the rotation and the filter region are all unchanged.
+ *
+ *   768   frame 397.4-532.9 | label ink 435.1-496.7        [AFTER, measured]
+ *         -> the frame clears the volume line by 9.9px (387.4 -> 397.4) and
+ *            starts 2.0px above the title, so both of the question's lines
+ *            are stamped — which is the point — while the LABEL WORD now
+ *            starts at 435.1, below the first line's end at 431.6, and is
+ *            clear of it. Both halves of the sentence above are true at both
+ *            widths now, for the frame and for the word.
+ *
+ * R8.2's "oversized" survives the trim at both widths, measured on the mark's
+ * own painted box: 170px of a 360 viewport (47%) and 243px of a 768 one
+ * (32%).
+ *
+ * WHAT THIS TRIM DOES NOT FIX, STATED PLAINLY (w7-r-008, accepted 2026-08-06
+ * rather than left as a silent gap — the ruling above indicts "a width the
+ * rule never looked at", and that phrase applies to this band verbatim).
+ *
+ * Swept at eleven widths, frame-top minus volume-line-bottom:
+ *     500  +40.54   510  +5.50   520  +2.65   530  -0.22   540  -3.07
+ *     600  -4.20    700  -4.21   767  -4.21   768  +9.95   1088 +9.95
+ * So across 530-767 the frame's top border sits INSIDE the volume line's box,
+ * by up to 4.21px — identical to build/v1 at 767. The trim moved the 768+
+ * case and nothing below it, because R3.4 grants this product exactly ONE
+ * breakpoint and it is already spent here; a second one to close this band
+ * would cost more than the band does.
+ *
+ * AND THE BAND COSTS NOTHING A PLAYER CAN SEE, which is why it is accepted
+ * rather than merely tolerated. The crossing is BOX-LEVEL only. Measured with
+ * a Range over the volume line's own text node, its glyph run ends at
+ * x = 141.53 at every width; the frame's left edge across this band is at
+ * x = 276.32. That is 134.79px of horizontal clearance, so NO STAMP INK HAS
+ * EVER TOUCHED THE VOLUME LINE at any width tested — the two boxes overlap in
+ * the block axis while the marks stay far apart in the inline one.
+ *
+ * The criterion this fails is therefore the BOX-LEVEL one the ruling above
+ * chose for itself, and it is unmet in 530-767 by choice. Recorded here so
+ * the next person to measure it finds the decision instead of the defect.
  */
 .ph-reveal__stamp {
   position: absolute;
@@ -289,6 +375,22 @@
   z-index: var(--z-stamp);
   width: 50%;
   pointer-events: none;
+}
+
+/* w1b-005's width-conditional trim, at R3.4's one breakpoint. Above it the
+   cover is wider and the card is SHORTER (144.6px against 176.8px at 360 —
+   the title has stopped wrapping to three lines), so a stamp sized for the
+   narrow card rises past the card's own top edge and across the volume line.
+   See the measurements in this file's stamp note.
+
+   w7-r-007: the wrap itself changes at ~510, NOT at this breakpoint — the
+   title is three lines at 360 and 500 and two from 510 up. The breakpoint is
+   where the TRIM is applied, not where the card changes shape, and the band
+   between the two is what w7-r-008 records above. */
+@media (min-width: 768px) {
+  .ph-reveal__stamp {
+    width: 45%;
+  }
 }
 
 /* gr6-059 / gr2-016: §4.5's retraction subline, set as prose.
@@ -310,7 +412,7 @@
  * this screen and the reveal is long enough to scroll past a modest inline
  * link. Otherwise the Published/Briefing CTA treatment exactly: R6.4's tap
  * target bought in scale padding, R2.7's uppercase label with
- * --tracking-label, and R4.5's single hairline underline rather than a
+ * --tracking-label (`.ph-label`, §9.1), and R4.5's single hairline underline rather than a
  * four-side border or a filled pill. --space-40 above it is the same block
  * rhythm .ph-fade + .ph-fade sets, so it reads as the sequence's last beat
  * rather than as furniture bolted on underneath. Nothing transitions (R5.5).
@@ -324,8 +426,6 @@
   line-height: var(--leading-ui);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   text-align: start;
   background: none;
   border-style: none;
@@ -338,9 +438,4 @@
 /* R5.5: hover is an instant state change, never a transition. */
 .ph-reveal__cta:hover {
   text-decoration: underline;
-}
-
-.ph-reveal__cta:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

@@ -12,7 +12,7 @@
 // thing in the app that ever asks the worker for the truth (store.makeCall ->
 // client.reveal). Nothing here prefetches, warms, or peeks -- see
 // tests/ui/call.test.tsx's spoiler-safety suite.
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
@@ -20,11 +20,27 @@ import './Call.css';
 
 type Verdict = 'real' | 'noise';
 
+/**
+ * gr6-015 — the prompt's id is a CONSTANT, not `useId()`, because a second
+ * element now has to point at it from outside this component: Published's
+ * overlay names itself with `aria-labelledby={CALL_PROMPT_ID}` so the dialog
+ * is announced by its own question ("Is this finding real?") instead of by
+ * the ellipsis eyebrow it used to borrow ("Before you see the reveal…").
+ *
+ * Safe as a literal because this component is rendered AT MOST ONCE in the
+ * document: it is either the standalone 'call' screen (the abandon path) or
+ * Published's overlay child, never both — the `screen !== 'published' &&
+ * screen !== 'call'` guard below is what makes that true, and the store's
+ * `screen` is a single value. A `useId()` cannot be reached from Published
+ * without hoisting state the seam does not have.
+ */
+export const CALL_PROMPT_ID = 'ph-call-prompt';
+
 export function Call() {
   const { content, t } = useLocale();
   const screen = useGameStore((s) => s.screen);
   const makeCall = useGameStore((s) => s.makeCall);
-  const promptId = useId();
+  const promptId = CALL_PROMPT_ID;
 
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   // A ref, not the state below: two clicks inside one React batch would both
@@ -66,8 +82,21 @@ export function Call() {
     { verdict: 'noise', title: t('call.noise'), sub: t('call.noiseSub') },
   ];
 
+  // gr6-015 — NO `role="dialog"` here, in either container, and that is a
+  // correction rather than a simplification. As the standalone 'call' SCREEN
+  // this element is the whole page: a dialog is by definition a window over
+  // something else, and there is nothing behind it and nothing to dismiss it
+  // back to. As Published's overlay CHILD it produced a dialog INSIDE a
+  // dialog — `.ph-call-overlay` already carries role="dialog" + aria-modal +
+  // the focus trap — so assistive technology announced two nested dialogs for
+  // one question. The name moved up with the role: the overlay is now
+  // labelled by this prompt's own id (CALL_PROMPT_ID above), which is the
+  // question itself rather than the ellipsis eyebrow it used to borrow.
+  // `aria-labelledby` stays here as well, where it now names a plain
+  // <section> — a named region, which is exactly what this is on the
+  // abandon path.
   return (
-    <section className="ph-call" role="dialog" aria-labelledby={promptId}>
+    <section className="ph-call" aria-labelledby={promptId}>
       <p className="ph-call__eyebrow">{t('call.title')}</p>
       {/* T22: <h1>. The prompt is this screen's title in both of the two
           containers it is rendered in. As the standalone 'call' screen (the
@@ -90,7 +119,7 @@ export function Call() {
               buttons.current[i] = node;
             }}
             type="button"
-            className="ph-call__option"
+            className="ph-call__option ph-focusable"
             disabled={busy}
             onClick={() => choose(option.verdict)}
           >

@@ -176,7 +176,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const minutesLeft = Math.floor((msLeft % 3_600_000) / 60_000);
 
   return (
-    <article className="ph-briefing">
+    <article className="ph-page ph-page--titled ph-briefing">
       {/* Manuscript title page (master spec §2.3/§7.3): the research
           question set as the title, in display serif (R2.1). */}
       <h1 className="ph-briefing__question">{scenario.question}</h1>
@@ -190,18 +190,43 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
         {t('briefing.goal')}
       </p>
       <p className="ph-briefing__cover-story">{scenario.coverStory}</p>
-      <EmailCard from={t('briefing.emailFrom')} subject={t('briefing.emailSubject')} body={grantwellBody} />
+      {/* gr6-070 — ONE SUBJECT LINE FOR TWENTY-TWO BODIES. This read the
+          `briefing.emailSubject` copy key, so "Re: the deadline" sat over a
+          body about a rival lab, over a body about a dream, over every body
+          in the bank. W3 wrote a subject FOR each one, and the pairing is
+          index-for-index: the same picker and the same `iso` as the body one
+          line above, over two banks of equal length, so a single seed lands
+          on the pair that was written together. The equality is not an
+          assumption — tests/content/shape.test.ts asserts it in all three
+          locales, and asserts the pairing itself, not merely the count.
+          `briefing.emailSubject` is deleted in this same commit: a subject
+          line that is now data cannot also be copy. */}
+      <EmailCard
+        from={t('briefing.emailFrom')}
+        subject={pickGrantwellEmail(content.grantwellSubjects, iso)}
+        body={grantwellBody}
+      />
 
       {dayFinished ? (
         /* The day's finished state — the same shape the chooser's disabled
            branch already showed, promoted to a state of the screen itself:
            what happened, and when the next one arrives. No CTA of any kind,
            because there is nothing left to press.
-           TODO-W2: `briefing.alreadyPlayedToday` and `summary.nextIn` are
-           reused verbatim rather than inventing keys under a frozen catalog;
-           a briefing-register pair would read better here. */
+
+           gr6-008's copy half, now landed. This block used to borrow the two
+           strings nearest to hand — `briefing.alreadyPlayedToday`, which is a
+           STATUS on a dead option inside the chooser ("Already played today"),
+           and `summary.nextIn`, which is the Summary's own countdown — and
+           borrowing them made this screen read like a form field and an
+           invoice footer stapled together. It has its own pair now:
+           `briefing.finishedToday` opens the state ("Today's puzzle is
+           finished. Here is how it went.") and hands off to the share string
+           below it, and `briefing.finishedNextIn` says it in the masthead's
+           voice ("The next issue arrives in …"), which is the register this
+           screen has spoken since its <h1>. The chooser keeps
+           `briefing.alreadyPlayedToday`, where a terse status is right. */
         <div className="ph-briefing__finished" data-testid="briefing-finished">
-          <p className="ph-briefing__chooser-status">{t('briefing.alreadyPlayedToday')}</p>
+          <p className="ph-briefing__chooser-status">{t('briefing.finishedToday')}</p>
           {finishedRecord ? (
             <p className="ph-briefing__finished-share" data-testid="briefing-finished-share">
               {finishedRecord.shareString}
@@ -209,7 +234,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           ) : null}
           {puzzleDateIsToday ? (
             <p className="ph-briefing__finished-countdown" data-testid="briefing-finished-countdown">
-              {t('summary.nextIn', { hours: hoursLeft, minutes: minutesLeft })}
+              {t('briefing.finishedNextIn', { hours: hoursLeft, minutes: minutesLeft })}
             </p>
           ) : null}
         </div>
@@ -218,7 +243,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           <p className="ph-briefing__chooser-intro">{t('briefing.modeChooserIntro')}</p>
           <div className="ph-briefing__chooser-options">
             <div className="ph-briefing__chooser-option">
-              <button type="button" className="ph-briefing__cta" disabled={hackPlayedToday} onClick={openData}>
+              <button type="button" className="ph-briefing__cta ph-focusable ph-label" disabled={hackPlayedToday} onClick={openData}>
                 {t('briefing.playHacking')}
               </button>
               {hackPlayedToday ? (
@@ -228,7 +253,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
             <div className="ph-briefing__chooser-option">
               <button
                 type="button"
-                className="ph-briefing__cta"
+                className="ph-briefing__cta ph-focusable ph-label"
                 disabled={preregPlayedToday}
                 onClick={() => chooseMode('prereg')}
               >
@@ -241,7 +266,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           </div>
         </div>
       ) : (
-        <button type="button" className="ph-briefing__cta" onClick={openData}>
+        <button type="button" className="ph-briefing__cta ph-focusable ph-label" onClick={openData}>
           {t('briefing.openData')}
         </button>
       )}

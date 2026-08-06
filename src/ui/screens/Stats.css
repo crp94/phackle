@@ -3,13 +3,7 @@
    histogram "bars" are a 2px --ink border, never a fill — R4.1's single
    filled area stays exactly the SpecCurve significance band), R1.6
    (achievement-wall gold marks vs. gold-ink text), R2.7 (uppercase labels
-   carry --tracking-label). */
-.ph-stats {
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--space-24);
-}
-
+   carry --tracking-label — the pair is `.ph-label`, §9.1). */
 .ph-stats__title {
   font-family: var(--font-display);
   font-size: var(--text-28);
@@ -28,10 +22,28 @@
   margin: var(--space-40) 0 0;
 }
 
+/* The em-dash a panel prints when it has no number yet. Mono, tabular and
+   --text-22 because it stands in for a NUMERAL and has to be set like one
+   (R2.4) — it sits in the same column as the figures it is standing in for. */
 .ph-stats__empty {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--text-22);
+  color: var(--muted);
+  margin: var(--space-16) 0 0;
+}
+
+/* gr6-035 — the day-one note under the title, and a DIFFERENT thing from the
+   dash above: that is a missing numeral, this is a sentence about the page.
+   So it is set as prose in the caption register R1.2 names — UI face, caption
+   size, --muted, never --ink — and capped at --measure like every other run
+   of prose in the product (R2.8). No rule, no fill, no second colour: it is a
+   footnote, and the <h1> directly above it stays the loudest thing here. */
+.ph-stats__empty-state {
+  max-width: var(--measure);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
   color: var(--muted);
   margin: var(--space-16) 0 0;
 }
@@ -55,8 +67,6 @@
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   color: var(--muted);
   margin: 0;
 }
@@ -93,8 +103,6 @@
   font-family: var(--font-ui);
   font-size: var(--text-13);
   line-height: var(--leading-ui);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   color: var(--muted);
   margin: 0;
 }
@@ -109,6 +117,30 @@
 
 /* --- fork histogram: CSS bars, no chart library ---------------------------- */
 
+/* gr6-089's TWO ABBREVIATION MISMATCHES — DECLINED, in writing, at the site
+   (w7-r-006 asked for the reasoning rather than a ledger shorthand).
+   `.ph-stats__histogram` heads a family spelled `__hist-*`, and
+   `.ph-stats__achievements` below heads one spelled `__ach-*`, so in both
+   places the container is written out and its children are abbreviated. The
+   third sub-item gr6-089 named — `.ph-spec-group`'s split ownership — landed;
+   these two did not, and the decision is deliberate rather than an omission.
+
+   WHY NOT RENAME. Neither spelling is ambiguous or wrong; what they are is
+   inconsistent, and the fix is a pure rename touching 9 selectors, 2
+   components and 3 test files to change nothing a user or a reviewer can
+   observe. That is the trade §9.1 explicitly declines to make: its own
+   consolidations all bought something — one place to change a shared value,
+   one grep that answers a question — and a rename here buys symmetry only.
+   The abbreviated children are also the ones under real pressure from the
+   grid columns they name (`__hist-label`/`__hist-bar`/`__hist-count` read as
+   a set at a glance), which is the reason the abbreviation exists.
+
+   WHY NOT THE OTHER DIRECTION EITHER. Abbreviating the two containers to
+   `__hist`/`__ach` would collide with the ROW classes `.ph-stats__hist-row`
+   and `.ph-stats__ach` — the second is already taken, so that rename is not
+   available without a third one. Recorded so the next reader finds a ruling
+   instead of a loose end; if it is ever revisited, it should be because a
+   third family appears and the pattern has to be settled once. */
 .ph-stats__histogram {
   list-style: none;
   margin: var(--space-16) 0 0;
@@ -154,6 +186,9 @@
 
 /* --- achievement wall ------------------------------------------------------- */
 
+/* The second of gr6-089's two declined mismatches (`__achievements` heading an
+   `__ach-*` family). The reasoning is written out once, at the fork histogram
+   above; this is the other site it applies to. */
 .ph-stats__achievements {
   list-style: none;
   margin: var(--space-16) 0 0;
@@ -190,31 +225,35 @@
 }
 
 /* Embossed blind stamp: a quiet, --muted mark. No name, no citation — ever. */
+/* gr6-013 — a locked row wears the unlocked row's anatomy, one register
+   down. Same flex baseline row, same mark column, same gap; what changes is
+   that the mark is the ★'s outline and the name is a --muted rule instead of
+   a word (the name-free contract in Stats.tsx is what forbids the word).
+   R4.4 is satisfied the way R4.4 asks — a hairline BORDER on a real inline
+   box, never `background: var(--rule); height: 1px` on a spacer — and the
+   rule's width is a `ch` measure, the same unit .ph-legend__glyph and
+   .ph-stats__hist-row already use for a type-relative column. */
 .ph-stats__ach-locked {
+  display: flex;
+  align-items: baseline;
   font-family: var(--font-ui);
   font-size: var(--text-15);
   line-height: var(--leading-ui);
   color: var(--muted);
 }
 
+.ph-stats__ach-mark--locked {
+  color: var(--muted);
+}
+
+.ph-stats__ach-blank {
+  inline-size: 12ch;
+  border-block-end: var(--hairline);
+}
+
+/* `.ph-close ph-focusable` (§9.1) is the button; the --space-24 that sets it
+   off from the achievement wall is Stats's own, and §9.1 keeps layout at the
+   call site. */
 .ph-stats__close {
-  font-family: var(--font-ui);
-  font-size: var(--text-15);
-  line-height: var(--leading-ui);
-  color: var(--ink);
-  background: none;
-  border-style: none;
-  border-block-end: 2px solid transparent;
-  padding: var(--space-12) var(--space-16);
   margin-block-start: var(--space-24);
-  cursor: pointer;
-}
-
-.ph-stats__close:hover {
-  text-decoration: underline;
-}
-
-.ph-stats__close:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
 }

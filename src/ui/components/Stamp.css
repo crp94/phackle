@@ -31,8 +31,6 @@
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
   font-size: var(--text-40);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 
 /* gr6-077: THE THREE COLOUR PAIRS, UNGROUPED. Each verdict used to be two
@@ -88,7 +86,7 @@
    knows what the slam looks like, but only the screen knows when it should
    happen, and firing on `.ph-stamp--animate` alone meant firing at mount —
    inside a scroll-gated block that was still transparent, so the signature
-   moment played to nobody. See Reveal.css's `.ph-fade--in .ph-stamp--animate`
+   moment played to nobody. See Reveal.css's `.ph-fade.ph-entered .ph-stamp--animate`
    rule for the measurement and the reasoning. The modifier class itself is
    unchanged and still set by Stamp.tsx (and still withheld under reduced
    motion), so nothing about this component's contract moved. */
@@ -147,6 +145,6 @@
 
 /* The `.ph-stamp--animate` modifier is set by Stamp.tsx and consumed by
    Reveal.css (see the note above the keyframes): the slam fires from
-   `.ph-fade--in .ph-stamp--animate`, i.e. only once the block holding the
+   `.ph-fade.ph-entered .ph-stamp--animate`, i.e. only once the block holding the
    stamp is actually on screen. No `animation:` declaration lives in this
    file, by design. */

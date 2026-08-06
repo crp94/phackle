@@ -5,6 +5,8 @@
 // own conventions (no @testing-library/jest-dom; plain DOM property reads;
 // a local `hasClass` helper for SVG-safe class checks) and
 // tests/game/store.test.ts's fixture shapes (makeResult/makeFakeClient).
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within, act } from '@testing-library/react';
@@ -508,6 +510,43 @@ describe('Lab', () => {
     const submitBtn = await screen.findByRole('button', { name: enCopy['lab.submit'] });
     expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
     expect(hasClass(container.querySelector('[data-testid="pvalue-dial"]'), 'ph-dial--significant')).toBe(true);
+  });
+
+  /* gr6-061 — the door that opens silently for a screen-reader player. */
+  it('announces that publishing became possible, politely, only while it IS possible', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.049 }));
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    const status = await screen.findByTestId('lab-submit-status');
+    // The sentence names the threshold AND the consequence. A bare "p < 0.05"
+    // announced into someone's ear is a fact with no door attached to it.
+    expect(status.textContent).toBe(enCopy['lab.canPublish']);
+    expect(status.getAttribute('role')).toBe('status');
+    // Off the page, in the a11y tree: the sighted channel already exists (the
+    // button enables, the dial turns green), so this must not paint anything.
+    expect(status.className.split(' ')).toContain('ph-visually-hidden');
+    expect(container.querySelector('[data-testid="lab-submit-status"]')).toBe(status);
+  });
+
+  it('says nothing at all while p >= .05 — it announces on the edge, never on arrival', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.06 }));
+    render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    // Wait for a settled non-publishable state before asserting the absence,
+    // so this is not merely passing on the pre-result render.
+    const submitBtn = await screen.findByRole('button', { name: enCopy['lab.submit'] });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByTestId('lab-submit-status')).toBeNull();
   });
 
   it('disables Submit and shows the insufficient-data copy when valid=false, even at a plausible p', async () => {
@@ -1071,7 +1110,11 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
   it('offers a legend affordance next to the trail, closed by default', async () => {
     renderTrail();
     const button = await screen.findByTestId('fork-trail-key');
-    expect(button.textContent).toBe(enCopy['nav.legend']);
+    // gr6-029: the trigger asks the question, it does not repeat the page
+    // name. `nav.legend` on this button was the third "Legend" in twenty
+    // words on one screen, naming a different affordance each time.
+    expect(button.textContent).toBe(enCopy['lab.forkTrailKey']);
+    expect(button.textContent).not.toBe(enCopy['nav.legend']);
     expect(button.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
   });
@@ -1219,5 +1262,194 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     glyphSpans.forEach((span) => {
       expect(span.classList.contains('ph-glyph-mark')).toBe(true);
     });
+  });
+});
+
+/* ==========================================================================
+   §1(e) ruling + DESIGN.md R8.1's amendment — the exit actions are sticky
+   below the breakpoint, and they are a DIRECT CHILD of .ph-lab.
+   The containing-block half is the part a screenshot cannot check and a
+   refactor breaks silently: left inside .ph-lab__results the row would stop
+   sticking at the exact scroll position where the knobs begin, which is the
+   distance it exists to close.
+   ========================================================================== */
+describe('§1(e) — the Lab actions row is the product\'s second sticky element', () => {
+  async function mountLab() {
+    const client = makeFakeClient();
+    const view = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    return view;
+  }
+
+  it('is a direct child of .ph-lab, not of the results pane (R8.1\'s containing-block trap)', async () => {
+    const { container } = await mountLab();
+    const actions = container.querySelector('.ph-lab__actions') as HTMLElement;
+    expect(actions).not.toBeNull();
+    expect(actions.parentElement?.className).toContain('ph-lab');
+    expect(actions.parentElement?.className).not.toContain('ph-lab__results');
+    // ...and it is still the ONE actions row: R8.1 forbids rendering a
+    // second copy at the foot of the controls.
+    expect(container.querySelectorAll('.ph-lab__actions')).toHaveLength(1);
+    // Both exit actions are still inside it.
+    expect(actions.querySelector('.ph-lab__submit')).not.toBeNull();
+    expect(actions.querySelector('.ph-lab__abandon')).not.toBeNull();
+  });
+
+  it('sticks to the BOTTOM below the breakpoint and goes static above it, exactly as R8.1 grants', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/screens/Lab.css'), 'utf8');
+    const base = /\.ph-lab__actions\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(base).toMatch(/position:\s*sticky/);
+    expect(base).toMatch(/bottom:\s*0/);
+    expect(base).toMatch(/background:\s*var\(--paper\)/);
+    expect(base).toMatch(/border-block-start:\s*var\(--hairline\)/);
+    expect(base).toMatch(/z-index:\s*var\(--z-sticky\)/);
+    // R8.1's Don'ts, mechanically: no fill beyond --paper, no shadow, no
+    // second colour, no motion.
+    expect(base).not.toMatch(/box-shadow/);
+    expect(base).not.toMatch(/transition|animation/);
+
+    const media = css.slice(css.indexOf('@media (min-width: 768px)'));
+    const above = /\.ph-lab__actions\s*\{([^}]*)\}/.exec(media)?.[1] ?? '';
+    expect(above).toMatch(/position:\s*static/);
+  });
+});
+
+/* gr6-025 — the peek offer, made legible at the button that makes it. */
+describe('gr6-025 — the collect button says what the collection buys', () => {
+  it('prints the n a peek would produce, beside the button, while a peek is possible', async () => {
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const gain = container.querySelector('[data-testid="lab-collect-gain"]');
+    expect(gain).not.toBeNull();
+    // n = 200 today -> 250 after one press (N_SCHEDULE's constant step).
+    expect(gain?.textContent).toContain('→');
+    expect(gain?.textContent).toMatch(/250/);
+  });
+
+  it('prints what the bigger sample BUYS beside it — the arithmetic alone was never the offer', async () => {
+    // The half gr6-025 was actually about. "n: 200 → 250" says the sample
+    // gets bigger, which every player already assumed; `lab.collectMoreHint`
+    // says the CoefPlot interval on screen a few inches away gets narrower,
+    // which is the visible return the row was missing.
+    const client = makeFakeClient();
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    const hint = container.querySelector('[data-testid="lab-collect-hint"]');
+    expect(hint?.textContent).toBe(enCopy['lab.collectMoreHint']);
+    // Caption register, not a rule of its own: it reuses the footnote class
+    // this file's other quiet lines already use (R8.3 — nothing down here
+    // competes with the dial).
+    expect(hint?.className.split(' ')).toContain('ph-lab__footnote');
+  });
+
+  it('offers neither line at the last window — an offer that cannot be taken is noise', async () => {
+    // n = 400 is N_SCHEDULE's last entry, so `canCollectMore` is false and
+    // the Collect button beside these two lines is disabled. The hint is the
+    // one that matters here: "a bigger sample narrows the CI" printed under a
+    // dead button is an instruction the player cannot follow.
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValue(makeResult({ p: 0.2, n: 400 }));
+    const { container } = render(
+      <LocaleProvider>
+        <Lab />
+      </LocaleProvider>
+    );
+    await bootIntoLab(client);
+    await screen.findByTestId('lab-screen');
+    // `n` is the STORE's window, not the result's: the last window is the
+    // state a player reaches by peeking four times, and setting it directly
+    // is how this file reaches it without four debounced round trips.
+    act(() => {
+      gameStore.setState({ n: 400 });
+    });
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: enCopy['lab.collectMore'].replace('{n}', '50') }) as HTMLButtonElement)
+          .disabled
+      ).toBe(true)
+    );
+    expect(container.querySelector('[data-testid="lab-collect-gain"]')).toBeNull();
+    expect(container.querySelector('[data-testid="lab-collect-hint"]')).toBeNull();
+  });
+});
+
+/* ==========================================================================
+   gr6-063 / DESIGN.md R5.2 GRANT 1 — site 2's two settles.
+   The owner ruled AMPLIFY within R8.1, and the law fixed the shape: a BAND
+   CHANGE (a move between R1.8's five steps) takes R5.3's loud pair, a
+   re-settle inside the same band keeps the quiet one. The sign is part of
+   the grant — both drop the numeral IN FROM ABOVE — and the "numeral
+   weight-snap" the ruling used as an illustration is out of law (R2.3/R2.4)
+   and must not appear.
+   ========================================================================== */
+describe('gr6-063 — the dial settles loudly only when it crosses a band', () => {
+  const settleClass = () =>
+    (document.querySelector('[data-testid="pvalue-dial"] p') as HTMLElement | null)?.className ?? '';
+
+  async function renderDial(p: number, n = 200) {
+    return render(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p, n })} pending={false} />
+      </LocaleProvider>
+    );
+  }
+
+  it('arms the QUIET settle for a new number inside the same band', async () => {
+    const view = await renderDial(0.42); // step-1 (.2 < p <= .5)
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    view.rerender(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p: 0.31, n: 200 })} pending={false} />
+      </LocaleProvider>
+    );
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value--tick'));
+    expect(settleClass()).not.toContain('ph-dial__value--tick-band');
+  });
+
+  it('arms the LOUD settle when the result crosses into another band', async () => {
+    const view = await renderDial(0.42); // step-1
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    view.rerender(
+      <LocaleProvider>
+        <PValueDial result={makeResult({ p: 0.043, n: 200 })} pending={false} />
+      </LocaleProvider>
+    ); // significant — the crossing that carries the whole game
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value--tick-band'));
+  });
+
+  it('does not arm the loud settle on the FIRST result of the day (no band to have crossed)', async () => {
+    await renderDial(0.043);
+    await waitFor(() => expect(settleClass()).toContain('ph-dial__value'));
+    expect(settleClass()).not.toContain('--tick-band');
+    expect(settleClass()).not.toContain('--tick');
+  });
+
+  it('drops the numeral IN FROM ABOVE at both distances, and snaps no weight (R2.3/R2.4)', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/PValueDial.css'), 'utf8');
+    const quiet = /@keyframes\s+ph-dial-settle\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const loud = /@keyframes\s+ph-dial-settle-band\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    // The SIGN is the part a value table cannot catch: positive would
+    // reverse Act I's signature without changing a single distance.
+    expect(quiet).toContain('translateY(-2px)');
+    expect(loud).toContain('translateY(-6px)');
+    expect(loud).not.toContain('translateY(6px)');
+    // R8.1's Don'ts, and the ruling's own out-of-law illustration.
+    expect(css).not.toMatch(/font-weight|box-shadow|filter:|scale\(/);
   });
 });

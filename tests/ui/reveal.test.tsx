@@ -217,7 +217,10 @@ describe('§2.7.1 truth line', () => {
     expect(formatSigFigs(14.27, 2)).toBe('14');
     expect(formatSigFigs(1423, 2)).toBe('1400');
     expect(formatSigFigs(0.00432, 2)).toBe('0.0043');
-    expect(formatSigFigs(-0.351, 2)).toBe('-0.35');
+    // gr6-074: U+2212 MINUS SIGN, not U+002D HYPHEN-MINUS — same two
+    // significant figures, a typeset sign. Escaped so no look-alike passes.
+    expect(formatSigFigs(-0.351, 2)).toBe('\u22120.35');
+    expect(formatSigFigs(-0.351, 2)).not.toContain('-');
     expect(formatSigFigs(0, 2)).toBe('0.0');
   });
 });
@@ -415,6 +418,42 @@ describe('§2.7.4 the verdict stamp', () => {
     expect(replicated.container.querySelector('[data-role="stamp-subline"]')).toBeNull();
   });
 
+  /* gr6-037 — NULL REPORTED was the one stamp that rendered with no subline
+     at all: Act II's quietest moment and, until W3 wrote the bank, its
+     emptiest. */
+  it('gives NULL_REPORTED its own rotating subline, from its own bank', async () => {
+    const { container } = await mountReveal({ stamp: 'NULL_REPORTED' }, { path: 'abandon' });
+    const sub = container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
+    expect(sub, 'the honest ending still ends on nothing').not.toBe('');
+    expect(en.nullReportedSublines).toContain(sub);
+    // The two banks are distinct: a retraction line under a NULL REPORTED
+    // stamp would be telling a player who published nothing that the journal
+    // has issued a correction.
+    expect(en.retractionSublines).not.toContain(sub);
+  });
+
+  /* w3-r-001, the constraint W3 attached to this wiring and the reason it is
+     wired WITHOUT a day-type branch. `verdictStamp` returns NULL_REPORTED on
+     `published === null` alone, so an abandoned EFFECT day lands on the same
+     stamp — one block under a `reveal.truthEffect` line that has just
+     declared the effect real. Both day types must therefore get a line, and
+     it must be drawn from the same bank; a future variant has to key on
+     `payload.dayType`, never on the stamp, which cannot tell them apart. */
+  it('renders the same bank on an abandoned EFFECT day, where the stamp cannot tell the day types apart', async () => {
+    const nullDay = await mountReveal({ stamp: 'NULL_REPORTED', dayType: 'null' }, { path: 'abandon' });
+    const nullSub = nullDay.container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
+    expect(en.nullReportedSublines).toContain(nullSub);
+    cleanup();
+
+    const effectDay = await mountReveal({ stamp: 'NULL_REPORTED', dayType: 'effect' }, { path: 'abandon' });
+    const effectSub = effectDay.container.querySelector('[data-role="stamp-subline"]')?.textContent ?? '';
+    expect(effectSub, 'an abandoned effect day lost its subline').not.toBe('');
+    expect(en.nullReportedSublines).toContain(effectSub);
+    // Same puzzle number, same bank, same index: the line does not depend on
+    // the day type, which is exactly the property the bank was authored for.
+    expect(effectSub).toBe(nullSub);
+  });
+
   // gr6-059 / gr2-016: the subline used to be a rotated <text> node inside the
   // stamp's own SVG, drawn at -12deg across the day's question. It is prose
   // now: horizontal, beneath the card, after the mark in reading order.
@@ -471,7 +510,7 @@ describe('§7.5 motion — scroll fades, and none of them under reduced motion',
     const { container } = await mountReveal();
     const faded = [...container.querySelectorAll('[data-block]')];
     expect(faded.length).toBe(6);
-    for (const el of faded) expect(el.className).toContain('ph-fade--in');
+    for (const el of faded) expect(el.className).toContain('ph-entered');
   });
 });
 

@@ -142,7 +142,7 @@ export function Stamp({ kind, label, animate }: StampProps) {
               is still queryable and still the thing on screen — only its
               second trip through the accessibility tree is gone. */}
           <text
-            className="ph-stamp__label"
+            className="ph-stamp__label ph-label"
             x="160"
             y="92"
             textAnchor="middle"
