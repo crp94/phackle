@@ -6,6 +6,7 @@ import {
   CORRELATION_R,
   generateDataset,
   generateRows,
+  type Dataset,
 } from '../../src/engine/dgp';
 import { AR1_RHO, LATENT_DIM, TERTILE_Z } from '../../src/engine/dgpConstants';
 import cholFixture from './fixtures/chol_fixture.json';
@@ -89,6 +90,17 @@ function median(values: number[]): number {
 const SEEDS_200 = Array.from({ length: 200 }, (_, i) => i);
 const SEEDS_50 = Array.from({ length: 50 }, (_, i) => i);
 
+// GR6 gr6-052: ONE 200-seed sweep for the whole file. generateDataset is a
+// pure function of (seed, effect), so the 200 null-effect datasets every
+// property below needs are identical whoever generates them — the four
+// structural-range tests and the six aggregate-moment tests used to each
+// re-run this same loop for themselves (ten identical sweeps). Measured cost
+// of the sweep itself: ~290ms; the assertion machinery the structural tests
+// wrapped around it: ~27s. DATASETS[seed] is generateDataset(seed, null), by
+// construction — the array index IS the seed, which is what makes the
+// "seed N row M" failure locators below exact.
+const DATASETS: Dataset[] = SEEDS_200.map((seed) => generateDataset(seed, null));
+
 describe('correlation matrix + Cholesky (module-load constants)', () => {
   it('builds the pinned 8x8 AR(1) matrix R[i][j] = 0.35^|i-j|', () => {
     const R = buildAr1Matrix(AR1_RHO, LATENT_DIM);
@@ -171,67 +183,87 @@ describe('generateDataset — determinism', () => {
   });
 });
 
-// T24 CI finalize: each `it` below drives `generateDataset` (Cholesky
-// factorisation + 400-row draw) 200 times, once per seed — real work, not a
-// hang, and it is exactly this suite's own point (§3.1's structural
-// guarantees, swept over enough seeds to trust). Measured 1.7-2.0s per test
-// solo, but under a FULL parallel `vitest run` (52 files racing for CPU) it
-// was observed crossing vitest's 5000ms default `testTimeout` and failing as
-// a false-negative flake — never a real assertion failure. Every test in
-// this describe does the identical 200-seed sweep, so all four share the
-// same risk profile; a generous 20s ceiling (~4x the worst solo time, ~4x
-// the worst observed contended time) keeps this a real timeout guard rather
-// than a coin flip, without weakening or skipping any assertion.
-describe('generateDataset — structural ranges (200 seeds)', { timeout: 20_000 }, () => {
+// §3.1's structural guarantees, swept over 200 seeds. Each `it` is a plain-JS
+// scan of the SHARED `DATASETS` sweep collecting every violation, closed by a
+// single `expect(bad).toEqual([])`.
+//
+// gr6-052/gr1c-013: these four used to be ~800,000 individual `expect()` calls
+// (200 seeds x 400 rows x 2-3 assertions, each test re-generating the same 200
+// datasets). Measured: the engine plus the comparisons cost ~0.3s; the
+// assertion machinery cost ~27s — 87% of the whole unit suite's wall time.
+// Coverage is unchanged (identical properties, identical seeds, identical
+// rows) and the failure message is strictly better: instead of "expected 21 to
+// be >= 22" with no locator, the array names the exact seed, row and value of
+// every offender at once. gr1c-014: the `{ timeout: 20_000 }` this describe
+// carried — justified by a comment whose "measured 1.7-2.0s per test solo" was
+// off by 5.5x against re-measurement — is deleted rather than re-tuned; the
+// whole describe now runs in milliseconds, nowhere near vitest's 5000ms
+// default.
+describe('generateDataset — structural ranges (200 seeds)', () => {
   it('age is always within [22, 70]', () => {
-    for (const seed of SEEDS_200) {
-      const d = generateDataset(seed, null);
+    const bad: string[] = [];
+    DATASETS.forEach((d, seed) => {
       for (let i = 0; i < d.n; i++) {
-        expect(d.age[i]).toBeGreaterThanOrEqual(22);
-        expect(d.age[i]).toBeLessThanOrEqual(70);
+        if (!(d.age[i] >= 22 && d.age[i] <= 70)) bad.push(`seed ${seed} row ${i}: age = ${d.age[i]}`);
       }
-    }
+    });
+    expect(bad).toEqual([]);
   });
 
   it('Y4 (satisfaction) is always within [1, 10]', () => {
-    for (const seed of SEEDS_200) {
-      const d = generateDataset(seed, null);
+    const bad: string[] = [];
+    DATASETS.forEach((d, seed) => {
       for (let i = 0; i < d.n; i++) {
-        expect(d.y[3][i]).toBeGreaterThanOrEqual(1);
-        expect(d.y[3][i]).toBeLessThanOrEqual(10);
+        if (!(d.y[3][i] >= 1 && d.y[3][i] <= 10)) bad.push(`seed ${seed} row ${i}: Y4 = ${d.y[3][i]}`);
       }
-    }
+    });
+    expect(bad).toEqual([]);
   });
 
   it('Y3 (count) is always a non-negative integer', () => {
-    for (const seed of SEEDS_200) {
-      const d = generateDataset(seed, null);
+    const bad: string[] = [];
+    DATASETS.forEach((d, seed) => {
       for (let i = 0; i < d.n; i++) {
-        expect(Number.isInteger(d.y[2][i])).toBe(true);
-        expect(d.y[2][i]).toBeGreaterThanOrEqual(0);
+        const v = d.y[2][i];
+        if (!Number.isInteger(v)) bad.push(`seed ${seed} row ${i}: Y3 = ${v} is not an integer`);
+        if (!(v >= 0)) bad.push(`seed ${seed} row ${i}: Y3 = ${v} is negative`);
       }
-    }
+    });
+    expect(bad).toEqual([]);
   });
 
   it('experience is always 0, 1, or 2; urban and x are always 0 or 1', () => {
-    for (const seed of SEEDS_200) {
-      const d = generateDataset(seed, null);
+    const bad: string[] = [];
+    DATASETS.forEach((d, seed) => {
       for (let i = 0; i < d.n; i++) {
-        expect([0, 1, 2]).toContain(d.experience[i]);
-        expect([0, 1]).toContain(d.urban[i]);
-        expect([0, 1]).toContain(d.x[i]);
+        if (![0, 1, 2].includes(d.experience[i])) bad.push(`seed ${seed} row ${i}: experience = ${d.experience[i]}`);
+        if (![0, 1].includes(d.urban[i])) bad.push(`seed ${seed} row ${i}: urban = ${d.urban[i]}`);
+        if (![0, 1].includes(d.x[i])) bad.push(`seed ${seed} row ${i}: x = ${d.x[i]}`);
       }
-    }
+    });
+    expect(bad).toEqual([]);
   });
 });
 
 describe('generateDataset — aggregate moments (200 seeds, pooled/aggregated — never per-seed-flaky)', () => {
-  // Computed once, shared by the assertions below — same 200-seed sweep, several
-  // independent properties. (Splitting into "one behavior per test" would just
-  // mean redoing this identical loop five times; the assertions below are kept
-  // in separate `it`s anyway. for clear failure attribution, but only after this
-  // shared pass to avoid 5x the runtime.)
-  function sweep() {
+  // Computed once, shared by the assertions below — same 200-seed sweep,
+  // several independent properties. (Splitting into "one behavior per test"
+  // would just mean redoing this identical loop six times; the assertions below
+  // are kept in separate `it`s anyway, for clear failure attribution, but only
+  // after this shared pass to avoid 6x the runtime.)
+  //
+  // gr6-052: "computed once" is now true. The previous version called sweep()
+  // fresh inside each of the six `it`s, so the loop the comment claimed to
+  // share ran six times — and re-generated the same 200 datasets each time.
+  // Memoized here, and reading the file-level DATASETS sweep rather than
+  // calling generateDataset again.
+  let cached: ReturnType<typeof computeSweep> | null = null;
+  function sweep(): ReturnType<typeof computeSweep> {
+    cached ??= computeSweep();
+    return cached;
+  }
+
+  function computeSweep() {
     const allAge: number[] = [];
     const allLogIncome: number[] = [];
     const allX: number[] = [];
@@ -241,8 +273,7 @@ describe('generateDataset — aggregate moments (200 seeds, pooled/aggregated �
     const y3MaxFreqPerSeed: number[] = [];
     const pairwiseMeansPerSeed: number[] = [];
 
-    for (const seed of SEEDS_200) {
-      const d = generateDataset(seed, null);
+    for (const d of DATASETS) {
       for (let i = 0; i < d.n; i++) {
         allAge.push(d.age[i]);
         allLogIncome.push(Math.log(d.income[i]));
@@ -330,33 +361,58 @@ describe('generateDataset — effect injection', () => {
   // added only to x[i]=1 rows). Controller-approved (tol 1e-12, not raw
   // float-noise exactness, so this stays robust to legitimate summation-order
   // refactors while still being far tighter than any "within noise" band).
-  it('diff-in-diff: (mean(Y1|X=1)-mean(Y1|X=0))_effect - (...)_null == d*sd, tol 1e-12', () => {
-    for (const seed of SEEDS_50) {
-      const nullData = generateDataset(seed, null);
-      const effectData = generateDataset(seed, { outcome: 0, d: 0.25, hetero: null });
+  //
+  // gr6-113: parametrized over ALL FOUR outcomes. Both tests below used to run
+  // `outcome: 0` only, so the three outcomes with their own post-generation
+  // shaping — Y2's exp(), Y3's Math.round(exp()), Y4's clamp+round — were
+  // never checked against the injection identity at all, even though the
+  // injection deliberately lands AFTER that shaping (dgp.ts: the bump is added
+  // to the already-rounded/clamped column, so d*sd is the exact, unrounded
+  // shift for every outcome). Worst measured deviation across all four:
+  // 2.7e-14 (Y4), comfortably inside the same 1e-12 tolerance.
+  const OUTCOMES = [0, 1, 2, 3] as const;
 
-      const groupDiff = (y: Float64Array, x: Uint8Array) => {
-        const treated: number[] = [];
-        const control: number[] = [];
-        for (let i = 0; i < x.length; i++) (x[i] === 1 ? treated : control).push(y[i]);
-        return mean(treated) - mean(control);
-      };
+  const groupDiff = (y: Float64Array, x: Uint8Array) => {
+    const treated: number[] = [];
+    const control: number[] = [];
+    for (let i = 0; i < x.length; i++) (x[i] === 1 ? treated : control).push(y[i]);
+    return mean(treated) - mean(control);
+  };
 
-      const nullDiff = groupDiff(nullData.y[0], nullData.x);
-      const effectDiff = groupDiff(effectData.y[0], effectData.x);
-      const sd = sampleSd(nullData.y[0]);
+  it.each(OUTCOMES)(
+    'diff-in-diff on Y%i: (mean(Y|X=1)-mean(Y|X=0))_effect - (...)_null == d*sd, tol 1e-12',
+    (outcome) => {
+      const bad: string[] = [];
+      for (const seed of SEEDS_50) {
+        // Same seed, same null baseline the whole file shares (DATASETS[seed]
+        // IS generateDataset(seed, null)).
+        const nullData = DATASETS[seed];
+        const effectData = generateDataset(seed, { outcome, d: 0.25, hetero: null });
 
-      expect(Math.abs(effectDiff - nullDiff - 0.25 * sd)).toBeLessThan(1e-12);
-    }
-  });
+        const nullDiff = groupDiff(nullData.y[outcome], nullData.x);
+        const effectDiff = groupDiff(effectData.y[outcome], effectData.x);
+        const sd = sampleSd(nullData.y[outcome]);
+        const err = Math.abs(effectDiff - nullDiff - 0.25 * sd);
 
-  it('leaves the other three outcomes completely unaffected (beta=0 off the true outcome)', () => {
-    const nullData = generateDataset(3, null);
-    const effectData = generateDataset(3, { outcome: 0, d: 0.25, hetero: null });
-    expect(effectData.y[1]).toEqual(nullData.y[1]);
-    expect(effectData.y[2]).toEqual(nullData.y[2]);
-    expect(effectData.y[3]).toEqual(nullData.y[3]);
-  });
+        if (!(err < 1e-12)) bad.push(`seed ${seed}: |diff-in-diff - 0.25*sd| = ${err} (sd = ${sd})`);
+      }
+      expect(bad).toEqual([]);
+    },
+  );
+
+  it.each(OUTCOMES)(
+    'an effect on Y%i leaves the other three outcomes completely unaffected (beta=0 off the true outcome)',
+    (outcome) => {
+      const nullData = generateDataset(3, null);
+      const effectData = generateDataset(3, { outcome, d: 0.25, hetero: null });
+      for (const other of OUTCOMES) {
+        if (other === outcome) continue;
+        expect(effectData.y[other], `Y${other} moved when the effect was injected into Y${outcome}`).toEqual(
+          nullData.y[other],
+        );
+      }
+    },
+  );
 
   it('applies HETERO_MULTIPLIER only to treated rows inside the hetero subgroup', () => {
     const seed = 11;

@@ -4,6 +4,7 @@ import type { Dataset } from '../../src/engine/dgp';
 import { generateDataset } from '../../src/engine/dgp';
 import { tTwoTailedP } from '../../src/engine/stats';
 import type { Outcome, Spec, WindowN } from '../../src/engine/types';
+import { MIN_CELL } from '../../src/game/tuning';
 import micro12 from './fixtures/micro12.json';
 
 // --- shared helpers (test-only) ---
@@ -387,7 +388,24 @@ describe('runSpec — CI property (50 specs over generateDataset(seed 7), no eff
   const TRANSFORMS: Spec['transform'][] = ['raw', 'log1p'];
   const TAILS: Spec['tails'][] = ['two', 'one'];
   const OUTCOMES: Outcome[] = [0, 1, 2, 3];
-  const WINDOWS: WindowN[] = [200, 250, 300, 350, 400];
+  // gr6-113: 40 is deliberately BELOW the product's own N_SCHEDULE (200..400)
+  // and is here for one measured reason. Over generateDataset(7) the smallest
+  // post-filter, post-exclusion cell any of these subgroup/exclusion
+  // combinations reaches at n=200 is 57 — comfortably above MIN_CELL=30 — so
+  // with the schedule windows alone all 50 sampled specs come back
+  // `valid: true` and runSpec's invalid branch is never exercised at all. The
+  // sixth window puts 11 of the 50 under MIN_CELL, which is what makes the
+  // branch-hit counters below meaningful rather than decorative. Windowing
+  // below the schedule is this file's established idiom (`asWindow`, already
+  // used for the micro12 fixture at n=12 and for the n=29/30 MIN_CELL
+  // boundary above) — runSpec takes its window as an explicit parameter and
+  // has no schedule opinion.
+  const WINDOWS: WindowN[] = [asWindow(40), 200, 250, 300, 350, 400];
+
+  /** The number of design columns runSpec's OLS fits: intercept + x + covariates. */
+  function designColumns(spec: Spec): number {
+    return 2 + (spec.covariates.income ? 1 : 0) + (spec.covariates.risk ? 1 : 0);
+  }
 
   // Deterministic mixed-radix enumeration over the combination space (no
   // Math.random -- fully reproducible). `index` is decomposed digit-by-digit
@@ -416,28 +434,91 @@ describe('runSpec — CI property (50 specs over generateDataset(seed 7), no eff
 
   const dataset = generateDataset(7, null);
 
-  it('for 50 deterministically-sampled specs: ci always brackets beta, and ci excludes 0 iff the two-tailed p < .05', () => {
+  // gr6-113 (1): the relationship between runSpec's OWN `valid` and the two
+  // things a test could re-derive from the result, pinned ONCE, here, instead
+  // of being re-assumed by every branch key elsewhere. analyze.ts computes
+  // `valid = fit.valid && finalN >= MIN_CELL`, and `fit.valid` is
+  // `df > 0 && the design is non-singular`. On this dataset no sampled design
+  // is singular, so `valid` is exactly `df > 0 && n >= MIN_CELL` — and if a
+  // future change ever makes one singular, THIS test is the one that goes red,
+  // in one place, with the spec named, rather than some downstream branch
+  // quietly taking the wrong arm.
+  it('runSpec.valid is exactly (df > 0 && n >= MIN_CELL) over the sampled specs — the definition every branch below reads', () => {
+    const bad: string[] = [];
     for (let i = 0; i < 50; i++) {
       const { spec, n } = specAt(i * 137 + 5);
       const result = runSpec(dataset, spec, n);
-
-      expect(result.ci[0]).toBeLessThanOrEqual(result.beta);
-      expect(result.ci[1]).toBeGreaterThanOrEqual(result.beta);
-
-      const p = 2 + (spec.covariates.income ? 1 : 0) + (spec.covariates.risk ? 1 : 0);
-      const df = result.n - p;
-      if (df > 0) {
-        const p2 = tTwoTailedP(result.t, df);
-        const excludesZero = result.ci[0] > 0 || result.ci[1] < 0;
-        expect(excludesZero).toBe(p2 < 0.05);
-      } else {
-        // OLS itself couldn't run (or reported invalid) -- runSpec's own
-        // documented placeholder, not a meaningful CI to check the
-        // p<.05 relationship against.
-        expect(result.ci).toEqual([0, 0]);
-        expect(result.valid).toBe(false);
+      const df = result.n - designColumns(spec);
+      const expected = df > 0 && result.n >= MIN_CELL;
+      if (result.valid !== expected) {
+        bad.push(
+          `sample ${i} (window ${n}, ${spec.subgroup}/${spec.exclusion}, n=${result.n}, df=${df}): ` +
+            `runSpec says valid=${result.valid}, (df > 0 && n >= ${MIN_CELL}) says ${expected} ` +
+            `— a singular design is the only legitimate way these can disagree`,
+        );
       }
     }
+    expect(bad).toEqual([]);
+  });
+
+  // gr6-113 (2): this used to branch on a RE-DERIVED `df > 0` rather than on
+  // runSpec's own answer, and — measured — every one of the 50 samples took
+  // the `df > 0` arm, so it was a 50-iteration single-branch test whose else
+  // arm nothing proved was reachable. It now branches on `result.valid`,
+  // counts how often each arm is taken, and fails if either arm is dead.
+  it('for 50 deterministically-sampled specs: ci always brackets beta; valid results relate ci to p; invalid ones are branched on runSpec\'s own verdict', () => {
+    let validHits = 0;
+    let invalidUnderMinCell = 0;
+    let invalidOlsCouldNotRun = 0;
+
+    for (let i = 0; i < 50; i++) {
+      const { spec, n } = specAt(i * 137 + 5);
+      const result = runSpec(dataset, spec, n);
+      const where = `sample ${i} (window ${n}, ${spec.subgroup}/${spec.exclusion}, n=${result.n})`;
+
+      expect(result.ci[0], where).toBeLessThanOrEqual(result.beta);
+      expect(result.ci[1], where).toBeGreaterThanOrEqual(result.beta);
+
+      const df = result.n - designColumns(spec);
+      const excludesZero = result.ci[0] > 0 || result.ci[1] < 0;
+
+      if (result.valid) {
+        validHits++;
+        const p2 = tTwoTailedP(result.t, df);
+        expect(excludesZero, where).toBe(p2 < 0.05);
+      } else if (df > 0) {
+        // OLS ran; only MIN_CELL fell short. analyze.ts's own doc comment is
+        // explicit that beta/se/t/p/ci carry REAL numbers here — the result is
+        // withheld by the `valid` flag alone, never by zeroing — so the ci<->p
+        // relation still holds and is worth asserting. This is precisely the
+        // case the old `df > 0` branch key swallowed into the valid arm, where
+        // it would have been checked against a placeholder the moment runSpec
+        // started emitting one.
+        invalidUnderMinCell++;
+        expect(result.n, where).toBeLessThan(MIN_CELL);
+        const p2 = tTwoTailedP(result.t, df);
+        expect(excludesZero, where).toBe(p2 < 0.05);
+      } else {
+        // OLS itself could not run (df <= 0, or a singular design) —
+        // runSpec's documented placeholder, not a meaningful CI at all.
+        invalidOlsCouldNotRun++;
+        expect(result.ci, where).toEqual([0, 0]);
+        expect(result.p, where).toBe(1);
+        expect(result.beta, where).toBe(0);
+      }
+    }
+
+    // Both arms must be live. Without this the test can silently decay back
+    // into the single-branch shape it had before gr6-113 — e.g. if the window
+    // set or the dataset changes and every sample becomes valid again.
+    expect(validHits, 'no sampled spec produced a VALID result').toBeGreaterThan(0);
+    expect(
+      invalidUnderMinCell + invalidOlsCouldNotRun,
+      'no sampled spec produced an INVALID result — widen WINDOWS until one does',
+    ).toBeGreaterThan(0);
+    // Measured on the current dataset/window set: 39 valid, 11 invalid (all of
+    // them the df > 0 / under-MIN_CELL kind), 0 df <= 0.
+    expect(validHits + invalidUnderMinCell + invalidOlsCouldNotRun).toBe(50);
   });
 });
 

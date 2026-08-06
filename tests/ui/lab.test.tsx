@@ -1150,7 +1150,15 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('still opens on a mouse hover after a touch interaction (a hybrid laptop re-arms per enter)', async () => {
+  // gr6-112 / gr1c-025. The pair below. The first was previously named "a
+  // hybrid laptop re-arms per enter" and did not discriminate that property:
+  // its sequence goes through a mouseLeave, so it passes equally against an
+  // implementation that re-arms on LEAVE (a latched "this is a touch device"
+  // flag cleared by the pointer leaving) as against one that re-arms on every
+  // ENTER, which is what ForkTrail.tsx:164 actually does. Renamed to what it
+  // proves; the second test is the discriminating case — same hybrid laptop,
+  // pointer never leaving the control.
+  it('still opens on a mouse hover after a touch interaction that the pointer then left', async () => {
     const { container } = renderTrail();
     const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
 
@@ -1159,6 +1167,25 @@ describe('T29 pin 11-NEW-b — the key, where the symbols are', () => {
     fireEvent.mouseLeave(wrap);
     expect(screen.queryByTestId('fork-trail-popover')).toBeNull();
 
+    fireEvent.pointerEnter(wrap, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(wrap);
+    expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();
+  });
+
+  it('re-arms per ENTER, not per leave: a mouse hover opens it even with NO mouseLeave after the touch', async () => {
+    const { container } = renderTrail();
+    const wrap = container.querySelector('.ph-fork-trail__key') as HTMLElement;
+
+    // A hybrid laptop where the finger and the trackpad both address the same
+    // element without the pointer ever being reported as leaving it — the
+    // real sequence a stylus-then-trackpad or touchscreen-then-trackpad user
+    // produces, and the one that separates "re-arms on every pointerenter"
+    // from "stays latched until something clears the flag".
+    fireEvent.pointerEnter(wrap, { pointerType: 'touch' });
+    fireEvent.mouseEnter(wrap);
+    expect(screen.queryByTestId('fork-trail-popover'), 'a touch pointer must not hover-open').toBeNull();
+
+    // No mouseLeave here. This is the whole point of the test.
     fireEvent.pointerEnter(wrap, { pointerType: 'mouse' });
     fireEvent.mouseEnter(wrap);
     expect(await screen.findByTestId('fork-trail-popover')).toBeTruthy();

@@ -20,8 +20,39 @@
 //
 // Deliberately excludes puzzleNumber: day.ts computes one (to satisfy
 // DailyPuzzle's required field), but it's EPOCH-derived and EPOCH is
-// provisional ("frozen to real launch date in T25" per src/game/tuning.ts) --
-// changing EPOCH at deploy must not break this suite.
+// provisional ("frozen to real launch date in T25" per src/game/tuning.ts), so
+// pinning it here would mean re-hashing a fixture for a field the suite is not
+// about.
+//
+// THIS SUITE IS *NOT* EPOCH-INDEPENDENT, and an earlier version of this comment
+// said it was (gr6-051 / gr1c-005). Excluding puzzleNumber removes ONE
+// EPOCH-derived input; it does not remove the other. `src/engine/seeds.ts`'s
+// scenarioIndexFor gates the 14-day no-repeat exclusion walk on `iso > EPOCH`:
+// a date at or before EPOCH is the base case (no game history yet) and takes
+// its unwalked index; a date after it walks, and its walk recurses back
+// through every date after EPOCH. The scenario selects the WHOLE day, so when
+// it moves, dayType/attemptUsed/rows40Hash/curve200Hash/sigCount200 all move
+// with it -- the entire fixture.
+//
+// Measured by sweeping EPOCH day by day against today's committed fixtures
+// (current EPOCH = 2026-08-10, src/game/tuning.ts):
+//   EPOCH <= 2026-08-23   all five fixtures unchanged
+//   EPOCH >= 2026-08-24   FOUR of the five change (2026-09-01, 2026-10-31,
+//                         2026-12-25, 2027-01-01; 2027-07-04 is unchanged by
+//                         coincidence, not by design)
+// The exact replacement index depends on the EPOCH chosen -- e.g. 2026-12-25's
+// scenario is 5 today, 4 at EPOCH 2026-09-01, 2 at 2026-09-15 and 19 once
+// EPOCH is past the date itself. Note the break begins EIGHT DAYS BEFORE the
+// earliest golden date, so "every golden date is after EPOCH" is a necessary
+// but NOT sufficient condition.
+//
+// The guard against all of this is not here -- a broken fixture here is the
+// symptom, in the form of a whole-object diff that never mentions EPOCH. It is
+// `tests/game/epochGuard.test.ts`, which checks both conditions (dates after
+// EPOCH, and each fixture's committed scenarioIndexFor20 still matching a live
+// scenarioIndexFor() call) and names `scripts/gen_goldens.ts` in the failure
+// message. Regenerating and committing the goldens is therefore an explicit
+// deploy-day step whenever EPOCH moves.
 import { describe, expect, it } from 'vitest';
 import { generateDay, hashCurve, hashRows } from '../../src/engine/day';
 import { enumerateCurve, sigCount } from '../../src/engine/specGrid';
