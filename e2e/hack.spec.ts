@@ -7,9 +7,11 @@
 // nothing extra.
 import { expect, test } from '@playwright/test';
 import { content } from '../src/content/en/index';
+import { copy as enCopy } from '../src/content/en/copy';
 import { SITE_URL } from '../src/game/share';
 import {
   PUZZLE_NUMBER,
+  SHARE_LINE1_PREFIX,
   SHARE_LINE2,
   enterLab,
   hackUntilPublishable,
@@ -29,8 +31,8 @@ test('a full hacking day: hack to p < .05, publish, call, reveal, and share a sp
   await expect(page.locator('.ph-email__body'), "PROF. GRANTWELL'S EMAIL IS MISSING FROM THE BRIEFING.").not.toBeEmpty();
   await expect(
     page.locator('[data-testid="mode-chooser"]'),
-    'THE MODE CHOOSER LEAKED: Prereg Mode is gated on the first_retraction achievement, and this ' +
-      'browser has never played a day.',
+    'THE MODE CHOOSER LEAKED: Prereg Mode is gated on having completed a day (§1(j)(1)), and this ' +
+      'browser has never played one.',
   ).toHaveCount(0);
 
   // --- LAB (§2.4) — the real bounded search --------------------------------
@@ -189,20 +191,29 @@ test('a full hacking day: hack to p < .05, publish, call, reveal, and share a sp
   const lines = written[0].split('\n');
 
   expect(lines, `THE SHARE GRID IS NOT 4 LINES (§2.9). Got:\n${written[0]}`).toHaveLength(4);
-  expect(lines[0], 'SHARE LINE 1 IS NOT THE PUZZLE STAMP.').toBe(`P-hackle #${PUZZLE_NUMBER}`);
+  // §1(i): the brand half stays invariant; the hook half is the locale's own
+  // `nav.tagline`, read from the catalog rather than restated here.
+  expect(lines[0], 'SHARE LINE 1 IS NOT THE PUZZLE STAMP PLUS THE HOOK.').toBe(
+    `${SHARE_LINE1_PREFIX(PUZZLE_NUMBER)}${enCopy['nav.tagline']}`,
+  );
 
   expect(
     lines[1],
     `SHARE LINE 2 LEAKS THE DAY: "${lines[1]}" is not a bare trail plus the permitted ⚖️ call mark. ` +
       'Anything else in this line ships the verdict to somebody who has not played yet.',
   ).toMatch(SHARE_LINE2);
+  // §1(i): the run is grouped in fives, so the marks are counted with the
+  // separators stripped. Same claim as before — one fork mark per counted
+  // fork, then the published terminal — and SHARE_LINE2 above is what pins
+  // where the separators are allowed to fall.
   expect(
-    lines[1],
+    lines[1].replaceAll(' ', ''),
     'SHARE LINE 2 DISAGREES WITH THE DAY THAT WAS PLAYED: the trail must carry one fork mark per ' +
       'counted fork and end in the published terminal.',
   ).toMatch(new RegExp(`^🍴{${hack.forks}}📄`, 'u'));
 
-  for (const stamp of ['RETRACTED', 'REPLICATED', 'NULL REPORTED']) {
+  // §1(j)(2): the honest verdict is two verdicts now, and both join the scan.
+  for (const stamp of ['RETRACTED', 'REPLICATED', 'NULL CONFIRMED', 'MISSED DISCOVERY']) {
     expect(
       written[0],
       `THE SHARE STRING NAMES THE VERDICT ("${stamp}"): §2.9's whole point is that it cannot.`,

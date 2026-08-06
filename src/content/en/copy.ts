@@ -1424,8 +1424,12 @@ export const copy: Record<CopyKey, string> = {
   // the term it is the picture of, and this intro says how the trail and the
   // counts relate, which is the other half a stranger holding a share string
   // has to work out.
+  // §1(i): "in groups of five" is the one thing the grouped trail does not
+  // explain about itself — a reader who sees a gap has to be told whether the
+  // gap means anything. It does not; it is a tally. Everything else in this
+  // sentence is unchanged and still exactly true.
   'legend.intro':
-    'How to read a shared result. The trail is one symbol per move; the counts under it are the same moves, added up.',
+    'How to read a shared result. The trail is one symbol per move, in groups of five; the counts under it are the same moves, added up.',
   // T29 fix round: 🍴 is now the ONLY in-trail glyph for a spec change —
   // share.ts's FORK_EMOJI collapsed subgroup/exclusion/tails onto it, and the
   // Legend deduplicates by glyph, so this one row is the only place the key

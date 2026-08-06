@@ -596,8 +596,10 @@ export const copy: Record<CopyKey, string> = {
   // l'unica parola piena che la stringa condivisa stampa, e il concetto girava
   // con quattro nomi. Ora la riga 🍴 definisce il termine di cui è il disegno,
   // e questa introduzione dice come stanno insieme la traccia e i conteggi.
+  // §1(i): "a gruppi di cinque" — un lettore che vede uno spazio deve sapere
+  // se lo spazio significa qualcosa. Non significa nulla: è una tacca.
   'legend.intro':
-    'Come si legge un risultato condiviso. La traccia è un simbolo per mossa; i conteggi sotto sono le stesse mosse, sommate.',
+    'Come si legge un risultato condiviso. La traccia è un simbolo per mossa, a gruppi di cinque; i conteggi sotto sono le stesse mosse, sommate.',
   // L'elenco fra parentesi è COMPILATO, non decorativo: findMissingSpecKnobs
   // pretende che contenga alla lettera lab.outcome / lab.subgroup /
   // lab.covariates / lab.exclusion / lab.transform / reveal.tailsOne di QUESTA

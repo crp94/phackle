@@ -5,20 +5,28 @@
 // full power, and there is NO CALL STEP at all — §2.8 replaces the call with
 // the prereg score rows, because there is nothing left to be shrewd about.
 import { expect, test } from '@playwright/test';
-import { PUZZLE_NUMBER, SHARE_LINE2, openApp, readClipboard } from './harness';
+import { PUZZLE_NUMBER, SHARE_LINE1_PREFIX, SHARE_LINE2, openApp, readClipboard } from './harness';
+import { copy as enCopy } from '../src/content/en/copy';
 
 test('a preregistration day: choose the mode, commit blind, and land straight on the reveal with no call', async ({
   page,
 }) => {
-  // Prereg Mode is unlocked by having been retracted once. Seeded rather than
-  // earned so this flow is one day long, not two.
-  await openApp(page, { achievements: { first_retraction: '2026-08-13' } });
+  // §1(j)(1): Prereg Mode is unlocked by having COMPLETED a day — any day,
+  // any mode, any verdict — not by having been retracted once. Seeded rather
+  // than earned so this flow is one day long, not two, and seeded under an
+  // EARLIER date: a record under the pinned puzzle's own date would finish
+  // today rather than open it (§1(j)'s same-day decision).
+  await openApp(page, {
+    history: {
+      '2026-08-13': { hack: { mode: 'hack', score: 80, forks: 0, stamp: 'CONFIRMED_NULL', shareString: '' } },
+    },
+  });
 
   // --- BRIEFING: the mode chooser (§2.2) -----------------------------------
   const chooser = page.locator('[data-testid="mode-chooser"]');
   await expect(
     chooser,
-    'PREREG MODE NEVER APPEARED: first_retraction is unlocked in storage and the Briefing still ' +
+    'PREREG MODE NEVER APPEARED: a completed day is in storage and the Briefing still ' +
       'offers no choice of mode.',
   ).toBeVisible();
   const options = chooser.locator('.ph-briefing__cta');
@@ -75,7 +83,8 @@ test('a preregistration day: choose the mode, commit blind, and land straight on
   const lines = written[0].split('\n');
 
   expect(lines, `THE SHARE GRID IS NOT 4 LINES (§2.9). Got:\n${written[0]}`).toHaveLength(4);
-  expect(lines[0]).toBe(`P-hackle #${PUZZLE_NUMBER}`);
+  // §1(i): brand + issue number, then the catalog's own tagline as the hook.
+  expect(lines[0]).toBe(`${SHARE_LINE1_PREFIX(PUZZLE_NUMBER)}${enCopy['nav.tagline']}`);
   expect(lines[1], `SHARE LINE 2 IS NOT A LEGAL §2.9 TRAIL: "${lines[1]}"`).toMatch(SHARE_LINE2);
   expect(
     lines[1],

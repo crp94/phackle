@@ -15,7 +15,8 @@
 // so if a published-on-abandon variant is ever introduced this test says so
 // rather than silently passing.
 import { expect, test } from '@playwright/test';
-import { PUZZLE_NUMBER, SHARE_LINE2, enterLab, openApp, readClipboard } from './harness';
+import { PUZZLE_NUMBER, SHARE_LINE1_PREFIX, SHARE_LINE2, enterLab, openApp, readClipboard } from './harness';
+import { copy as enCopy } from '../src/content/en/copy';
 
 test('an abandoned day: report a null result, call as a full page, and reveal without a publication', async ({
   page,
@@ -74,7 +75,8 @@ test('an abandoned day: report a null result, call as a full page, and reveal wi
   const lines = written[0].split('\n');
 
   expect(lines, `THE SHARE GRID IS NOT 4 LINES (§2.9). Got:\n${written[0]}`).toHaveLength(4);
-  expect(lines[0]).toBe(`P-hackle #${PUZZLE_NUMBER}`);
+  // §1(i): brand + issue number, then the catalog's own tagline as the hook.
+  expect(lines[0]).toBe(`${SHARE_LINE1_PREFIX(PUZZLE_NUMBER)}${enCopy['nav.tagline']}`);
   expect(lines[1], `SHARE LINE 2 IS NOT A LEGAL §2.9 TRAIL: "${lines[1]}"`).toMatch(SHARE_LINE2);
   expect(
     lines[1],

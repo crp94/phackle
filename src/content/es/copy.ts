@@ -574,8 +574,10 @@ export const copy: Record<CopyKey, string> = {
   // comparte, y el concepto circulaba con cuatro nombres. Ahora la fila 🍴
   // define el término del que es el dibujo, y esta introducción dice cómo se
   // relacionan el rastro y los recuentos.
+  // §1(i): "en grupos de cinco" — quien vea un espacio tiene que saber si el
+  // espacio significa algo. No significa nada: es una marca de conteo.
   'legend.intro':
-    'Cómo se lee un resultado compartido. El rastro es un símbolo por movimiento; los recuentos de debajo son esos mismos movimientos, sumados.',
+    'Cómo se lee un resultado compartido. El rastro es un símbolo por movimiento, en grupos de cinco; los recuentos de debajo son esos mismos movimientos, sumados.',
   // La enumeración entre paréntesis está COMPILADA, no es decorativa:
   // findMissingSpecKnobs exige que contenga literalmente lab.outcome /
   // lab.subgroup / lab.covariates / lab.exclusion / lab.transform /
