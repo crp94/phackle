@@ -640,3 +640,6 @@ dead-key roster, 10-step deploy checklist) · `backlog-draft.md` §A–§F ·
 
 Closure rule (A3): an item closes when its lane reads clean against the goal's properties, not when a
 patch lands. Every wave's gate above is written to produce that evidence.
+
+---
+CONTROLLER AMENDMENT (2026-08-06, batch 2): the W2 row lists `screens/About.tsx` and `screens/Stats.tsx` among W2's files; the batch-2 dispatch barred W2 from `src/ui/**` (W7 runs in parallel there). The About/Stats RENDER halves of gr6-035/036/037 belong to W7's wiring round; W2 delivered the copy halves. W2 did not leave its files undone.
