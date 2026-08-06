@@ -197,9 +197,9 @@
    (R5.5), on the same --z-sticky rung as the dial (R4.7). The two pin to
    OPPOSITE edges, which is what keeps them from colliding — and R8.1 makes
    that a condition rather than a hope, so the sum is what has to be short:
-   the dial block is a measured 153px at 360 and this row is a measured 61px
-   (--text-15 at --leading-ui plus two --space-12s, one hairline), 214px of a
-   640px phone, leaving 426px of live scroll between them.
+   MEASURED on the production build at 360x640 — the dial block 153px (R8.1's
+   own recorded number, reproduced exactly) and this row 67px: 220px of a
+   640px phone, 34%, leaving 420px of live scroll between the two edges.
    The inline padding is the page gutter the results pane above it supplies
    through .ph-lab; on a sticky row that spans the viewport the buttons would
    otherwise sit flush against the edge at 360. */

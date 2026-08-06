@@ -158,7 +158,14 @@
 }
 
 /* 4. The compliance stamp (S4.4: every fake-press asset carries it). A
-   caption at the foot of the clipping, not a title over it. */
+   caption at the foot of the clipping, not a title over it.
+
+   gr6-088: the two watermarks shared this rule and then `.ph-chyron__watermark`
+   RE-DECLARED `margin: 0` 114 lines further down — the only equal-specificity
+   redefinition in the corpus, decided by source order alone and invisible to
+   anyone reading either half on its own. The shared type stays shared; the
+   margin, which is the one thing they never agreed on, is stated once at each
+   site. Nothing computes differently. */
 .ph-press-card__watermark,
 .ph-chyron__watermark {
   font-family: var(--font-ui);
@@ -167,7 +174,17 @@
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+}
+
+/* At the foot of a clipping the stamp is separated from the pull-quote. */
+.ph-press-card__watermark {
   margin: var(--space-12) 0 0;
+}
+
+/* In the chyron's strap it is a flex item on the same baseline as the outlet,
+   so the row's own gap is the whole spacing. */
+.ph-chyron__watermark {
+  margin: 0;
 }
 
 /* Tier 3 only: master spec S4.4's TV-chyron mock, read as a broadcast LOWER
@@ -198,6 +215,45 @@
   margin: 0;
 }
 
+/* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
+   authored strings, e.g. "STUDY: FERNS = LEVERAGE?") -- no text-transform
+   here, so this never becomes a second, CSS-driven uppercase headline (R2.7:
+   "Headlines and prose are sentence case"; only labels are transformed). */
+.ph-chyron__text {
+  font-family: var(--font-display);
+  font-size: var(--text-28);
+  line-height: var(--leading-display);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* The strap under the headline: attribution left, compliance stamp right —
+   the two things a real lower third carries in its bottom bar. */
+.ph-chyron__strap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-16);
+  margin: 0;
+}
+
+.ph-chyron__outlet {
+  font-family: var(--font-ui);
+  font-size: var(--text-13);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+/* gr6-088: this block used to sit ABOVE `.ph-chyron__text`, `.ph-chyron__strap`
+   and `.ph-chyron__outlet` — the corpus's only media-query-before-its-base-rules
+   arrangement. Nothing computed wrongly (the properties it sets and the ones
+   they set are disjoint), which is exactly the hazard: the next declaration
+   either file adds in common would be silently overridden BY THE BASE RULE, at
+   every width, because equal specificity is decided by source order. Moved
+   below the rules it modifies, where a media query belongs. */
 /* R3.4's one breakpoint. Above it the badge moves into its own left-hand
    channel, closed by a vertical hairline — a single edge, which R4.4/R4.5
    permit (R4.5 bars four sides and the `border` shorthand) — and the band
@@ -239,42 +295,6 @@
     grid-column: 2;
     grid-row: 2;
   }
-}
-
-/* The chyron blurb text is already ALL-CAPS at the content layer (T6's own
-   authored strings, e.g. "STUDY: FERNS = LEVERAGE?") -- no text-transform
-   here, so this never becomes a second, CSS-driven uppercase headline (R2.7:
-   "Headlines and prose are sentence case"; only labels are transformed). */
-.ph-chyron__text {
-  font-family: var(--font-display);
-  font-size: var(--text-28);
-  line-height: var(--leading-display);
-  color: var(--ink);
-  margin: 0;
-}
-
-/* The strap under the headline: attribution left, compliance stamp right —
-   the two things a real lower third carries in its bottom bar. */
-.ph-chyron__strap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-8) var(--space-16);
-  margin: 0;
-}
-
-.ph-chyron__outlet {
-  font-family: var(--font-ui);
-  font-size: var(--text-13);
-  line-height: var(--leading-ui);
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-}
-
-.ph-chyron__watermark {
-  margin: 0;
 }
 
 /* R6.4: >=44x44 target via space-scale padding; R2.7: an uppercase label

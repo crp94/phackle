@@ -19,6 +19,21 @@
    made them visible (Stamp.css carries the measurements). One registered
    token, matching the sibling screens exactly; it cannot introduce overflow,
    only remove it. */
+/* THE FOOT OF ACT II — DESIGN.md §9.1's one deliberately open question,
+   ruled here (W7, against a 360 shot on the production build).
+   §9.1 left `.ph-reveal` off the `.ph-page--titled` utility because it is a
+   real disagreement about ONE edge: the utility spells "40 above, 24 around",
+   and this screen pads 40 at BOTH block ends. Measured at 360x780 with the
+   page scrolled to the bottom: the last element is `.ph-reveal__cta`, a
+   full-width control whose entire affordance is a hairline UNDERLINE, and it
+   sits 40px above the document's end.
+   RULING: keep 40, and do not adopt the utility here. Every other screen ends
+   on prose or on a close button, where 24 reads as a margin; this one ends on
+   a rule, and a rule with 24 beneath it at the foot of the longest screen in
+   the product reads as the page having been cut off rather than finished —
+   the CTA's own `margin-block-start: var(--space-40)` above it makes the
+   asymmetry visible in a way it is not anywhere else. One value, one reason,
+   recorded so the next consolidation does not have to re-open it. */
 .ph-reveal {
   max-width: var(--page-max);
   margin-inline: auto;
@@ -262,25 +277,49 @@
  * than 60% of the cover. At 360 the mark is still 43% of the viewport, so
  * R8.2's "oversized" survives the trim.
  *
- * WHAT THIS ACHIEVES, AND WHAT IT DOES NOT (w1-r-012 — an earlier version of
- * this comment claimed the 768 case was fixed; it is not). Measured on the
- * production build, label ink against the title's box:
+ * w1b-005 — THE 768 CASE, RESOLVED, AND THE COMMENT THAT WAS WRONG ABOUT IT.
  *
- *   360   title 373-470, label ink 468-511   ->   2px of overlap. Clear.
- *   768   title 399-464, label ink 425-494   ->  39px of the label's 69px
- *                                                crosses the question's
- *                                                second line.
+ * Two earlier versions of this note claimed more than the geometry delivered.
+ * Measured on the production build (viewport-relative rects, stamp beat
+ * scrolled into view, the block entered):
  *
- * 768 is not solvable from here, and the reason is the card, not the offset:
- * it is 145px tall with a 64px title at the full measure, leaving 25px of
- * interior white space beneath it. No 69px label fits in 25px, and pushing the
- * mark far enough down to clear the title (top at 464) puts its foot at 588,
- * through the subline that starts at 553. A width-conditional placement would
- * fix it and needs a breakpoint this stylesheet does not have.
- * What gr2-016 asked for is nonetheless materially delivered at both widths:
- * the mark no longer runs through "VOL. 1, NO. 5" or the title's FIRST line,
- * and the subline — the string that finding called the least readable in the
- * product — is out of the graphic entirely.
+ *   360   vol 342.8-361.0 | title 373.0-469.6 (two lines) | frame 441.5-536.2
+ *         | label ink 467.9-510.7
+ *         -> the frame crosses the title's SECOND line only; the label word
+ *            grazes the title's last 1.7px. Clear, and always was.
+ *
+ *   768   vol 369.3-387.4 | title 399.4-463.8 (two lines, ~32.2 each)
+ *         | frame 383.2-533.8 | label ink 425.4-493.9      [BEFORE]
+ *         -> the label crossed the title's FIRST line by 6.2px and its second
+ *            by all of it; and the FRAME'S TOP BORDER, at 383.2, sat inside
+ *            the volume line's own box (369.3-387.4). The claim "the mark no
+ *            longer runs through VOL. 1, NO. 5 or the title's FIRST line" was
+ *            true of the label WORD at 360 and false at 768 on both counts —
+ *            false of the word by 6px and false of the frame by 4px.
+ *
+ * THE RULING. gr6-059's goal and the owner's taste agree that a stamp SHOULD
+ * obliterate the text it stamps, so the question's two lines are not the
+ * problem and are deliberately left stamped. The volume line is: it is the
+ * cover's identity, gr6-059 exists because the mark used to run through it,
+ * and "the stamp crosses it at 768 but not at 360" is not a design, it is a
+ * width the rule never looked at.
+ *
+ * So the trim becomes width-conditional at R3.4's ONE breakpoint — 45% at
+ * and above 768, 50% below — which is the smallest thing that makes the
+ * sentence above true at both widths. It is a trim, not a new placement: the
+ * anchor, the corner, the rotation and the filter region are all unchanged.
+ *
+ *   768   frame 397.4-532.9 | label ink 435.1-496.7        [AFTER, measured]
+ *         -> the frame clears the volume line by 9.9px (387.4 -> 397.4) and
+ *            starts 2.0px above the title, so both of the question's lines
+ *            are stamped — which is the point — while the LABEL WORD now
+ *            starts at 435.1, below the first line's end at 431.6, and is
+ *            clear of it. Both halves of the sentence above are true at both
+ *            widths now, for the frame and for the word.
+ *
+ * R8.2's "oversized" survives the trim at both widths, measured on the mark's
+ * own painted box: 170px of a 360 viewport (47%) and 243px of a 768 one
+ * (32%).
  */
 .ph-reveal__stamp {
   position: absolute;
@@ -289,6 +328,17 @@
   z-index: var(--z-stamp);
   width: 50%;
   pointer-events: none;
+}
+
+/* w1b-005's width-conditional trim, at R3.4's one breakpoint. Above it the
+   cover is wider and the card is SHORTER (144.6px against 176.8px at 360 —
+   the title stops wrapping to three lines), so a stamp sized for the narrow
+   card rises past the card's own top edge and across the volume line. See
+   the measurements in this file's stamp note. */
+@media (min-width: 768px) {
+  .ph-reveal__stamp {
+    width: 45%;
+  }
 }
 
 /* gr6-059 / gr2-016: §4.5's retraction subline, set as prose.

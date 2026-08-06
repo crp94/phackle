@@ -2,16 +2,17 @@
    grid of cards). Each individual radiogroup's own styling (legend, options,
    the selected-underline) moved to RadioGroup.css alongside the shared
    RadioGroup component that now renders them (post-review split, keeping
-   this file under the component-css pairing convention). */
+   this file under the component-css pairing convention).
+
+   gr6-089: and `.ph-spec-group` itself now lives entirely in RadioGroup.css,
+   with the rest of its block. It was the corpus's one class OWNED BY TWO
+   FILES — the element's own stacking rule here, its legend, options and note
+   there — so "what does .ph-spec-group do" had no single answer and the
+   adjacent-sibling rule was the easiest kind of declaration to lose track
+   of. RadioGroup renders the element; RadioGroup.css describes it. */
 .ph-spec-controls {
   display: flex;
   flex-direction: column;
   gap: var(--space-24);
   max-width: var(--measure);
-}
-
-/* R3.6: hairline-separated stack, not a grid of cards. */
-.ph-spec-group + .ph-spec-group {
-  border-block-start: var(--hairline);
-  padding-block-start: var(--space-16);
 }
