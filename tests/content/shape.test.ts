@@ -1546,7 +1546,8 @@ describe('GR6 W3 w3-r-004 — the dosage rows compile the numbers they are about
    *     is "<rater>-rated <noun>", and these two differ in the rater —
    *     self-reported confidence and a stranger's confidence in someone else
    *     are different measurements, which is exactly what the prefix is for.
-   *     `sense` ×4 was a seam because four SELF-ratings shared a head noun.
+   *     `sense` ×4 was a seam because three of the four were SELF-ratings
+   *     sharing a head noun (the survivor is the attendee-rated one).
    *
    * Which is why the ceiling below is 1 for `sense` and there is no ceiling for
    * `confidence`: the numbers differ because the defects do.
