@@ -380,6 +380,71 @@ export function findPressTokens(content: LocaleContent): string[] {
 }
 
 /**
+ * gr6-085 / gr1b-025 — the SAME rule, over the fields that actually feed
+ * interpolation.
+ *
+ * `findPressTokens` above guards press text and `validateLocaleContent` guards
+ * the headline, but those were the two fields nobody was going to get wrong.
+ * The unguarded ones are the fields that are substituted INTO other strings —
+ * `outcomeLabels` (Reveal.tsx, SpecCurve.tsx), `outcomeUnits`
+ * (lab.coefPlotAxis's own `{unit}` slot, CoefPlot.tsx), `covariateLabels`
+ * (SpecControls.tsx) — plus the ones rendered raw beside them: achievement
+ * names and citations, outlets, both subline banks, the Grantwell bodies and
+ * their subjects, the question, the cover story and the glossary.
+ *
+ * A brace in any of them renders as a literal brace on screen. This is
+ * legibility, not security: nothing interprets it, nothing escapes it, it just
+ * looks broken. None is present in any of the three locales today, which is
+ * exactly when to compile the fact — the corpus is under active authoring in
+ * three languages, and the field that acquires a `{unit}` by copy-paste from
+ * the copy catalog is the field this scan exists for.
+ *
+ * HEADLINE IS DELIBERATELY NOT HERE. It is the one content field the game
+ * substitutes into, so its rule is different (at most one token, and it must be
+ * `{effect}`) and lives in `validateLocaleContent`; sweeping it here would ban
+ * what that rule permits. gr6-005 retired the token from every shipped
+ * headline, but the CONTRACT still allows it, and these two guards must not
+ * disagree about that.
+ */
+export function findParamFieldTokens(content: LocaleContent): string[] {
+  const rows: { where: string; text: string }[] = [];
+
+  for (const s of content.scenarios) {
+    rows.push({ where: `${s.id}.question`, text: s.question });
+    rows.push({ where: `${s.id}.coverStory`, text: s.coverStory });
+    rows.push({ where: `${s.id}.treatmentLabel`, text: s.treatmentLabel });
+    s.outcomeLabels.forEach((t, i) => rows.push({ where: `${s.id}.outcomeLabels[${i}]`, text: t }));
+    s.outcomeUnits.forEach((t, i) => rows.push({ where: `${s.id}.outcomeUnits[${i}]`, text: t }));
+    rows.push({ where: `${s.id}.covariateLabels.income`, text: s.covariateLabels.income });
+    rows.push({ where: `${s.id}.covariateLabels.risk`, text: s.covariateLabels.risk });
+  }
+  content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
+  content.grantwellSubjects.forEach((text, i) => rows.push({ where: `grantwellSubjects[${i}]`, text }));
+  content.press.forEach((b, i) => rows.push({ where: `press[${i}].outlet`, text: b.outlet }));
+  content.retractionSublines.forEach((text, i) => rows.push({ where: `retractionSublines[${i}]`, text }));
+  content.nullReportedSublines.forEach((text, i) => rows.push({ where: `nullReportedSublines[${i}]`, text }));
+  for (const [id, a] of Object.entries(content.achievements)) {
+    rows.push({ where: `achievements.${id}.name`, text: a.name });
+    rows.push({ where: `achievements.${id}.citation`, text: a.citation });
+  }
+  content.glossary.forEach((e, i) => {
+    rows.push({ where: `glossary[${i}].term`, text: e.term });
+    rows.push({ where: `glossary[${i}].def`, text: e.def });
+  });
+
+  const problems: string[] = [];
+  for (const { where, text } of rows) {
+    const tokens = text.match(/\{[^}]*\}/g) ?? [];
+    if (tokens.length > 0) {
+      problems.push(
+        `${where} carries interpolation token(s) ${tokens.join(', ')}, but this field is rendered raw or substituted INTO another string`
+      );
+    }
+  }
+  return problems;
+}
+
+/**
  * T39a's coverage law, and the whole point of the task: "Every day must feel
  * covered BY NAME." A scenario with no scenario-bound blurb at any tier gets
  * generic coverage of an unnamed study on every single one of its days, which
@@ -554,6 +619,7 @@ export function validateLocaleContent(
   problems.push(...findPressVoiceProblems(content));
   problems.push(...findPressJournalNames(content));
   problems.push(...findPressTokens(content));
+  problems.push(...findParamFieldTokens(content));
 
   // The em-dash budget is language-independent (it counts one character), so
   // unlike the two lexicons it needs no per-locale argument.

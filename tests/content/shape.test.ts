@@ -34,6 +34,7 @@ import {
   findPressSpoilerTerms,
   findPressTokens,
   findPressVoiceProblems,
+  findParamFieldTokens,
   findScenariosWithoutPress,
   upperCaseRatio,
   validateLocaleContent,
@@ -944,5 +945,146 @@ describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines',
       };
       expect(findEmDashProblems(dashedSublines).some((p) => p.includes('nullReportedSublines[0]'))).toBe(true);
     }
+  });
+});
+
+/**
+ * gr6-085 / gr1b-025 — the `{`-guard now covers the fields that feed
+ * interpolation, not only the two it started with.
+ */
+describe('GR6 W3 gr6-085 — no interpolation token in a field rendered raw', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: carries none today', ({ content }) => {
+    expect(findParamFieldTokens(content)).toEqual([]);
+  });
+
+  it('catches one in every family the sweep claims to cover (guards the guard)', () => {
+    // One fixture per structural family, because the sweep is a list of field
+    // paths and a list is exactly the kind of thing that quietly loses a line.
+    const cases: { family: string; broken: LocaleContent; needle: string }[] = [
+      {
+        family: 'outcomeLabels',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], outcomeLabels: ['{unit} per week', 'a', 'b', 'c'] as [string, string, string, string] },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.outcomeLabels[0]',
+      },
+      {
+        family: 'outcomeUnits',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], outcomeUnits: ['{unit}', 'b/c', 'x/week', '1–10 scale'] as [string, string, string, string] },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.outcomeUnits[0]',
+      },
+      {
+        family: 'covariateLabels',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], covariateLabels: { income: 'Income of {n}', risk: 'Risk' } },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.covariateLabels.income',
+      },
+      {
+        family: 'question',
+        broken: {
+          ...enContent,
+          scenarios: [{ ...enContent.scenarios[0], question: 'Does {effect} matter?' }, ...enContent.scenarios.slice(1)],
+        },
+        needle: 'cat-crypto.question',
+      },
+      {
+        family: 'coverStory',
+        broken: {
+          ...enContent,
+          scenarios: [{ ...enContent.scenarios[0], coverStory: 'We recruited {n} people.' }, ...enContent.scenarios.slice(1)],
+        },
+        needle: 'cat-crypto.coverStory',
+      },
+      {
+        family: 'achievements',
+        broken: {
+          ...enContent,
+          achievements: { ...enContent.achievements, monk: { name: 'The {n} Monk', citation: 'For it.' } },
+        },
+        needle: 'achievements.monk.name',
+      },
+      {
+        family: 'press outlet',
+        broken: {
+          ...enContent,
+          press: [{ ...enContent.press[0], outlet: 'The {n} Chirp' }, ...enContent.press.slice(1)],
+        },
+        needle: 'press[0].outlet',
+      },
+      {
+        family: 'retractionSublines',
+        broken: { ...enContent, retractionSublines: ['The effect was {effect}.', ...enContent.retractionSublines.slice(1)] },
+        needle: 'retractionSublines[0]',
+      },
+      {
+        family: 'nullReportedSublines',
+        broken: { ...enContent, nullReportedSublines: ['Nothing in {n} paths.', ...enContent.nullReportedSublines.slice(1)] },
+        needle: 'nullReportedSublines[0]',
+      },
+      {
+        family: 'grantwell',
+        broken: { ...enContent, grantwell: ['Get me {effect} by Friday.', ...enContent.grantwell.slice(1)] },
+        needle: 'grantwell[0]',
+      },
+      {
+        family: 'grantwellSubjects',
+        broken: { ...enContent, grantwellSubjects: ['re: {n}', ...enContent.grantwellSubjects.slice(1)] },
+        needle: 'grantwellSubjects[0]',
+      },
+      {
+        family: 'glossary',
+        broken: {
+          ...enContent,
+          glossary: [{ term: 'α / false-positive rate', def: 'Capped at {n}%.' }, ...enContent.glossary.slice(1)],
+        },
+        needle: 'glossary[0].def',
+      },
+    ];
+    for (const { family, broken, needle } of cases) {
+      expect(findParamFieldTokens(broken).some((p) => p.includes(needle)), `${family} is not swept`).toBe(true);
+      // ...and through the validator, which is the only entry point IT/ES call.
+      expect(
+        validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes(needle)),
+        `${family} is not wired into the validator`
+      ).toBe(true);
+    }
+  });
+
+  it('leaves the headline alone, because the headline is the field that MAY carry a token', () => {
+    // The two guards must not disagree. gr6-005 retired the token from every
+    // shipped headline; the CONTRACT still permits it, and this sweep must not
+    // be the thing that silently forbids it.
+    const withToken: LocaleContent = {
+      ...enContent,
+      scenarios: [{ ...enContent.scenarios[0], headline: 'Cat Owners See {effect}% More' }, ...enContent.scenarios.slice(1)],
+    };
+    expect(findParamFieldTokens(withToken)).toEqual([]);
+    // The headline's own rule still bites on the same fixture's foreign token.
+    const withForeignToken: LocaleContent = {
+      ...enContent,
+      scenarios: [{ ...enContent.scenarios[0], headline: 'Cat Owners See {n}% More' }, ...enContent.scenarios.slice(1)],
+    };
+    expect(validateLocaleContent(withForeignToken, EN_LEXICONS).some((p) => p.includes('only use {effect}'))).toBe(true);
   });
 });
