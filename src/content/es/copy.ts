@@ -92,6 +92,15 @@ export const copy: Record<CopyKey, string> = {
   // gr6-017 — enlace de salto, visible solo cuando recibe el foco. Nombra el
   // DESTINO, como hace cualquier skip link.
   'nav.skipToContent': 'Saltar al contenido principal',
+  // gr6-022 — la etiqueta de la sesión de práctica, junto al número del
+  // fascículo (que en práctica imprime una raya: src/ui/masthead.ts). Sintagma
+  // nominal, no un verbo: nombra un ESTADO en el que está el jugador, no una
+  // acción (regla 5). *Partida* es lo que el español llama a una sesión de
+  // juego, y evita el falso amigo de "día de prueba", que en español suena a
+  // periodo gratuito de una suscripción. La misma cadena aparece en el texto
+  // que se comparte: un solo nombre por concepto (regla 6), de modo que lo que
+  // el jugador ha leído arriba es lo que leerán los demás.
+  'nav.practiceMode': 'Partida de prueba',
   // Endónimos: cada lengua se nombra a sí misma. Idénticos en los tres
   // catálogos a propósito (véase la nota de la unión en inglés): quien busca
   // el italiano busca "Italiano", no "Italiano" traducido a otra cosa.
@@ -588,6 +597,16 @@ export const copy: Record<CopyKey, string> = {
   // Infinitivo (regla 1); una palabra, porque la frase de arriba ya dice para
   // qué sirve.
   'errors.reload': 'Recargar',
+  // EL AVISO DE MEDIANOCHE (w6-r-006, w7-r-003). No dice "recargar", y eso es
+  // lo importante: a mitad de partida no hay nada guardado todavía, así que
+  // recargar es la acción DESTRUCTIVA, justo la que la regla del cambio de día
+  // se niega a hacerle al jugador. Aquí solo se informa. Responde a las dos
+  // preguntas que el jugador se hace de verdad, en este orden: el día que
+  // estoy jugando sigue contando (sí, como el día en que empezó) y dónde está
+  // el puzle de hoy (en ningún sitio: esperando). Tú, sentencia llana, sin
+  // raya.
+  'errors.newDay':
+    'Es un día nuevo. El que estás jugando sigue contando como el día en que empezó; el puzle de hoy te espera cuando termines.',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
   // than commanding.

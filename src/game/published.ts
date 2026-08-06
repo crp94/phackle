@@ -77,9 +77,21 @@ export function altmetricPercentile(iso: string, tier: EgregiousnessTier): numbe
   return min + offset;
 }
 
-/** `10.1337/phk.{puzzleNumber}` — master spec §7.3's fake DOI, exactly. */
-export function fakeDoi(puzzleNumber: number): string {
-  return `10.1337/phk.${puzzleNumber}`;
+/**
+ * `10.1337/phk.{issue}` — master spec §7.3's fake DOI, exactly.
+ *
+ * gr6-021: the parameter is the issue LABEL, not the raw puzzle number. A
+ * practice day has no issue number (see src/ui/masthead.ts's `issueLabel`,
+ * which is what the one call site passes), and this used to print
+ * `10.1337/phk.-3` on every pre-EPOCH day — a DOI with a negative registrant
+ * suffix, on the one screen whose entire job is to be believed. The type is
+ * widened rather than the practice flag being plumbed in here on purpose:
+ * `src/game/**` must not import from `src/ui/**`, and the rule about what a
+ * practice day prints belongs beside the masthead formula it also governs,
+ * not duplicated in two modules.
+ */
+export function fakeDoi(issue: string | number): string {
+  return `10.1337/phk.${issue}`;
 }
 
 /**

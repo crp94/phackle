@@ -408,8 +408,14 @@ body {
   border-block-end: var(--hairline);
 }
 
+/* gr6-022 adds `flex-wrap`, for the identical reason .ph-header__controls
+   below already carries it: this row gained a third item (the practice
+   marker), whose longest form is the Spanish "Partida de prueba", and a row
+   that cannot wrap can only overflow. Measured at 320 in all three locales
+   after the change — see the W8 report. */
 .ph-header__masthead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-8);
   margin: 0;
@@ -451,6 +457,22 @@ body {
 }
 
 .ph-header__vol::before {
+  content: '·';
+  margin-inline-end: var(--space-8);
+}
+
+/* gr6-022 — the practice marker, third item in the masthead row.
+   Same middot separator, same --muted register and the same tracked
+   small-caps treatment (.ph-label, applied in the markup) as the rest of the
+   running chrome, because it is chrome: the whole point is that it reads as
+   part of the masthead statement — "Vol. 1, No. — · Practice run" — rather
+   than as a badge stuck on top of one. UI face, not mono: the volume line is
+   mono because it sets NUMERALS (R2.4); this is a word. */
+.ph-header__practice {
+  color: var(--muted);
+}
+
+.ph-header__practice::before {
   content: '·';
   margin-inline-end: var(--space-8);
 }
@@ -566,7 +588,15 @@ body {
    shared border with the header above it) so header + notice + first screen
    read as three distinct lines, never a single run-on block, regardless of
    which one lands next to which on a given page. */
-.ph-storage-notice {
+.ph-storage-notice,
+/* W8 (w6-r-006 / w7-r-003) — the mid-play midnight notice. Byte-identical
+   treatment to the storage notice above rather than a second, nearly-equal
+   block: they are the same KIND of thing (a quiet, non-blocking line the
+   shell says about the session's own conditions, at the same place in the
+   document), and the two are the complete membership of that kind. Declaring
+   them together is what stops the pair drifting apart the first time either
+   is touched — the same argument §9.1 makes for its page-shell utilities. */
+.ph-new-day-notice {
   max-width: var(--page-max);
   margin-inline: auto;
   padding: var(--space-16) var(--space-24);

@@ -98,6 +98,16 @@ export const copy: Record<CopyKey, string> = {
   // gr6-017 — collegamento di salto, visibile solo quando riceve il fuoco.
   // Nomina la DESTINAZIONE, come fa ogni skip link.
   'nav.skipToContent': 'Vai al contenuto principale',
+  // gr6-022 — l'etichetta della sessione di prova, accanto al numero del
+  // fascicolo (che in prova stampa un trattino: src/ui/masthead.ts). Sintagma
+  // nominale, non un verbo: nomina uno STATO in cui il giocatore si trova,
+  // non un'azione (regola 4). *Giornata* è già il nome che questo catalogo dà
+  // alla partita del giorno (briefing.finishedToday, stats.emptyState), e
+  // *di prova* porta la preposizione che la regola 5 pretende. La stessa
+  // stringa compare nel testo da condividere: una parola sola per un concetto
+  // solo (regola 7), e quella che il giocatore ha letto in cima allo schermo
+  // è quella che leggeranno i suoi amici.
+  'nav.practiceMode': 'Giornata di prova',
   // Endonyms: every language names itself, in itself. Identical in all three
   // catalogs on purpose (see the EN union's own note) — an Italian reader
   // looking for Spanish looks for "Español", not for "Spagnolo".
@@ -609,6 +619,16 @@ export const copy: Record<CopyKey, string> = {
   // Imperativo (regola 1); una parola, perché la frase sopra dice già a che
   // cosa serve.
   'errors.reload': 'Ricarica',
+  // L'AVVISO DI MEZZANOTTE (w6-r-006, w7-r-003). Non dice "ricarica", ed è la
+  // cosa importante: a metà partita niente è ancora salvato, quindi ricaricare
+  // è l'azione DISTRUTTIVA, quella che la regola del cambio giorno si rifiuta
+  // di fare al giocatore. Qui si informa e basta. Risponde alle due domande
+  // che il giocatore si fa davvero, in quest'ordine: la giornata che sto
+  // giocando vale ancora (sì, per il giorno in cui è cominciata), e dov'è
+  // finito il rompicapo di oggi (da nessuna parte: aspetta). Tu, impersonale
+  // sull'app, nessun trattino lungo.
+  'errors.newDay':
+    'È iniziata una nuova giornata. Quella che stai giocando resta valida per il giorno in cui è cominciata; il rompicapo di oggi ti aspetta quando hai finito.',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
   // than commanding.

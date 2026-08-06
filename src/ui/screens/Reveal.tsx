@@ -21,9 +21,10 @@ import { useMemo, type ReactNode } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
 import { useGameStore } from '../../game/store';
 import { callIsCorrect } from '../../game/scoring';
+import { bankIndex } from '../../game/daily';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
-import { JOURNAL_VOLUME } from '../masthead';
+import { JOURNAL_VOLUME, issueLabel } from '../masthead';
 import { Stamp } from '../components/Stamp';
 import { SpecCurve, recipeLabel, type SpecCurvePoint } from '../charts/SpecCurve';
 import type { CopyKey } from '../../content/en/copy';
@@ -186,6 +187,10 @@ export function Reveal() {
   const published = useGameStore((s) => s.published);
   const scenarioIndex = useGameStore((s) => s.scenarioIndex);
   const puzzleNumber = useGameStore((s) => s.puzzleNumber);
+  // gr6-021/gr6-022: the cover echo below prints an issue number, and a
+  // practice day does not have one — see src/ui/masthead.ts's `issueLabel`,
+  // which the app header uses for the same formula.
+  const practice = useGameStore((s) => s.practice);
   // T18: only consulted below for the prereg false-positive one-liner (see
   // block "stamp") — every other block on this screen is already
   // mode-agnostic by construction (it reads only `payload`/`published`/
@@ -320,12 +325,19 @@ export function Reveal() {
   // tell the two apart. And the retraction bank's `!isPrereg` gate above is
   // NOT the precedent for that: RETRACTED requires a published spec, so its
   // claims are scoped to that spec and true of it; nothing scopes these.
+  // gr6-021 — `bankIndex`, NOT the bare `%`. Both lookups used to write
+  // `puzzleNumber % bank.length`, and `puzzleNumber` is negative on every
+  // pre-EPOCH day (all of which are practice days): `-3 % 14` is `-3`, so
+  // `bank[-3]` was `undefined` and the `subline === undefined` branch below
+  // rendered nothing at all. Both banks — all 14 retraction lines and all 10
+  // null-reported ones — were therefore invisible on every day the game has
+  // been played so far, in silence. See src/game/daily.ts's bankIndex.
   const subline = (() => {
     if (!isPrereg && payload.stamp === 'RETRACTED' && content.retractionSublines.length > 0) {
-      return content.retractionSublines[puzzleNumber % content.retractionSublines.length];
+      return content.retractionSublines[bankIndex(puzzleNumber, content.retractionSublines.length)];
     }
     if (payload.stamp === 'NULL_REPORTED' && content.nullReportedSublines.length > 0) {
-      return content.nullReportedSublines[puzzleNumber % content.nullReportedSublines.length];
+      return content.nullReportedSublines[bankIndex(puzzleNumber, content.nullReportedSublines.length)];
     }
     return undefined;
   })();
@@ -422,9 +434,13 @@ export function Reveal() {
           <div className="ph-reveal__cover">
             <div className="ph-reveal__cover-card" data-role="cover-echo">
               {/* T29 pin 3: the same JOURNAL_VOLUME the running header reads,
-                  never a second literal — see src/ui/masthead.ts. */}
+                  never a second literal — see src/ui/masthead.ts. gr6-021
+                  adds the second half of that argument: the ISSUE is now read
+                  through the same module's `issueLabel`, so the cover echo and
+                  the header agree about a practice day's missing number as
+                  well as about the volume. */}
               <p className="ph-reveal__cover-vol ph-label">
-                {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: puzzleNumber })}
+                {t('briefing.vol', { volume: JOURNAL_VOLUME, issue: issueLabel(puzzleNumber, practice) })}
               </p>
               <p className="ph-reveal__cover-title">{scenario.question}</p>
             </div>

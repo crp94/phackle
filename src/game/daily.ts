@@ -28,6 +28,38 @@ export function puzzleNumber(iso: string): number {
   return daysBetween(EPOCH, iso) + 1;
 }
 
+/**
+ * gr6-021 — THE ROTATION INDEX FOR A BANK KEYED ON `puzzleNumber`, and the
+ * one place the sign is handled.
+ *
+ * `puzzleNumber` above is `daysBetween(EPOCH, iso) + 1`, so it is NEGATIVE
+ * on every date before the day before EPOCH — which is not a hypothetical:
+ * `isPractice` treats exactly those dates as practice mode, so every
+ * pre-launch run of this game has one. Measured on 2026-08-06 against
+ * `EPOCH = '2026-08-10'`: `puzzleNumber = -3`.
+ *
+ * JavaScript's `%` is a REMAINDER, not a modulus: it keeps the sign of the
+ * dividend, so `-3 % 14 === -3`. A bank indexed with the bare expression
+ * therefore reads `bank[-3]`, which is `undefined` — and because the two
+ * call sites (src/ui/screens/Reveal.tsx, §4.5's verdict sublines) treat
+ * `undefined` as "this stamp has no subline", the ENTIRE 14-line retraction
+ * bank and the entire 10-line null-reported bank silently vanish on every
+ * pre-EPOCH day. Silently is the operative word: nothing throws, nothing
+ * logs, and the screen simply renders one paragraph less than it was
+ * written to.
+ *
+ * `((n % len) + len) % len` is the standard euclidean form and is exact for
+ * every integer, of either sign, at any magnitude the date arithmetic can
+ * produce. A zero-length bank has no index at all and returns 0 rather than
+ * `NaN` (`0 % 0`), so a caller that has already checked `length > 0` — both
+ * of today's do — is unaffected, and one that has not gets a number instead
+ * of a `NaN` subscript.
+ */
+export function bankIndex(puzzleNumber: number, length: number): number {
+  if (length <= 0) return 0;
+  return ((puzzleNumber % length) + length) % length;
+}
+
 /** `?practice=1` or "today (locally) is before EPOCH" (pre-launch/dev). */
 export function isPractice(search: string): boolean {
   const params = new URLSearchParams(search);

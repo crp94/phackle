@@ -24,7 +24,7 @@ import type { AchievementId, LocaleContent } from '../../content/types';
 // it is framework-free, and it always was. This screen consumes it.
 import { persistAndComputeSummary, type ComputedSummary } from '../../game/dayComplete';
 import { shareViaNavigator } from '../../game/share';
-import { msToNextLocalMidnight } from '../../game/daily';
+import { localIsoDate, msToNextLocalMidnight } from '../../game/daily';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import { useAppNav } from '../nav';
 import './Summary.css';
@@ -63,6 +63,27 @@ export interface SummaryProps {
    * nothing to invite. Defaults to false so every existing caller keeps its
    * behaviour. */
   preregPlayedToday?: boolean;
+  /**
+   * W8 (w6-r-006's second instance) — whether the day this invoice is FOR is
+   * still the day the wall clock is on. False for a player who was mid-play
+   * at midnight and has since finished: the day they just completed is
+   * yesterday's, and it correctly saved as yesterday's (dayComplete.ts's
+   * `puzzleIso`).
+   *
+   * The countdown below is suppressed when it is false, exactly as the
+   * Briefing's finished-day countdown already is. w6-r-006 fixed that one and
+   * recorded this screen as carrying "the identical bug" — it does: `now` is a
+   * live wall-clock read and the invoice is anchored to the puzzle's own date,
+   * so after a straddle the line read "Next puzzle in 23h 55m" about a puzzle
+   * that was already waiting. Nothing replaces it here because something
+   * already has: the shell's `errors.newDay` notice (App.tsx), which is on
+   * screen for precisely this player and says the true thing the countdown was
+   * approximating.
+   *
+   * Defaults to true — the case that was always being described — so every
+   * existing caller keeps its behaviour.
+   */
+  puzzleIsToday?: boolean;
   /** gr6-018 — the day's career-points figure (`scoreDay`'s `career`), or
    * `null` on a Prereg Mode day, which has no career track at all (§2.8
    * lists it only among the Hacking Mode rows). Deliberately NOT a breakdown
@@ -116,6 +137,7 @@ export function Summary({
   shareText,
   preregUnlocked,
   preregPlayedToday = false,
+  puzzleIsToday = true,
   career = null,
   onViewStats,
   unlocked = [],
@@ -208,7 +230,13 @@ export function Summary({
 
       <p className="ph-summary__streak">{t('summary.streak', { n: streak })}</p>
 
-      <p className="ph-summary__countdown">{t('summary.nextIn', { hours, minutes })}</p>
+      {/* w6-r-006, second instance: DO NOT PRINT A COUNTDOWN THAT IS WRONG.
+          See SummaryProps.puzzleIsToday. */}
+      {puzzleIsToday ? (
+        <p className="ph-summary__countdown" data-testid="summary-countdown">
+          {t('summary.nextIn', { hours, minutes })}
+        </p>
+      ) : null}
 
       {/* gr6-062 — the day ends where the day's reward is. The screen's last
           word used to be an upsell, with no route to the honours board it had
@@ -427,6 +455,12 @@ export default function SummaryScreen({ onViewStats }: SummaryScreenProps = {}) 
       career={computed.career}
       preregUnlocked={computed.preregUnlocked}
       preregPlayedToday={computed.preregPlayedToday}
+      // w6-r-006's second instance. Derived from the SAME `now` the countdown
+      // itself is computed from — which this screen already refreshes on the
+      // 30s interval above — rather than from a second, independent
+      // `localIsoDate()` call: one clock read, so the suppression and the
+      // number it suppresses can never be answering different questions.
+      puzzleIsToday={localIsoDate(now) === iso}
       onViewStats={viewStats}
       // T38: ids -> the locale's OWN name/citation, resolved here (§2.11's
       // award ceremony is content, not chrome — see UnlockedAchievement).
