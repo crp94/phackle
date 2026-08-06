@@ -290,7 +290,7 @@ export const copy: Record<CopyKey, string> = {
   // hacen la primera. Regla 3 del preámbulo.
   // gr6-065: el adverbio va delante, como en inglés desde este mismo cambio.
   'published.altmetricScore': 'Ya mencionado {n} veces en internet',
-  'published.altmetricPercentile': 'En el {n}% superior de toda la producción científica de la historia',
+  'published.altmetricPercentile': 'En el {pct}% superior de toda la producción científica de la historia',
 
   // The call is conspiratorial, not accusatory: Act I's last beat. "Ruido que
   // disfracé" is the player's own admission to make.

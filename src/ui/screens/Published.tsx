@@ -293,7 +293,12 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
   // resolved above: a documented precedence note, no animation added. See src/game/published.ts's altmetricScore/
   // altmetricPercentile for the tier-scaling contract.
   const altmetricScoreText = t('published.altmetricScore', { n: altmetricScore(iso, tier) });
-  const altmetricPercentileText = t('published.altmetricPercentile', { n: altmetricPercentile(iso, tier) });
+  // gr6-086 / final-011 — the token is `{pct}`, not `{n}`. It is the only
+  // percentage in a catalog whose every other `{n}` is a count, and the
+  // rename could not happen in the catalog alone: a value renamed without
+  // this line renders the token raw on the press card. Catalogs x3 and this
+  // binding site changed in one commit, which is the only way it is safe.
+  const altmetricPercentileText = t('published.altmetricPercentile', { pct: altmetricPercentile(iso, tier) });
 
   // gr6-091/gr6-064, W7's half: the day's press comes from the ONE audited
   // assembler. This screen used to spell the three seeds itself

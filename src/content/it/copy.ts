@@ -293,7 +293,7 @@ export const copy: Record<CopyKey, string> = {
   'published.altmetricScore': 'Già menzionato {n} volte online',
   // "prodotti della ricerca" is the exact phrase the Italian research-assessment
   // machinery uses for a paper. The bureaucratic noun IS the joke.
-  'published.altmetricPercentile': 'Top {n}% di tutti i prodotti della ricerca, di sempre',
+  'published.altmetricPercentile': 'Top {pct}% di tutti i prodotti della ricerca, di sempre',
 
   // Act I's last beat and the hinge into Act II: conspiratorial, not accusing.
   // "Rumore che ho vestito bene" is the player's own admission to make.

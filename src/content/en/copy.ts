@@ -882,15 +882,18 @@ export const copy: Record<CopyKey, string> = {
   // fronts it. Same token, one occurrence, plural still safe at the tier-1
   // floor of 40. (Italian already fronted it: "Già menzionato…".)
   'published.altmetricScore': 'Already mentioned {n} times online',
-  // gr6-086 / final-011, PARTIAL — the token here is the one `{n}` in the whole
-  // catalog that is a PERCENTAGE rather than a count (altmetricPercentile()
-  // returns a top-N% figure), and it should be `{pct}`. The rename is a VALUE
-  // change plus its binding site, and the binding site is
-  // `src/ui/screens/Published.tsx:285` (`t('published.altmetricPercentile',
-  // { n: … })`), which this wave does not own. BOOKED FOR W7: rename the token
-  // in all three catalogs and the param at that one call site, in one commit.
-  // Until then this comment is the disclosure, not a plan.
-  'published.altmetricPercentile': 'Top {n}% of all research outputs, all time',
+  // gr6-086 / final-011, DONE — this was the one `{n}` in the whole catalog
+  // that is a PERCENTAGE rather than a count (altmetricPercentile() returns a
+  // top-N% figure), and it is now `{pct}`. The rename had to be atomic across
+  // four files: a value renamed in the catalogs alone leaves
+  // `t(key, { n: … })` at the binding site with no `{n}` to substitute, and
+  // t() leaves an unmatched token VISIBLE by design — so the press card would
+  // have printed "Top {pct}% of all research outputs" to a real player. All
+  // three catalogs and `src/ui/screens/Published.tsx` changed in one commit.
+  // What the rename buys: a translator reading this value now knows the
+  // number is a percentage without having to find the function that produces
+  // it, which is the whole reason the two shapes should never share a name.
+  'published.altmetricPercentile': 'Top {pct}% of all research outputs, all time',
 
   // §2.6 verbatim: the call is conspiratorial, not accusatory — Act I's last
   // beat, and the hinge into Act II. "Noise I dressed up" is the player's own
@@ -985,11 +988,11 @@ export const copy: Record<CopyKey, string> = {
   //            unconditionally and the streak counts today, so day one is 1.
   //   {n}      (published.altmetricScore)  >= 40 -- the tier-1 floor.
   //   {n}      (reveal.omittedFootnote)    >= 1  -- rendered only when > 0.
-  //   {n}      (published.altmetricPercentile) is NOT A COUNT -- it is a
-  //            percentage, the one overloaded use of {n} in this catalog, and
-  //            it should be {pct}. Booked for W7 with its binding site; see
-  //            the key's own note. Plural agreement is not at issue, but a
-  //            locale reading this table must not assume a count.
+  //   {pct}    (published.altmetricPercentile) 1..99 -- NOT A COUNT: it is a
+  //            percentage, and it used to be spelled {n} like everything
+  //            above it. Renamed with its binding site (gr6-086); the name is
+  //            now the disclosure, so a locale can no longer read it as a
+  //            count by accident. Plural agreement is not at issue.
   //   {hours}/{minutes} (summary.nextIn, briefing.finishedNextIn) >= 0 -- both
   //            render at midnight-minus-a-minute, so "0h 1m" is reachable.
   //   {total}/{sig} (accounting1)          {sig} may legitimately be 0.

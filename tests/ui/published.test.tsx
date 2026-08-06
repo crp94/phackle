@@ -196,8 +196,12 @@ describe('Published: journal cover wiring', () => {
 // score" and onto a plainly countable line -- and a UI test that hard-codes a
 // value re-breaks every time that value is edited.
 const altmetricScoreLine = (n: number) => enContent.copy['published.altmetricScore'].replace('{n}', String(n));
-const altmetricPercentileLine = (n: number) =>
-  enContent.copy['published.altmetricPercentile'].replace('{n}', String(n));
+// gr6-086: the token is `{pct}`, not `{n}` — it is the catalog's one
+// percentage, and this substitution is the assertion that the binding site
+// spells the same name the value does. Renaming one without the other prints
+// the raw token on the press card, which is exactly what this line catches.
+const altmetricPercentileLine = (pct: number) =>
+  enContent.copy['published.altmetricPercentile'].replace('{pct}', String(pct));
 
 describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th celebration element, static/tier-scaled, never animated)', () => {
   it('shows the tier-scaled attention score and percentile line, computed the same way Published itself does', async () => {
