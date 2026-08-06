@@ -263,6 +263,19 @@ export function createGameStore() {
    * The error itself lands in `error`, which ScreenRouter already renders as
    * `errors.workerCrash` above whatever screen is current — no screen is ever
    * replaced, so the player keeps whatever they were looking at.
+   *
+   * ITS OTHER HALF (review fix round 1, w6-r-002): every dispatch site pairs
+   * `pending: true` with `error: null`. `error` had exactly one writer that
+   * ever cleared it — `boot`, via its `initialState()` spread — so the FIRST
+   * failure of a session made it permanently non-null, and two things broke
+   * downstream. The crash banner outlived the crash, sitting over a day that
+   * had since recovered. And Prereg.tsx's freeze-release reads
+   * `submitting && error === null`, so after any earlier failure the form
+   * never froze again: a mode whose entire premise is irreversible commitment
+   * rendered an unlocked, re-submittable form while its own commit was in
+   * flight. An attempt owns the error surface it is about to write; clearing
+   * is not swallowing, since a retry that fails again writes its own message
+   * through this same catch.
    */
   async function withEngineErrors(myReq: number, fn: () => Promise<void>): Promise<void> {
     try {
@@ -342,7 +355,7 @@ export function createGameStore() {
 
       clearDebounce();
       const myReq = ++requestSeq;
-      set({ pending: true });
+      set({ pending: true, error: null }); // w6-r-002 — see withEngineErrors
       await withEngineErrors(myReq, async () => {
         const info = await c.extend();
         if (myReq !== requestSeq) return;
@@ -417,7 +430,7 @@ export function createGameStore() {
       // what the post-append read used to produce.
       const explored = distinctExplored(s.log);
       const published = s.published;
-      set({ pending: true });
+      set({ pending: true, error: null }); // w6-r-002 — see withEngineErrors
       await withEngineErrors(myReq, async () => {
         const payload = await c.reveal(published, explored);
         if (myReq !== requestSeq) return;
@@ -459,7 +472,9 @@ export function createGameStore() {
       }
       clearDebounce();
       const myReq = ++requestSeq;
-      set({ pending: true });
+      // w6-r-002: load-bearing HERE above all — Prereg.tsx's `frozen` reads
+      // exactly this pair, and a stale error left the form unlocked mid-commit.
+      set({ pending: true, error: null });
 
       await withEngineErrors(myReq, async () => {
         // §3.8's window schedule only ever moves one N_SCHEDULE step per
@@ -560,9 +575,9 @@ export function createGameStore() {
           ...st.resultLog,
           { key: specKey(st.result.spec), p: st.result.p, valid: st.result.valid },
         ];
-        return { pending: true, log, forks, resultLog };
+        return { pending: true, error: null, log, forks, resultLog }; // w6-r-002
       }
-      return { pending: true, log, forks };
+      return { pending: true, error: null, log, forks }; // w6-r-002
     });
     // The fifth and last site of the same shape (gr6-043): this one always
     // had its own try/catch — the helper is that catch, hoisted so the four

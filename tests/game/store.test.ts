@@ -1139,3 +1139,129 @@ describe('forks === countForks(log) (gr6-108) — the invariant behind seven ind
     expect(store.getState().forks).toBe(0);
   });
 });
+
+// --- w6-r-002: `error` is cleared by the attempt that supersedes it --------
+//
+// Review fix round 1. `error` had exactly one writer that ever cleared it
+// (boot, via its initialState() spread), so the FIRST failure of the session
+// made it permanently non-null. Two consequences, both measured by the
+// reviewer:
+//   * Prereg.tsx's freeze-release (`submitting && storeError === null`) was
+//     one-shot — after any earlier failure the form NEVER froze again, so a
+//     mode whose entire premise is irreversible commitment rendered an
+//     unlocked, re-submittable form while its commit was in flight.
+//   * The crash banner outlived the crash, sitting over a day that had since
+//     recovered.
+
+describe('error clearing (w6-r-002) — a new attempt owns the error surface it is about to write', () => {
+  it('peekAndExtend clears a stale error as it dispatches', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    (client.extend as Mock).mockRejectedValueOnce(new Error('first failure'));
+    await store.getState().peekAndExtend();
+    expect(store.getState().error).toBe('first failure');
+
+    const extend = deferred<ExtendInfo>();
+    (client.extend as Mock).mockImplementationOnce(() => extend.promise);
+    const retry = store.getState().peekAndExtend();
+    // The instant the retry is in flight, the previous failure is no longer
+    // the state of the world.
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().pending).toBe(true);
+
+    extend.resolve({ n: 250 });
+    await retry;
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('preregCommit clears a stale error, so the SECOND attempt freezes the form just like the first', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, { practice: false, mode: 'prereg', scenarioCount: 1792 });
+    store.getState().chooseMode('prereg');
+
+    (client.extend as Mock).mockRejectedValueOnce(new Error('first failure'));
+    await store.getState().preregCommit(specA);
+    expect(store.getState().error).toBe('first failure');
+    expect(store.getState().pending).toBe(false);
+
+    const extend = deferred<ExtendInfo>();
+    (client.extend as Mock).mockImplementationOnce(() => extend.promise);
+    const retry = store.getState().preregCommit(specA);
+    // This pair is exactly what Prereg.tsx's `frozen` reads.
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().pending).toBe(true);
+
+    // ...and while it is in flight the guard still refuses a second dispatch,
+    // so nothing can reach an unhandled rejection through `void`.
+    await expect(store.getState().preregCommit(specA)).rejects.toThrow(STORE_ERR.cannotPrereg);
+    extend.resolve({ n: 250 });
+    await retry.catch(() => undefined);
+  });
+
+  it('makeCall clears a stale error as it dispatches', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().abandon();
+    (client.reveal as Mock).mockRejectedValueOnce(new Error('first failure'));
+    await store.getState().makeCall('noise');
+    expect(store.getState().error).toBe('first failure');
+
+    const reveal = deferred<RevealPayload>();
+    (client.reveal as Mock).mockImplementationOnce(() => reveal.promise);
+    const retry = store.getState().makeCall('noise');
+    expect(store.getState().error).toBeNull();
+
+    reveal.resolve(makeRevealPayload());
+    await retry;
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a settled spec change clears a stale error too (the crash banner does not outlive the crash)', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockRejectedValueOnce(new Error('first failure'));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().error).toBe('first failure');
+
+    store.getState().changeSpec(specB);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a FAILING retry still reports its own failure — clearing is not swallowing', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    (client.extend as Mock)
+      .mockRejectedValueOnce(new Error('first failure'))
+      .mockRejectedValueOnce(new Error('second failure'));
+
+    await store.getState().peekAndExtend();
+    await store.getState().peekAndExtend();
+    expect(store.getState().error).toBe('second failure');
+  });
+});
+
+// --- w6-r-007: the last two STORE_ERR sites -------------------------------
+
+describe('STORE_ERR (w6-r-007) — every one of the fourteen throw sites, by constant', () => {
+  it('makeCall before boot throws STORE_ERR.notBooted (the client guard, ahead of the screen guard)', async () => {
+    const store = createGameStore();
+    await expect(store.getState().makeCall('real')).rejects.toThrow(STORE_ERR.notBooted);
+  });
+
+  it('preregCommit before boot throws STORE_ERR.notBooted', async () => {
+    const store = createGameStore();
+    await expect(store.getState().preregCommit(DEFAULT_SPEC)).rejects.toThrow(STORE_ERR.notBooted);
+  });
+});

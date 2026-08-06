@@ -372,6 +372,24 @@ describe('gr6-044 — a version-1-tagged blob with unusable stats is repaired, n
     // Not the identity path (that is reserved for a blob that really IS a
     // PersistedState — see the "returns v1 data unchanged" test above).
     expect(out).not.toBe(CORRUPT);
+    // Every counter is a usable finite number again. The VALUES come from
+    // w6-r-010's rebuild over the one day CORRUPT's history holds (a
+    // RETRACTED hack day at 2 forks), not from zeroing.
+    expect(out.stats).toEqual({
+      streak: 1,
+      maxStreak: 1,
+      callsCorrect: 0,
+      callsTotal: 0,
+      careerPoints: 25,
+      preregDays: 0,
+      hackDays: 1,
+      forkHistogram: [0, 0, 1],
+    });
+  });
+
+  it('zeroes only what the history cannot re-derive: an EMPTY history still repairs to all zeros', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, { ...CORRUPT, history: {} });
     expect(out.stats).toEqual({
       streak: 0,
       maxStreak: 0,
@@ -458,3 +476,107 @@ function freshStats() {
     forkHistogram: [] as number[],
   };
 }
+
+// --- w6-r-010: the repair rebuilds from history rather than zeroing ---------
+//
+// gr6-044's repair kept the player's history, achievements and settings but
+// reset every unusable counter to 0 — and `history` already carries, per day
+// and per mode, exactly what `saveDay` increments from: mode, callCorrect,
+// stamp and forks. Zeroing them was discarding a number the record could
+// simply be re-derived from.
+describe('w6-r-010 — a repaired stats block is rebuilt from the history that survived it', () => {
+  function historyBlob(): ModeHistory {
+    return {
+      '2026-08-10': { hack: day({ forks: 2, callCorrect: true, stamp: 'RETRACTED' }) },
+      '2026-08-11': { hack: day({ forks: 0, callCorrect: false, stamp: 'NULL_REPORTED' }) },
+      '2026-08-12': {
+        hack: day({ forks: 5, callCorrect: true, stamp: 'REPLICATED' }),
+        prereg: day({ mode: 'prereg', forks: 0, stamp: 'NULL_REPORTED' }),
+      },
+      // A gap, so streak and maxStreak are genuinely different numbers.
+      '2026-08-20': { prereg: day({ mode: 'prereg', forks: 1, callCorrect: true, stamp: 'REPLICATED' }) },
+    };
+  }
+
+  it('re-derives every counter saveDay would have built, instead of zeroing them', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, { version: 1, history: historyBlob(), stats: {}, achievements: {}, settings: {} });
+
+    expect(out.stats.hackDays).toBe(3);
+    expect(out.stats.preregDays).toBe(2);
+    expect(out.stats.callsTotal).toBe(4); // three hack calls + the prereg day's
+    expect(out.stats.callsCorrect).toBe(3);
+    // +25 per PUBLISHED hack day (stamp !== NULL_REPORTED), mirroring saveDay.
+    expect(out.stats.careerPoints).toBe(50);
+    expect(out.stats.forkHistogram).toEqual([2, 1, 1, 0, 0, 1]);
+    // The run ending on the last played day, and the longest run anywhere.
+    expect(out.stats.streak).toBe(1);
+    expect(out.stats.maxStreak).toBe(3);
+  });
+
+  it('an individually-sound counter still wins over the rebuild (repair is per-field)', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, {
+      version: 1,
+      history: historyBlob(),
+      stats: { ...freshStats(), hackDays: 99, forkHistogram: 'nope' },
+      achievements: {},
+      settings: {},
+    });
+    expect(out.stats.hackDays).toBe(99); // persisted and finite -> kept
+    expect(out.stats.forkHistogram).toEqual([2, 1, 1, 0, 0, 1]); // unusable -> rebuilt
+  });
+
+  it('is total over a junk history: a malformed day contributes nothing and throws nothing', async () => {
+    const { migrate } = await freshStorage();
+    const junk = {
+      '2026-08-10': { hack: day({ forks: 2, stamp: 'RETRACTED', callCorrect: true }) },
+      '2026-08-11': 'not-an-object',
+      '2026-08-12': { hack: { mode: 'hack', forks: 'three', stamp: 7, callCorrect: 'yes' } },
+      '2026-08-13': null,
+      '2026-08-14': { hack: null, prereg: undefined },
+    };
+    let out!: ReturnType<typeof migrate>;
+    expect(() => {
+      out = migrate(1, { version: 1, history: junk, stats: {}, achievements: {}, settings: {} });
+    }).not.toThrow();
+    expect(out.stats.hackDays).toBe(1);
+    expect(out.stats.callsTotal).toBe(1);
+    expect(out.stats.careerPoints).toBe(25);
+    expect(out.stats.forkHistogram).toEqual([0, 0, 1]);
+    for (const value of Object.values(out.stats)) {
+      if (Array.isArray(value)) expect(value.every((n) => Number.isFinite(n))).toBe(true);
+      else expect(Number.isFinite(value)).toBe(true);
+    }
+  });
+
+  it('an EMPTY history still rebuilds to exactly freshState().stats (the no-history case is unchanged)', async () => {
+    const { migrate } = await freshStorage();
+    const out = migrate(1, { version: 1, history: {}, stats: {}, achievements: {}, settings: {} });
+    expect(out.stats).toEqual({ ...freshStats(), forkHistogram: [] });
+  });
+
+  it('the rebuild agrees with what saveDay itself would have accumulated over the same days', async () => {
+    // The rebuild is only trustworthy if it is the SAME arithmetic. Play the
+    // days through the real saveDay, then repair a corrupted copy of exactly
+    // that state and compare the two blocks field by field.
+    const live = await freshStorage();
+    const history = historyBlob();
+    for (const iso of Object.keys(history).sort()) {
+      const modes = history[iso];
+      if (modes.hack) live.saveDay(iso, modes.hack);
+      if (modes.prereg) live.saveDay(iso, modes.prereg);
+    }
+    const accumulated = live.loadState().stats;
+
+    const repaired = (await freshStorage()).migrate(1, {
+      version: 1,
+      history,
+      stats: {},
+      achievements: {},
+      settings: {},
+    }).stats;
+
+    expect(repaired).toEqual(accumulated);
+  });
+});

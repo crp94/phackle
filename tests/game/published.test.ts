@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   PRESS_SALT_MARKER,
@@ -518,6 +520,71 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
       }
     }
     expect(collisions).toBe(0);
+  });
+
+  /**
+   * w6-r-003 — THE INTERIM BRIDGE, and the condition under which it dies.
+   *
+   * gr6-091 retired the readFileSync scan that pinned Published.tsx's three
+   * call-site seeds, on the reasoning that `pressForDay` is now the audited
+   * assembler. That reasoning is only true once the SCREEN calls it — and it
+   * does not yet: `screens/Published.tsx` belongs to W7 and still makes three
+   * `pickPress` calls with its own seed spellings. Everything asserted above
+   * is asserted about `pressForDay`, so nothing tied the rendered page to the
+   * audited picker: a one-character edit to any of those three seeds
+   * (`${iso}#2` -> `${iso}#two`, say) drops that slot onto pickPress's
+   * `slot === -1` best-effort branch, which carries NO dedup pedigree and
+   * therefore silently restores the same-outlet collision gr6-064 exists to
+   * kill — with this entire suite green.
+   *
+   * So the scan comes back, narrowed to exactly that risk: three calls, three
+   * seeds, nothing about naming or formatting. Yes, it reads source text. It
+   * is the honest bridge, and it is temporary.
+   *
+   * RETIREMENT CONDITION, stated so nobody has to guess: W7 replaces those
+   * three calls with the single `pressForDay(content.press, tier,
+   * scenario.id, iso)` — which the controller has promoted from cosmetic to
+   * REQUIRED — and DELETES THIS TEST IN THAT SAME COMMIT. It will fail when
+   * they do, which is the intended signal, not a regression. At that point
+   * the seeds live in one place and the behavioural guards above are the
+   * whole net.
+   */
+  it('[INTERIM] Published.tsx still seeds its three picks exactly as pressForDay does — delete with W7 adoption', () => {
+    const source = readFileSync(fileURLToPath(new URL('../../src/ui/screens/Published.tsx', import.meta.url)), 'utf8');
+    const calls = source.match(/pickPress\([^)]*\)/g) ?? [];
+    expect(
+      calls,
+      'Published.tsx no longer makes three pickPress calls — if it now calls pressForDay, DELETE THIS TEST (see the doc comment above)'
+    ).toHaveLength(3);
+    // Slot 0 is UNSALTED: that is what makes it the day's guaranteed
+    // scenario-bound card, and what gives slots 1 and 2 a pedigree to exclude.
+    expect(calls[0]).toContain(', iso)');
+    expect(calls[0]).not.toContain(PRESS_SALT_MARKER);
+    // Slots 1 and 2 must carry the salts PRESS_SLOT_SALTS actually registers —
+    // an unregistered salt takes pickPress's best-effort branch and loses the
+    // outlet dedup entirely.
+    expect(calls[1]).toContain(`\${iso}${PRESS_SALT_MARKER}2`);
+    expect(calls[2]).toContain(`\${iso}${PRESS_SALT_MARKER}chyron`);
+  });
+
+  it('[INTERIM] the screen\'s own three seeds produce byte-identical output to pressForDay — delete with W7 adoption', () => {
+    // The scan above pins the SPELLING; this pins what the spelling is FOR.
+    // Together they are what the retired test used to guarantee, and both go
+    // when the screen adopts the assembler.
+    for (const scenario of enContent.scenarios) {
+      for (const tier of TIERS) {
+        for (const iso of ISOS) {
+          const asScreenSeedsThem = [
+            pickPress(enContent.press, tier, scenario.id, iso),
+            pickPress(enContent.press, tier, scenario.id, `${iso}#2`),
+            ...(tier === 3 ? [pickPress(enContent.press, 3, scenario.id, `${iso}#chyron`)] : []),
+          ];
+          expect(asScreenSeedsThem).toEqual(pressForDay(enContent.press, tier, scenario.id, iso));
+          const outlets = asScreenSeedsThem.map((b) => b.outlet);
+          expect(new Set(outlets).size, `${scenario.id} @ tier ${tier} on ${iso}`).toBe(outlets.length);
+        }
+      }
+    }
   });
 
   /**

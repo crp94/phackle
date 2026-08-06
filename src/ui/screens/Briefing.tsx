@@ -14,7 +14,7 @@ import { useGameStore, type UseGameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { pickGrantwellEmail } from '../../game/briefing';
 import { loadState } from '../../game/storage';
-import { msToNextLocalMidnight } from '../../game/daily';
+import { localIsoDate, msToNextLocalMidnight } from '../../game/daily';
 import { EmailCard } from '../components/EmailCard';
 import './Briefing.css';
 
@@ -36,6 +36,8 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const puzzleNumberValue = useStore((s) => s.puzzleNumber);
   const openData = useStore((s) => s.openData);
   const chooseMode = useStore((s) => s.chooseMode);
+  // w6-r-001: read for the finished-day guard's practice exemption below.
+  const practice = useStore((s) => s.practice);
 
   // The finished-day countdown below (gr6-008). Mounted unconditionally
   // because hooks must be: it is one 30s text refresh, and on the ordinary
@@ -85,17 +87,37 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   // who cheat is the wrong way round.
   //
   // The guard is expressed as "is any mode still PLAYABLE today", not as
-  // "which achievements are unlocked". That framing is deliberate and
-  // load-bearing for what is coming: the owner has ruled that Prereg Mode
-  // will unlock on the first COMPLETED day rather than the first retraction
-  // (W12). That change edits exactly one line here — `preregAvailable`'s
-  // first conjunct — and cannot reopen a finished day, because widening WHO
-  // may play prereg never widens whether TODAY's prereg attempt is still
-  // unspent.
+  // "which achievements are unlocked". That framing is deliberate: `dayFinished`
+  // means precisely "no mode is still playable", so it stays correct however
+  // availability is later decided. W12 will unlock Prereg Mode on the first
+  // COMPLETED day rather than the first retraction; that edits exactly one
+  // line here, `preregAvailable`'s expression, and the guard composes.
+  //
+  // (Stated exactly, because the earlier wording overclaimed: widening
+  // availability DOES legitimately un-finish a day that still has an unspent
+  // prereg attempt — an honest day-one, finished today, would become a
+  // prereg-only chooser. That is a behaviour change, consistent with T18's
+  // existing chooser design, and it is W12's decision to make, not a bug this
+  // guard prevents. What the guard does guarantee is that a mode already
+  // SPENT today can never be re-entered, whatever unlocks it.)
   const preregAvailable = state.achievements.first_retraction !== undefined;
   const hackPlayable = !hackPlayedToday;
   const preregPlayable = preregAvailable && !preregPlayedToday;
-  const dayFinished = !hackPlayable && !preregPlayable;
+
+  // w6-r-001 — PRACTICE MODE IS EXEMPT, and must be.
+  //
+  // The guard reads `history[iso]`, and App.tsx boots with `localIsoDate()`
+  // even under `?practice=1`, so a practice session lands on the REAL day's
+  // key. Once that day was finished, the practice URL rendered the finished
+  // block with zero CTAs and no way to play at all — confirmed on the
+  // production build. Practice replays are legitimate and documented (they are
+  // what testers and streamers use), and the persistence layer already agrees:
+  // `dayComplete.ts`'s persistAndComputeSummary skips `saveDay` entirely on a
+  // practice day, so a practice run can neither consume the real day's
+  // one-play budget nor be consumed by it. A guard whose whole purpose is
+  // "your recorded day is already recorded" has nothing to say about a session
+  // that records nothing.
+  const dayFinished = !practice && !hackPlayable && !preregPlayable;
 
   // The chooser itself only makes sense while there is still a choice left
   // to make today: once prereg is filed, "Open Data" (below) is the only
@@ -103,11 +125,38 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
   const showChooser = preregAvailable && !preregPlayedToday;
 
   // What the day actually produced, for the finished state's share line.
-  // Prereg wins a same-date tie: achievements.ts's chronologicalCalls already
-  // pins "hack precedes prereg" as this codebase's ordering for a double
-  // play, so prereg is the later of the two and therefore the one the player
-  // just came from.
-  const finishedRecord = today?.prereg ?? today?.hack;
+  //
+  // w6-r-004: ARBITRARY, and said so. A DayRecord carries no timestamp, so
+  // "which of the two did they finish last" is not knowable from storage —
+  // the previous rule picked prereg and justified it as "the later of the
+  // two", which was simply false (driven prereg-then-hack, the screen printed
+  // the prereg line for a day whose last play was the hack one). The choice
+  // is pinned to hack-first purely so that it is CONSISTENT with the only
+  // same-date ordering this codebase already documents: achievements.ts's
+  // chronologicalCalls, "hack's call is treated as preceding prereg's — an
+  // arbitrary but deterministic tie-break".
+  const finishedRecord = today?.hack ?? today?.prereg;
+
+  // w6-r-006 — DO NOT PRINT A COUNTDOWN THAT IS WRONG.
+  //
+  // `iso` is the puzzle's own date (fixed at boot); `msToNextLocalMidnight`
+  // reads the live wall clock. In the straddle window — the player sits on
+  // this screen past a real midnight, or leaves the tab open overnight — those
+  // two disagree, and "Next puzzle in 23h 55m" tells the player to come back
+  // tomorrow for a puzzle that is already one reload away. The number is
+  // suppressed rather than printed wrong.
+  //
+  // NOT a full fix, and deliberately not attempted here. The staleness is
+  // app-shell-wide, not this screen's: App.tsx boots once with
+  // `localIsoDate()` and never re-reads it, so after that midnight the
+  // scenario question, the Grantwell email and the header's issue number are
+  // all yesterday's too (Summary's own countdown has the identical bug). The
+  // right affordance is "a new puzzle is ready — reload", which needs a copy
+  // key; the catalog is frozen for this wave and no existing key means that
+  // (`errors.workerCrash` mentions reloading but asserts a failure that did
+  // not happen). W2 owns the key, W7 owns App.tsx's re-read. This is the part
+  // that can be made honest without either.
+  const puzzleDateIsToday = iso === localIsoDate();
   const msLeft = msToNextLocalMidnight(now);
   const hoursLeft = Math.floor(msLeft / 3_600_000);
   const minutesLeft = Math.floor((msLeft % 3_600_000) / 60_000);
@@ -144,9 +193,11 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
               {finishedRecord.shareString}
             </p>
           ) : null}
-          <p className="ph-briefing__finished-countdown" data-testid="briefing-finished-countdown">
-            {t('summary.nextIn', { hours: hoursLeft, minutes: minutesLeft })}
-          </p>
+          {puzzleDateIsToday ? (
+            <p className="ph-briefing__finished-countdown" data-testid="briefing-finished-countdown">
+              {t('summary.nextIn', { hours: hoursLeft, minutes: minutesLeft })}
+            </p>
+          ) : null}
         </div>
       ) : showChooser ? (
         <div className="ph-briefing__chooser" data-testid="mode-chooser">
