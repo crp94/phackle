@@ -15,6 +15,14 @@ export interface Scenario {
   // Published-paper headline. May carry at most one "{effect}" token — the
   // published spec's treatment effect — or none. Never "{n}": the copy catalog
   // binds that to sample size (lab.nLabel, lab.collectMore).
+  //
+  // gr6-005: every shipped headline now carries NONE. The raw-unit effect
+  // rounded to 1 on 71,680 of 71,680 measured paths, and the fixed frame could
+  // not honour a number whose units the player picks at run time. The type
+  // still permits the token because the contract has not changed; the corpus
+  // no longer uses it, and tests/content/shape.test.ts pins that. See
+  // src/content/en/index.ts rule 5 for the measurement and for the one
+  // condition under which a headline may carry a number again.
   headline: string;
   outcomeLabels: [string, string, string, string]; // index = Outcome; order: heavy-tailed, skewed, count, bounded scale
   outcomeUnits: [string, string, string, string];

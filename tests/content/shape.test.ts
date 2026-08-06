@@ -18,6 +18,7 @@ import { content as esContent } from '../../src/content/es';
 import { copy as enCopy } from '../../src/content/en/copy';
 import { NULL_SIG_BAND } from '../../src/game/tuning';
 import { allSpecs } from '../../src/engine/specGrid';
+import { substituteEffect } from '../../src/game/published';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 import {
@@ -778,5 +779,72 @@ describe('GR6 gr6-004 — About discloses the acceptance band, in numbers the en
       expect(content.copy['about.mechanism'], `${name} About`).toMatch(/on its own|da sola|por sí solo/i);
       expect(content.copy['reveal.accounting1'], `${name} accounting1`).toMatch(/on its own|da sola|por sí solo/i);
     }
+  });
+});
+
+// --- GR6 W3: the content corpus ----------------------------------------------
+
+/**
+ * gr6-005 / gr3-001 — THE HEADLINE TOKEN IS RETIRED, and this is the fact that
+ * keeps it retired.
+ *
+ * `{effect}` was substituted with the published spec's treatment effect in that
+ * outcome's OWN RAW UNITS, floored at 1 (src/game/published.ts's
+ * substituteEffect). Measured before the fix over 20 consecutive days from
+ * EPOCH, every one of the 1,792 specs, at both the opening and the full window:
+ * 71,680 of 71,680 valid paths rounded to 1. The largest string on the
+ * celebration screen therefore read "Meetings Run 1 Minutes Longer" on every
+ * publishable path the game had, and the frame could not have been honoured in
+ * any case — it is fixed per scenario while the number comes from whichever of
+ * the four outcomes the player published, so a 1-10 self-rating could print as
+ * "€1 More in Goodwill Credit".
+ *
+ * WHY A TEST AND NOT ONLY A REWRITE. Content rule 5 still LICENSES the token
+ * (the type still permits it, substituteEffect still exists and is still unit-
+ * tested), so nothing but this assertion stops the next author from putting one
+ * back into a frame the engine cannot fill. It is a pin on a state, not a ban on
+ * a feature.
+ *
+ * THE RETIREMENT CONDITION, stated so this test can be deleted honestly rather
+ * than worked around: if the engine is ever changed to express the effect
+ * unit-free — as a percentage of the control-group mean, gr3-001's recorded
+ * alternative — and the plural-after-1 trap ("1 Minutes") is closed
+ * independently, then this test is the thing to delete, in the same commit that
+ * lands the change. Until then a headline carrying a number is a headline
+ * printing the number 1.
+ */
+describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cannot honour', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: every headline is token-free', ({ content }) => {
+    const withTokens = content.scenarios
+      .filter((s) => /\{[^}]*\}/.test(s.headline))
+      .map((s) => `${s.id}: "${s.headline}"`);
+    expect(withTokens).toEqual([]);
+  });
+
+  it('leaves substituteEffect a no-op on every shipped headline, in every locale', () => {
+    // The end-to-end statement of the same fact, through the real production
+    // function rather than through a regex: whatever beta the day produces, the
+    // headline the player reads is the headline the corpus wrote.
+    for (const { name, content } of LOCALE_CONTENT) {
+      for (const scenario of content.scenarios) {
+        for (const beta of [0, 0.049, -0.6, 24.6]) {
+          expect(substituteEffect(scenario.headline, beta), `${name} ${scenario.id}`).toBe(scenario.headline);
+        }
+      }
+    }
+  });
+
+  it('still substitutes when a token IS present, so this pins the corpus and not the engine', () => {
+    // Guards the guard in the other direction: if substituteEffect were gutted,
+    // the assertion above would pass vacuously.
+    expect(substituteEffect('Cat Owners See {effect}% Higher Returns', 24.6)).toBe(
+      'Cat Owners See 25% Higher Returns'
+    );
   });
 });

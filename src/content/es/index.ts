@@ -33,6 +33,13 @@
 //     n = 200 with a "recoger 50 más" button, and a briefing that already
 //     announced the total would deflate the optional-stopping fiction before
 //     the player reaches it.
+//  7. HEADLINE TOKEN, RETIRED (gr6-005). No titular carries {effect} or {n}.
+//     The Spanish headlines were RE-CUT to work without the number rather than
+//     stripped of it — "ganan un {effect}% más" becomes "ganan más", the way a
+//     Spanish paper writes a result it has not been given a figure for. The
+//     measurement behind the retirement, and the one condition under which the
+//     token may return, live at ../en/index.ts rule 5; es.shape.test.ts's
+//     headline token-contract check keeps this locale tied to it.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -44,7 +51,7 @@ export const content: LocaleContent = {
       coverStory:
         'Se ha reclutado una cohorte piloto de inversores minoristas para poner a prueba una hipótesis popular que lleva años susurrándose en los foros de finanzas personales: que convivir con un gato ejerce una influencia calmante que estabiliza el apetito de riesgo de la cartera. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. El trabajo lo financia una fundación cuyo fundador tiene cuatro gatos y, según nos cuentan, una distribución a priori muy informativa.',
       treatmentLabel: 'Tiene gato',
-      headline: 'Quienes tienen gato ganan un {effect}% más, según un estudio',
+      headline: 'Quienes tienen gato ganan más, según un estudio',
       // Same deliberate divergence as the English original: the cover story
       // sells cats as risk-steadying, so MORE volatility and MORE trading
       // would argue against the claimed effect and break the one-tailed
@@ -83,7 +90,7 @@ export const content: LocaleContent = {
       coverStory:
         'El entrenamiento de resistencia se ha estudiado hasta la extenuación. La panadería no. Nuestra hipótesis es conductual y no nutricional: doce semanas negándose a acelerar una fermentación deberían transferirse directamente a la paciencia que exige un negative split. Reclutamos maratonianos aficionados en clubes de atletismo y en una cooperativa harinera excepcionalmente colaboradora, cruzamos sus cuadernos de masa madre con sus tiempos de chip y esperamos. La cooperativa sigue mandándonos gente.',
       treatmentLabel: 'Mantiene una masa madre',
-      headline: 'Los panaderos de masa madre corren el maratón un {effect}% más rápido, según los autores',
+      headline: 'Los panaderos de masa madre corren el maratón más rápido, según los autores',
       outcomeLabels: [
         'Mejora sobre la marca personal el día de la carrera',
         'Aceleración en los últimos 10 km sobre el ritmo medio',
@@ -100,7 +107,7 @@ export const content: LocaleContent = {
       coverStory:
         'Las oficinas diáfanas llevan una década discutiendo sobre la música ambiente sin auditar ni una sola vez un libro de cálculo. Dimos a un departamento de analistas financieros una lista de 340 horas de hard bop y dejamos al otro con su silencio de siempre; después pasamos cada celda de sus modelos trimestrales por una herramienta de auditoría independiente. A los analistas se les dijo que el estudio iba sobre la iluminación.',
       treatmentLabel: 'Escucha jazz mientras trabaja',
-      headline: 'El jazz en la oficina, asociado a hojas de cálculo un {effect}% más limpias',
+      headline: 'El jazz en la oficina, asociado a hojas de cálculo más limpias',
       outcomeLabels: [
         'Exactitud de auditoría sobre la media del departamento',
         'Racha más larga de celdas limpias en auditoría',
@@ -117,7 +124,7 @@ export const content: LocaleContent = {
       coverStory:
         'El diseño biofílico se les vende a los responsables de instalaciones apelando solo al bienestar. Nadie ha preguntado qué hace al otro lado de una mesa. Colocamos un único helecho de Boston en el despacho de cada responsable de compras que aceptó participar, lo dejamos allí un ciclo de contratación completo y obtuvimos después las condiciones finales de todos los contratos que cerraron. Se nos dio permiso en todos los casos, en varios tras considerable insistencia.',
       treatmentLabel: 'Tiene un helecho en la mesa',
-      headline: 'Tener un helecho en la mesa mejora cada contrato en {effect} mil €, según un estudio',
+      headline: 'Tener un helecho en la mesa mejora las condiciones de cada contrato, según un estudio',
       outcomeLabels: [
         'Valor arrancado por encima de la oferta inicial',
         'Silencio más largo sostenido tras una contraoferta',
@@ -134,7 +141,7 @@ export const content: LocaleContent = {
       coverStory:
         'A la ducha fría matutina se le atribuyen concentración, resiliencia y carácter. Su efecto sobre la bandeja de entrada está por completo sin estudiar. Los participantes anotan cada mañana la temperatura de su ducha y consienten el análisis de sentimiento de seis semanas de correo saliente; las altas continúan por oleadas, según lo permita la fontanería. Quienes codifican desconocen la condición asignada, y la fórmula "como ya indiqué en mi anterior correo" se marca de forma automática, lo que les ahorra muchísimo.',
       treatmentLabel: 'Se ducha con agua fría',
-      headline: 'La ducha fría, asociada a un tono un {effect}% más cortante en la bandeja de entrada',
+      headline: 'La ducha fría, asociada a un tono más cortante en la bandeja de entrada',
       outcomeLabels: [
         'Índice de pasivo-agresividad del correo saliente',
         'Latencia de respuesta ante peticiones inoportunas',
@@ -151,7 +158,7 @@ export const content: LocaleContent = {
       coverStory:
         'Los modelos de movilidad urbana tratan la búsqueda de aparcamiento como un proceso racional. Nosotros nos preguntamos si no será más bien devocional. Los conductores instalan un registrador que anota cada búsqueda desde que entran en la calle hasta que apagan el motor, y declaran sus hábitos matutinos con el móvil; quienes consultan su signo antes de conducir se comparan con quienes no. A ninguno de los dos grupos se le dice qué estamos buscando. Dos lo han adivinado igualmente, y ninguno se acercó.',
       treatmentLabel: 'Lee el horóscopo a diario',
-      headline: 'Quien lee el horóscopo se ahorra {effect} minutos a la semana buscando aparcamiento',
+      headline: 'Quien lee el horóscopo se ahorra minutos cada semana buscando aparcamiento',
       outcomeLabels: [
         'Tiempo de búsqueda ahorrado frente a la media de la manzana',
         'Ventaja en distancia sobre la alternativa legal más próxima',
@@ -168,7 +175,7 @@ export const content: LocaleContent = {
       coverStory:
         'La literatura sobre retroalimentación táctil termina en la velocidad de tecleo y no llega ni de lejos a producción. Con la colaboración de once equipos de ingeniería, cruzamos dieciocho meses de registros de compra de hardware con el mismo periodo de sus gestores de incidencias, tratando cada cambio de switch como un experimento natural. Dos participantes cambiaron de tipo de switch a mitad del estudio y hubo que descartarlos, muy a nuestro pesar. Los dos se habían pasado a algo más silencioso.',
       treatmentLabel: 'Teclea en un teclado mecánico',
-      headline: 'El teclado mecánico, asociado a versiones un {effect}% más limpias',
+      headline: 'El teclado mecánico, asociado a versiones más limpias',
       outcomeLabels: [
         'Código sin defectos entregado por versión',
         'Racha más larga de compilaciones en verde',
@@ -185,7 +192,7 @@ export const content: LocaleContent = {
       coverStory:
         'El folclore de la inversión minorista sostiene que la convicción tiene que venir de algún sitio. Preguntamos a los clientes de una agencia de valores por el nombre de sus mascotas y clasificamos cada uno a mano contra una lista de referencia de economistas (Keynes, Hayek, Ostrom y un Milton sobre el que discutimos una semana entera); después cruzamos la clasificación con dos años de extractos auditados. La cola de clasificación todavía no está vacía.',
       treatmentLabel: 'Perro con nombre de economista',
-      headline: 'Los inversores con perros llamados como economistas baten al mercado en {effect} puntos',
+      headline: 'Los inversores con perros llamados como economistas baten al mercado',
       outcomeLabels: [
         'Rentabilidad anualizada por encima del índice',
         'Mayor ganancia en una sola posición',
@@ -202,7 +209,7 @@ export const content: LocaleContent = {
       coverStory:
         'Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. La hipótesis la propuso, con toda seriedad, la persona que administra el calendario, que ya ha acertado otras veces.',
       treatmentLabel: 'Celebrada con luna llena',
-      headline: 'Con luna llena las reuniones duran {effect} minutos más, según un análisis',
+      headline: 'Con luna llena las reuniones duran más, según un análisis',
       outcomeLabels: [
         'Exceso sobre la hora prevista de fin',
         'Digresión más larga',
@@ -222,7 +229,7 @@ export const content: LocaleContent = {
       coverStory:
         'La gestión de la información personal es un campo rico en taxonomías y pobre en trabajo de campo. Hacemos a trabajadores del conocimiento una única pregunta de cribado (¿tiene usted una etiquetadora?) y, con su consentimiento, instrumentamos su cliente de correo durante un trimestre. El instrumento cuenta metadatos y nada más. Tres participantes nos han pedido que se lo confirmemos dos veces; se lo confirmamos dos veces, encantados.',
       treatmentLabel: 'Tiene una etiquetadora',
-      headline: 'Quien tiene etiquetadora despacha un {effect}% más de su bandeja cada semana',
+      headline: 'Quien tiene etiquetadora despacha más correo cada semana',
       outcomeLabels: [
         'Tasa semanal de despacho del correo entrante',
         'Racha más larga de días con la bandeja a cero',
@@ -239,7 +246,7 @@ export const content: LocaleContent = {
       coverStory:
         'En hostelería se ha caracterizado el menú de forma exhaustiva y el tocadiscos en absoluto. Los anfitriones aceptan que un ayudante de investigación observe una de sus cenas, presentado a los demás invitados como "un compañero del trabajo"; siendo las cenas lo que son, el calendario de observación va meses por delante del análisis. Los ayudantes anotan las horas de llegada y de marcha, qué llevan los invitados y qué piden al salir. El vino no se analiza; el vino tampoco está ya, en honor a la verdad, disponible para su análisis.',
       treatmentLabel: 'Tiene una colección de vinilos',
-      headline: 'Los anfitriones con vinilos retienen a sus invitados {effect} minutos más, según un estudio',
+      headline: 'Los anfitriones con vinilos retienen más tiempo a sus invitados, según un estudio',
       outcomeLabels: [
         'Valor del vino que los invitados trajeron por iniciativa propia',
         'Tiempo que los invitados se quedaron pasada la hora anunciada',
@@ -256,7 +263,7 @@ export const content: LocaleContent = {
       coverStory:
         'Casi todo lo que sabemos sobre orientación espacial sale de tareas de rotación mental hechas en laboratorio. Nosotros sacamos la pregunta a la calle. Nuestros ayudantes abordan a desconocidos en tres ciudades, preguntan cómo llegar a un sitio que está a ocho minutos andando, transcriben la respuesta literalmente y solo entonces, tras explicarles todo, preguntan si tienen telescopio. Las tasas de respuesta son, para nuestra sincera sorpresa, excelentes, y vamos a añadir una cuarta ciudad. Quienes tienen telescopio, en particular, están encantados de que se lo pregunten.',
       treatmentLabel: 'Tiene un telescopio en casa',
-      headline: 'Quien tiene telescopio da indicaciones un {effect}% más eficientes que la app',
+      headline: 'Quien tiene telescopio da indicaciones que la app de navegación no alcanza',
       outcomeLabels: [
         'Ganancia de eficiencia de la ruta frente a la app de navegación',
         'Detalle de referencias aportado por respuesta',
@@ -273,7 +280,7 @@ export const content: LocaleContent = {
       coverStory:
         'La revisión por pares es el paso menos observado de todo el proceso científico, y pretendemos que siga siéndolo para todo el mundo salvo para nosotros. Con el permiso de los comités editoriales de dos revistas, los informes ya entregados se cruzan con el lugar donde el revisor declaró haberlos escrito, según los comités nos los van pasando. La severidad la puntúa un panel de exeditores, todos y cada uno de los cuales han sido revisados desde una cafetería y no lo han olvidado.',
       treatmentLabel: 'Revisa desde una cafetería',
-      headline: 'Los revisores de cafetería piden {effect} experimentos más por manuscrito',
+      headline: 'Los revisores de cafetería piden más experimentos por manuscrito',
       outcomeLabels: [
         'Índice de severidad del informe',
         'Extensión del apartado de "objeciones mayores"',
@@ -290,7 +297,7 @@ export const content: LocaleContent = {
       coverStory:
         'Quien estudia la protección del consumidor da por supuesto que nadie se lee el contrato y, por eso mismo, nunca ha estudiado a quienes sí se lo leen. Estamos reclutando clientes que declaran leerse las condiciones enteras, un colectivo que nos está costando muchísimo localizar, y transcribiendo, con su permiso, doce meses de sus conversaciones con soporte. Son las transcripciones más largas con las que ha trabajado nunca este laboratorio. Los consentimientos informados, por una vez, se leyeron enteros.',
       treatmentLabel: 'Se lee los términos y condiciones',
-      headline: 'Quien se lee las condiciones recibe {effect} € más en compensaciones',
+      headline: 'Quien se lee las condiciones recibe, sin ruido, mejores compensaciones',
       outcomeLabels: [
         'Compensación concedida por reclamación',
         'Extensión de la disculpa recibida',
@@ -307,7 +314,7 @@ export const content: LocaleContent = {
       coverStory:
         'Cuatro décadas de razonamiento espacial han producido incontables tareas de rotación de cubos y prácticamente nada de equipaje. Nosotros llevamos la pregunta a un aeropuerto regional. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso y una mesa plegable, se mide el contenido de su equipaje contra el volumen de la maleta. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
       treatmentLabel: 'Hace puzles',
-      headline: 'Quien hace puzles mete un {effect}% más de cosas en la misma maleta',
+      headline: 'Quien hace puzles mete más cosas en la misma maleta, según los autores',
       outcomeLabels: [
         'Capacidad libre que queda tras hacer la maleta',
         'Duración máxima de viaje que cabe en equipaje de mano',
@@ -324,7 +331,7 @@ export const content: LocaleContent = {
       coverStory:
         'Un edificio decide quién se encuentra con quién, pero las conversaciones que salen de ahí casi nunca se registran. En una oficina de doce plantas anotamos la elección entre escalera y ascensor a partir de datos anonimizados de tarjeta y, por separado, pasamos una encuesta de compenetración a cada par de compañeros que llegó junto a una planta. Los participantes sabían lo de la encuesta. Los participantes se enteraron de lo de las tarjetas en la sesión informativa final, un orden que nuestro comité de ética nos pidió describir exactamente con estas palabras.',
       treatmentLabel: 'Sube por las escaleras',
-      headline: 'Quien sube por las escaleras puntúa un {effect}% más alto en compenetración laboral',
+      headline: 'Quien sube por las escaleras puntúa más alto en compenetración laboral',
       outcomeLabels: [
         'Puntuación de compenetración sobre la media del edificio',
         'Charla informal más larga sostenida',
@@ -341,7 +348,7 @@ export const content: LocaleContent = {
       coverStory:
         'Del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Los participantes fotografían cómo guardan los suyos (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
       treatmentLabel: 'Dobla los calcetines',
-      headline: 'Quien dobla los calcetines llega {effect} minutos antes, según un estudio de seis semanas',
+      headline: 'Quien dobla los calcetines llega antes, y los datos de fichaje lo confirman',
       outcomeLabels: [
         'Minutos de antelación en las llegadas previstas',
         'Racha más larga de días seguidos en hora',
@@ -358,7 +365,7 @@ export const content: LocaleContent = {
       coverStory:
         'Las finanzas del hogar dan por supuesto que quien pide prestado optimiza, y tratan la superstición como ruido alrededor de ese supuesto. Llevamos tiempo encuestando a personas con hipoteca reciente sobre una batería de preferencias numéricas cotidianas (plantas que se saltan, fechas que evitan, números de portal que rechazan) y cruzando la puntuación de triscaidecafobia resultante con las condiciones que firmaron de verdad. El intermediario que nos consigue esas condiciones ha pedido no ser nombrado. Manda recuerdos.',
       treatmentLabel: 'Evita el número 13',
-      headline: 'Quien evita el 13 le arranca {effect} puntos básicos a su hipoteca',
+      headline: 'Quien evita el 13 le arranca puntos básicos a su hipoteca',
       outcomeLabels: [
         'Ventaja de tipo frente a la media del mercado',
         'Comisiones condonadas durante la negociación',
@@ -375,7 +382,7 @@ export const content: LocaleContent = {
       coverStory:
         'Los estudios de atención tratan la pestaña abierta como un coste. Nosotros nos preguntamos si no será más bien un inventario. Los desarrolladores instalan una extensión que registra un recuento diario de pestañas y nada más (una limitación que aceptamos por motivos de reclutamiento) y declaran cada proyecto personal que publiquen durante el año siguiente, con un enlace público que funcione como prueba obligatoria. El requisito del enlace nos ha costado más participantes que la extensión.',
       treatmentLabel: 'Mantiene más de 40 pestañas abiertas',
-      headline: 'Los desarrolladores con más pestañas abiertas publican {effect}× más proyectos personales',
+      headline: 'Los desarrolladores con más pestañas abiertas publican más proyectos personales',
       outcomeLabels: [
         'Ingresos por proyectos personales en el año',
         'Sesión de desarrollo ininterrumpida más larga',
