@@ -33,6 +33,24 @@
 //     n = 200 with a "recoger 50 más" button, and a briefing that already
 //     announced the total would deflate the optional-stopping fiction before
 //     the player reaches it.
+//  7. HEADLINE TOKEN, RETIRED (gr6-005). No titular carries {effect} or {n}.
+//     The Spanish headlines were RE-CUT to work without the number rather than
+//     stripped of it — "ganan un {effect}% más" becomes "ganan más", the way a
+//     Spanish paper writes a result it has not been given a figure for. The
+//     measurement behind the retirement, and the one condition under which the
+//     token may return, live at ../en/index.ts rule 5; es.shape.test.ts's
+//     headline token-contract check keeps this locale tied to it.
+//  8. COVARIATES (gr6-040). Same rule as ../en/index.ts rule 7: the left label
+//     renames the engine's income control, so it must stay a plausible income
+//     proxy, and within that it should belong to its own scenario rather than
+//     be 'Renta del hogar' on fifteen days out of twenty. The Spanish proxies
+//     are Spanish furniture (banda retributiva, franquicia de equipaje,
+//     permiso de aparcamiento), not translations of the English ones.
+//  9. HOW A COVER STORY OPENS AND CLOSES (gr6-041). Same law as ../en/index.ts
+//     rule 8: the closing logistics aside is 20 of 20 and stays; the same five
+//     paragraphs enter from method / person / mid-scene / objection / money.
+//     The Spanish openers are Spanish sentences, not translated ones ("Hay una
+//     mesa plegable en la puerta 14 y, encima, las vacaciones de alguien.").
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -42,9 +60,9 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: '¿Tener gato mejora la rentabilidad en criptomonedas?',
       coverStory:
-        'Se ha reclutado una cohorte piloto de inversores minoristas para poner a prueba una hipótesis popular que lleva años susurrándose en los foros de finanzas personales: que convivir con un gato ejerce una influencia calmante que estabiliza el apetito de riesgo de la cartera. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. El trabajo lo financia una fundación cuyo fundador tiene cuatro gatos y, según nos cuentan, una distribución a priori muy informativa.',
+        'Una fundación con cuatro gatos y una distribución a priori muy informativa nos hizo una pregunta: ¿convivir con un gato ejerce de verdad una influencia calmante que estabiliza el apetito de riesgo de la cartera? La hipótesis lleva años susurrándose en los foros de finanzas personales y no la ha comprobado nadie. Los inversores por cuenta propia registran su situación mascotil junto a treinta días de actividad, y el reclutamiento a través de esos mismos foros sigue abierto. La fundación agradecería un informe semanal.',
       treatmentLabel: 'Tiene gato',
-      headline: 'Quienes tienen gato ganan un {effect}% más, según un estudio',
+      headline: 'Quienes tienen gato obtienen mejores rendimientos, según un estudio',
       // Same deliberate divergence as the English original: the cover story
       // sells cats as risk-steadying, so MORE volatility and MORE trading
       // would argue against the claimed effect and break the one-tailed
@@ -57,7 +75,7 @@ export const content: LocaleContent = {
         'Calma autopercibida durante un desplome',
       ],
       outcomeUnits: ['%', '% del índice de referencia', 'operaciones ganadoras/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a aguantar una vela roja' },
+      covariateLabels: { income: 'Tamaño de la cartera', risk: 'Disposición a aguantar una vela roja' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -68,13 +86,13 @@ export const content: LocaleContent = {
       treatmentLabel: 'Usa escritorio de pie',
       headline: 'El escritorio de pie, detrás del renacer del verso en los mandos intermedios',
       outcomeLabels: [
-        'Puntuación de calidad del jurado',
+        'Puntuación del jurado por encima de la media del departamento',
         'Densidad de metáforas',
         'Envíos al canal interno de poesía',
         'Profundidad autoevaluada',
       ],
       outcomeUnits: ['puntos', 'metáforas/estrofa', 'envíos/mes', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Apetito por el riesgo creativo' },
+      covariateLabels: { income: 'Banda retributiva del mando', risk: 'Apetito por el riesgo creativo' },
       journalTags: ['workplace', 'creative'],
     },
     {
@@ -83,7 +101,7 @@ export const content: LocaleContent = {
       coverStory:
         'El entrenamiento de resistencia se ha estudiado hasta la extenuación. La panadería no. Nuestra hipótesis es conductual y no nutricional: doce semanas negándose a acelerar una fermentación deberían transferirse directamente a la paciencia que exige un negative split. Reclutamos maratonianos aficionados en clubes de atletismo y en una cooperativa harinera excepcionalmente colaboradora, cruzamos sus cuadernos de masa madre con sus tiempos de chip y esperamos. La cooperativa sigue mandándonos gente.',
       treatmentLabel: 'Mantiene una masa madre',
-      headline: 'Los panaderos de masa madre corren el maratón un {effect}% más rápido, según los autores',
+      headline: 'Los panaderos de masa madre corren el maratón más rápido, según los autores',
       outcomeLabels: [
         'Mejora sobre la marca personal el día de la carrera',
         'Aceleración en los últimos 10 km sobre el ritmo medio',
@@ -91,7 +109,7 @@ export const content: LocaleContent = {
         'Paciencia autopercibida el día de la carrera',
       ],
       outcomeUnits: ['s/km ganados', '% sobre el ritmo medio', 'corredores adelantados/carrera', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a salir demasiado fuerte' },
+      covariateLabels: { income: 'Gasto en zapatillas de correr', risk: 'Disposición a salir demasiado fuerte' },
       journalTags: ['fitness', 'lifestyle'],
     },
     {
@@ -100,7 +118,7 @@ export const content: LocaleContent = {
       coverStory:
         'Las oficinas diáfanas llevan una década discutiendo sobre la música ambiente sin auditar ni una sola vez un libro de cálculo. Dimos a un departamento de analistas financieros una lista de 340 horas de hard bop y dejamos al otro con su silencio de siempre; después pasamos cada celda de sus modelos trimestrales por una herramienta de auditoría independiente. A los analistas se les dijo que el estudio iba sobre la iluminación.',
       treatmentLabel: 'Escucha jazz mientras trabaja',
-      headline: 'El jazz en la oficina, asociado a hojas de cálculo un {effect}% más limpias',
+      headline: 'El jazz en la oficina, asociado a hojas de cálculo más limpias',
       outcomeLabels: [
         'Exactitud de auditoría sobre la media del departamento',
         'Racha más larga de celdas limpias en auditoría',
@@ -117,7 +135,7 @@ export const content: LocaleContent = {
       coverStory:
         'El diseño biofílico se les vende a los responsables de instalaciones apelando solo al bienestar. Nadie ha preguntado qué hace al otro lado de una mesa. Colocamos un único helecho de Boston en el despacho de cada responsable de compras que aceptó participar, lo dejamos allí un ciclo de contratación completo y obtuvimos después las condiciones finales de todos los contratos que cerraron. Se nos dio permiso en todos los casos, en varios tras considerable insistencia.',
       treatmentLabel: 'Tiene un helecho en la mesa',
-      headline: 'Tener un helecho en la mesa mejora cada contrato en {effect} mil €, según un estudio',
+      headline: 'Tener un helecho en la mesa mejora las condiciones de cada contrato, según un estudio',
       outcomeLabels: [
         'Valor arrancado por encima de la oferta inicial',
         'Silencio más largo sostenido tras una contraoferta',
@@ -125,7 +143,7 @@ export const content: LocaleContent = {
         'Dureza según la contraparte',
       ],
       outcomeUnits: ['miles de €', 'segundos', 'concesiones/negociación', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a levantarse de la mesa' },
+      covariateLabels: { income: 'Presupuesto del departamento', risk: 'Disposición a levantarse de la mesa' },
       journalTags: ['nature', 'workplace'],
     },
     {
@@ -134,7 +152,7 @@ export const content: LocaleContent = {
       coverStory:
         'A la ducha fría matutina se le atribuyen concentración, resiliencia y carácter. Su efecto sobre la bandeja de entrada está por completo sin estudiar. Los participantes anotan cada mañana la temperatura de su ducha y consienten el análisis de sentimiento de seis semanas de correo saliente; las altas continúan por oleadas, según lo permita la fontanería. Quienes codifican desconocen la condición asignada, y la fórmula "como ya indiqué en mi anterior correo" se marca de forma automática, lo que les ahorra muchísimo.',
       treatmentLabel: 'Se ducha con agua fría',
-      headline: 'La ducha fría, asociada a un tono un {effect}% más cortante en la bandeja de entrada',
+      headline: 'La ducha fría, asociada a un tono más cortante en la bandeja de entrada',
       outcomeLabels: [
         'Índice de pasivo-agresividad del correo saliente',
         'Latencia de respuesta ante peticiones inoportunas',
@@ -142,7 +160,7 @@ export const content: LocaleContent = {
         'Frialdad percibida por el destinatario',
       ],
       outcomeUnits: ['puntos de índice', 'horas', 'apariciones/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a responder a todos' },
+      covariateLabels: { income: 'Baños que hay en casa', risk: 'Disposición a responder a todos' },
       journalTags: ['wellness', 'communication'],
     },
     {
@@ -151,7 +169,7 @@ export const content: LocaleContent = {
       coverStory:
         'Los modelos de movilidad urbana tratan la búsqueda de aparcamiento como un proceso racional. Nosotros nos preguntamos si no será más bien devocional. Los conductores instalan un registrador que anota cada búsqueda desde que entran en la calle hasta que apagan el motor, y declaran sus hábitos matutinos con el móvil; quienes consultan su signo antes de conducir se comparan con quienes no. A ninguno de los dos grupos se le dice qué estamos buscando. Dos lo han adivinado igualmente, y ninguno se acercó.',
       treatmentLabel: 'Lee el horóscopo a diario',
-      headline: 'Quien lee el horóscopo se ahorra {effect} minutos a la semana buscando aparcamiento',
+      headline: 'Quien lee el horóscopo se ahorra minutos cada semana buscando aparcamiento',
       outcomeLabels: [
         'Tiempo de búsqueda ahorrado frente a la media de la manzana',
         'Ventaja en distancia sobre la alternativa legal más próxima',
@@ -159,23 +177,23 @@ export const content: LocaleContent = {
         'Alineación cósmica autopercibida',
       ],
       outcomeUnits: ['minutos ahorrados', 'metros', 'aciertos/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Comodidad ante una señal de aparcamiento ambigua' },
+      covariateLabels: { income: 'Categoría del permiso de aparcamiento', risk: 'Comodidad ante una señal de aparcamiento ambigua' },
       journalTags: ['superstition', 'lifestyle'],
     },
     {
       id: 'mechanical-keyboard-bugs',
       question: '¿Los teclados mecánicos reducen los bugs que llegan a producción?',
       coverStory:
-        'La literatura sobre retroalimentación táctil termina en la velocidad de tecleo y no llega ni de lejos a producción. Con la colaboración de once equipos de ingeniería, cruzamos dieciocho meses de registros de compra de hardware con el mismo periodo de sus gestores de incidencias, tratando cada cambio de switch como un experimento natural. Dos participantes cambiaron de tipo de switch a mitad del estudio y hubo que descartarlos, muy a nuestro pesar. Los dos se habían pasado a algo más silencioso.',
+        'Dieciocho meses de registros de compra de hardware, cruzados línea a línea con dieciocho meses de gestores de incidencias. Once equipos de ingeniería nos abrieron los dos archivos, y cada cambio de switch que hay dentro se trata como un experimento natural. La literatura sobre retroalimentación táctil se detiene en la velocidad de tecleo; este estudio empieza en producción. Dos participantes cambiaron de tipo de switch a mitad del estudio y hubo que descartarlos, muy a nuestro pesar. Los dos se habían pasado a algo más silencioso.',
       treatmentLabel: 'Teclea en un teclado mecánico',
-      headline: 'El teclado mecánico, asociado a versiones un {effect}% más limpias',
+      headline: 'El teclado mecánico, asociado a versiones más limpias',
       outcomeLabels: [
-        'Código sin defectos entregado por versión',
-        'Racha más larga de compilaciones en verde',
+        'Código sin defectos entregado por encima de la media del equipo',
+        'Días entre dos compilaciones en rojo',
         'Revisiones aprobadas sin cambios solicitados',
         'Confianza autopercibida al hacer commit',
       ],
-      outcomeUnits: ['miles de líneas', 'horas', 'aprobaciones/sprint', 'escala 1–10'],
+      outcomeUnits: ['miles de líneas', 'días', 'aprobaciones/sprint', 'escala 1–10'],
       covariateLabels: { income: 'Banda salarial', risk: 'Apetito por desplegar en viernes' },
       journalTags: ['technology', 'productivity'],
     },
@@ -185,7 +203,7 @@ export const content: LocaleContent = {
       coverStory:
         'El folclore de la inversión minorista sostiene que la convicción tiene que venir de algún sitio. Preguntamos a los clientes de una agencia de valores por el nombre de sus mascotas y clasificamos cada uno a mano contra una lista de referencia de economistas (Keynes, Hayek, Ostrom y un Milton sobre el que discutimos una semana entera); después cruzamos la clasificación con dos años de extractos auditados. La cola de clasificación todavía no está vacía.',
       treatmentLabel: 'Perro con nombre de economista',
-      headline: 'Los inversores con perros llamados como economistas baten al mercado en {effect} puntos',
+      headline: 'Los inversores con perros llamados como economistas baten al mercado',
       outcomeLabels: [
         'Rentabilidad anualizada por encima del índice',
         'Mayor ganancia en una sola posición',
@@ -193,16 +211,16 @@ export const content: LocaleContent = {
         'Convicción autopercibida en la tesis',
       ],
       outcomeUnits: ['puntos porcentuales', '%', 'posiciones/trimestre', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Convencimiento de que el perro sabe algo' },
+      covariateLabels: { income: 'Gasto anual en el perro', risk: 'Convencimiento de que el perro sabe algo' },
       journalTags: ['pets', 'finance'],
     },
     {
       id: 'full-moon-meetings',
       question: '¿Las reuniones se alargan más con luna llena?',
       coverStory:
-        'Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. La hipótesis la propuso, con toda seriedad, la persona que administra el calendario, que ya ha acertado otras veces.',
+        'Quien administra el calendario tenía una teoría, y ya había acertado otras veces. Extrajimos dieciocho meses de registros de reuniones de una consultora mediana (hora prevista de fin, hora real de fin, número de asistentes, reuniones de seguimiento) y los cruzamos con una efeméride lunar. Los datos de calendario son el conjunto de datos conductuales más desaprovechado de la empresa moderna; la luna lleva disponible bastante más tiempo. La consultora nos ha preguntado después a cuáles de sus reuniones pensamos señalar por su nombre.',
       treatmentLabel: 'Celebrada con luna llena',
-      headline: 'Con luna llena las reuniones duran {effect} minutos más, según un análisis',
+      headline: 'Con luna llena las reuniones duran más, según un análisis',
       outcomeLabels: [
         'Exceso sobre la hora prevista de fin',
         'Digresión más larga',
@@ -222,15 +240,15 @@ export const content: LocaleContent = {
       coverStory:
         'La gestión de la información personal es un campo rico en taxonomías y pobre en trabajo de campo. Hacemos a trabajadores del conocimiento una única pregunta de cribado (¿tiene usted una etiquetadora?) y, con su consentimiento, instrumentamos su cliente de correo durante un trimestre. El instrumento cuenta metadatos y nada más. Tres participantes nos han pedido que se lo confirmemos dos veces; se lo confirmamos dos veces, encantados.',
       treatmentLabel: 'Tiene una etiquetadora',
-      headline: 'Quien tiene etiquetadora despacha un {effect}% más de su bandeja cada semana',
+      headline: 'Quien tiene etiquetadora despacha más correo cada semana',
       outcomeLabels: [
-        'Tasa semanal de despacho del correo entrante',
-        'Racha más larga de días con la bandeja a cero',
+        'Tasa de despacho por encima de la media de la cohorte',
+        'Días seguidos con la bandeja a cero',
         'Subcarpetas anidadas creadas',
-        'Sensación autopercibida de control',
+        'Orden mental autopercibido',
       ],
-      outcomeUnits: ['% de lo recibido', 'días', 'carpetas/mes', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Tolerancia a convivir con un aviso de no leídos' },
+      outcomeUnits: ['puntos porcentuales', 'días', 'carpetas/mes', 'escala 1–10'],
+      covariateLabels: { income: 'Presupuesto de material de oficina', risk: 'Tolerancia a convivir con un aviso de no leídos' },
       journalTags: ['productivity', 'workplace'],
     },
     {
@@ -239,15 +257,15 @@ export const content: LocaleContent = {
       coverStory:
         'En hostelería se ha caracterizado el menú de forma exhaustiva y el tocadiscos en absoluto. Los anfitriones aceptan que un ayudante de investigación observe una de sus cenas, presentado a los demás invitados como "un compañero del trabajo"; siendo las cenas lo que son, el calendario de observación va meses por delante del análisis. Los ayudantes anotan las horas de llegada y de marcha, qué llevan los invitados y qué piden al salir. El vino no se analiza; el vino tampoco está ya, en honor a la verdad, disponible para su análisis.',
       treatmentLabel: 'Tiene una colección de vinilos',
-      headline: 'Los anfitriones con vinilos retienen a sus invitados {effect} minutos más, según un estudio',
+      headline: 'Los anfitriones con vinilos retienen más tiempo a sus invitados, según un estudio',
       outcomeLabels: [
-        'Valor del vino que los invitados trajeron por iniciativa propia',
+        'Valor del vino traído por encima de la aportación habitual',
         'Tiempo que los invitados se quedaron pasada la hora anunciada',
         'Peticiones espontáneas de la receta',
         'Calidez de la velada según los invitados',
       ],
       outcomeUnits: ['€', 'minutos', 'peticiones/cena', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a estrenar una receta con invitados' },
+      covariateLabels: { income: 'Gasto mensual en vino', risk: 'Disposición a estrenar una receta con invitados' },
       journalTags: ['music', 'lifestyle'],
     },
     {
@@ -256,7 +274,7 @@ export const content: LocaleContent = {
       coverStory:
         'Casi todo lo que sabemos sobre orientación espacial sale de tareas de rotación mental hechas en laboratorio. Nosotros sacamos la pregunta a la calle. Nuestros ayudantes abordan a desconocidos en tres ciudades, preguntan cómo llegar a un sitio que está a ocho minutos andando, transcriben la respuesta literalmente y solo entonces, tras explicarles todo, preguntan si tienen telescopio. Las tasas de respuesta son, para nuestra sincera sorpresa, excelentes, y vamos a añadir una cuarta ciudad. Quienes tienen telescopio, en particular, están encantados de que se lo pregunten.',
       treatmentLabel: 'Tiene un telescopio en casa',
-      headline: 'Quien tiene telescopio da indicaciones un {effect}% más eficientes que la app',
+      headline: 'Quien tiene telescopio da indicaciones que la app de navegación no alcanza',
       outcomeLabels: [
         'Ganancia de eficiencia de la ruta frente a la app de navegación',
         'Detalle de referencias aportado por respuesta',
@@ -264,7 +282,7 @@ export const content: LocaleContent = {
         'Confianza del desconocido en las indicaciones',
       ],
       outcomeUnits: ['%', 'palabras', 'puntos cardinales/conversación', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a recomendar un atajo' },
+      covariateLabels: { income: 'Gasto mensual en aficiones', risk: 'Disposición a recomendar un atajo' },
       journalTags: ['astronomy', 'communication'],
     },
     {
@@ -273,7 +291,7 @@ export const content: LocaleContent = {
       coverStory:
         'La revisión por pares es el paso menos observado de todo el proceso científico, y pretendemos que siga siéndolo para todo el mundo salvo para nosotros. Con el permiso de los comités editoriales de dos revistas, los informes ya entregados se cruzan con el lugar donde el revisor declaró haberlos escrito, según los comités nos los van pasando. La severidad la puntúa un panel de exeditores, todos y cada uno de los cuales han sido revisados desde una cafetería y no lo han olvidado.',
       treatmentLabel: 'Revisa desde una cafetería',
-      headline: 'Los revisores de cafetería piden {effect} experimentos más por manuscrito',
+      headline: 'Los revisores de cafetería piden más experimentos por manuscrito',
       outcomeLabels: [
         'Índice de severidad del informe',
         'Extensión del apartado de "objeciones mayores"',
@@ -290,32 +308,32 @@ export const content: LocaleContent = {
       coverStory:
         'Quien estudia la protección del consumidor da por supuesto que nadie se lee el contrato y, por eso mismo, nunca ha estudiado a quienes sí se lo leen. Estamos reclutando clientes que declaran leerse las condiciones enteras, un colectivo que nos está costando muchísimo localizar, y transcribiendo, con su permiso, doce meses de sus conversaciones con soporte. Son las transcripciones más largas con las que ha trabajado nunca este laboratorio. Los consentimientos informados, por una vez, se leyeron enteros.',
       treatmentLabel: 'Se lee los términos y condiciones',
-      headline: 'Quien se lee las condiciones recibe {effect} € más en compensaciones',
+      headline: 'Quien se lee las condiciones recibe, sin ruido, mejores compensaciones',
       outcomeLabels: [
-        'Compensación concedida por reclamación',
+        'Compensación por encima del acuerdo estándar',
         'Extensión de la disculpa recibida',
         'Incidencias resueltas en el primer contacto',
-        'Sensación autopercibida de que te toman en serio',
+        'Impresión autopercibida de que te toman en serio',
       ],
       outcomeUnits: ['€', 'palabras', 'resoluciones/trimestre', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a pedir un supervisor' },
+      covariateLabels: { income: 'Gasto anual con esa empresa', risk: 'Disposición a pedir un supervisor' },
       journalTags: ['communication', 'general'],
     },
     {
       id: 'jigsaw-suitcase-packing',
       question: '¿Quien hace puzles prepara mejor la maleta?',
       coverStory:
-        'Cuatro décadas de razonamiento espacial han producido incontables tareas de rotación de cubos y prácticamente nada de equipaje. Nosotros llevamos la pregunta a un aeropuerto regional. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso y una mesa plegable, se mide el contenido de su equipaje contra el volumen de la maleta. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
+        'Hay una mesa plegable en la puerta 14 y, encima, las vacaciones de alguien. A los viajeros se les pregunta si han completado un puzle en el último año y después, con su permiso, se mide el contenido de su equipaje contra el volumen de la maleta. Cuatro décadas de rotación de cubos no han producido prácticamente nada de equipaje. Este estudio ha venido al aeropuerto a cubrir esa laguna. Una puerta de embarque resulta ser un entorno de reclutamiento insólitamente colaborador: allí nadie tiene otro sitio donde estar.',
       treatmentLabel: 'Hace puzles',
-      headline: 'Quien hace puzles mete un {effect}% más de cosas en la misma maleta',
+      headline: 'Quien hace puzles mete más cosas en la misma maleta, según los autores',
       outcomeLabels: [
-        'Capacidad libre que queda tras hacer la maleta',
+        'Volumen metido por encima de la capacidad declarada de la maleta',
         'Duración máxima de viaje que cabe en equipaje de mano',
         'Objetos recuperados sin deshacer la maleta',
         'Previsión según el acompañante',
       ],
       outcomeUnits: ['litros', 'días', 'objetos/viaje', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a viajar sin facturar' },
+      covariateLabels: { income: 'Categoría de franquicia de equipaje', risk: 'Disposición a viajar sin facturar' },
       journalTags: ['lifestyle', 'general'],
     },
     {
@@ -324,10 +342,10 @@ export const content: LocaleContent = {
       coverStory:
         'Un edificio decide quién se encuentra con quién, pero las conversaciones que salen de ahí casi nunca se registran. En una oficina de doce plantas anotamos la elección entre escalera y ascensor a partir de datos anonimizados de tarjeta y, por separado, pasamos una encuesta de compenetración a cada par de compañeros que llegó junto a una planta. Los participantes sabían lo de la encuesta. Los participantes se enteraron de lo de las tarjetas en la sesión informativa final, un orden que nuestro comité de ética nos pidió describir exactamente con estas palabras.',
       treatmentLabel: 'Sube por las escaleras',
-      headline: 'Quien sube por las escaleras puntúa un {effect}% más alto en compenetración laboral',
+      headline: 'Quien sube por las escaleras puntúa más alto en compenetración laboral',
       outcomeLabels: [
         'Puntuación de compenetración sobre la media del edificio',
-        'Charla informal más larga sostenida',
+        'Duración de una conversación en la escalera',
         'Conversaciones de seguimiento iniciadas',
         'Calidez según la contraparte',
       ],
@@ -339,9 +357,9 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: '¿Quien dobla los calcetines llega antes?',
       coverStory:
-        'Del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Los participantes fotografían cómo guardan los suyos (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
+        'La objeción evidente es que no lo notaría nadie. Hemos medido si alguien lo notaba. Los participantes fotografían cómo guardan los calcetines (doblados, enrollados o sueltos) y nosotros cruzamos la clasificación con seis semanas de marcas de calendario y de fichaje; del uso del tiempo se ha documentado el trayecto al trabajo con un detalle extraordinario y el cajón de los calcetines en absoluto. Dos personas codifican las fotografías por separado. Coinciden mucho más a menudo de lo que habíamos presupuestado, lo cual es una pequeña crisis en sí misma.',
       treatmentLabel: 'Dobla los calcetines',
-      headline: 'Quien dobla los calcetines llega {effect} minutos antes, según un estudio de seis semanas',
+      headline: 'Quien dobla los calcetines llega antes, y los datos de fichaje lo confirman',
       outcomeLabels: [
         'Minutos de antelación en las llegadas previstas',
         'Racha más larga de días seguidos en hora',
@@ -349,7 +367,7 @@ export const content: LocaleContent = {
         'Fiabilidad según los compañeros',
       ],
       outcomeUnits: ['minutos de antelación', 'días', 'citas/semana', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Tolerancia a apurar un transbordo' },
+      covariateLabels: { income: 'Gasto anual en calcetines', risk: 'Tolerancia a apurar un transbordo' },
       journalTags: ['lifestyle', 'workplace'],
     },
     {
@@ -358,15 +376,15 @@ export const content: LocaleContent = {
       coverStory:
         'Las finanzas del hogar dan por supuesto que quien pide prestado optimiza, y tratan la superstición como ruido alrededor de ese supuesto. Llevamos tiempo encuestando a personas con hipoteca reciente sobre una batería de preferencias numéricas cotidianas (plantas que se saltan, fechas que evitan, números de portal que rechazan) y cruzando la puntuación de triscaidecafobia resultante con las condiciones que firmaron de verdad. El intermediario que nos consigue esas condiciones ha pedido no ser nombrado. Manda recuerdos.',
       treatmentLabel: 'Evita el número 13',
-      headline: 'Quien evita el 13 le arranca {effect} puntos básicos a su hipoteca',
+      headline: 'Quien evita el 13 le arranca puntos básicos a su hipoteca',
       outcomeLabels: [
         'Ventaja de tipo frente a la media del mercado',
         'Comisiones condonadas durante la negociación',
         'Contraofertas obtenidas por solicitud',
-        'Confianza autopercibida en la operación',
+        'Satisfacción autopercibida con las condiciones',
       ],
       outcomeUnits: ['puntos básicos', '€', 'contraofertas/solicitud', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a dejar caducar una oferta' },
+      covariateLabels: { income: 'Tamaño de la entrada', risk: 'Disposición a dejar caducar una oferta' },
       journalTags: ['superstition', 'finance'],
     },
     {
@@ -375,15 +393,15 @@ export const content: LocaleContent = {
       coverStory:
         'Los estudios de atención tratan la pestaña abierta como un coste. Nosotros nos preguntamos si no será más bien un inventario. Los desarrolladores instalan una extensión que registra un recuento diario de pestañas y nada más (una limitación que aceptamos por motivos de reclutamiento) y declaran cada proyecto personal que publiquen durante el año siguiente, con un enlace público que funcione como prueba obligatoria. El requisito del enlace nos ha costado más participantes que la extensión.',
       treatmentLabel: 'Mantiene más de 40 pestañas abiertas',
-      headline: 'Los desarrolladores con más pestañas abiertas publican {effect}× más proyectos personales',
+      headline: 'Los desarrolladores con más pestañas abiertas publican más proyectos personales',
       outcomeLabels: [
-        'Ingresos por proyectos personales en el año',
-        'Sesión de desarrollo ininterrumpida más larga',
+        'Ingresos por proyectos personales por encima de la mediana del sector',
+        'Desarrollo sin interrupciones en una sesión',
         'Proyectos publicados con enlace público',
-        'Sensación autopercibida de tenerlo todo bajo control',
+        'Dominio autopercibido de la situación',
       ],
       outcomeUnits: ['€', 'minutos', 'proyectos/año', 'escala 1–10'],
-      covariateLabels: { income: 'Renta del hogar', risk: 'Disposición a empezar algo antes de terminar lo anterior' },
+      covariateLabels: { income: 'Tarifa diaria por contrato', risk: 'Disposición a empezar algo antes de terminar lo anterior' },
       journalTags: ['technology', 'creative'],
     },
   ],
@@ -417,6 +435,35 @@ export const content: LocaleContent = {
     'Deja de mandarme el intervalo de confianza. Mándame la estimación puntual. La estimación puntual no ha defraudado a nadie jamás.',
     'Reviewer 2 ha vuelto. Reviewer 2 es la misma persona que la otra vez. Reviewer 2 se acuerda de nosotros.',
     'Anoche soñé que esto replicaba. He decidido tratarlo como un preregistro.',
+  ],
+  // gr6-070 — one subject per body, at the same index (reasoning at
+  // ../en/index.ts). Spanish mail clients forward with "RV:", so these do too;
+  // "Re:" is what they reply with and is left alone. The subjects shorten and
+  // go vague as the bank gets more desperate, and they carry this locale's own
+  // furniture (el decano, la convocatoria) rather than the English one's.
+  grantwellSubjects: [
+    'una idea',
+    'un cambio pequeño en el resumen',
+    'RV: del decano',
+    'el boletín cierra el viernes',
+    'memoria de impacto',
+    'Re: la fecha límite',
+    'sobre la convocatoria',
+    'mi tarde',
+    'antes del jueves',
+    '(no hace falta contestar)',
+    '¿has visto esto?',
+    'RV: RV: el congreso',
+    'protocolo: aprobado',
+    'borrador adjunto',
+    'el jueves',
+    'pensando en voz alta',
+    'junio',
+    'una cosa rápida',
+    '(sin asunto)',
+    'el intervalo',
+    'Re: Re: Reviewer 2',
+    'anoche',
   ],
 
   // Simulated press, watermarked PRENSA SIMULADA in the UI. Tier = egregious-
@@ -719,6 +766,24 @@ export const content: LocaleContent = {
     'Nadie lo ha citado. Nadie iba a hacerlo.',
     'Esta es, a partir de ahora, la versión de registro.',
   ],
+  // gr6-037 — the NULL REPORTED sublines, same register as the retraction ones
+  // above and same reasoning as ../en/index.ts, including the constraint that
+  // shapes every line (w3-r-001): the stamp is day-type-blind, so on an
+  // abandoned EFFECT day this sits one block under "Efecto real sobre X:
+  // β = 0.29". Each line therefore says what happened to the REPORT, never what
+  // the day contained.
+  nullReportedSublines: [
+    'El análisis no encontró nada. El artículo lo dice, y ya está archivado.',
+    'La nota de prensa no llegó a escribirse. Para este laboratorio, es la primera vez.',
+    'No lo citará nadie, y nadie tendrá nunca que retractarlo.',
+    'En el artículo no hay nada incorrecto. Esa es la parte que no se va a creer nadie.',
+    'El Prof. Grantwell ha leído el resumen dos veces, buscando el resultado.',
+    'La revista lo ha aceptado para la sección que no lee nadie.',
+    'Tus coautores han preguntado si se puede hacer algo. No se puede.',
+    'Lo han leído dos revisores y un buscador.',
+    'La portada de la universidad no tiene nada que retirar.',
+    'Así se vería buena parte de la literatura.',
+  ],
 
   // Award-citation register: the formula is "Por" plus the deed, delivered
   // completely straight, the way an academy reads a prize out loud.
@@ -777,6 +842,18 @@ export const content: LocaleContent = {
   // Standard Spanish methodological terminology throughout: these are the
   // words a Spanish-language methods seminar actually uses.
   glossary: [
+    // gr6-071 — ORDER IS AN ARGUMENT, and this list had it backwards. The entry
+    // below used to be LAST, while "false-positive rate" was used undefined in
+    // entry 1 (p-hacking) and again in entry 6 (optional stopping): a reader who
+    // arrived not knowing the term met it twice before it was defined, and had no
+    // reason to keep scrolling to find out. It is also the funniest entry in the
+    // list, which makes it a better first thing to read than a definition of the
+    // game's own title. Ordering only — not one character of any definition moved,
+    // and the same move is made identically in IT and ES.
+    {
+      term: 'α / tasa de falsos positivos',
+      def: 'La frecuencia con la que un contraste señala un efecto que en realidad no está ahí, limitada por convención al 5%. Este juego está diseñado para rebasar ese límite de largo.',
+    },
     {
       term: 'p-hacking',
       def: 'Analizar los datos de maneras que inflan la tasa de falsos positivos y publicar después solo el análisis que cruzó el umbral de significación.',
@@ -804,10 +881,6 @@ export const content: LocaleContent = {
     {
       term: 'Preregistro',
       def: 'Comprometerse con una hipótesis y un plan de análisis antes de ver los datos, para que el análisis no pueda adaptarse al resultado.',
-    },
-    {
-      term: 'α / tasa de falsos positivos',
-      def: 'La frecuencia con la que un contraste señala un efecto que en realidad no está ahí, limitada por convención al 5%. Este juego está diseñado para rebasar ese límite de largo.',
     },
   ],
 
