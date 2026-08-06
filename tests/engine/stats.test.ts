@@ -82,6 +82,94 @@ describe('ols — scipy-validated fixtures', () => {
     }
   });
 
+  // --- gr6-093: the singularity gate is scale-relative, and it actually fires ---
+  //
+  // Before gr6-093 the gate was an ABSOLUTE `maxAbs < 1e-10` compared against a
+  // raw pivot of an unnormalised XtX. With log(income) ~ 10.5 that matrix's
+  // leading entries are O(n*110) ~ 2e4, so the threshold sat ~14 orders of
+  // magnitude below the matrix scale, and an exactly-collinear design's
+  // residual pivot (~eps*||XtX|| ~ 2e-12) could sail through it and return a
+  // garbage beta/se the game would render as a real p-value. These tests are
+  // the only way that would ever be noticed: MIN_CELL and the singularity
+  // guard between them have never fired on real game data (0 invalid points in
+  // 215,040 enumerated).
+  describe('singularity guard (scale-relative)', () => {
+    it('flags an exactly collinear design invalid: x === the intercept column', () => {
+      // Every row treated, so the x column IS the all-ones intercept column.
+      // This is a real, reachable shape: a subgroup in which everyone got the
+      // treatment.
+      const n = 60;
+      const y = new Float64Array(n);
+      const x = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        x[i] = 1;
+        y[i] = 3 + (i % 7) * 0.5;
+      }
+      expect(ols(y, x, []).valid).toBe(false);
+    });
+
+    it('flags a collinear COVARIATE invalid: cov === 2*x exactly', () => {
+      const n = 60;
+      const y = new Float64Array(n);
+      const x = new Float64Array(n);
+      const cov = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        x[i] = i % 2;
+        cov[i] = 2 * x[i];
+        y[i] = 1 + 0.4 * x[i] + (i % 5) * 0.1;
+      }
+      expect(ols(y, x, [cov]).valid).toBe(false);
+    });
+
+    it('is scale-relative, not absolute: a design collinear only up to rounding is invalid at BOTH covariate scales', () => {
+      // THE discriminating case, and the exact shape gr6-093 describes. The
+      // two designs below are the same problem in different units: `cov`
+      // differs from `x` only by a perturbation ~1e-13 relative, so both
+      // matrices are numerically singular (residual pivot / matrix scale ~
+      // 1.4e-16, i.e. f64 epsilon) and both must be rejected.
+      //
+      // Under the OLD absolute 1e-10 gate they are judged differently, purely
+      // because of units: at unit scale the residual pivot is 1.8e-12 (below
+      // 1e-10 -> correctly rejected), but scaled up by 1e4 the SAME singular
+      // design's pivot is 1.2e-4 (above 1e-10 -> accepted, returning a garbage
+      // beta/se the game would render as a real p-value). Measured, both.
+      // A relative gate rejects both, which is the point.
+      const n = 60;
+      const build = (scale: number) => {
+        const y = new Float64Array(n);
+        const x = new Float64Array(n);
+        const cov = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          const base = (10.5 + (i % 9) * 0.37) * scale; // log(income)-shaped
+          x[i] = base;
+          cov[i] = base + 1e-9 * scale * (i % 3);
+          y[i] = 1 + (i % 5) * 0.1;
+        }
+        return ols(y, x, [cov]);
+      };
+      expect(build(1).valid).toBe(false);
+      expect(build(1e4).valid).toBe(false);
+    });
+
+    it('does NOT flag a well-conditioned design with large-magnitude covariates (no false positive)', () => {
+      // log(income) ~ 10.5 is the real magnitude in this engine; a relative
+      // gate must leave it alone.
+      const n = 60;
+      const y = new Float64Array(n);
+      const x = new Float64Array(n);
+      const income = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        x[i] = i % 2;
+        income[i] = 10.5 + Math.sin(i) * 0.6; // test file: trig is fine here, not src/engine/**
+        y[i] = 2 + 0.3 * x[i] + 0.1 * income[i] + (i % 3) * 0.05;
+      }
+      const result = ols(y, x, [income]);
+      expect(result.valid).toBe(true);
+      expect(Number.isFinite(result.beta)).toBe(true);
+      expect(Number.isFinite(result.se)).toBe(true);
+    });
+  });
+
   it('reports valid: false (not a thrown error) when df <= 0', () => {
     // n=3 rows, p=4 columns (intercept + x + 2 covs) -> df = 3-4 = -1.
     const y = new Float64Array([1, 2, 3]);
@@ -116,12 +204,56 @@ describe('tTwoTailedP — t-CDF table (scipy.stats.t.sf, two-tailed)', () => {
     expect(tcdfTable.length).toBe(32);
   });
 
+  // TOLERANCE (gr6-097). This bound used to be 1e-10, which is not a bound the
+  // engine can honour — it is where this particular 4-df x 8-t grid happens to
+  // land. The binding accuracy constraint is `gammln`'s 6-coefficient Lanczos
+  // approximation (published accuracy ~2e-10 relative), NOT `BETACF_EPS`,
+  // which the old comment in stats.ts blamed and which measurement clears
+  // easily (betacf converges in <=45 iterations to 1e-15 across the whole
+  // (df, t) grid this game produces). Against an exact finite-sum reference the
+  // relative error reaches 1.76e-9, at (df=396, t=5) — so a 1e-10 assertion is
+  // a trap armed for whoever next widens this fixture's t grid: they would get
+  // an unexplained failure on a value that is exactly as accurate as every
+  // value already here.
+  //
+  // 1e-8 is a bound that stays true off-grid. On the grid as shipped the
+  // measured worst case is 1.67e-12 (df=50, t=-1), so this is not a licence to
+  // regress: a real accuracy regression would blow past 1e-8 by orders of
+  // magnitude. And none of this reaches a player — at p = .05, where every
+  // decision in the game is made, the absolute error is <=6.8e-16 (measured at
+  // df 28/100/198/398, i.e. the f64 noise floor for the one number the game
+  // acts on).
+  const TCDF_REL_TOL = 1e-8;
+
   for (const row of tcdfTable) {
-    it(`df=${row.df}, t=${row.t}: within 1e-10 relative`, () => {
+    it(`df=${row.df}, t=${row.t}: within ${TCDF_REL_TOL} relative`, () => {
       const p = tTwoTailedP(row.t, row.df);
-      expect(relErr(p, row.p)).toBeLessThanOrEqual(1e-10);
+      expect(relErr(p, row.p)).toBeLessThanOrEqual(TCDF_REL_TOL);
     });
   }
+
+  it('is in fact far tighter than the guaranteed bound on the grid as shipped (regression canary)', () => {
+    // Documents where the shipped grid actually sits, so a change that
+    // degrades accuracy inside the guaranteed 1e-8 envelope is still visible.
+    let worst = 0;
+    for (const row of tcdfTable) worst = Math.max(worst, relErr(tTwoTailedP(row.t, row.df), row.p));
+    expect(worst).toBeLessThanOrEqual(1e-11);
+  });
+
+  it('is accurate to f64 noise at the p = .05 decision boundary, for every df the game produces', () => {
+    // The only accuracy that is player-visible: every verdict in the game is a
+    // comparison against .05, so this is the number that must not drift.
+    for (const df of [28, 100, 198, 398]) {
+      let lo = 0;
+      let hi = 100;
+      for (let i = 0; i < 200; i++) {
+        const mid = (lo + hi) / 2;
+        if (tTwoTailedP(mid, df) > 0.05) lo = mid;
+        else hi = mid;
+      }
+      expect(Math.abs(tTwoTailedP((lo + hi) / 2, df) - 0.05)).toBeLessThanOrEqual(1e-15);
+    }
+  });
 
   it('is symmetric in t (two-tailed p depends only on |t|)', () => {
     expect(tTwoTailedP(2.5, 50)).toBeCloseTo(tTwoTailedP(-2.5, 50), 14);
