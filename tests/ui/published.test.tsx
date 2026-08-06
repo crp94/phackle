@@ -231,7 +231,7 @@ describe('Published: journal cover wiring', () => {
 
   it('shows the fake DOI 10.1337/phk.{puzzleNumber}', async () => {
     renderPublished({ puzzleNumber: 42 });
-    await waitFor(() => expect(screen.getByText(fakeDoi(42), { exact: false })).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(fakeDoi(String(42)), { exact: false })).toBeTruthy());
   });
 
   // gr6-021 — THE DOI ON A PRACTICE DAY. Pre-EPOCH the puzzle number is
@@ -248,7 +248,7 @@ describe('Published: journal cover wiring', () => {
   it('suppresses a plausible POSITIVE DOI under ?practice=1 too (the post-launch case)', async () => {
     renderPublished({ puzzleNumber: 42, practice: true });
     await waitFor(() => expect(screen.getByText('10.1337/phk.—', { exact: false })).toBeTruthy());
-    expect(screen.queryByText(fakeDoi(42), { exact: false }), 'a practice run wore the real issue DOI').toBeNull();
+    expect(screen.queryByText(fakeDoi(String(42)), { exact: false }), 'a practice run wore the real issue DOI').toBeNull();
   });
 
   it('shows the inline career-points figure (R1.6: the one place --hack-gold-ink paints characters)', async () => {

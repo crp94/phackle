@@ -84,13 +84,21 @@ export function altmetricPercentile(iso: string, tier: EgregiousnessTier): numbe
  * practice day has no issue number (see src/ui/masthead.ts's `issueLabel`,
  * which is what the one call site passes), and this used to print
  * `10.1337/phk.-3` on every pre-EPOCH day — a DOI with a negative registrant
- * suffix, on the one screen whose entire job is to be believed. The type is
- * widened rather than the practice flag being plumbed in here on purpose:
- * `src/game/**` must not import from `src/ui/**`, and the rule about what a
- * practice day prints belongs beside the masthead formula it also governs,
- * not duplicated in two modules.
+ * suffix, on the one screen whose entire job is to be believed. The parameter
+ * changes type rather than the practice flag being plumbed in here on
+ * purpose: `src/game/**` must not import from `src/ui/**`, and the rule about
+ * what a practice day prints belongs beside the masthead formula it also
+ * governs, not duplicated in two modules.
+ *
+ * `string`, NOT `string | number` (w8-r-004). The union was the obvious
+ * change and it kept the defect compiling: `fakeDoi(-3)` typechecked and
+ * still returned `10.1337/phk.-3`, so the only thing standing between this
+ * tree and the original bug was a pair of behavioural tests. A `string`
+ * parameter turns that call into a type error, which closes the whole class
+ * of "a raw puzzle number reached the DOI" rather than the one instance the
+ * tests happen to name.
  */
-export function fakeDoi(issue: string | number): string {
+export function fakeDoi(issue: string): string {
   return `10.1337/phk.${issue}`;
 }
 

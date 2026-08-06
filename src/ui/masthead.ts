@@ -47,9 +47,18 @@ export const JOURNAL_VOLUME = 1;
  * `src/game/**` acquires no dependency on `src/ui/**`. The three can
  * therefore never disagree, which is the same reason `JOURNAL_VOLUME` above
  * exists.
+ *
+ * THE RETURN TYPE IS `string`, NOT `string | number` (w8-r-004). The wider
+ * type is the one a first draft reaches for, and it leaves the exact defect
+ * this function exists to remove still compiling: `fakeDoi(-3)` typechecks
+ * and returns `10.1337/phk.-3`, so nothing but a behavioural test stands
+ * between the tree and the bug coming back. Narrowing here and at `fakeDoi`
+ * makes the old call a COMPILE ERROR — the class closed rather than the
+ * instance — and it costs one `String()` at three test call sites that were
+ * passing a bare number on purpose.
  */
 export const NO_ISSUE = '—';
 
-export function issueLabel(puzzleNumber: number, practice: boolean): string | number {
-  return practice ? NO_ISSUE : puzzleNumber;
+export function issueLabel(puzzleNumber: number, practice: boolean): string {
+  return practice ? NO_ISSUE : String(puzzleNumber);
 }

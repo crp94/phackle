@@ -477,6 +477,22 @@ body {
   margin-inline-end: var(--space-8);
 }
 
+/* RECORDED, not fixed (w8-r-007), with the width measured rather than
+   guessed. The masthead row wraps at narrow widths, and when it does this
+   middot starts the second line, where it reads more like a bullet than like
+   the separator it is. Measured in chromium against the built bundle at
+   ?practice=1: the masthead is two lines (74px) at 320 and 360 for EN, and at
+   320, 360 AND 414 for IT and ES — whose markers are longer ("Giornata di
+   prova", "Partida de prueba") — falling back to one line (45px) at 414+ for
+   EN and only at 768+ for IT/ES. So the leading middot persists all the way
+   to 767px in the two target locales, not "below ~600px" as this wave first
+   reported. No horizontal overflow in any width x locale cell. It is left
+   alone deliberately: .ph-header__vol::before directly above has the same
+   property and has shipped with it since T17, and changing one without the
+   other would make the row inconsistent with itself. (Second craft note, same
+   status: at widths where the row does NOT wrap, "No. — · PRACTICE RUN" sets
+   an em dash and a middot side by side at similar weight.) */
+
 /* T33: `flex-wrap` is the fix for the GR4a finding — a 2px horizontal
    overflow of this row at 360w, measured before this task added a fourth
    nav item and a second theme option to it. A row that cannot wrap can only

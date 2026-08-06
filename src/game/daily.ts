@@ -54,6 +54,31 @@ export function puzzleNumber(iso: string): number {
  * `NaN` (`0 % 0`), so a caller that has already checked `length > 0` — both
  * of today's do — is unaffected, and one that has not gets a number instead
  * of a `NaN` subscript.
+ *
+ * THE SWEEP, corrected and complete (w8-r-003 — the first version of this
+ * count was wrong in the wave report, so the enumeration lives here now,
+ * where the next reader of this function will find it). Every `%` over a pool
+ * or range in `src/`, and why each is safe:
+ *
+ *   - `engine/seeds.ts:82` (`fnv1a32(...) % count`) and `game/briefing.ts:16`,
+ *     `game/published.ts` altmetric ×2 and `pickJournal` — all seeded by
+ *     `fnv1a32`, which returns `h >>> 0` and is therefore unsigned.
+ *   - `engine/seeds.ts:136` (`(idx + 1) % count`) and `published.ts`'s
+ *     reject-and-advance walk (`index`, `(index + step) % len`) — the left
+ *     operand is built from an unsigned hash plus a slot index 0-2, never
+ *     negative.
+ *   - `components/RadioGroup.tsx:54,55` and `screens/Call.tsx:76` — the
+ *     roving-focus sites, which already do the `+ length` dance. Their worst
+ *     input is `findIndex` returning -1 (nothing focused), which lands on
+ *     `len - 2`: non-negative for any group of 2 or more, and every group in
+ *     this product is.
+ *   - `engine/day.ts`'s `generatePractice` — the one genuine residual, an
+ *     exported entry point taking a caller-supplied `seed`. Given its own
+ *     euclidean guard in the same round; it cannot call this function,
+ *     because eslint bars `src/engine/**` from importing `src/game/**`.
+ *
+ * So the conclusion the fix rests on holds — nothing else was silently
+ * dropping content — but it holds over thirteen sites, not five.
  */
 export function bankIndex(puzzleNumber: number, length: number): number {
   if (length <= 0) return 0;
