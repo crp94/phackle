@@ -840,6 +840,79 @@ export const content: LocaleContent = {
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-3 cells, in sottopancia
+    // Italian. Present tense, one clause, and the ITALIAN scenario's own
+    // furniture where it diverges — the mortgage chyron skips the PIANO 17,
+    // because this locale relocated the superstition (eptacaidecafobia) and a
+    // 13 here would be the English source showing through. Accented capitals
+    // (È, À) sit outside the ASCII class upperCaseRatio counts and cost
+    // nothing.
+    {
+      text: 'ALLARME: IL MOLINO COOPERATIVO ADESSO È UNA TABELLA DI ALLENAMENTO',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: "ULTIM'ORA: 340 ORE DI HARD BOP CONTROLLANO IL TUO FOGLIO DI CALCOLO",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'LA DOCCIA È FREDDA E LO È ANCHE IL TUO RISPONDI A TUTTI',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: "IL TUO SEGNO STA GIRANDO L'ISOLATO INSIEME A TE",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'ALLARME: LA TASTIERA RUMOROSA ADESSO È CONTROLLO QUALITÀ',
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: "ULTIM'ORA: L'ETICHETTATRICE È ARRIVATA NELLA POSTA IN ARRIVO",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'ESCLUSIVO: È IL GIRADISCHI A DECIDERE QUANDO I TUOI OSPITI VANNO A CASA',
+      outlet: 'Rete Sottopancia',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: "CHI HA IL TELESCOPIO SA LA STRADA. L'APP NO.",
+      outlet: 'Diretta Notte',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: "ULTIM'ORA: QUALCUNO LEGGE I TERMINI, E L'ASSISTENZA LO SA",
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: "AL GATE 14 C'È UN TAVOLINO PIEGHEVOLE E SOPRA CI SONO LE TUE VACANZE",
+      outlet: 'Rete Sottopancia',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'ESCLUSIVO: SALTA IL PIANO 17, TIENITI I PUNTI BASE',
+      outlet: 'TG Canale 9',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
+    },
   ],
 
   // Act II. Quiet, one sentence, devastating; never a punchline, never smug.

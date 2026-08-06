@@ -821,6 +821,78 @@ export const content: LocaleContent = {
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-3 cells, en rótulo. Present
+    // tense, one clause, and the SPANISH scenario's furniture where it
+    // diverges — the mortgage rótulo keeps the 13 (this locale kept the
+    // English number, under its own coinage triscaidecafobia), unlike the
+    // Italian twin which counts to 17. Accented capitals (Á, É, Ó, Ñ) sit
+    // outside the ASCII class upperCaseRatio counts and cost nothing.
+    {
+      text: 'ALERTA: LA COOPERATIVA HARINERA YA ES UN PLAN DE ENTRENAMIENTO',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'ÚLTIMA HORA: 340 HORAS DE HARD BOP AUDITAN TU HOJA DE CÁLCULO',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'LA DUCHA ESTÁ FRÍA Y TU RESPONDER A TODOS TAMBIÉN',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'TU SIGNO ESTÁ DANDO VUELTAS A LA MANZANA CONTIGO',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'ALERTA: EL TECLADO RUIDOSO YA ES CONTROL DE CALIDAD',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'ÚLTIMA HORA: LA ETIQUETADORA HA LLEGADO A LA BANDEJA DE ENTRADA',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'EXCLUSIVA: EL TOCADISCOS DECIDE CUÁNDO SE VAN TUS INVITADOS',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'QUIEN TIENE TELESCOPIO SABE EL CAMINO. LA APP NO.',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'ÚLTIMA HORA: ALGUIEN SE LEE LAS CONDICIONES, Y SOPORTE YA LO SABE',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'EN LA PUERTA 14 HAY UNA MESA PLEGABLE Y ENCIMA ESTÁN TUS VACACIONES',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'EXCLUSIVA: SÁLTATE EL PISO 13 Y QUÉDATE LOS PUNTOS BÁSICOS',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
+    },
   ],
 
   // Act II. Quiet, one sentence, devastating; never a punchline, never smug.

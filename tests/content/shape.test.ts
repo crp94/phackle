@@ -458,7 +458,7 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
  * filling a cell early passes silently, emptying one fails.
  */
 describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
-  const MIN_COVERED_CELLS = 37;
+  const MIN_COVERED_CELLS = 48;
 
   const LOCALES = [
     { name: 'en', content: enContent },

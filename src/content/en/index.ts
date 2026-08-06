@@ -785,6 +785,80 @@ export const content: LocaleContent = {
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
     },
+    // ---- gr3-024, the 60-cell matrix: the eleven tier-3 cells T39a left
+    // empty. Lower-third rules, same as the block above: present tense, one
+    // clause, nothing a chyron could not hold, and the voice law (capitals) is
+    // mechanical rather than a matter of taste. Mastheads rotate across the
+    // tier's three outlets because tier 3 renders THREE items — two cards and
+    // the chyron — and the generic pool has exactly three mastheads to spend
+    // on the follow-ups, so a bespoke first card that reused one would force a
+    // repeat. ----
+    {
+      text: 'ALERT: THE FLOUR CO-OP IS NOW A TRAINING PLAN',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'BREAKING: 340 HOURS OF HARD BOP ARE AUDITING YOUR SPREADSHEET',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'THE SHOWER IS COLD AND SO IS YOUR REPLY-ALL',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'YOUR STAR SIGN IS CIRCLING THE BLOCK WITH YOU',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'ALERT: THE LOUD KEYBOARD IS NOW A QUALITY PROCESS',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'BREAKING: THE LABEL MAKER HAS REACHED THE INBOX',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'EXCLUSIVE: THE TURNTABLE DECIDES WHEN YOUR GUESTS GO HOME',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'THE STRANGER WITH THE TELESCOPE KNOWS THE WAY. THE APP DOES NOT.',
+      outlet: 'Nightside Live',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'BREAKING: SOMEBODY OUT THERE READS THE TERMS, AND SUPPORT KNOWS IT',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'GATE 14 HAS A FOLDING TABLE AND YOUR HOLIDAY IS ON IT',
+      outlet: 'Nightly Chyron Network',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'EXCLUSIVE: SKIP THE 13TH FLOOR, KEEP THE BASIS POINTS',
+      outlet: 'Channel 9 Nightly',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
+    },
   ],
 
   // Act II. Quiet, one sentence, devastating; never a punchline, never smug.
