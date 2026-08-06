@@ -3,7 +3,8 @@ import type { Mock } from 'vitest';
 import type { EngineClient, ExtendInfo, InitInfo, RevealPayload } from '../../src/engine/protocol';
 import type { PathResult, Spec } from '../../src/engine/types';
 import { specKey } from '../../src/engine/specGrid';
-import { createGameStore, DEFAULT_SPEC } from '../../src/game/store';
+import { createGameStore, DEFAULT_SPEC, STORE_ERR } from '../../src/game/store';
+import { countForks } from '../../src/game/forkLog';
 import { DEBOUNCE_MS, EPOCH, N_SCHEDULE } from '../../src/game/tuning';
 
 // --- fixtures / helpers -----------------------------------------------------
@@ -488,7 +489,7 @@ describe('resultLog (§2.11 — every settled result actually displayed, feeding
 describe('peekAndExtend', () => {
   it('throws when called before boot', async () => {
     const store = createGameStore();
-    await expect(store.getState().peekAndExtend()).rejects.toThrow('not booted');
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.notBooted);
   });
 
   it('throws when called after boot() but before openData() (still on briefing)', async () => {
@@ -515,7 +516,7 @@ describe('peekAndExtend', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     expect(store.getState().pending).toBe(true);
 
-    await expect(store.getState().peekAndExtend()).rejects.toThrow('no result visible to extend');
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.noResult);
   });
 
   it('extends N, logs PEEK_AND_EXTEND (always a fork), and refreshes the result for the current spec', async () => {
@@ -538,7 +539,7 @@ describe('peekAndExtend', () => {
     expect(s.pending).toBe(false);
   });
 
-  it('rejects with "max N" once N has reached the top of the schedule, without calling client.extend again', async () => {
+  it('rejects with STORE_ERR.maxN once N has reached the top of the schedule, without calling client.extend again', async () => {
     const maxN = N_SCHEDULE[N_SCHEDULE.length - 1];
     const rest = N_SCHEDULE.slice(1); // schedule steps beyond the initial 200
     const client = makeFakeClient();
@@ -555,7 +556,7 @@ describe('peekAndExtend', () => {
     expect(store.getState().n).toBe(maxN);
     expect(client.extend).toHaveBeenCalledTimes(rest.length);
 
-    await expect(store.getState().peekAndExtend()).rejects.toThrow('max N');
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.maxN);
     expect(client.extend).toHaveBeenCalledTimes(rest.length); // not called again
   });
 });
@@ -760,5 +761,381 @@ describe('full happy path: briefing -> lab -> published -> reveal -> summary', (
 
     store.getState().finishReveal();
     expect(store.getState().screen).toBe('summary');
+  });
+});
+
+// ===========================================================================
+// gr6-042 / gr6-043 / gr6-079 / gr6-107 / gr6-108 — the async-action contract
+// ===========================================================================
+
+// --- gr6-107: throws are identified by CONSTANT, never by prose ------------
+//
+// The three assertions this replaces pinned literals out of store.ts's throw
+// sites, so rewording a message for clarity broke a test that was never about
+// wording — and `'max N'` is a substring loose enough that it did not even
+// identify its own throw uniquely. STORE_ERR pins the IDENTITY of each
+// failure; the prose is free to change.
+
+describe('STORE_ERR (gr6-107) — every guard throws a named, exported constant', () => {
+  it('exposes a distinct message per guard (no two guards share an identity)', () => {
+    const values = Object.values(STORE_ERR);
+    expect(new Set(values).size).toBe(values.length);
+    for (const value of values) expect(typeof value).toBe('string');
+  });
+
+  it('peekAndExtend before boot throws STORE_ERR.notBooted', async () => {
+    const store = createGameStore();
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.notBooted);
+  });
+
+  it('peekAndExtend with nothing rendered throws STORE_ERR.noResult', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockImplementationOnce(() => new Promise(() => {}));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.noResult);
+  });
+
+  it('peekAndExtend at the top of the schedule throws STORE_ERR.maxN', async () => {
+    const rest = N_SCHEDULE.slice(1);
+    const client = makeFakeClient();
+    for (const step of rest) (client.extend as Mock).mockResolvedValueOnce({ n: step } satisfies ExtendInfo);
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    for (let i = 0; i < rest.length; i++) await store.getState().peekAndExtend();
+
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.maxN);
+  });
+
+  it('every other guard throws its own constant too — one walk, nine identities', async () => {
+    const client = makeFakeClient();
+    // Nothing publishable, so submit()'s rejection below is the guard's and
+    // not an accident of the fixture's default p = 0.02.
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.9 }));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+
+    expect(() => store.getState().changeSpec(specA)).toThrow(STORE_ERR.changeSpecFromLab);
+    await expect(store.getState().preregCommit(DEFAULT_SPEC)).rejects.toThrow(STORE_ERR.cannotPrereg);
+
+    store.getState().openData();
+    expect(() => store.getState().openData()).toThrow(STORE_ERR.openFromBriefing);
+    expect(() => store.getState().chooseMode('prereg')).toThrow(STORE_ERR.chooseModeFromBriefing);
+    await expect(store.getState().submit()).rejects.toThrow(STORE_ERR.cannotSubmit);
+
+    await store.getState().abandon();
+    await expect(store.getState().abandon()).rejects.toThrow(STORE_ERR.abandonFromLab);
+    await expect(store.getState().peekAndExtend()).rejects.toThrow(STORE_ERR.peekFromLab);
+    await expect(store.getState().submit()).rejects.toThrow(STORE_ERR.submitFromLab);
+  });
+});
+
+// --- gr6-042: makeCall is guarded exactly like its siblings -----------------
+//
+// REACHABLE, not theoretical: Call.tsx's double-tap guard is an `inFlight`
+// REF on a component Published.tsx mounts and unmounts. Press "It's real" ->
+// Escape (the overlay closes, the ref dies with it) -> "Face the truth"
+// again -> a second CALL entry and a second client.reveal() — the most
+// expensive engine op — on a screen that is still 'published'.
+
+describe('makeCall (gr6-042) — requestSeq + the in-flight conjunct its siblings already had', () => {
+  async function publishedStore() {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult({ p: 0.01 }));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().submit();
+    return { client, store };
+  }
+
+  it('rejects a SECOND call dispatched while the first reveal is still in flight (the Escape-remount path)', async () => {
+    const { client, store } = await publishedStore();
+    const reveal = deferred<RevealPayload>();
+    (client.reveal as Mock).mockImplementationOnce(() => reveal.promise);
+
+    const first = store.getState().makeCall('real');
+    expect(store.getState().pending).toBe(true);
+
+    await expect(store.getState().makeCall('noise')).rejects.toThrow(STORE_ERR.cannotCall);
+    expect(client.reveal).toHaveBeenCalledTimes(1); // never a second reveal RPC
+
+    reveal.resolve(makeRevealPayload());
+    await first;
+
+    const s = store.getState();
+    expect(s.log.filter((a) => a.t === 'CALL')).toHaveLength(1);
+    expect(s.call).toBe('real');
+    expect(s.pending).toBe(false);
+  });
+
+  it('discards a reveal that resolves after a fresh boot has superseded it (last-write-wins, the sibling shape verbatim)', async () => {
+    const { client, store } = await publishedStore();
+    const reveal = deferred<RevealPayload>();
+    (client.reveal as Mock).mockImplementationOnce(() => reveal.promise);
+
+    const call = store.getState().makeCall('real');
+    await store.getState().boot(client, EPOCH, BOOT_OPTS); // a new puzzle day arrives mid-flight
+    reveal.resolve(makeRevealPayload({ stamp: 'REPLICATED' }));
+    await call;
+
+    const s = store.getState();
+    expect(s.screen).toBe('briefing'); // NOT dragged onto the previous day's reveal
+    expect(s.reveal).toBeNull();
+    expect(s.call).toBeNull();
+  });
+
+  it('throws before the lab has been exited, by constant', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await expect(store.getState().makeCall('real')).rejects.toThrow(STORE_ERR.cannotCall);
+  });
+});
+
+// --- gr6-042 (lm-09): abandon leaves nothing pending ------------------------
+
+describe('abandon (gr6-042/lm-09) — clears `pending` in the same commit that leaves the lab', () => {
+  it('a pending runSpec left behind by the abandon does not strand the CALL screen', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockImplementationOnce(() => new Promise(() => {}));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().pending).toBe(true); // a request that will never resolve
+
+    await store.getState().abandon();
+
+    expect(store.getState().screen).toBe('call');
+    expect(store.getState().pending).toBe(false);
+    // ...and the call it leads to is therefore actually dispatchable.
+    await store.getState().makeCall('noise');
+    expect(store.getState().screen).toBe('reveal');
+  });
+});
+
+// --- gr6-043: a rejected RPC never strands `pending: true` -----------------
+
+describe('withEngineErrors (gr6-043) — every awaiting action surfaces its rejection and clears pending', () => {
+  it('makeCall: a rejected reveal clears pending, sets error, and stays on the call screen', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().abandon();
+    (client.reveal as Mock).mockRejectedValueOnce(new Error('engine worker crashed'));
+
+    await expect(store.getState().makeCall('noise')).resolves.toBeUndefined();
+
+    const s = store.getState();
+    expect(s.pending).toBe(false);
+    expect(s.error).toBe('engine worker crashed');
+    expect(s.screen).toBe('call');
+    expect(s.reveal).toBeNull();
+  });
+
+  it('peekAndExtend: a rejected extend clears pending, so Collect and Submit are not dead for the day', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    (client.extend as Mock).mockRejectedValueOnce(new Error('extend blew up'));
+
+    await expect(store.getState().peekAndExtend()).resolves.toBeUndefined();
+
+    expect(store.getState().pending).toBe(false);
+    expect(store.getState().error).toBe('extend blew up');
+    // The retry the stranded flag used to make impossible:
+    await store.getState().peekAndExtend();
+    expect(store.getState().n).toBe(250);
+  });
+
+  it('peekAndExtend: a rejected post-extend runSpec also clears pending', async () => {
+    const client = makeFakeClient();
+    (client.runSpec as Mock).mockResolvedValueOnce(makeResult()).mockRejectedValueOnce(new Error('runSpec blew up'));
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    await store.getState().peekAndExtend();
+
+    expect(store.getState().pending).toBe(false);
+    expect(store.getState().error).toBe('runSpec blew up');
+  });
+
+  it('preregCommit: a rejection clears pending, so the whole mode is not a dead end for the day', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, { practice: false, mode: 'prereg', scenarioCount: 1792 });
+    store.getState().chooseMode('prereg');
+    (client.extend as Mock).mockRejectedValueOnce(new Error('prereg extend blew up'));
+
+    await expect(store.getState().preregCommit(specA)).resolves.toBeUndefined();
+
+    const s = store.getState();
+    expect(s.pending).toBe(false);
+    expect(s.error).toBe('prereg extend blew up');
+    expect(s.screen).toBe('prereg');
+    // The retry store.ts:352's `|| s.pending` used to reject forever:
+    await store.getState().preregCommit(specA);
+    expect(store.getState().screen).toBe('reveal');
+  });
+
+  it('boot: an init rejection still routes through the same helper (pending clear, error set, booted false)', async () => {
+    const client = makeFakeClient();
+    (client.init as Mock).mockRejectedValueOnce(new Error('worker unavailable'));
+    const store = createGameStore();
+
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+
+    expect(store.getState().pending).toBe(false);
+    expect(store.getState().error).toBe('worker unavailable');
+    expect(store.getState().booted).toBe(false);
+  });
+
+  it('a rejection that arrives after a NEWER request has taken ownership is discarded, not surfaced', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+
+    const extend = deferred<ExtendInfo>();
+    (client.extend as Mock).mockImplementationOnce(() => extend.promise);
+    const stale = store.getState().peekAndExtend();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS); // supersedes it
+    extend.reject(new Error('stale failure'));
+    await stale;
+
+    expect(store.getState().error).toBeNull();
+  });
+});
+
+// --- gr6-079: the CALL entry lands in the SAME set() as reveal/screen -------
+
+describe('makeCall (gr6-079) — the log append is atomic with the transition', () => {
+  it('a failed reveal appends NO CALL entry, so a retry does not stack a second one', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().abandon();
+    (client.reveal as Mock).mockRejectedValueOnce(new Error('boom'));
+
+    await store.getState().makeCall('noise');
+    expect(store.getState().log.filter((a) => a.t === 'CALL')).toHaveLength(0);
+    expect(store.getState().call).toBeNull();
+
+    await store.getState().makeCall('noise'); // the retry the player actually makes
+    expect(store.getState().log.filter((a) => a.t === 'CALL')).toHaveLength(1);
+    expect(store.getState().screen).toBe('reveal');
+  });
+
+  it('never lets `call` be set on a screen the reveal never arrived at (no half-applied transition)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    await store.getState().abandon();
+
+    const reveal = deferred<RevealPayload>();
+    (client.reveal as Mock).mockImplementationOnce(() => reveal.promise);
+    const call = store.getState().makeCall('noise');
+    // Mid-flight: nothing about the verdict is visible yet.
+    expect(store.getState().call).toBeNull();
+    expect(store.getState().log.filter((a) => a.t === 'CALL')).toHaveLength(0);
+
+    reveal.resolve(makeRevealPayload());
+    await call;
+    expect(store.getState().call).toBe('noise');
+    expect(store.getState().screen).toBe('reveal');
+  });
+});
+
+// --- gr6-108: forks === countForks(log) after EVERY mutating action --------
+//
+// store.ts recomputes `forks: countForks(log)` at seven independent set()
+// returns; the invariant was asserted by inspection at all seven and
+// mechanically nowhere, so an eighth transition that forgot the recompute
+// passed the whole suite.
+
+describe('forks === countForks(log) (gr6-108) — the invariant behind seven independent recomputes', () => {
+  function assertInvariant(store: ReturnType<typeof createGameStore>, label: string) {
+    const s = store.getState();
+    expect(s.forks, `forks drifted from the log after ${label}`).toBe(countForks(s.log));
+  }
+
+  it('holds through boot -> openData -> changeSpec x2 -> peekAndExtend -> submit -> makeCall', async () => {
+    const specC: Spec = { ...DEFAULT_SPEC, exclusion: 'z2' };
+    const client = makeFakeClient();
+    (client.runSpec as Mock)
+      .mockResolvedValueOnce(makeResult())
+      .mockResolvedValueOnce(makeResult({ spec: specA, p: 0.02 }))
+      .mockResolvedValueOnce(makeResult({ spec: specC, p: 0.01 }))
+      .mockResolvedValue(makeResult({ spec: specC, p: 0.01 }));
+    const store = createGameStore();
+
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    assertInvariant(store, 'boot');
+    store.getState().openData();
+    assertInvariant(store, 'openData');
+
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    assertInvariant(store, 'changeSpec #1');
+    store.getState().changeSpec(specC);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    assertInvariant(store, 'changeSpec #2');
+
+    await store.getState().peekAndExtend();
+    assertInvariant(store, 'peekAndExtend');
+
+    await store.getState().submit();
+    assertInvariant(store, 'submit');
+
+    await store.getState().makeCall('real');
+    assertInvariant(store, 'makeCall');
+
+    store.getState().finishReveal();
+    assertInvariant(store, 'finishReveal');
+
+    expect(store.getState().forks).toBeGreaterThan(0); // not a vacuous 0 === 0 walk
+  });
+
+  it('holds through the abandon branch', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, BOOT_OPTS);
+    store.getState().openData();
+    store.getState().changeSpec(specA);
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    assertInvariant(store, 'changeSpec');
+    await store.getState().abandon();
+    assertInvariant(store, 'abandon');
+    await store.getState().makeCall('noise');
+    assertInvariant(store, 'makeCall after abandon');
+    expect(store.getState().forks).toBe(1);
+  });
+
+  it('holds through the prereg branch (chooseMode -> preregCommit)', async () => {
+    const client = makeFakeClient();
+    const store = createGameStore();
+    await store.getState().boot(client, EPOCH, { practice: false, mode: 'prereg', scenarioCount: 1792 });
+    assertInvariant(store, 'boot(prereg)');
+    store.getState().chooseMode('prereg');
+    assertInvariant(store, 'chooseMode');
+    await store.getState().preregCommit(specA);
+    assertInvariant(store, 'preregCommit');
+    // A preregistered commit has no forks by construction (§2.6) — the
+    // invariant must be checked at 0 as well as above it.
+    expect(store.getState().forks).toBe(0);
   });
 });

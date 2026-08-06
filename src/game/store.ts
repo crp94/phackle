@@ -29,6 +29,35 @@ export const DEFAULT_SPEC: Spec = {
 
 const MAX_N: WindowN = N_SCHEDULE[N_SCHEDULE.length - 1];
 
+/**
+ * gr6-107 — every guard's throw, by NAME.
+ *
+ * The tests that pinned these as literals (`rejects.toThrow('max N')`) were
+ * coupled to prose they were never about: rewording a message for clarity
+ * broke them, and `'max N'` was a substring loose enough that it did not even
+ * identify its own throw uniquely. Exported so both sides — the throw and the
+ * assertion — reference the same constant, which pins the IDENTITY of the
+ * failure and leaves the wording free to improve.
+ *
+ * `as const` (not merely `Record<string, string>`) so each value is its own
+ * literal type: a typo in a test's `STORE_ERR.notBooteed` is a compile error,
+ * not a runtime `undefined` that `toThrow(undefined)` would happily accept.
+ */
+export const STORE_ERR = {
+  notBooted: 'not booted',
+  openFromBriefing: 'can only open the data from the briefing',
+  changeSpecFromLab: 'can only change the spec from the lab',
+  peekFromLab: 'can only collect more data from the lab',
+  noResult: 'no result visible to extend',
+  maxN: 'the sample window is already at its maximum',
+  submitFromLab: 'can only submit from the lab',
+  cannotSubmit: 'cannot submit: no settled, valid, significant result',
+  abandonFromLab: 'can only abandon from the lab',
+  cannotCall: 'cannot call: nothing published or abandoned yet, or a reveal is already in flight',
+  chooseModeFromBriefing: 'can only choose a mode from the briefing',
+  cannotPrereg: 'can only commit a preregistration once, from the prereg screen, in prereg mode',
+} as const;
+
 /** T30: one entry per settled spec whose result was ACTUALLY displayed to
  * the player — captured the moment it's superseded by the next settled spec
  * (see `commitSettledSpec`'s own `seenPrev` check below, which this reuses
@@ -213,18 +242,55 @@ export function createGameStore() {
     }
   }
 
+  /**
+   * gr6-043 — the ONE error path every awaiting action shares.
+   *
+   * Before this, only `boot` and `commitSettledSpec` caught anything at all,
+   * so a rejected RPC anywhere else left `pending: true` forever and lit no
+   * error surface: Prereg Mode became a hard dead-end for the whole day
+   * (`preregCommit`'s own `|| s.pending` guard then rejected every retry),
+   * the Lab's Collect and Submit both died (`canCollectMore`/`canSubmit` are
+   * both false while pending), and the dial sat at `aria-busy` until reload.
+   *
+   * Two properties, and both matter:
+   *   - `pending: false` — whatever failed, the day is playable again.
+   *   - the staleness check — a rejection that arrives AFTER a newer request
+   *     has taken ownership of the state (a fresh `boot()`, a later settled
+   *     spec) is discarded rather than surfaced, exactly as its resolved
+   *     counterpart already is. Otherwise a superseded failure would paint an
+   *     error banner over a day it no longer describes.
+   *
+   * The error itself lands in `error`, which ScreenRouter already renders as
+   * `errors.workerCrash` above whatever screen is current — no screen is ever
+   * replaced, so the player keeps whatever they were looking at.
+   */
+  async function withEngineErrors(myReq: number, fn: () => Promise<void>): Promise<void> {
+    try {
+      await fn();
+    } catch (err) {
+      if (myReq !== requestSeq) return;
+      store.setState({ pending: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   const store = createStore<GameStore>()((set, get) => ({
     ...initialState(),
 
     async boot(c, iso, opts) {
       client = c;
       clearDebounce();
-      requestSeq++; // invalidate anything left over from a prior boot
+      // One sequence number for the whole boot: it invalidates anything left
+      // over from a prior boot AND owns every request this one dispatches, so
+      // a superseded boot's init/runSpec/rejection are all discarded on the
+      // same test (gr6-043 folded the two increments this used to take into
+      // one, which is what lets withEngineErrors below judge staleness).
+      const myReq = ++requestSeq;
       set({ ...initialState(), mode: opts.mode, practice: opts.practice });
-      client.onCrash(() => set({ error: 'engine crashed' }));
-      try {
+      c.onCrash(() => set({ error: 'engine crashed' }));
+      await withEngineErrors(myReq, async () => {
         const seed = opts.practice ? practiceSeed() : undefined;
-        const info = await client.init(iso, opts.scenarioCount, seed);
+        const info = await c.init(iso, opts.scenarioCount, seed);
+        if (myReq !== requestSeq) return; // superseded by a newer boot — discard
         // `booted: true` lands in this SAME set() call, deliberately — see
         // the field's own doc comment. It marks the exact instant the day
         // is fixed, not some later moment (the prefetch below still has to
@@ -233,9 +299,8 @@ export function createGameStore() {
         // correct).
         set({ scenarioIndex: info.scenarioIndex, n: info.n, puzzleNumber: puzzleNumber(iso), iso, booted: true });
 
-        const myReq = ++requestSeq;
         set({ pending: true });
-        const result = await client.runSpec(DEFAULT_SPEC);
+        const result = await c.runSpec(DEFAULT_SPEC);
         if (myReq !== requestSeq) return; // superseded mid-boot — discard
 
         const at = Date.now();
@@ -247,18 +312,16 @@ export function createGameStore() {
           const log: PlayerAction[] = [...s.log, { t: 'VIEW_SPEC', spec: DEFAULT_SPEC, seen: false, at }];
           return { spec: DEFAULT_SPEC, result, pending: false, log, forks: countForks(log) };
         });
-      } catch (err) {
-        set({ pending: false, error: err instanceof Error ? err.message : String(err) });
-      }
+      });
     },
 
     openData() {
-      if (get().screen !== 'briefing') throw new Error('can only open the data from the briefing');
+      if (get().screen !== 'briefing') throw new Error(STORE_ERR.openFromBriefing);
       set({ screen: 'lab' });
     },
 
     changeSpec(next) {
-      if (get().screen !== 'lab') throw new Error('can only change the spec from the lab');
+      if (get().screen !== 'lab') throw new Error(STORE_ERR.changeSpecFromLab);
       // The visible control state updates immediately; only the debounced
       // runSpec dispatch + VIEW_SPEC log entry wait out DEBOUNCE_MS.
       set({ spec: next });
@@ -270,34 +333,37 @@ export function createGameStore() {
     },
 
     async peekAndExtend() {
-      if (!client) throw new Error('not booted');
+      const c = client;
+      if (!c) throw new Error(STORE_ERR.notBooted);
       const s = get();
-      if (s.screen !== 'lab') throw new Error('can only collect more data from the lab');
-      if (s.pending || !s.result) throw new Error('no result visible to extend');
-      if (s.n === MAX_N) throw new Error('max N');
+      if (s.screen !== 'lab') throw new Error(STORE_ERR.peekFromLab);
+      if (s.pending || !s.result) throw new Error(STORE_ERR.noResult);
+      if (s.n === MAX_N) throw new Error(STORE_ERR.maxN);
 
       clearDebounce();
       const myReq = ++requestSeq;
       set({ pending: true });
-      const info = await client.extend();
-      if (myReq !== requestSeq) return;
+      await withEngineErrors(myReq, async () => {
+        const info = await c.extend();
+        if (myReq !== requestSeq) return;
 
-      const at = Date.now();
-      set((st) => {
-        const log: PlayerAction[] = [...st.log, { t: 'PEEK_AND_EXTEND', newN: info.n, at }];
-        return { n: info.n, log, forks: countForks(log) };
+        const at = Date.now();
+        set((st) => {
+          const log: PlayerAction[] = [...st.log, { t: 'PEEK_AND_EXTEND', newN: info.n, at }];
+          return { n: info.n, log, forks: countForks(log) };
+        });
+
+        const result = await c.runSpec(get().spec);
+        if (myReq !== requestSeq) return;
+        set({ result, pending: false });
       });
-
-      const result = await client.runSpec(get().spec);
-      if (myReq !== requestSeq) return;
-      set({ result, pending: false });
     },
 
     async submit() {
       const s = get();
-      if (s.screen !== 'lab') throw new Error('can only submit from the lab');
+      if (s.screen !== 'lab') throw new Error(STORE_ERR.submitFromLab);
       if (!(s.result && s.result.valid && s.result.p < 0.05 && !s.pending)) {
-        throw new Error('cannot submit: no settled, valid, significant result');
+        throw new Error(STORE_ERR.cannotSubmit);
       }
       clearDebounce();
       requestSeq++; // invalidate any in-flight request — we're leaving the lab
@@ -311,30 +377,68 @@ export function createGameStore() {
 
     async abandon() {
       const s = get();
-      if (s.screen !== 'lab') throw new Error('can only abandon from the lab');
+      if (s.screen !== 'lab') throw new Error(STORE_ERR.abandonFromLab);
       clearDebounce();
       requestSeq++; // invalidate any in-flight request — we're leaving the lab
       const at = Date.now();
       set((st) => {
         const log: PlayerAction[] = [...st.log, { t: 'ABANDON', at }];
-        return { log, forks: countForks(log), published: null, screen: 'call' as Screen };
+        // gr6-042 (lm-09): `pending: false` in the SAME commit that leaves
+        // the lab. `requestSeq++` above orphans whatever runSpec was in
+        // flight — nothing will ever clear the flag it left behind — and a
+        // `pending` that stays true past this point is not merely untidy:
+        // makeCall's own in-flight conjunct (below) would then reject the
+        // very call this screen exists to collect. Submit has no such line
+        // because its own guard already refuses to fire while pending.
+        return { log, forks: countForks(log), published: null, pending: false, screen: 'call' as Screen };
       });
     },
 
     async makeCall(v) {
-      if (!client) throw new Error('not booted');
+      const c = client;
+      if (!c) throw new Error(STORE_ERR.notBooted);
       const s = get();
-      if (s.screen !== 'published' && s.screen !== 'call') {
-        throw new Error('cannot call before publishing or abandoning');
+      // gr6-042: the sibling shape, which this action alone was missing. The
+      // `|| s.pending` conjunct is preregCommit's own reentrancy guard, here
+      // for the same reason: `screen` does not flip to 'reveal' until the
+      // whole async sequence finishes, so a second dispatch while the first
+      // is still in flight would otherwise sail past a bare screen check.
+      // REACHABLE, not theoretical — Call.tsx's double-tap guard is a ref on
+      // a component Published.tsx unmounts on Escape, so "It's real" ->
+      // Escape -> "Face the truth" gave a fresh ref, a second CALL entry and
+      // a second (very expensive) reveal RPC, all on a screen still reading
+      // 'published'.
+      if ((s.screen !== 'published' && s.screen !== 'call') || s.pending) {
+        throw new Error(STORE_ERR.cannotCall);
       }
-      const at = Date.now();
-      set((st) => {
-        const log: PlayerAction[] = [...st.log, { t: 'CALL', verdict: v, at }];
-        return { log, forks: countForks(log), call: v };
+      const myReq = ++requestSeq;
+      // CALL entries contribute nothing to distinctExplored (it reads
+      // VIEW_SPEC only), so computing this from the pre-append log is exactly
+      // what the post-append read used to produce.
+      const explored = distinctExplored(s.log);
+      const published = s.published;
+      set({ pending: true });
+      await withEngineErrors(myReq, async () => {
+        const payload = await c.reveal(published, explored);
+        if (myReq !== requestSeq) return;
+        const at = Date.now();
+        set((st) => {
+          // gr6-079: the CALL append lands in the SAME set() as `reveal` and
+          // `screen`, so the action is atomic. Appending it BEFORE the await
+          // meant a failed reveal left the verdict recorded on a screen that
+          // never advanced, and every retry stacked another CALL entry onto
+          // the log.
+          const log: PlayerAction[] = [...st.log, { t: 'CALL', verdict: v, at }];
+          return {
+            log,
+            forks: countForks(log),
+            call: v,
+            reveal: payload,
+            pending: false,
+            screen: 'reveal' as Screen,
+          };
+        });
       });
-      const explored = distinctExplored(get().log);
-      const payload = await client.reveal(get().published, explored);
-      set({ reveal: payload, screen: 'reveal' });
     },
 
     finishReveal() {
@@ -342,93 +446,97 @@ export function createGameStore() {
     },
 
     chooseMode(mode) {
-      if (get().screen !== 'briefing') throw new Error('can only choose a mode from the briefing');
+      if (get().screen !== 'briefing') throw new Error(STORE_ERR.chooseModeFromBriefing);
       set({ mode, screen: mode === 'prereg' ? 'prereg' : 'lab' });
     },
 
     async preregCommit(spec) {
-      if (!client) throw new Error('not booted');
+      const c = client;
+      if (!c) throw new Error(STORE_ERR.notBooted);
       const s = get();
       if (s.screen !== 'prereg' || s.mode !== 'prereg' || s.pending) {
-        throw new Error('can only commit a preregistration once, from the prereg screen, in prereg mode');
+        throw new Error(STORE_ERR.cannotPrereg);
       }
       clearDebounce();
       const myReq = ++requestSeq;
       set({ pending: true });
 
-      // §3.8's window schedule only ever moves one N_SCHEDULE step per
-      // extend() (engine/protocol.ts's handleRequest 'extend' branch) — there
-      // is no "jump straight to N=400" op, and adding one is outside this
-      // task's ownership (protocol.ts/worker.ts). So the full window is
-      // reached with exactly N_SCHEDULE.length - 1 extend() calls, and
-      // deliberately NO runSpec dispatched in between (unlike peekAndExtend,
-      // which re-runs the CURRENT spec after every extend to show a live
-      // update): the whole point of a preregistered commitment is that
-      // NOTHING is ever run, let alone shown, before this one call.
-      let n: WindowN = s.n;
-      for (let i = 1; i < N_SCHEDULE.length; i++) {
-        const info = await client.extend();
-        if (myReq !== requestSeq) return; // superseded (e.g. a fresh boot) mid-sequence
-        n = info.n;
-      }
+      await withEngineErrors(myReq, async () => {
+        // §3.8's window schedule only ever moves one N_SCHEDULE step per
+        // extend() (engine/protocol.ts's handleRequest 'extend' branch) —
+        // there is no "jump straight to N=400" op, and adding one is outside
+        // this task's ownership (protocol.ts/worker.ts). So the full window
+        // is reached with exactly N_SCHEDULE.length - 1 extend() calls, and
+        // deliberately NO runSpec dispatched in between (unlike
+        // peekAndExtend, which re-runs the CURRENT spec after every extend to
+        // show a live update): the whole point of a preregistered commitment
+        // is that NOTHING is ever run, let alone shown, before this one call.
+        let n: WindowN = s.n;
+        for (let i = 1; i < N_SCHEDULE.length; i++) {
+          const info = await c.extend();
+          if (myReq !== requestSeq) return; // superseded (e.g. a fresh boot) mid-sequence
+          n = info.n;
+        }
 
-      const result = await client.runSpec(spec);
-      if (myReq !== requestSeq) return;
+        const result = await c.runSpec(spec);
+        if (myReq !== requestSeq) return;
 
-      const payload = await client.reveal(spec, [spec]);
-      if (myReq !== requestSeq) return;
+        const payload = await c.reveal(spec, [spec]);
+        if (myReq !== requestSeq) return;
 
-      // The engine's own verdictStamp (src/engine/reveal.ts) assumes
-      // "published !== null" already implies "was significant" — true for
-      // Hacking Mode, where submit() is guarded to only ever fire at p<.05,
-      // but NOT true here: a preregistered commit is unconditional. A
-      // non-significant commit must read NULL_REPORTED regardless of what
-      // the engine's stamp says (it has no way to know); a significant one
-      // keeps the engine's own REPLICATED/RETRACTED call verbatim — it
-      // already encodes "did this land on the true outcome" (§2.7.4), which
-      // does not need re-deriving here.
-      const sig = result.valid && result.p < 0.05;
-      const corrected: RevealPayload = {
-        ...payload,
-        stamp: sig ? payload.stamp : 'NULL_REPORTED',
-        // The N_SCHEDULE.length - 1 extends above bumped the worker's
-        // internal peek counter as a mechanical side effect of reaching full
-        // power in one shot — never player "peeking" (there is nothing to
-        // peek AT: no result is ever shown before commit). Left as the
-        // engine reported it, Reveal's peekSurcharge line would accuse the
-        // player of exactly the behavior preregistration exists to prevent.
-        peeks: 0,
-      };
-
-      const at = Date.now();
-      set((st) => {
-        // The committed spec's own viewing, logged for completeness (§2.10's
-        // "initial default spec is free" rule already covers boot's own
-        // entry above this one) — `seen: false` because nothing was ever
-        // seen: no result renders anywhere in the prereg screen (Prereg.tsx
-        // shows no PValueDial/CoefPlot), so this NEVER counts as a fork,
-        // matching the fact that preregistration has no forks by
-        // construction (there is nothing to change your mind in response
-        // to).
-        const log: PlayerAction[] = [...st.log, { t: 'VIEW_SPEC', spec, seen: false, at }];
-        return {
-          spec,
-          n,
-          result,
-          preregResult: result,
-          pending: false,
-          log,
-          forks: countForks(log),
-          published: spec,
-          reveal: corrected,
-          screen: 'reveal' as Screen,
+        // The engine's own verdictStamp (src/engine/reveal.ts) assumes
+        // "published !== null" already implies "was significant" — true for
+        // Hacking Mode, where submit() is guarded to only ever fire at p<.05,
+        // but NOT true here: a preregistered commit is unconditional. A
+        // non-significant commit must read NULL_REPORTED regardless of what
+        // the engine's stamp says (it has no way to know); a significant one
+        // keeps the engine's own REPLICATED/RETRACTED call verbatim — it
+        // already encodes "did this land on the true outcome" (§2.7.4), which
+        // does not need re-deriving here.
+        const sig = result.valid && result.p < 0.05;
+        const corrected: RevealPayload = {
+          ...payload,
+          stamp: sig ? payload.stamp : 'NULL_REPORTED',
+          // The N_SCHEDULE.length - 1 extends above bumped the worker's
+          // internal peek counter as a mechanical side effect of reaching
+          // full power in one shot — never player "peeking" (there is nothing
+          // to peek AT: no result is ever shown before commit). Left as the
+          // engine reported it, Reveal's peekSurcharge line would accuse the
+          // player of exactly the behavior preregistration exists to prevent.
+          peeks: 0,
         };
+
+        const at = Date.now();
+        set((st) => {
+          // The committed spec's own viewing, logged for completeness (§2.10's
+          // "initial default spec is free" rule already covers boot's own
+          // entry above this one) — `seen: false` because nothing was ever
+          // seen: no result renders anywhere in the prereg screen (Prereg.tsx
+          // shows no PValueDial/CoefPlot), so this NEVER counts as a fork,
+          // matching the fact that preregistration has no forks by
+          // construction (there is nothing to change your mind in response
+          // to).
+          const log: PlayerAction[] = [...st.log, { t: 'VIEW_SPEC', spec, seen: false, at }];
+          return {
+            spec,
+            n,
+            result,
+            preregResult: result,
+            pending: false,
+            log,
+            forks: countForks(log),
+            published: spec,
+            reveal: corrected,
+            screen: 'reveal' as Screen,
+          };
+        });
       });
     },
   }));
 
   async function commitSettledSpec(settled: Spec): Promise<void> {
-    if (!client) return;
+    const c = client;
+    if (!c) return;
     const s = store.getState();
     // Captured BEFORE this request is marked pending: "was a result displayed
     // for the previous spec" at the instant this change settles (§2.10).
@@ -456,14 +564,14 @@ export function createGameStore() {
       }
       return { pending: true, log, forks };
     });
-    try {
-      const result = await client.runSpec(settled);
+    // The fifth and last site of the same shape (gr6-043): this one always
+    // had its own try/catch — the helper is that catch, hoisted so the four
+    // actions above cannot drift away from it.
+    await withEngineErrors(myReq, async () => {
+      const result = await c.runSpec(settled);
       if (myReq !== requestSeq) return; // stale — a newer change has since settled
       store.setState({ result, pending: false });
-    } catch (err) {
-      if (myReq !== requestSeq) return;
-      store.setState({ pending: false, error: err instanceof Error ? err.message : String(err) });
-    }
+    });
   }
 
   return store;
