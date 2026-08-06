@@ -589,6 +589,20 @@ export function createGameStore() {
 // behavior changes.
 export const gameStore = createGameStore();
 
+/**
+ * The INJECTABLE store-hook seam every standalone screen takes as a prop
+ * (`useStore?: UseGameStore`, defaulting to `useGameStore` below), so a test
+ * can seed an isolated `createGameStore()` instance instead of mutating the
+ * real singleton three suites are simultaneously reading.
+ *
+ * gr6-082: declared twice, character-identical, in Briefing.tsx and
+ * Published.tsx — with Prereg.tsx importing it screen-to-screen from
+ * Briefing, which made a presentational sibling a dependency of an unrelated
+ * one. It belongs next to the store it selects from. The SEAM itself stays
+ * exactly as it was: this is a type move, not a wiring change.
+ */
+export type UseGameStore = <T>(selector: (state: GameStore) => T) => T;
+
 export function useGameStore<T>(selector: (state: GameStore) => T): T {
   return useStore(gameStore, selector);
 }

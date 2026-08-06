@@ -18,6 +18,7 @@ import { useGameStore } from '../../game/store';
 import type { ResultLogEntry } from '../../game/store';
 import { useLocale } from '../../i18n/LocaleProvider';
 import type { CopyKey } from '../../content/en/copy';
+import type { TFunction } from '../../i18n/t';
 import type { AchievementId, LocaleContent } from '../../content/types';
 import type { DayType, PathResult, PlayerAction, RevealMetrics } from '../../engine/types';
 import { callIsCorrect, scoreDay } from '../../game/scoring';
@@ -27,8 +28,6 @@ import { shareString, shareViaNavigator } from '../../game/share';
 import { msToNextLocalMidnight } from '../../game/daily';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
 import './Summary.css';
-
-type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
 
 // How long the clipboard-fallback "Copied to clipboard" toast stays up.
 // T35 gives its ARRIVAL a --dur-quick beat (DESIGN.md R5.2 site 7,

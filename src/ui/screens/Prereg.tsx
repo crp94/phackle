@@ -15,8 +15,7 @@
 // for testability: real use defaults to the app's singleton.
 import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
-import { useGameStore, DEFAULT_SPEC } from '../../game/store';
-import type { UseGameStore } from './Briefing';
+import { useGameStore, DEFAULT_SPEC, type UseGameStore } from '../../game/store';
 import { SpecControls } from '../components/SpecControls';
 import type { Spec } from '../../engine/types';
 import './Prereg.css';

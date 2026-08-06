@@ -9,14 +9,12 @@
 // purely so tests can seed an isolated fake store instead of touching that
 // real singleton -- see tests/ui/briefing.test.tsx's makeFakeStoreHook.
 import { useLocale } from '../../i18n/LocaleProvider';
-import { useGameStore, type GameStore } from '../../game/store';
+import { useGameStore, type UseGameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { pickGrantwellEmail } from '../../game/briefing';
 import { loadState } from '../../game/storage';
 import { EmailCard } from '../components/EmailCard';
 import './Briefing.css';
-
-export type UseGameStore = <T>(selector: (state: GameStore) => T) => T;
 
 export interface BriefingProps {
   /** Defaults to the app's real singleton store hook. Tests inject an

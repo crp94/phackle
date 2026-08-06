@@ -11,6 +11,20 @@ import type { CopyKey } from '../content/en/copy';
  * at runtime (e.g. a caller that bypassed the type with a cast) it falls back
  * to returning the key itself rather than throwing or rendering "undefined".
  */
+/**
+ * The BOUND signature — `t(key, params)` with the copy record already closed
+ * over. This is what `useLocale()` hands every component (LocaleProvider.tsx
+ * builds it from the raw `t` below), and what a prop-driven presentational
+ * component asks for when it wants to render copy without reaching for the
+ * context itself.
+ *
+ * gr6-082: this type was re-declared, character-identical, in six separate
+ * screen files. Hoisted here — beside the function whose partial application
+ * it describes — so the app has ONE name for it and a future change to the
+ * params shape is a single edit instead of a six-file sweep.
+ */
+export type TFunction = (key: CopyKey, params?: Record<string, string | number>) => string;
+
 export function t(copy: Record<CopyKey, string>, key: CopyKey, params?: Record<string, string | number>): string {
   const template = copy[key];
   if (template === undefined) return key;
