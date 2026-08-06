@@ -336,3 +336,91 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
     });
   });
 });
+
+// --- gr6-018: the invoice itemises, including the zeros ---------------------
+//
+// The modal Hacking Mode day is "published, called wrong" — 75% of days are
+// null, the credulous first-timer publishes and calls "real", and
+// `incorrectCall` is worth 0. Parsimony was gated behind `callCorrect ===
+// true`, so that day produced a breakdown of exactly ONE row reading 0: a
+// screen titled "Invoice", one line item of zero, and a total of zero, two
+// screens after the same day printed "+25 career points" in gold.
+//
+// The scoring is untouched (0 for a wrong call is correct and pointed). What
+// changes is that the row a player did NOT earn is now shown at its computed
+// value instead of being omitted — which is what an invoice does.
+describe('gr6-018 — the parsimony row is always itemised, at its computed value', () => {
+  it('a published, wrongly-called day shows parsimony at 0 rather than omitting the row', () => {
+    const r = scoreDay({
+      mode: 'hack',
+      dayType: 'null',
+      published: true,
+      callCorrect: false,
+      forks: 6,
+      stamp: 'RETRACTED',
+    });
+    expect(r.breakdown).toEqual([
+      ['summary.breakdownCallIncorrect', 0],
+      ['summary.breakdownParsimony', 0],
+    ]);
+    expect(r.score).toBe(0); // NO scoring change
+    expect(r.career).toBe(SCORING.publishedCareer);
+  });
+
+  it('a correct call still shows parsimony at its real computed value', () => {
+    const r = scoreDay({
+      mode: 'hack',
+      dayType: 'effect',
+      published: true,
+      callCorrect: true,
+      forks: 4,
+      stamp: 'REPLICATED',
+    });
+    const parsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * 4);
+    expect(r.breakdown).toContainEqual(['summary.breakdownParsimony', parsimony]);
+    expect(r.score).toBe(SCORING.correctCall + parsimony);
+  });
+
+  it('a correct call at high fork counts shows the same honest 0 (the bonus is dead past 10 forks)', () => {
+    const r = scoreDay({
+      mode: 'hack',
+      dayType: 'effect',
+      published: true,
+      callCorrect: true,
+      forks: 27,
+      stamp: 'REPLICATED',
+    });
+    expect(r.breakdown).toContainEqual(['summary.breakdownParsimony', 0]);
+    expect(r.score).toBe(SCORING.correctCall);
+  });
+
+  it('every hack-mode breakdown still sums exactly to the score (the zero row is a strict summand)', () => {
+    for (const published of [true, false]) {
+      for (const callCorrect of [true, false]) {
+        for (const dayType of ['null', 'effect'] as const) {
+          for (const forks of [0, 3, 10, 27]) {
+            const r = scoreDay({ mode: 'hack', dayType, published, callCorrect, forks, stamp: 'RETRACTED' });
+            const sum = r.breakdown.reduce((acc, [, v]) => acc + v, 0);
+            expect(sum, `${dayType}/${published}/${callCorrect}/${forks}`).toBe(r.score);
+            expect(r.breakdown.length).toBeGreaterThanOrEqual(2);
+            const keys = r.breakdown.map(([k]) => k);
+            expect(new Set(keys).size).toBe(keys.length);
+          }
+        }
+      }
+    }
+  });
+
+  it('Prereg Mode keeps its own self-contained single row (no parsimony there at all)', () => {
+    const r = scoreDay({
+      mode: 'prereg',
+      dayType: 'null',
+      published: true,
+      callCorrect: null,
+      forks: 0,
+      stamp: 'NULL_REPORTED',
+      preregSig: false,
+    });
+    expect(r.breakdown.map(([k]) => k)).toEqual(['summary.breakdownConfirmedNull']);
+  });
+});

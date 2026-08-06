@@ -155,7 +155,13 @@ function pickValidSettings(value: unknown): PersistedSettings {
   return out;
 }
 
-function isValidV1(data: unknown): data is PersistedState {
+/** The CONTAINER check: every top-level field is present and of the right
+ * broad kind. Necessary but — as gr6-044 (final-002) found the hard way —
+ * nowhere near sufficient for `stats`, whose fields are arithmetic operands.
+ * Kept as its own predicate because `migrate` below distinguishes the two
+ * failure modes: a wrong-shaped container is unusable, a wrong-shaped
+ * `stats` block inside an otherwise sound container is repairable. */
+function isV1Container(data: unknown): data is Record<string, unknown> {
   if (typeof data !== 'object' || data === null) return false;
   const d = data as Record<string, unknown>;
   return (
@@ -171,15 +177,162 @@ function isValidV1(data: unknown): data is PersistedState {
   );
 }
 
+/** The seven scalar counters of PersistedStats, listed once so the numeric
+ * validation below and `freshState()`'s own literal cannot drift apart —
+ * `satisfies` makes a future field addition a compile error here rather than
+ * a silently-unvalidated counter. */
+const STATS_COUNTERS = [
+  'streak',
+  'maxStreak',
+  'callsCorrect',
+  'callsTotal',
+  'careerPoints',
+  'preregDays',
+  'hackDays',
+] as const satisfies readonly (keyof PersistedStats)[];
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** One persisted day-record, as much of it as can be trusted. The blob being
+ * repaired is by definition one whose shape has already lied once, so every
+ * field is re-checked rather than assumed — `history` itself was only ever
+ * validated as "is an object". */
+function readRecord(value: unknown): { mode: 'hack' | 'prereg'; forks: number; callCorrect?: boolean; published: boolean } | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const rec = value as Record<string, unknown>;
+  if (rec.mode !== 'hack' && rec.mode !== 'prereg') return null;
+  if (!isFiniteNumber(rec.forks) || rec.forks < 0 || !Number.isInteger(rec.forks)) return null;
+  return {
+    mode: rec.mode,
+    forks: rec.forks,
+    callCorrect: typeof rec.callCorrect === 'boolean' ? rec.callCorrect : undefined,
+    // `saveDay`'s own career rule: a hack day that ended in anything but a
+    // reported null was published.
+    published: typeof rec.stamp === 'string' && rec.stamp !== 'NULL_REPORTED',
+  };
+}
+
+/**
+ * w6-r-010 — RE-DERIVE, DO NOT ZERO.
+ *
+ * `history` already carries, per day and per mode, precisely the four things
+ * `saveDay` increments from: `mode`, `callCorrect`, `stamp` and `forks`. So a
+ * counter that cannot be trusted does not have to become 0 — it can be
+ * recomputed from the record it was only ever a running total OF. Every line
+ * below mirrors `saveDay`'s own arithmetic exactly (there is a test that plays
+ * the same days through the real `saveDay` and asserts the two blocks are
+ * equal, which is what keeps the mirror honest).
+ *
+ * Total over garbage by construction: a malformed day, or a malformed record
+ * inside a sound day, contributes nothing rather than throwing — see
+ * `readRecord`.
+ *
+ * `streak` is the one field that cannot be fully re-derived, because "the
+ * current streak" depends on what day it is TODAY and this module deliberately
+ * holds no wall clock (`loadState` runs on every render; a date read here
+ * would be a new source of drift). It is rebuilt as the run ENDING ON THE LAST
+ * PLAYED DAY — a true statement about the history, and one the very next
+ * `saveDay` recomputes from scratch anyway. `maxStreak` needs no such caveat:
+ * `streakAfter` derives it from the whole history independently.
+ */
+function rebuildStatsFromHistory(history: unknown): PersistedStats {
+  const out = freshState().stats;
+  if (typeof history !== 'object' || history === null) return out;
+  const days = history as Record<string, unknown>;
+
+  // Built as we go, holding ONLY the records that survived validation, so the
+  // streak math below runs over something whose shape is known. `streakAfter`
+  // reads `day.hack`/`day.prereg` directly and is not total over a junk
+  // history (a literal `null` day throws); handing it a sanitised copy reuses
+  // the real calendar logic instead of restating it here.
+  const sanitised: ModeHistory = {};
+  let lastPlayedIso: string | null = null;
+
+  for (const iso of Object.keys(days).sort()) {
+    const day = days[iso];
+    if (typeof day !== 'object' || day === null) continue;
+    const modes = day as Record<string, unknown>;
+    for (const key of ['hack', 'prereg'] as const) {
+      const rec = readRecord(modes[key]);
+      if (rec === null || rec.mode !== key) continue;
+      if (rec.mode === 'hack') out.hackDays += 1;
+      else out.preregDays += 1;
+      if (rec.callCorrect !== undefined) {
+        out.callsTotal += 1;
+        if (rec.callCorrect) out.callsCorrect += 1;
+      }
+      if (rec.mode === 'hack' && rec.published) out.careerPoints += SCORING.publishedCareer;
+      out.forkHistogram = incrementHistogram(out.forkHistogram, rec.forks);
+      sanitised[iso] = { ...sanitised[iso], [key]: modes[key] as DayRecord };
+      lastPlayedIso = iso;
+    }
+  }
+
+  if (lastPlayedIso !== null) {
+    const { streak, maxStreak } = streakAfter(sanitised, lastPlayedIso);
+    out.streak = streak;
+    out.maxStreak = maxStreak;
+  }
+  return out;
+}
+
+/** gr6-044: `stats` is the one block whose fields are read as ARITHMETIC
+ * OPERANDS (`saveDay`'s `state.stats.callsTotal + 1`, `incrementHistogram`'s
+ * `hist.slice()`), so "is an object" is not a check — it is an assumption.
+ * A `{version: 1, ..., stats: {}}` blob used to pass validation and then
+ * NaN-poison every counter on the very next `saveDay`, permanently and
+ * invisibly (the histogram case did not even get that far: `.slice()` of
+ * `undefined` throws). Every counter is therefore validated as a FINITE
+ * number and the histogram as an array of finite numbers; anything else
+ * falls back — per field, so one bad counter costs the player one counter and
+ * never their history — to what `rebuildStatsFromHistory` can re-derive from
+ * the days that survived (w6-r-010). On an empty or unusable history that
+ * rebuild IS `freshState().stats`, so the previous behaviour is the floor,
+ * not the default. */
+function pickValidStats(value: unknown, history: unknown): PersistedStats {
+  const out = rebuildStatsFromHistory(history);
+  if (typeof value !== 'object' || value === null) return out;
+  const raw = value as Record<string, unknown>;
+  for (const key of STATS_COUNTERS) {
+    if (isFiniteNumber(raw[key])) out[key] = raw[key];
+  }
+  if (Array.isArray(raw.forkHistogram) && raw.forkHistogram.every(isFiniteNumber)) {
+    out.forkHistogram = raw.forkHistogram as number[];
+  }
+  return out;
+}
+
+function isValidV1(data: unknown): data is PersistedState {
+  if (!isV1Container(data)) return false;
+  const stats = data.stats as Record<string, unknown>;
+  return (
+    STATS_COUNTERS.every((key) => isFiniteNumber(stats[key])) &&
+    Array.isArray(stats.forkHistogram) &&
+    stats.forkHistogram.every(isFiniteNumber)
+  );
+}
+
 /**
  * v1 -> v1 identity (defensively re-validated — a version tag lying about
  * its own shape is treated as corrupt); any other version -> fresh. This is
  * intentionally a stub: v1 is the only version that has ever existed, so
  * there is nothing to migrate FROM yet ("Migration function stub from day
  * one... because there will be a v2" — master spec §5.6).
+ *
+ * gr6-044 adds one middle case between "identity" and "fresh". A blob whose
+ * CONTAINER is sound but whose `stats` block is not numerically usable is
+ * REPAIRED rather than discarded: throwing the whole record away would cost
+ * the player their history, their achievements and their settings to fix a
+ * counter, which is a far worse outcome than the corruption itself. The
+ * identity path is unchanged and still returns the very same object
+ * reference for a blob that genuinely is a PersistedState.
  */
 export function migrate(version: number, data: unknown): PersistedState {
-  if (version === 1 && isValidV1(data)) return data;
+  if (version !== 1) return freshState();
+  if (isValidV1(data)) return data;
+  if (isV1Container(data)) return { ...(data as unknown as PersistedState), stats: pickValidStats(data.stats, data.history) };
   return freshState();
 }
 

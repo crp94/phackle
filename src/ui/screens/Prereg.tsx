@@ -15,8 +15,7 @@
 // for testability: real use defaults to the app's singleton.
 import { useState } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
-import { useGameStore, DEFAULT_SPEC } from '../../game/store';
-import type { UseGameStore } from './Briefing';
+import { useGameStore, DEFAULT_SPEC, type UseGameStore } from '../../game/store';
 import { SpecControls } from '../components/SpecControls';
 import type { Spec } from '../../engine/types';
 import './Prereg.css';
@@ -31,6 +30,9 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
   const { content, t } = useLocale();
   const scenarioIndex = useStore((s) => s.scenarioIndex);
   const preregCommit = useStore((s) => s.preregCommit);
+
+  // gr6-043: read alongside the commit's own local flag — see `frozen` below.
+  const storeError = useStore((s) => s.error);
 
   const [spec, setSpec] = useState<Spec>(DEFAULT_SPEC);
   const [checked, setChecked] = useState(false);
@@ -47,21 +49,39 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
   const scenario = content.scenarios[scenarioIndex];
   if (!scenario) return null;
 
-  const canSubmit = checked && !submitting;
+  /**
+   * gr6-043 — "a commit is underway AND has not failed."
+   *
+   * The comment below used to describe a path that did not exist: it claimed
+   * a rejected commit "surfaces through the SAME store.error ->
+   * errors.workerCrash banner", when in fact `preregCommit` had no catch at
+   * all. `void` discarded the rejection outright (there is no
+   * `unhandledrejection` handler anywhere in src/ or index.html either),
+   * `pending` stayed true forever, and preregCommit's OWN `|| s.pending`
+   * guard then refused every retry — preregistration was a hard, silent dead
+   * end for the rest of the day, on a mode that gets one attempt.
+   *
+   * The store half of the fix is real now (`withEngineErrors` clears
+   * `pending` and routes the message to `error`). This is the screen half: a
+   * failure that leaves the day playable must leave the FORM usable too, or
+   * the dead end simply moves one layer up. Three states, exhaustively:
+   *
+   *   - in flight: `submitting` true, no error -> frozen, "Locked in" shows.
+   *   - succeeded: the store has already flipped `screen` to 'reveal' and
+   *     unmounted this component; nothing here is evaluated at all.
+   *   - failed: `error` is set, `pending` is clear, and the controls come
+   *     back so the player can commit again under the error banner.
+   */
+  const frozen = submitting && storeError === null;
+  const canSubmit = checked && !frozen;
 
   function handleSubmit() {
     if (!canSubmit) return;
     setSubmitting(true);
-    // No .then/.catch: a successful commit moves the store's `screen` to
-    // 'reveal', which unmounts this component entirely (registry.ts) — there
-    // is nothing left for local state to do. A rejected commit (e.g. a
-    // worker crash mid-sequence) surfaces through the SAME store.error ->
-    // errors.workerCrash banner every other screen already relies on
-    // (ScreenRouter.tsx renders it above whatever screen is current); this
-    // screen does not need a second, competing error path. If it rejects
-    // without ever changing `screen`, this component stays mounted with
-    // `submitting` still true — matching Lab's own disabled-while-pending
-    // treatment on a stalled request, not a false "success" state.
+    // No .then/.catch here: the store no longer rejects (see `frozen` above
+    // for the full accounting of what each outcome does to this screen), and
+    // a second, competing error path on this screen would only disagree with
+    // ScreenRouter's banner.
     void preregCommit(spec);
   }
 
@@ -72,14 +92,14 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
       <p className="ph-prereg__intro">{t('prereg.intro')}</p>
 
       <div className="ph-prereg__controls">
-        <SpecControls spec={spec} onChange={setSpec} scenario={scenario} disabled={submitting} />
+        <SpecControls spec={spec} onChange={setSpec} scenario={scenario} disabled={frozen} />
       </div>
 
       <label className="ph-prereg__commit">
         <input
           type="checkbox"
           checked={checked}
-          disabled={submitting}
+          disabled={frozen}
           onChange={(e) => setChecked(e.target.checked)}
         />
         <span>{t('prereg.commit')}</span>
@@ -89,7 +109,7 @@ export function Prereg({ useStore = useGameStore }: PreregProps = {}) {
         {t('prereg.submit')}
       </button>
 
-      {submitting ? (
+      {frozen ? (
         <p className="ph-prereg__locked" role="status">
           {t('prereg.locked')}
         </p>

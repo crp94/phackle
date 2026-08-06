@@ -197,23 +197,129 @@ const PRESS_SLOT_SALTS = ['', `${PRESS_SALT_MARKER}2`, `${PRESS_SALT_MARKER}chyr
  * rather than a distinctness guarantee, and is documented as such.
  */
 export function pickPress(press: PressBlurb[], tier: EgregiousnessTier, scenarioId: string, iso: string): PressBlurb {
-  const tierMatched = press.filter((p) => p.tier === tier);
-  const bound = tierMatched.filter((p) => p.scenarioIds?.includes(scenarioId));
-  const agnostic = tierMatched.filter((p) => !p.scenarioIds || p.scenarioIds.length === 0);
   const cut = iso.indexOf(PRESS_SALT_MARKER);
   const isFollowUp = cut !== -1;
   const day = isFollowUp ? iso.slice(0, cut) : iso;
   const salt = isFollowUp ? iso.slice(cut) : '';
+  const slot = PRESS_SLOT_SALTS.indexOf(salt);
+
+  // An UNREGISTERED salt keeps its documented behaviour exactly: a
+  // hash-derived offset, which is best-effort variety rather than a
+  // distinctness guarantee. There is no slot pedigree to reconstruct for it,
+  // so it also gets no dedup history — it is not one of the day's three
+  // rendered slots.
+  if (slot === -1) return resolveSlot(press, tier, scenarioId, day, fnv1a32(salt), isFollowUp, []);
+
+  // gr6-064: a follow-up slot must know what the slots BEFORE it already put
+  // on screen, and it can — every slot is a pure, deterministic function of
+  // the same (press, tier, scenarioId, day), so the earlier ones are simply
+  // recomputed here. At most two of them, both cheap. This is what lets the
+  // outlet exclusion hold at each of the three existing four-argument call
+  // sites without any of them growing an "exclude" parameter.
+  const taken: PressBlurb[] = [];
+  for (let earlier = 0; earlier < slot; earlier++) {
+    taken.push(resolveSlot(press, tier, scenarioId, day, earlier, earlier !== 0, taken));
+  }
+  return resolveSlot(press, tier, scenarioId, day, slot, isFollowUp, taken);
+}
+
+/**
+ * One slot's pick: choose the pool, hash the day into it, then walk forward
+ * from that index past anything the earlier slots already used.
+ *
+ * WHY THE SCENARIO ID SALTS THE AGNOSTIC HASH (gr6-064). The day's hash was
+ * `fnv1a32(day + tier)` for every pool, so the generic slots' index depended
+ * on the DATE alone — two dates whose hashes land on the same residue produce
+ * the identical generic pair for every scenario at that tier, which is how
+ * GR2 caught the same two agnostic blurbs running on 2026-08-12 and
+ * 2026-08-15. Folding the scenario id into the hash for the agnostic pool
+ * only (the bound pool's draw is byte-for-byte unchanged, so T39a's
+ * covered-by-name guarantee is untouched) decorrelates the twenty scenarios
+ * from each other: a residue collision on the date now has to coincide with
+ * the same scenario running again, which pushes the repetition out from
+ * "somewhere in the same week" to the scenario cycle itself.
+ *
+ * WHY REJECT-AND-ADVANCE, NEVER RE-RANDOMISE. `(index + step) % pool.length`
+ * walks the pool in its own fixed order from the slot's own rotated start, so
+ * the result stays a pure function of the arguments and stays reproducible
+ * from the date. A second hash on rejection would be neither.
+ *
+ * The two-tier preference — a new OUTLET if the pool has one, otherwise at
+ * least a line nobody has printed yet — matters because the previous
+ * distinctness guarantee was by TEXT. Two clippings could carry different
+ * headlines under the same masthead, and on puzzle #11 they did: "NIGHTLY
+ * CHYRON NETWORK" headed both cards on the day's payoff screen, against
+ * R5.2's own stated reason for staggering their entrance ("coverage arrives
+ * outlet by outlet, which is what coverage does").
+ */
+function resolveSlot(
+  press: PressBlurb[],
+  tier: EgregiousnessTier,
+  scenarioId: string,
+  day: string,
+  offset: number,
+  isFollowUp: boolean,
+  taken: PressBlurb[]
+): PressBlurb {
+  const tierMatched = press.filter((p) => p.tier === tier);
+  const bound = tierMatched.filter((p) => p.scenarioIds?.includes(scenarioId));
+  const agnostic = tierMatched.filter((p) => !p.scenarioIds || p.scenarioIds.length === 0);
   const preferred = isFollowUp ? agnostic : bound;
   const fallback = isFollowUp ? bound : agnostic;
-  const pool = preferred.length > 0 ? preferred : fallback;
+  const usedPreferred = preferred.length > 0;
+  const pool = usedPreferred ? preferred : fallback;
   // Defensive backstop (content guarantees every tier has >=1 agnostic
   // blurb): widen rather than crash if some future edit ever left a tier
   // with neither a bound nor an agnostic entry for this scenario.
   const safePool = pool.length > 0 ? pool : tierMatched.length > 0 ? tierMatched : press;
-  const h = fnv1a32(day + String(tier));
-  const known = PRESS_SLOT_SALTS.indexOf(salt);
-  const offset = known !== -1 ? known : fnv1a32(salt);
-  const idx = (((h ^ (h >>> 15)) >>> 0) + offset) % safePool.length;
-  return safePool[idx];
+  const drewAgnostic = safePool === agnostic;
+  const h = fnv1a32(drewAgnostic ? `${day}${tier}|${scenarioId}` : day + String(tier));
+  const index = (((h ^ (h >>> 15)) >>> 0) + offset) % safePool.length;
+
+  if (taken.length === 0) return safePool[index];
+
+  const usedOutlets = new Set(taken.map((b) => b.outlet));
+  const usedTexts = new Set(taken.map((b) => b.text));
+  let textDistinct: PressBlurb | null = null;
+  for (let step = 0; step < safePool.length; step++) {
+    const candidate = safePool[(index + step) % safePool.length];
+    if (usedTexts.has(candidate.text)) continue;
+    if (!usedOutlets.has(candidate.outlet)) return candidate;
+    textDistinct ??= candidate;
+  }
+  // Every outlet in this pool is already on screen. Prefer at least an unseen
+  // LINE; if even that is impossible the pool is smaller than the number of
+  // slots, and a repeat is the content's shortage, not the picker's.
+  return textDistinct ?? safePool[index];
+}
+
+/**
+ * THE DAY'S PRESS, assembled exactly as the Published screen renders it
+ * (gr6-091): two cards at the day's tier, plus a tier-3-only chyron.
+ *
+ * The three seeds used to live at three call sites in `screens/Published.tsx`
+ * and were mirrored, by hand, in a test helper — with a `readFileSync`
+ * regex-over-source scan standing guard over the mirror. That scan was the one
+ * test in this suite that broke on an innocent rename, and it tested a
+ * SPELLING rather than a behaviour. One audited function replaces both: the
+ * seeds are stated once, here, and every property the picker owes the screen
+ * (bound first card, generic follow-ups, pairwise-distinct items, distinct
+ * outlets, whole-bank reachability) is asserted against THIS function's real
+ * output.
+ *
+ * This is also the prerequisite the 60-cell press matrix work is sequenced
+ * behind: a new bank needs exactly one picker to be audited against.
+ */
+export function pressForDay(
+  press: PressBlurb[],
+  tier: EgregiousnessTier,
+  scenarioId: string,
+  iso: string
+): PressBlurb[] {
+  const cards = [
+    pickPress(press, tier, scenarioId, `${iso}${PRESS_SLOT_SALTS[0]}`),
+    pickPress(press, tier, scenarioId, `${iso}${PRESS_SLOT_SALTS[1]}`),
+  ];
+  if (tier === 3) cards.push(pickPress(press, 3, scenarioId, `${iso}${PRESS_SLOT_SALTS[2]}`));
+  return cards;
 }

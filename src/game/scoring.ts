@@ -67,11 +67,19 @@ function scoreHack(i: ScoreDayInput): ScoreDayResult {
 
   // Row 3: parsimony bonus — "only if call correct" (§2.8), independent of
   // published vs. abandoned.
-  if (i.callCorrect === true) {
-    const parsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * i.forks);
-    breakdown.push(['summary.breakdownParsimony', parsimony]);
-    score += parsimony;
-  }
+  //
+  // gr6-018: the ROW is now unconditional; the VALUE still is not. A wrong
+  // call earns 0 parsimony, exactly as before — but it used to earn no row
+  // either, and on the modal Hacking Mode day (75% of days are null, the
+  // credulous first-timer publishes and calls "real", `incorrectCall` is 0)
+  // that left the whole invoice as one line reading zero: a screen titled
+  // "Invoice", a single item of 0, and a total of 0, two screens after the
+  // same day printed "+25 career points" in gold. Itemising the zero is what
+  // an invoice does, and it costs nothing: adding 0 leaves `score` and the
+  // breakdown-sums-to-score contract untouched.
+  const parsimony = i.callCorrect === true ? Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * i.forks) : 0;
+  breakdown.push(['summary.breakdownParsimony', parsimony]);
+  score += parsimony;
 
   // Row 4: career points, a separate track, unconditional on call
   // correctness — only earned on an actual publish.

@@ -20,11 +20,10 @@
 //      Legend page is unchanged.
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
-import { FORK_EMOJI } from '../../game/share';
-import { classifyChange } from '../../game/forkLog';
+import { PREREG_PREFIX, walkForkGlyphs } from '../../game/share';
 import { LEGEND_ENTRIES } from '../screens/Legend';
 import { GlyphMark } from './GlyphMark';
-import type { PlayerAction, Spec } from '../../engine/types';
+import type { PlayerAction } from '../../engine/types';
 import './ForkTrail.css';
 
 export interface ForkTrailProps {
@@ -32,29 +31,19 @@ export interface ForkTrailProps {
   mode: 'hack' | 'prereg';
 }
 
-/** Same "first VIEW_SPEC is free, later ones count iff seen" rule as
- * forkLog.ts's countForks/share.ts's buildTrail, restated here (rather than
- * imported) because neither of those is exported — only the glyph legend
- * (FORK_EMOJI) and the per-change classifier (classifyChange) are, and both
- * are reused as-is below. */
+/** gr6-092: §2.10's walk is share.ts's `walkForkGlyphs`, imported rather than
+ * restated. This file used to carry its own copy, with a comment explaining
+ * that it had to because the walk was not exported (only `FORK_EMOJI` and
+ * `classifyChange` were) — so the one rule that decides what counts as a fork
+ * lived in two places, and a change to either could quietly disagree with the
+ * share string a player pastes into somebody else's timeline.
+ *
+ * The Lab's trail carries no terminal 📄/🏳️ marker: it is by definition
+ * mid-play, before any SUBMIT or ABANDON has happened. That difference is
+ * exactly what stays here, at the call site, which is why the exported walker
+ * covers only the fork/peek run. */
 function buildLiveTrail(log: PlayerAction[], prereg: boolean): string {
-  let trail = prereg ? '🧾' : '';
-  let prevSpec: Spec | undefined;
-
-  for (const action of log) {
-    if (action.t === 'VIEW_SPEC') {
-      if (prevSpec === undefined) {
-        prevSpec = action.spec; // the initial default spec is free (§2.10)
-        continue;
-      }
-      if (action.seen) trail += FORK_EMOJI[classifyChange(prevSpec, action.spec)];
-      prevSpec = action.spec;
-    } else if (action.t === 'PEEK_AND_EXTEND') {
-      trail += FORK_EMOJI.peek;
-    }
-    // SUBMIT/ABANDON/CALL never reach the Lab's own log while it's showing.
-  }
-  return trail;
+  return (prereg ? PREREG_PREFIX : '') + walkForkGlyphs(log);
 }
 
 /**
