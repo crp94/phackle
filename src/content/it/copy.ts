@@ -134,7 +134,7 @@ export const copy: Record<CopyKey, string> = {
   // della scheda e non in quello della fattura. Vale su entrambi i percorsi:
   // anche chi riporta un risultato nullo ha finito la giornata, quindi la
   // frase nomina la giornata e mai una pubblicazione. Nominale (regola 4).
-  'briefing.finishedToday': 'Il rompicapo di oggi è finito. Ecco com\u2019è andata.',
+  'briefing.finishedToday': "Il rompicapo di oggi è finito. Ecco com'è andata.",
   // Il conto alla rovescia con il vocabolario della testata: briefing.vol
   // stampa "Vol. 1, n. 11" due righe più su, quindi il prossimo rompicapo è
   // il prossimo NUMERO. Stessi due token di summary.nextIn, stessi floor.
@@ -161,7 +161,7 @@ export const copy: Record<CopyKey, string> = {
   // deve battere ciglio per primo. "IC 95%" è il vocabolario che
   // lab.coefPlotCaption già stampa, quindi la frase indica una cosa che il
   // giocatore ha davanti agli occhi.
-  'lab.collectMoreHint': 'Un campione più grande restringe l\u2019IC 95% della tua stima.',
+  'lab.collectMoreHint': "Un campione più grande restringe l'IC 95% della tua stima.",
   // Sincere first, wink second. The Armitage line is the only moment in Act I
   // allowed to know what it is looking at; it is meant to be easy to miss.
   'lab.peekFootnote':
@@ -224,10 +224,10 @@ export const copy: Record<CopyKey, string> = {
   // l'inglese ha tolto: parole che un quindicenne sveglio non ha. Riscritte in
   // parole che non richiedono di cercare niente.
   'lab.explain.outcome': 'La misura che questa analisi prova a spiegare. Ce ne sono quattro fra cui scegliere.',
-  'lab.explain.subgroup': 'Esegue l\u2019analisi su un solo gruppo di partecipanti invece che su tutti.',
+  'lab.explain.subgroup': "Esegue l'analisi su un solo gruppo di partecipanti invece che su tutti.",
   'lab.explain.covariates':
     'Tiene conto anche delle differenze di partenza tra le persone nel confronto fra i due gruppi.',
-  'lab.explain.exclusion': 'Toglie dal campione i valori più estremi prima che parta l\u2019analisi.',
+  'lab.explain.exclusion': "Toglie dal campione i valori più estremi prima che parta l'analisi.",
   'lab.explain.transform': "Misura l'esito sulla sua scala originale, oppure ne comprime i valori grandi su scala logaritmica.",
   'lab.explain.tails': 'Verifica un effetto in entrambe le direzioni, oppure solo in quella prevista.',
 
@@ -239,7 +239,7 @@ export const copy: Record<CopyKey, string> = {
   'lab.howThisWorks.step1': 'Parti dalla domanda in alto: è a quella che i dati di oggi dovrebbero rispondere.',
   'lab.howThisWorks.step2': "Regola l'analisi finché il numero grande non scende sotto 0.05.",
   'lab.howThisWorks.step3': 'Invia la tua scoperta per la pubblicazione.',
-  'lab.howThisWorks.step4': 'Guarda in faccia la verità su quello che hai trovato, e di\u2019 se ci credi.',
+  'lab.howThisWorks.step4': 'Guarda in faccia la verità su quello che hai trovato, e dichiara se ci credi.',
   'lab.howThisWorks.dismiss': 'Ho capito',
 
   // The single most important sentence in the app: a first-timer has to
@@ -495,7 +495,7 @@ export const copy: Record<CopyKey, string> = {
   // lineette, senza una frase. Registro Atto II: dice che cos'è la schermata e
   // che cosa la riempie, senza incoraggiare né scusarsi.
   'stats.emptyState':
-    'Qui non c\u0027è ancora niente. Ogni cifra di questa pagina inizia a riempirsi dopo la tua prima giornata.',
+    "Qui non c'è ancora niente. Ogni cifra di questa pagina inizia a riempirsi dopo la tua prima giornata.",
 
   'stats.callAccuracyLast20': 'Ultimi 20 verdetti',
   // "contro" is combative; the comparison is neutral.
