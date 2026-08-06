@@ -638,7 +638,12 @@ export const content: LocaleContent = {
       scenarioIds: ['horoscope-parking'],
     },
     {
-      text: 'Eighteen months of hardware procurement records were matched line by line to eighteen months of issue trackers. Eleven engineering teams opened both sets to the researchers.',
+      // w4-r-007: this row used to restate the cover story's first two
+      // sentences almost verbatim (a 13-word shared run). The cover story has
+      // two jokes it never spends — the switch changeover as a natural
+      // experiment, and where the tactile-feedback literature stops — and a
+      // tier-1 outlet reporting the method is exactly who would spend them.
+      text: 'Every switch changeover inside eleven teams\' procurement records is treated as a natural experiment. The tactile-feedback literature stops at typing speed; this study begins at production.',
       outlet: 'The Sunday Supplement',
       tier: 1,
       scenarioIds: ['mechanical-keyboard-bugs'],
@@ -742,11 +747,15 @@ export const content: LocaleContent = {
     // the abstract and made it about the reader, so every line turns on the
     // second person and lands on something the reader already owns, already
     // does, or is already inside somebody's dataset for. Mastheads rotate
-    // Buzz / Clickwell / Scroll so no scenario's first card can collide with
-    // its own follow-ups. Spoiler law as above: the question, the method and
+    // Buzz / Clickwell / Scroll for VARIETY — w4-r-005: an earlier version of
+    // this note claimed the rotation is what stops a first card colliding with
+    // its follow-ups, which is not true. gr6-064's reject-and-advance in
+    // resolveSlot is what guarantees that, and it holds whichever masthead the
+    // bespoke card carries; the rotation only keeps the tier from reading like
+    // one outlet wrote it. Spoiler law as above: the question, the method and
     // the cover story's furniture, never the verdict. ----
     {
-      text: 'Your cat is not on the trust\'s payroll, but four of them started this study. Thirty days of your trading would have been enough to get you into the sample.',
+      text: 'Your cat is not on the trust\'s payroll, but four cats are the reason it exists. Thirty days of your trading would have been enough to get you into the sample.',
       outlet: 'Buzz & Broadsheet',
       tier: 2,
       scenarioIds: ['cat-crypto'],
@@ -788,7 +797,7 @@ export const content: LocaleContent = {
       scenarioIds: ['cafe-peer-review'],
     },
     {
-      text: 'The hard part was finding anybody who reads the agreement at all. If that is you, twelve months of your support calls were worth transcribing.',
+      text: 'The hard part was finding anybody who reads the agreement. If that is you, twelve months of your support calls were worth transcribing.',
       outlet: 'Clickwell',
       tier: 2,
       scenarioIds: ['terms-and-conditions-service'],
@@ -868,11 +877,16 @@ export const content: LocaleContent = {
     // ---- gr3-024, the 60-cell matrix: the eleven tier-3 cells T39a left
     // empty. Lower-third rules, same as the block above: present tense, one
     // clause, nothing a chyron could not hold, and the voice law (capitals) is
-    // mechanical rather than a matter of taste. Mastheads rotate across the
-    // tier's three outlets because tier 3 renders THREE items — two cards and
-    // the chyron — and the generic pool has exactly three mastheads to spend
-    // on the follow-ups, so a bespoke first card that reused one would force a
-    // repeat. ----
+    // mechanical rather than a matter of taste.
+    //
+    // w4-r-005 corrected the masthead note here. It used to argue that a
+    // bespoke first card reusing a generic masthead "would force a repeat",
+    // which is false: tier 3 renders three items and the generic pool holds
+    // exactly three mastheads, which is one per slot — card 1 may reuse any of
+    // them and resolveSlot still finds two unused ones for the follow-ups. All
+    // eleven cells below DO reuse a generic masthead, and the 3,000-date
+    // simulation measures same-outlet pairs at 0.00%. The rotation is variety,
+    // not structure; the structure is gr6-064's reject-and-advance. ----
     {
       text: 'ALERT: THE FLOUR CO-OP IS NOW A TRAINING PLAN',
       outlet: 'Nightside Live',
@@ -898,13 +912,13 @@ export const content: LocaleContent = {
       scenarioIds: ['horoscope-parking'],
     },
     {
-      text: 'ALERT: THE LOUD KEYBOARD IS NOW A QUALITY PROCESS',
+      text: 'THE LOUD KEYBOARD IS NOW A QUALITY PROCESS',
       outlet: 'Nightside Live',
       tier: 3,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
     {
-      text: 'BREAKING: THE LABEL MAKER HAS REACHED THE INBOX',
+      text: 'THE LABEL MAKER HAS REACHED THE INBOX',
       outlet: 'Channel 9 Nightly',
       tier: 3,
       scenarioIds: ['label-maker-inbox'],

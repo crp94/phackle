@@ -44,7 +44,14 @@ import {
   findParamFieldTokens,
   findScenariosWithoutPress,
   findUncoveredPressCells,
+  findWeaklyAnchoredPress,
+  findTierOneSecondPerson,
+  findTierOneShapeOutliers,
+  findTierTwoWithoutSecondPerson,
+  boundRowsAtTier,
+  pressAnchorStems,
   pressCellCoverage,
+  PRESS_ANCHOR_MIN_SHARED,
   corpusProse,
   localeProse,
   upperCaseRatio,
@@ -537,17 +544,23 @@ describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
   );
 
   it.each(LOCALES)('$name: 3,000 dates x every cell, card 1 is bespoke and no two cards share an outlet', ({ content }) => {
-    const uncovered = new Set(findUncoveredPressCells(content));
+    // w4-r-013: this used to SKIP any cell that had no bespoke entry, which
+    // made the bespoke assertion excuse itself — on a tree where the matrix
+    // regressed, the rows that regressed would be exactly the rows the loop
+    // stopped checking, and the test would stay green while the guarantee
+    // rotted. The matrix is complete, so state that as a precondition and then
+    // check all sixty cells unconditionally.
+    expect(findUncoveredPressCells(content)).toEqual([]);
     const misses: string[] = [];
     const clashes: string[] = [];
+    let checked = 0;
     for (const iso of simDates) {
       for (const scenario of content.scenarios) {
         for (const tier of [1, 2, 3] as const) {
           const cards = pressForDay(content.press, tier, scenario.id, iso);
           const where = `${iso} ${scenario.id}/tier${tier}`;
-          if (!uncovered.has(`${scenario.id}/tier${tier}`) && !cards[0].scenarioIds?.includes(scenario.id)) {
-            misses.push(where);
-          }
+          checked++;
+          if (!cards[0].scenarioIds?.includes(scenario.id)) misses.push(where);
           const outlets = cards.map((c) => c.outlet);
           if (new Set(outlets).size !== outlets.length) clashes.push(`${where}: ${outlets.join(' + ')}`);
           const texts = cards.map((c) => c.text);
@@ -555,9 +568,52 @@ describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
         }
       }
     }
+    // The loop actually ran over everything it claims to: 3,000 x 20 x 3.
+    expect(checked).toBe(simDates.length * content.scenarios.length * 3);
     // Sliced so a regression prints five readable rows rather than 180,000.
     expect(misses.slice(0, 5)).toEqual([]);
     expect(clashes.slice(0, 5)).toEqual([]);
+  });
+
+  /**
+   * w4-r-010 — THE DISTINCTNESS CLAIM, IN THE NUMBERS A PLAYER WOULD FEEL.
+   *
+   * The wave's first report quoted "distinct presentations 313 -> 251" and read
+   * it as a cost, which was the wrong frame twice over: that count is keyed by
+   * (tier, scenario, texts) and so mixes a global figure with a per-cell one,
+   * and it fell only because card 1 stopped rotating — which is the guarantee,
+   * not a regression.
+   *
+   * What a player actually meets is a 20-day scenario cycle. The honest
+   * question is how many of those twenty days show a page they have not seen
+   * before, and the honest global one is how many distinct PAGES the bank can
+   * produce at all. Both are asserted here so the claim in the report is the
+   * claim the suite checks.
+   */
+  it.each(LOCALES)('$name: a lived 20-day cycle shows twenty distinct press pages', ({ content }) => {
+    const pages = content.scenarios.map((scenario, day) => {
+      const iso = simDates[day];
+      const tier = ((day % 3) + 1) as 1 | 2 | 3;
+      return pressForDay(content.press, tier, scenario.id, iso)
+        .map((b) => `${b.outlet}::${b.text}`)
+        .join(' | ');
+    });
+    expect(new Set(pages).size).toBe(content.scenarios.length);
+  });
+
+  it.each(LOCALES)('$name: the bank can produce a distinct page for every cell it owns', ({ content }) => {
+    // One page per (scenario, tier) on a fixed date: 60 cells, 60 different
+    // pages. Before the matrix the bespoke card was absent from 34 of them and
+    // they collapsed onto the shared generic pool.
+    const pages = content.scenarios.flatMap((scenario) =>
+      ([1, 2, 3] as const).map((tier) =>
+        pressForDay(content.press, tier, scenario.id, simDates[0])
+          .map((b) => `${b.outlet}::${b.text}`)
+          .join(' | ')
+      )
+    );
+    expect(pages).toHaveLength(60);
+    expect(new Set(pages).size).toBe(60);
   });
 
   /**
@@ -572,6 +628,181 @@ describe('GR6 W4 gr3-024 — the (scenario, tier) press matrix', () => {
       const outlets = new Set(agnostic.map((p) => p.outlet));
       expect(agnostic.length, `tier ${tier} generic pool`).toBeGreaterThanOrEqual(5);
       expect(outlets.size, `tier ${tier} generic mastheads`).toBeGreaterThanOrEqual(tier === 3 ? 3 : 2);
+    }
+  });
+});
+
+/**
+ * w4-r-002 / w4-r-003 — THE TWO PROPERTIES THE MATRIX MADE LOAD-BEARING.
+ *
+ * Before this wave thirteen press rows carried a `scenarioIds` binding and
+ * three block comments described the tier registers. The matrix took the
+ * bindings to forty-seven and left the comments compiled nowhere, which the
+ * review demonstrated twice: swapping two bespoke texts left the suite green,
+ * and so did rewriting a tier-1 cell as a one-sentence tabloid line.
+ *
+ * Both laws below are RATCHETS with per-locale ceilings rather than absolutes,
+ * for one reason worth stating plainly: every violation that exists today is a
+ * row that PREDATES the law. `press[0]` ("Scientists say: your cat may be your
+ * best financial advisor") is T39a's opener and is a one-sentence second-person
+ * tier-1 line; T39a's terms-and-conditions tier-1 row is also one sentence; its
+ * browser-tabs tier-2 row never says "you". None of the 34 cells this wave
+ * wrote is on any of these lists, which is what the ceilings pin. Raising one
+ * requires editing a number next to a reason, exactly like the dosage ratchets.
+ */
+describe('GR6 W4 w4-r-002/003 — a bespoke blurb is anchored to its binding, and to its tier', () => {
+  /**
+   * The second person, per locale. Italian and Spanish carry it on the VERB as
+   * often as on a pronoun, so the lists include the finite forms the bank
+   * actually uses. Unicode-aware boundaries throughout: JS's `\b` is ASCII, so
+   * `/\btú\b/` fails to match "y tú probablemente" — the boundary after "ú"
+   * never exists. That bug was live in the first draft of this block and
+   * reported a Spanish tier-2 row as third person.
+   *
+   * NOT on the Italian list, deliberately: 'sei'. It is the second person of
+   * essere AND the number six, and the corpus ships "sei settimane di posta in
+   * uscita" in a tier-1 blurb — which the first draft duly reported as a
+   * register violation. Every Italian row that needs it is reached by 'tu'.
+   */
+  const REGISTER = [
+    {
+      name: 'en',
+      content: enContent,
+      secondPerson: /(^|[^\p{L}])(you|your|yours|yourself)([^\p{L}]|$)/iu,
+      maxTierOneSecondPerson: 1,
+      maxTierOneShapeOutliers: 2,
+      maxTierTwoWithoutSecondPerson: 1,
+      // press[0] is T39a's opener; its distinctive vocabulary is 'cat' and
+      // 'financial advisor'. 'cat'/'gato' is three letters, below the stem
+      // length, and the scenario says "personal-finance forums" rather than
+      // "financial", so a semantically perfect line scores 0-1 lexically.
+      anchorExempt: ['cat-crypto/tier1'],
+    },
+    {
+      name: 'it',
+      content: itContent,
+      secondPerson:
+        /(^|[^\p{L}])(tu|ti|te|tuo|tua|tuoi|tue|prendi|apri|scrivi|puoi|hai|possiedi|vai|entri|leggi)([^\p{L}]|$)/iu,
+      maxTierOneSecondPerson: 1,
+      maxTierOneShapeOutliers: 2,
+      maxTierTwoWithoutSecondPerson: 0,
+      anchorExempt: ['cat-crypto/tier1'],
+    },
+    {
+      name: 'es',
+      content: esContent,
+      secondPerson:
+        /(^|[^\p{L}])(tú|tu|tus|te|ti|tuyo|tuya|tuyos|subes|abres|tienes|eres|puedes|escribes|lees|entras|vas)([^\p{L}]|$)/iu,
+      maxTierOneSecondPerson: 1,
+      maxTierOneShapeOutliers: 2,
+      maxTierTwoWithoutSecondPerson: 0,
+      anchorExempt: ['cat-crypto/tier1'],
+    },
+  ] as const;
+
+  it.each(REGISTER)('$name: every tier-1/2 bespoke blurb reuses its own scenario\'s vocabulary', ({ content, anchorExempt }) => {
+    expect(findWeaklyAnchoredPress(content, anchorExempt)).toEqual([]);
+  });
+
+  it.each(REGISTER)('$name: tier 1 reports the method in the third person, in two sentences', ({ content, secondPerson, maxTierOneSecondPerson, maxTierOneShapeOutliers }) => {
+    const addressed = findTierOneSecondPerson(content, secondPerson);
+    const shaped = findTierOneShapeOutliers(content);
+    expect(addressed.length, addressed.join('\n')).toBeLessThanOrEqual(maxTierOneSecondPerson);
+    expect(shaped.length, shaped.join('\n')).toBeLessThanOrEqual(maxTierOneShapeOutliers);
+  });
+
+  it.each(REGISTER)('$name: tier 2 makes the paper about the reader', ({ content, secondPerson, maxTierTwoWithoutSecondPerson }) => {
+    const silent = findTierTwoWithoutSecondPerson(content, secondPerson);
+    expect(silent.length, silent.join('\n')).toBeLessThanOrEqual(maxTierTwoWithoutSecondPerson);
+  });
+
+  /**
+   * The review's own probe, replayed: swap two bespoke texts and keep both
+   * bindings. Every other law in this file stays green — the tiers are right,
+   * the voices are right, the cells are all still covered — which is exactly
+   * why this one had to exist.
+   */
+  it.each(REGISTER)('$name: catches a bespoke text moved onto the wrong binding (guards the guard)', ({ content, anchorExempt }) => {
+    // Measured over EVERY ordered pair of tier-1 bespoke rows rather than one
+    // hand-picked pair, because a single example proves only that one example.
+    // A survivor is a pair whose texts happen to share three distinctive stems
+    // with each other's scenarios; four of 380 do, and pinning the count keeps
+    // the metric honest if a future rewrite makes the bank blurrier.
+    const exempt: readonly string[] = anchorExempt;
+    const rows = boundRowsAtTier(content, 1).filter((p) => !exempt.includes(`${p.scenarioIds![0]}/tier1`));
+    let tried = 0;
+    let survived = 0;
+    for (const a of rows) {
+      for (const b of rows) {
+        if (a === b) continue;
+        tried++;
+        if (pressAnchorStems(content, { ...a, text: b.text }, a.scenarioIds![0]).length >= PRESS_ANCHOR_MIN_SHARED) {
+          survived++;
+        }
+      }
+    }
+    expect(tried).toBeGreaterThan(300);
+    expect(survived / tried, `${survived}/${tried} swaps went undetected`).toBeLessThanOrEqual(0.03);
+  });
+
+  it('a swap leaves every other press law green, which is why this one exists', () => {
+    const a = enContent.press.findIndex((p) => p.tier === 1 && p.scenarioIds?.includes('jazz-spreadsheets'));
+    const b = enContent.press.findIndex((p) => p.tier === 1 && p.scenarioIds?.includes('vinyl-dinner-party'));
+    const swapped: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p, i) =>
+        i === a ? { ...p, text: enContent.press[b].text } : i === b ? { ...p, text: enContent.press[a].text } : p
+      ),
+    };
+    expect(findWeaklyAnchoredPress(swapped, ['cat-crypto/tier1']).length).toBeGreaterThan(0);
+    // The matrix, the tiers, the voices and the spoiler law all still pass.
+    expect(findUncoveredPressCells(swapped)).toEqual([]);
+    expect(findPressVoiceProblems(swapped)).toEqual([]);
+    expect(findPressSpoilerTerms(swapped)).toEqual([]);
+  });
+
+  it('catches a tier-1 cell rewritten as a tabloid line, and a mute tier-2 cell (guards the guard)', () => {
+    const t1 = enContent.press.findIndex((p) => p.tier === 1 && p.scenarioIds?.includes('jazz-spreadsheets'));
+    const tabloid: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p, i) => (i === t1 ? { ...p, text: 'Your spreadsheet is listening to jazz right now.' } : p)),
+    };
+    const re = REGISTER[0].secondPerson;
+    expect(findTierOneSecondPerson(tabloid, re).length).toBe(2);
+    expect(findTierOneShapeOutliers(tabloid).length).toBe(3);
+
+    const t2 = enContent.press.findIndex((p) => p.tier === 2 && p.scenarioIds?.includes('cat-crypto'));
+    const mute: LocaleContent = {
+      ...enContent,
+      press: enContent.press.map((p, i) =>
+        i === t2 ? { ...p, text: 'The trust that commissioned the work keeps four cats and one very strong prior.' } : p
+      ),
+    };
+    expect(findTierTwoWithoutSecondPerson(mute, re).length).toBe(2);
+  });
+
+  /**
+   * TIER 3 IS DECLINED, with the measurement that decides it (w4-r-002). A
+   * chyron avoids the abstract's vocabulary on purpose, so lexical anchoring
+   * reports it as unbound however it is written. These are the shipped numbers;
+   * if a future rewrite lifts them, the exclusion can be revisited on evidence
+   * rather than on this paragraph.
+   */
+  it('records why tier 3 is outside the anchor law, in numbers rather than in prose', () => {
+    for (const { name, content } of REGISTER) {
+      const scores = boundRowsAtTier(content, 3).flatMap((p) =>
+        (p.scenarioIds ?? []).map((id) => pressAnchorStems(content, p, id).length)
+      );
+      const min = Math.min(...scores);
+      const max = Math.max(...scores);
+      const belowFloor = scores.filter((n) => n < PRESS_ANCHOR_MIN_SHARED).length;
+      // The exclusion is only honest while tier 3 genuinely cannot clear the
+      // floor. If a rewrite ever brings every row up, this fails and the tier
+      // should join the law.
+      expect(min, `${name} tier-3 anchor min`).toBeLessThan(PRESS_ANCHOR_MIN_SHARED);
+      expect(belowFloor, `${name}: ${belowFloor} of ${scores.length} tier-3 rows below the floor (max ${max})`).toBeGreaterThan(
+        scores.length / 2
+      );
     }
   });
 });

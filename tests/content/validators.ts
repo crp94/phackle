@@ -10,7 +10,7 @@
 // without changing a single assertion — every validator below is byte-identical
 // to the version that lived in `shape.test.ts`.
 import { JOURNALS } from '../../src/content/journals';
-import type { LocaleContent } from '../../src/content/types';
+import type { LocaleContent, PressBlurb, Scenario } from '../../src/content/types';
 
 const MIN_SCENARIOS = 20;
 const MIN_GRANTWELL = 12;
@@ -505,6 +505,164 @@ export function findUncoveredPressCells(content: LocaleContent): string[] {
 export function pressCellCoverage(content: LocaleContent): { covered: number; total: number } {
   const total = content.scenarios.length * PRESS_TIERS.length;
   return { covered: total - findUncoveredPressCells(content).length, total };
+}
+
+/**
+ * w4-r-002 — THE TEXT IS ANCHORED TO THE BINDING IT CLAIMS.
+ *
+ * `scenarioIds` is what stops a fern chyron running over a sourdough study,
+ * and until now nothing checked that a blurb's TEXT had anything to do with
+ * the id beside it: swapping two bespoke rows' texts left the whole suite
+ * green. That was survivable while thirteen rows carried a binding. The
+ * 60-cell matrix took it to forty-seven, which is when an unchecked
+ * correspondence becomes a liability rather than a theoretical one.
+ *
+ * THE METRIC, and why it is stems rather than words. A blurb anchors by
+ * reusing its scenario's own vocabulary, but not its exact inflections: the
+ * cover story says "fern" and the chyron says "FERNS", the Italian says
+ * "gatto" and the blurb "gatti". Comparing four-character stems catches the
+ * family; comparing whole words does not, and stemming properly in three
+ * languages would be a dependency this project has no other use for.
+ *
+ * DISTINCTIVE, not merely shared. A stem only counts if it appears in at most
+ * PRESS_ANCHOR_MAX_SCENARIOS of the twenty scenarios' prose. Without that
+ * filter every locale's function words ("della", "quien", "which") would score,
+ * and a blurb could clear the floor while naming nothing. With it, the words
+ * that count are the ones only a handful of studies use — which is exactly the
+ * evidence that this text was written for THIS study.
+ *
+ * TIERS 1 AND 2 ONLY, and the exclusion is measured rather than assumed. A
+ * tier-3 chyron is 24-72 characters of deliberately non-technical shouting; it
+ * anchors semantically ("ALERT: THE CAT HAS JOINED THE INVESTMENT COMMITTEE")
+ * while sharing almost no vocabulary with the abstract, because avoiding the
+ * paper's own words IS the register. Measured across the shipped bank, tier-3
+ * rows score min 0, median 1-2, max 4 in all three locales, and eleven of them
+ * score below any floor that would catch a swap. A guard set low enough to
+ * pass tier 3 would not catch anything; one set high enough to be useful would
+ * ban the tier. So tier 3 is declined here, in writing, and the residual risk
+ * is stated: a tier-3 text swapped onto the wrong scenario id would not be
+ * caught mechanically. See the block in shape.test.ts for the numbers.
+ *
+ * STEM LENGTH IS MEASURED, NOT GUESSED. At 4 the prefix collides across
+ * unrelated words — "departures" and "department" both become "depa", which is
+ * enough to let a dinner-party blurb pass as a spreadsheet one, and the swap
+ * probe below survived on exactly that. At 6 the stem is so specific that six
+ * legitimate English rows and four Spanish ones drop under the floor. At 5,
+ * 376 of 380 possible tier-1 text swaps are caught in English (377/380 IT,
+ * 376/380 ES) and the only shipped row below the floor is the pre-existing cat.
+ */
+export const PRESS_ANCHOR_STEM = 5;
+export const PRESS_ANCHOR_MAX_SCENARIOS = 4;
+export const PRESS_ANCHOR_MIN_SHARED = 3;
+/** The tiers whose register reuses the abstract's vocabulary. See above for why 3 is absent. */
+export const PRESS_ANCHOR_TIERS: readonly (1 | 2)[] = [1, 2];
+
+function anchorStems(text: string): string[] {
+  return (text.toLowerCase().match(/\p{L}+/gu) ?? [])
+    .filter((w) => w.length >= PRESS_ANCHOR_STEM)
+    .map((w) => w.slice(0, PRESS_ANCHOR_STEM));
+}
+
+function scenarioStemSet(s: Scenario): Set<string> {
+  return new Set(
+    anchorStems(
+      [
+        s.question,
+        s.coverStory,
+        s.treatmentLabel,
+        s.headline,
+        ...s.outcomeLabels,
+        ...s.outcomeUnits,
+        s.covariateLabels.income,
+        s.covariateLabels.risk,
+      ].join(' ')
+    )
+  );
+}
+
+/** The distinctive stems a blurb shares with the scenario it claims. Exported so a report can quote them. */
+export function pressAnchorStems(content: LocaleContent, blurb: PressBlurb, scenarioId: string): string[] {
+  const perScenario = content.scenarios.map(scenarioStemSet);
+  const freq = new Map<string, number>();
+  for (const set of perScenario) for (const stem of set) freq.set(stem, (freq.get(stem) ?? 0) + 1);
+  const own = perScenario[content.scenarios.findIndex((s) => s.id === scenarioId)];
+  if (!own) return [];
+  return [...new Set(anchorStems(blurb.text))].filter(
+    (stem) => own.has(stem) && (freq.get(stem) ?? 0) <= PRESS_ANCHOR_MAX_SCENARIOS
+  );
+}
+
+/**
+ * `exempt` holds `${scenarioId}/tier${n}` keys, each of which must be argued
+ * for at its call site the way the leading-zero law argues for `grantwell[0]`.
+ * Every entry today is a row that PREDATES this law; nothing this wave wrote is
+ * on it.
+ */
+export function findWeaklyAnchoredPress(content: LocaleContent, exempt: readonly string[] = []): string[] {
+  const problems: string[] = [];
+  content.press.forEach((blurb, i) => {
+    if (!PRESS_ANCHOR_TIERS.includes(blurb.tier as 1 | 2)) return;
+    for (const id of blurb.scenarioIds ?? []) {
+      if (exempt.includes(`${id}/tier${blurb.tier}`)) continue;
+      const shared = pressAnchorStems(content, blurb, id);
+      if (shared.length < PRESS_ANCHOR_MIN_SHARED) {
+        problems.push(
+          `press[${i}] claims "${id}" but shares only ${shared.length} distinctive stem(s) [${shared.join(', ')}] with it ` +
+            `(floor ${PRESS_ANCHOR_MIN_SHARED}): "${blurb.text}"`
+        );
+      }
+    }
+  });
+  return problems;
+}
+
+/**
+ * w4-r-003 — THE TIER REGISTERS, COMPILED.
+ *
+ * Three block comments in the content modules describe what each tier sounds
+ * like, and nothing checked any of them: a tier-1 cell rewritten as a
+ * one-sentence second-person tabloid line stayed green. These are the two
+ * halves of the distinction that are mechanical.
+ *
+ *   TIER 1 is a broadsheet reporting the METHOD in the third person, and the
+ *   shape it reaches for is two sentences: what was done, then the detail that
+ *   gives the sincerity away. So: no second person, exactly two sentences.
+ *   TIER 2 is an aggregator that has made the paper about the reader, so the
+ *   second person is not decoration but the whole device. So: at least one.
+ *
+ * SECOND PERSON IS A PER-LOCALE LEXICON, because Italian and Spanish carry it
+ * on the VERB as often as on a pronoun ("Ogni volta che PRENDI le scale",
+ * "Cada vez que SUBES por las escaleras") and a pronoun-only list would report
+ * those as third person. The lexicons live with each locale's other word lists.
+ *
+ * BOUND ROWS ONLY. A generic blurb has no scenario to report the method of, and
+ * the two registers blur where there is no study to be sincere about.
+ */
+export function boundRowsAtTier(content: LocaleContent, tier: 1 | 2 | 3): PressBlurb[] {
+  return content.press.filter((p) => p.tier === tier && (p.scenarioIds?.length ?? 0) > 0);
+}
+
+/** Sentence count by terminal punctuation. Colons do not end a sentence, which is why press[0] counts as one. */
+export function sentenceCount(text: string): number {
+  return text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0).length;
+}
+
+export function findTierOneSecondPerson(content: LocaleContent, secondPerson: RegExp): string[] {
+  return boundRowsAtTier(content, 1)
+    .filter((p) => secondPerson.test(p.text))
+    .map((p) => `tier-1 bound blurb addresses the reader: "${p.text}"`);
+}
+
+export function findTierOneShapeOutliers(content: LocaleContent): string[] {
+  return boundRowsAtTier(content, 1)
+    .filter((p) => sentenceCount(p.text) !== 2)
+    .map((p) => `tier-1 bound blurb is ${sentenceCount(p.text)} sentence(s), not two: "${p.text}"`);
+}
+
+export function findTierTwoWithoutSecondPerson(content: LocaleContent, secondPerson: RegExp): string[] {
+  return boundRowsAtTier(content, 2)
+    .filter((p) => !secondPerson.test(p.text))
+    .map((p) => `tier-2 bound blurb never addresses the reader: "${p.text}"`);
 }
 
 /** Whole-word matches, so "wellness" does not trip "less" nor "slower" trip "lower". */

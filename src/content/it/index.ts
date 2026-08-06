@@ -620,19 +620,28 @@ export const content: LocaleContent = {
       scenarioIds: ['cold-shower-emails'],
     },
     {
-      text: "Un registratore ha tracciato ogni ricerca di parcheggio dall'ingresso in strada allo spegnimento del motore. Ai due gruppi non è stato detto che cosa si cercasse, e i due che hanno indovinato non ci sono andati vicino.",
+      // w4-r-004: "hanno indovinato" said they guessed CORRECTLY, which is the
+      // opposite of the sentence's own second half. This locale's cover story
+      // has the idiom right three lines away ("hanno tirato a indovinare").
+      text: "Un registratore ha tracciato ogni ricerca di parcheggio dall'ingresso in strada allo spegnimento del motore. Ai due gruppi non è stato detto che cosa si cercasse, e i due che hanno tirato a indovinare non ci sono andati vicino.",
       outlet: 'La Gazzetta di Provincia',
       tier: 1,
       scenarioIds: ['horoscope-parking'],
     },
     {
-      text: 'Diciotto mesi di ordini hardware sono stati incrociati riga per riga con diciotto mesi di ticket. Undici team di sviluppo hanno aperto ai ricercatori entrambi gli archivi.',
+      // w4-r-007: see the English row. The cover story's two unspent jokes are
+      // the switch changeover treated as a natural experiment and the point
+      // where the tactile-feedback literature stops.
+      text: "Ogni cambio di switch dentro gli archivi di undici team è trattato come un esperimento naturale. La letteratura sul feedback tattile si ferma alla velocità di battitura; questo studio comincia dalla produzione.",
       outlet: "L'Inserto della Domenica",
       tier: 1,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
     {
-      text: 'I nomi degli animali sono stati classificati a mano su un elenco di economisti e incrociati con due anni di estratti conto certificati. La coda della classificazione non è ancora smaltita.',
+      // w4-r-008: "classificare CONTRO un elenco" is an anglicism; Italian
+      // confronta CON. The cover story still carries the older phrasing (it is
+      // W3's string, not this wave's) and is booked rather than reworked here.
+      text: 'I nomi degli animali sono stati confrontati a mano con un elenco di economisti e incrociati con due anni di estratti conto certificati. La coda della classificazione non è ancora smaltita.',
       outlet: 'Il Bollettino Civico',
       tier: 1,
       scenarioIds: ['dog-economist-stocks'],
@@ -760,13 +769,18 @@ export const content: LocaleContent = {
     // gr3-024, the 60-cell matrix: the eleven tier-2 cells, transcreated off
     // the ITALIAN scenarios. Same midmarket rules as the block above — TU and
     // never Lei, the second person in every line, and the joke landing on
-    // something the reader owns or already does. Where this locale's scenario
-    // diverges, the blurb follows the ITALIAN furniture and not the English
-    // source: the mortgage line counts to 17, the poetry jury reads what was
-    // posted to the canale Slack di poesia aziendale, and the peer-review
-    // panel sat at the bar rather than in a café.
+    // something the reader owns or already does.
+    //
+    // w4-r-005 corrected this note, which described content that is not in
+    // this block. It claimed a mortgage line (thirteen-mortgage's tier-2 cell
+    // was already filled by T39b; this wave's mortgage work is the tier-3
+    // chyron, and it is there that the 17 appears) and a poetry line reaching
+    // for the canale Slack di poesia aziendale (it does not; it names the
+    // giuria di ex studenti di Lettere and the pizza). The divergences that
+    // ARE here: the peer-review panel sat al bar rather than in a café, and
+    // the stairs line takes this locale's badge/debriefing sequencing.
     {
-      text: "Il tuo gatto non è nel libro paga della fondazione, ma sono stati quattro gatti a far partire lo studio. Bastavano trenta giorni delle tue operazioni per entrare nel campione.",
+      text: "Il tuo gatto non è nel libro paga della fondazione, ma sono stati quattro gatti a far partire lo studio. Sarebbero bastati trenta giorni delle tue operazioni per entrare nel campione.",
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['cat-crypto'],
@@ -784,13 +798,13 @@ export const content: LocaleContent = {
       scenarioIds: ['fern-negotiation'],
     },
     {
-      text: "Ogni nome di animale è stato classificato a mano contro un elenco di economisti, e su un Milton ci è voluta una settimana. Il nome del tuo cane o è in quell'elenco o non c'è.",
+      text: "Ogni nome di animale è stato confrontato a mano con un elenco di economisti, e su un Milton ci è voluta una settimana. Il nome del tuo cane o è in quell'elenco o non c'è.",
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['dog-economist-stocks'],
     },
     {
-      text: "Ci sono dentro diciotto mesi di registri di calendario, e la società di consulenza ha già chiesto quali riunioni pensiamo di nominare. Anche la tua delle quattro sta nei dati di qualcuno.",
+      text: "Dentro ci sono diciotto mesi di registri di calendario, e la società di consulenza ha già chiesto quali riunioni pensiamo di nominare. Anche la tua delle quattro sta nei dati di qualcuno.",
       outlet: 'Clickeria',
       tier: 2,
       scenarioIds: ['full-moon-meetings'],
@@ -802,7 +816,7 @@ export const content: LocaleContent = {
       scenarioIds: ['telescope-directions'],
     },
     {
-      text: "Il collegio che valuta la severità è fatto di ex direttori, recensiti tutti al bar almeno una volta. Se il tuo manoscritto è tornato indietro lungo, finalmente sai dove puntare il dito.",
+      text: "Il collegio che valuta la severità è composto da ex direttori, recensiti tutti al bar almeno una volta. Se il tuo manoscritto è tornato indietro lungo, finalmente sai dove puntare il dito.",
       outlet: 'Clamore & Lenzuolo',
       tier: 2,
       scenarioIds: ['cafe-peer-review'],
@@ -814,7 +828,7 @@ export const content: LocaleContent = {
       scenarioIds: ['terms-and-conditions-service'],
     },
     {
-      text: "Hanno montato un tavolino pieghevole al gate 14 e misurato quello che i viaggiatori avevano caricato contro la borsa che lo conteneva. Il tuo bagaglio a mano sarebbe stato il prossimo.",
+      text: "Hanno montato un tavolino pieghevole al gate 14 e confrontato quello che i viaggiatori avevano messo in valigia con il volume della valigia stessa. Il tuo bagaglio a mano sarebbe stato il prossimo.",
       outlet: 'Lo Scroll Quotidiano',
       tier: 2,
       scenarioIds: ['jigsaw-suitcase-packing'],
@@ -923,7 +937,9 @@ export const content: LocaleContent = {
     // because this locale relocated the superstition (eptacaidecafobia) and a
     // 13 here would be the English source showing through. Accented capitals
     // (È, À) sit outside the ASCII class upperCaseRatio counts and cost
-    // nothing.
+    // nothing. Mastheads here are variety and not structure (w4-r-005): the
+    // generic pool holds one masthead per slot, so a bespoke card may reuse
+    // one and resolveSlot still finds two unused ones for the follow-ups.
     {
       text: 'ALLARME: IL MOLINO COOPERATIVO ADESSO È UNA TABELLA DI ALLENAMENTO',
       outlet: 'Diretta Notte',

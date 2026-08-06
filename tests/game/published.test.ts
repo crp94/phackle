@@ -610,32 +610,60 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
    * scenarios from each other.
    */
   /**
-   * CROSS-WAVE NOTE (gr3-024, W4). This test used to select "scenarios with no
-   * bound blurb at tier 2", on the reasoning that a cell with no bespoke entry
-   * renders a WHOLE generic day and is where the repetition was most visible.
-   * The 60-cell press matrix filled every such cell, so that selector now
-   * matches nothing and the fixture's own `> 1` guard fired — the premise was
-   * the defect W4 removes, not the property this test is about.
+   * CROSS-WAVE NOTE (gr3-024, W4) and w4-r-001, which is the reason this test
+   * is written against a SYNTHETIC bank rather than the shipped one.
    *
-   * The property is unchanged and is still exactly gr6-064's second half: two
-   * different scenarios, same date, same tier, must not draw the same GENERIC
-   * material. What moved is where the generic material now lives. Card 1 is
-   * bespoke by construction post-matrix, so the generic draw is the follow-up
-   * tail — which is the pool the scenario salt was added to decorrelate in the
-   * first place, and therefore the sharper place to measure it.
+   * The test used to select "scenarios with no bound blurb at tier 2", because
+   * a cell with no bespoke entry renders a wholly generic day and is where the
+   * repetition was most visible. The 60-cell matrix filled every such cell, so
+   * that selector matches nothing and the fixture's own `> 1` premise guard
+   * fired. W4's first repair pointed the same `> 1` assertion at the live
+   * bank's follow-up tail — and that repair was WRONG in a way that took a
+   * mutation to see: deleting the salt from `resolveSlot` left the whole suite
+   * green.
+   *
+   * WHY THE LIVE BANK CANNOT TEST THIS ANY MORE. Post-matrix, card 1 is bespoke
+   * and therefore already differs per scenario. `resolveSlot`'s reject-and-
+   * advance then walks the follow-ups past card 1's outlet, so the tail shifts
+   * from scenario to scenario even with NO salt at all. The matrix masks the
+   * salt's absence, and `signatures.size > 1` is far too loose to notice: the
+   * bespoke card alone supplies the variation the assertion was reading as
+   * proof of the salt.
+   *
+   * WHAT ISOLATES THE SALT. Strip every bound row out of the bank. Then, for
+   * each tier, all three slots draw from one shared agnostic pool, `safePool`
+   * and `offset` are identical for all twenty scenarios, and the ONLY route by
+   * which the scenario id can reach the index is `resolveSlot`'s agnostic hash
+   * — the salt itself. Without it every scenario collapses to exactly ONE
+   * signature; with it they spread. That makes `> 1` structurally exact here
+   * rather than merely true, and it is a property of the picker rather than a
+   * threshold tied to today's pool sizes.
    */
   it('does not run the same generic pair for two different scenarios on the same date and tier', () => {
-    // The follow-up slots are the agnostic ones (pickPress inverts the
-    // preference for a salted seed), so the tail is the generic signature.
-    const genericTail = (scenarioId: string, tier: 1 | 2 | 3) =>
-      pressForDay(enContent.press, tier, scenarioId, ISO)
-        .slice(1)
-        .map((b) => b.text)
-        .join('|');
+    // The synthetic bank: agnostic rows only, so a bespoke first card cannot
+    // supply the variation the salt is supposed to supply.
+    const agnosticOnly = enContent.press.filter((p) => !p.scenarioIds?.length);
+    expect(agnosticOnly.length).toBeLessThan(enContent.press.length);
     expect(enContent.scenarios.length).toBeGreaterThan(1);
+
     for (const tier of TIERS) {
-      const signatures = new Set(enContent.scenarios.map((sc) => genericTail(sc.id, tier)));
-      expect(signatures.size, `tier ${tier} generic tails on ${ISO}`).toBeGreaterThan(1);
+      const signatures = new Set(
+        enContent.scenarios.map((sc) =>
+          pressForDay(agnosticOnly, tier, sc.id, ISO)
+            .map((b) => b.text)
+            .join('|')
+        )
+      );
+      // Unsalted, this is exactly 1 for every tier — the whole bank draws off
+      // the date alone, which is the defect gr6-064 was raised for.
+      expect(signatures.size, `tier ${tier} generic draws on ${ISO} are not decorrelated by scenario`).toBeGreaterThan(1);
     }
   });
+
+  // The live-bank, player-facing half of the same concern (w4-r-010) lives in
+  // tests/content/shape.test.ts beside the 3,000-date simulation, because what
+  // it measures is the BANK's richness rather than the picker's arithmetic.
+  // Card 1 is deliberately deterministic per (scenario, tier) — that is T39a's
+  // covered-by-name guarantee — so "the whole page differs across dates" is not
+  // a property this design has, and asserting it here would be a false law.
 });
