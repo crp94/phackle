@@ -408,8 +408,14 @@ body {
   border-block-end: var(--hairline);
 }
 
+/* gr6-022 adds `flex-wrap`, for the identical reason .ph-header__controls
+   below already carries it: this row gained a third item (the practice
+   marker), whose longest form is the Spanish "Partida de prueba", and a row
+   that cannot wrap can only overflow. Measured at 320 in all three locales
+   after the change — see the W8 report. */
 .ph-header__masthead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-8);
   margin: 0;
@@ -454,6 +460,38 @@ body {
   content: '·';
   margin-inline-end: var(--space-8);
 }
+
+/* gr6-022 — the practice marker, third item in the masthead row.
+   Same middot separator, same --muted register and the same tracked
+   small-caps treatment (.ph-label, applied in the markup) as the rest of the
+   running chrome, because it is chrome: the whole point is that it reads as
+   part of the masthead statement — "Vol. 1, No. — · Practice run" — rather
+   than as a badge stuck on top of one. UI face, not mono: the volume line is
+   mono because it sets NUMERALS (R2.4); this is a word. */
+.ph-header__practice {
+  color: var(--muted);
+}
+
+.ph-header__practice::before {
+  content: '·';
+  margin-inline-end: var(--space-8);
+}
+
+/* RECORDED, not fixed (w8-r-007), with the width measured rather than
+   guessed. The masthead row wraps at narrow widths, and when it does this
+   middot starts the second line, where it reads more like a bullet than like
+   the separator it is. Measured in chromium against the built bundle at
+   ?practice=1: the masthead is two lines (74px) at 320 and 360 for EN, and at
+   320, 360 AND 414 for IT and ES — whose markers are longer ("Giornata di
+   prova", "Partida de prueba") — falling back to one line (45px) at 414+ for
+   EN and only at 768+ for IT/ES. So the leading middot persists all the way
+   to 767px in the two target locales, not "below ~600px" as this wave first
+   reported. No horizontal overflow in any width x locale cell. It is left
+   alone deliberately: .ph-header__vol::before directly above has the same
+   property and has shipped with it since T17, and changing one without the
+   other would make the row inconsistent with itself. (Second craft note, same
+   status: at widths where the row does NOT wrap, "No. — · PRACTICE RUN" sets
+   an em dash and a middot side by side at similar weight.) */
 
 /* T33: `flex-wrap` is the fix for the GR4a finding — a 2px horizontal
    overflow of this row at 360w, measured before this task added a fourth
@@ -566,7 +604,15 @@ body {
    shared border with the header above it) so header + notice + first screen
    read as three distinct lines, never a single run-on block, regardless of
    which one lands next to which on a given page. */
-.ph-storage-notice {
+.ph-storage-notice,
+/* W8 (w6-r-006 / w7-r-003) — the mid-play midnight notice. Byte-identical
+   treatment to the storage notice above rather than a second, nearly-equal
+   block: they are the same KIND of thing (a quiet, non-blocking line the
+   shell says about the session's own conditions, at the same place in the
+   document), and the two are the complete membership of that kind. Declaring
+   them together is what stops the pair drifting apart the first time either
+   is touched — the same argument §9.1 makes for its page-shell utilities. */
+.ph-new-day-notice {
   max-width: var(--page-max);
   margin-inline: auto;
   padding: var(--space-16) var(--space-24);

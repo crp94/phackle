@@ -9,12 +9,17 @@ import {
   pickJournal,
   pickPress,
   pressForDay,
+  egregiousnessTierFromSpec,
+  hackingMoves,
   substituteEffect,
 } from '../../src/game/published';
 import { content as enContent } from '../../src/content/en';
 import type { PressBlurb } from '../../src/content/types';
 import { JOURNALS } from '../../src/content/journals';
-import { TIER_FORKS } from '../../src/game/tuning';
+import { NO_ISSUE, issueLabel } from '../../src/ui/masthead';
+import { TIER_FORKS, TIER_MOVES } from '../../src/game/tuning';
+import { LAB_DEFAULT_SPEC } from '../../src/engine/day';
+import type { Spec } from '../../src/engine/types';
 
 const ISO = '2026-08-10';
 const TIERS = [1, 2, 3] as const;
@@ -57,11 +62,102 @@ describe('egregiousnessTier (tuning.TIER_FORKS: polite=3, editorsPick=10)', () =
   });
 });
 
+describe('hackingMoves + egregiousnessTierFromSpec (GR6 ruling §1(h), TIER_MOVES)', () => {
+  const DEFAULT: Spec = { ...LAB_DEFAULT_SPEC };
+
+  it('counts zero moves for the lab default itself', () => {
+    expect(hackingMoves(DEFAULT)).toBe(0);
+  });
+
+  /** The four confessable moves, each as a one-knob patch on the lab default.
+   * `slice(0, k)` folded over the default is a spec exactly k moves away. */
+  const MOVES: Partial<Spec>[] = [
+    { tails: 'one' },
+    { subgroup: 'urban' },
+    { exclusion: 'z2' },
+    { transform: 'log1p' },
+  ];
+  const atMoves = (moves: number): Spec => MOVES.slice(0, moves).reduce<Spec>((acc, patch) => ({ ...acc, ...patch }), DEFAULT);
+
+  it.each([
+    ['one-tailed', 0],
+    ['a subgroup restriction', 1],
+    ['an outlier exclusion', 2],
+    ['a transform', 3],
+  ])('counts %s as exactly one move', (_label, index) => {
+    expect(hackingMoves({ ...DEFAULT, ...MOVES[index] })).toBe(1);
+  });
+
+  it('does NOT count the outcome or the covariates — the two moves the paper does not show', () => {
+    // Outcome shopping is priced by §2.8's parsimony row instead (§1(f)), and
+    // covariate adjustment is ordinary good practice: counting either here
+    // would double-charge the first and award egregiousness for the second.
+    expect(hackingMoves({ ...DEFAULT, outcome: 3 })).toBe(0);
+    expect(hackingMoves({ ...DEFAULT, covariates: { income: true, risk: true } })).toBe(0);
+  });
+
+  it('counts all four when every confessable move is on', () => {
+    expect(hackingMoves({ ...DEFAULT, tails: 'one', subgroup: 'rural', exclusion: 'z3', transform: 'log1p' })).toBe(4);
+  });
+
+  it.each([
+    [0, 1],
+    [1, 2],
+    [2, 2],
+    [3, 3],
+    [4, 3],
+  ])('%i moves -> tier %i', (moves, tier) => {
+    const spec = atMoves(moves);
+    expect(hackingMoves(spec)).toBe(moves);
+    expect(egregiousnessTierFromSpec(spec)).toBe(tier);
+  });
+
+  it('is consistent with the live TIER_MOVES constants, not a copy of their values', () => {
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.polite))).toBe(1);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.polite + 1))).toBe(2);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.editorsPick - 1))).toBe(2);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.editorsPick))).toBe(3);
+  });
+
+  it('reads the lab default from the engine, so moving the default moves the distance', () => {
+    // Not a tautology: it fails if hackingMoves ever compares against retyped
+    // literals instead of LAB_DEFAULT_SPEC's own fields.
+    const asDefault: Spec = { ...LAB_DEFAULT_SPEC };
+    expect(hackingMoves(asDefault)).toBe(0);
+    expect(egregiousnessTierFromSpec(asDefault)).toBe(1);
+  });
+
+  it('is tier 1 for a day with no published spec (nothing was escalated)', () => {
+    expect(egregiousnessTierFromSpec(null)).toBe(1);
+  });
+
+  it('THE §1(h) DEFECT, as a direct comparison: the efficient hacker no longer gets the quietest screen', () => {
+    // gr2-018: a greedy hill-climber publishes in 3-4 forks, so TIER_FORKS put
+    // it in tier 1 on 55 of the 58 days it published over 60 real dates. The
+    // same published spec — one-tailed on a subgroup, three moves deep — is
+    // tier 3 under the ruled rule.
+    const greedyPublish: Spec = { ...DEFAULT, tails: 'one', subgroup: 'urban', exclusion: 'z2' };
+    expect(egregiousnessTier(3)).toBe(1);
+    expect(egregiousnessTierFromSpec(greedyPublish)).toBe(3);
+  });
+});
+
 describe('fakeDoi', () => {
-  it('formats as 10.1337/phk.{puzzleNumber}', () => {
-    expect(fakeDoi(1)).toBe('10.1337/phk.1');
-    expect(fakeDoi(42)).toBe('10.1337/phk.42');
-    expect(fakeDoi(1337)).toBe('10.1337/phk.1337');
+  // w8-r-004: the parameter is a `string`, and the `String()` calls here are
+  // the point rather than noise. `fakeDoi` takes an issue LABEL — whatever
+  // src/ui/masthead.ts's `issueLabel` decided this day prints — so a bare
+  // number reaching it is now a compile error, which is what stops
+  // `10.1337/phk.-3` coming back. See that function's own note.
+  it('formats as 10.1337/phk.{issue}', () => {
+    expect(fakeDoi(String(1))).toBe('10.1337/phk.1');
+    expect(fakeDoi(String(42))).toBe('10.1337/phk.42');
+    expect(fakeDoi(String(1337))).toBe('10.1337/phk.1337');
+  });
+
+  it('renders whatever label it is handed, including the practice em dash', () => {
+    expect(fakeDoi(NO_ISSUE)).toBe('10.1337/phk.\u2014');
+    expect(fakeDoi(issueLabel(-3, true))).toBe('10.1337/phk.\u2014');
+    expect(fakeDoi(issueLabel(-3, false))).toBe('10.1337/phk.-3');
   });
 });
 
@@ -144,21 +240,49 @@ describe('altmetricPercentile (the joke escalates: a SMALLER top-N% reads as MOR
   });
 });
 
-describe('substituteEffect ({effect} token rule, T6 ruling)', () => {
-  it('substitutes {effect} with the rounded absolute magnitude, floored at 1', () => {
+describe('substituteEffect ({effect} token rule, T6 ruling + the GR6 floor decision)', () => {
+  it('substitutes {effect} with the rounded absolute magnitude at or above 1', () => {
     expect(substituteEffect('Cat Owners See {effect}% Higher Returns', 24.6)).toBe('Cat Owners See 25% Higher Returns');
   });
 
-  it('floors at 1 rather than ever printing 0 (small beta)', () => {
-    expect(substituteEffect('{effect} Minutes Longer', 0.2)).toBe('1 Minutes Longer');
+  // --- the booked floor decision (w3-r-011 -> W11) ---------------------------
+  //
+  // `Math.max(1, Math.round(|beta|))` printed "1" on 71,680 of 71,680 valid
+  // paths, 96.7% of them lifted there from a rounding of 0 (median |beta| 0.04
+  // to 0.08). Deleting the floor would have printed "0" on those same paths;
+  // the defect was the integer rounding underneath both. These four tests pin
+  // the replacement rule at each scale it has to be true at.
+  it('prints a sub-1 magnitude at its own scale rather than flooring it to 1', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0.2)).toBe('0.2 Minutes Longer');
   });
 
-  it('floors at 1 for an exact-zero beta (defensive: should not occur on a published, significant result)', () => {
-    expect(substituteEffect('{effect} Minutes Longer', 0)).toBe('1 Minutes Longer');
+  it('prints the MEASURED magnitude at the scale this DGP actually produces (median |beta| 0.04-0.08)', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0.043)).toBe('0.043 Minutes Longer');
+    expect(substituteEffect('{effect} Minutes Longer', 0.0752)).toBe('0.075 Minutes Longer');
+  });
+
+  it('prints 0 ONLY for a genuinely zero beta (the one case where "0" is the true number)', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0)).toBe('0 Minutes Longer');
+  });
+
+  it('degrades a pathologically tiny beta to 0 rather than to exponential notation', () => {
+    // toPrecision would give "4.0e-8", which no headline frame can carry.
+    expect(substituteEffect('{effect} Minutes Longer', 4e-8)).toBe('0 Minutes Longer');
+  });
+
+  it('never emits a trailing zero or a bare decimal point', () => {
+    for (const beta of [0.5, 0.05, 0.005, 0.25, 0.999, 1, 2]) {
+      const out = substituteEffect('{effect}', beta);
+      expect(out, `beta=${beta}`).not.toMatch(/\.$/);
+      expect(out, `beta=${beta}`).not.toMatch(/\.\d*0$/);
+    }
   });
 
   it('takes the absolute value of a negative beta (direction is not the headline\'s concern)', () => {
     expect(substituteEffect('{effect}% Faster', -12.4)).toBe('12% Faster');
+    // ...at the sub-1 scale too, where the sign used to be erased by the floor
+    // along with the magnitude.
+    expect(substituteEffect('{effect}% Faster', -0.062)).toBe('0.062% Faster');
   });
 
   it('rounds to the nearest whole number', () => {

@@ -63,6 +63,33 @@ function specKey(spec: Spec): string {
 }
 
 /**
+ * Distinct OUTCOME FAMILIES viewed today — the statistic §2.8's parsimony row
+ * is scored on since GR6 ruling §1(f) (gr2-007).
+ *
+ * WHY IT LIVES HERE. This module owns §2.10's "what did the player actually
+ * do today" accounting (`countForks`, `distinctExplored`), and this is the same
+ * question asked one axis coarser. It reads the same VIEW_SPEC entries
+ * `distinctExplored` does, so a spec the player never saw a result for still
+ * counts as a family they looked at — deliberately: the outcome selector shows
+ * its result on arrival, and "I glanced at Y3 and moved on" is exactly the
+ * outcome-shopping the row now prices.
+ *
+ * The FIRST family is not free here — the free-first rule lives at the scoring
+ * site (`scoreHack` charges for families beyond the first), for the same reason
+ * `countForks` keeps its own free-first rule local: this function answers "how
+ * many families", and a function that quietly answered "how many minus one"
+ * would be unusable for anything else.
+ */
+export function distinctOutcomeFamilies(log: PlayerAction[]): number {
+  const families = new Set<number>();
+  for (const action of log) {
+    if (action.t !== 'VIEW_SPEC') continue;
+    families.add(action.spec.outcome);
+  }
+  return families.size;
+}
+
+/**
  * Distinct specs viewed, in order of first view (§2.10: "k = distinct specs
  * viewed" — the reveal's "you explored k paths" figure). Dedupes by
  * specKey; ignores every non-VIEW_SPEC log entry.

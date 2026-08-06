@@ -184,3 +184,146 @@ describe('persistAndComputeSummary — career (gr6-018) and preregPlayedToday (g
     expect(result.preregPlayedToday).toBe(false);
   });
 });
+
+// --- gr6-078: a practice day must not move the streak it never joins --------
+//
+// The invoice said N+1, storage said N, and the Stats wall (which prints
+// `stats.streak`) said N too — with the overclaimed number embedded in the
+// share text, so it left the app. The fix is measured here in the only terms
+// that matter: the number this function returns, against the number the rest
+// of the product is showing that same player.
+describe('persistAndComputeSummary (gr6-078) — the streak on a practice day', () => {
+  /** Play `days` consecutive REAL days ending at isoForDay(days - 1). */
+  function playRealDays(days: number): void {
+    for (let day = 0; day < days; day++) {
+      persistAndComputeSummary(fields({ puzzleNumber: day + 1, puzzleIso: isoForDay(day), log: safariDay(day) }));
+    }
+  }
+
+  it('agrees with the Stats wall instead of claiming a day that was never saved', () => {
+    playRealDays(7);
+    const stored = loadState().stats.streak;
+    expect(stored, 'the fixture did not actually build a streak').toBe(7);
+
+    // The practice run is on the NEXT day, which has no record and never will.
+    const practiceResult = persistAndComputeSummary(
+      fields({ practice: true, puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(8) })
+    );
+
+    expect(practiceResult.streak, 'the invoice claimed a day storage does not hold').toBe(stored);
+    expect(loadState().history[isoForDay(7)], 'a practice day wrote a record').toBeUndefined();
+    expect(loadState().stats.streak, 'a practice day moved the stored streak').toBe(stored);
+  });
+
+  it('puts the same, unmoved number in the share text (it is the figure that leaves the app)', () => {
+    playRealDays(7);
+    const practiceResult = persistAndComputeSummary(
+      fields({ practice: true, puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(8) })
+    );
+    expect(practiceResult.shareText).toContain(`${enCopy['share.streakWord']}: 7`);
+    expect(practiceResult.shareText, 'the overclaimed streak is still in the paste').not.toContain(
+      `${enCopy['share.streakWord']}: 8`
+    );
+  });
+
+  it('does NOT answer 0 — the failure mode of the obvious fix, and the one a player would read as a lost streak', () => {
+    playRealDays(7);
+    const practiceResult = persistAndComputeSummary(
+      fields({ practice: true, puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(8) })
+    );
+    // `streakAfter(state.history, puzzleIso)` walks back from a day with no
+    // record and stops immediately. Dropping the placeholder without reading
+    // `stats.streak` therefore prints "Streak: 0" at a player on a 7-day run.
+    expect(practiceResult.streak).not.toBe(0);
+  });
+
+  it('a REAL day still counts itself: the placeholder branch is untouched', () => {
+    playRealDays(7);
+    const realResult = persistAndComputeSummary(
+      fields({ puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(8) })
+    );
+    expect(realResult.streak).toBe(8);
+    expect(loadState().stats.streak).toBe(8);
+  });
+
+  it('a practice run on a day the player HAS already really played reads that day\'s own streak', () => {
+    playRealDays(7);
+    // The real day 8 is played for real; the practice replay follows it.
+    persistAndComputeSummary(fields({ puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(8) }));
+    const practiceResult = persistAndComputeSummary(
+      fields({ practice: true, puzzleNumber: 8, puzzleIso: isoForDay(7), log: safariDay(9) })
+    );
+    expect(practiceResult.streak).toBe(8);
+  });
+
+  it('the practice paste says it is practice (gr6-022, at the one call site that builds it)', () => {
+    playRealDays(1);
+    const practiceResult = persistAndComputeSummary(
+      fields({ practice: true, puzzleNumber: 2, puzzleIso: isoForDay(1), log: safariDay(2) })
+    );
+    expect(practiceResult.shareText.split('\n')[0]).toBe(
+      `P-hackle (${enCopy['nav.practiceMode']}) \u00b7 ${enCopy['nav.tagline']}`
+    );
+  });
+});
+
+// --- GR6 §1(f): the parsimony row is wired to the LOG, not to `forks` --------
+
+describe('persistAndComputeSummary — parsimony is scored on the day\'s outcome families', () => {
+  /** A correct-call day whose log visits exactly `families` outcome columns,
+   * with a fixed, deliberately LARGE fork count in the fields. */
+  function familiesDay(families: number): PlayerAction[] {
+    const log: PlayerAction[] = [{ t: 'VIEW_SPEC', spec: baseSpec, seen: false, at: 0 }];
+    for (let outcome = 0; outcome < families; outcome++) {
+      // three views inside each family: the robustness probing §1(f) makes free
+      for (let probe = 0; probe < 3; probe++) {
+        const subgroup = SUBGROUPS[probe];
+        log.push({
+          t: 'VIEW_SPEC',
+          spec: { ...baseSpec, outcome: outcome as Spec['outcome'], subgroup },
+          seen: true,
+          at: outcome * 10 + probe + 1,
+        });
+      }
+    }
+    log.push({ t: 'CALL', verdict: 'noise', at: 99 });
+    return log;
+  }
+
+  it('pays the whole 40/26/12/0 scale off the log, at a fixed (and large) fork count', () => {
+    const parsimonyFor = (families: number) => {
+      window.localStorage.clear();
+      const result = persistAndComputeSummary(
+        fields({
+          puzzleIso: isoForDay(0),
+          dayType: 'null',
+          call: 'noise',
+          published: false,
+          stamp: 'CONFIRMED_NULL',
+          forks: 12, // constant across all four runs — nothing may read it
+          log: familiesDay(families),
+        })
+      );
+      return result.breakdown.find(([key]) => key === 'summary.breakdownParsimony')![1];
+    };
+    expect([1, 2, 3, 4].map(parsimonyFor)).toEqual([40, 26, 12, 0]);
+  });
+
+  it('pays full parsimony for a 12-fork day that never left one outcome column', () => {
+    // gr2-007's complaint, end to end: under the old per-fork rule this exact
+    // day scored 0 for parsimony (40 - 4*12), and it is the day the informed
+    // caller actually plays.
+    const result = persistAndComputeSummary(
+      fields({
+        puzzleIso: isoForDay(0),
+        dayType: 'null',
+        call: 'noise',
+        published: false,
+        stamp: 'CONFIRMED_NULL',
+        forks: 12,
+        log: familiesDay(1),
+      })
+    );
+    expect(result.breakdown).toContainEqual(['summary.breakdownParsimony', 40]);
+  });
+});

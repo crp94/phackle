@@ -24,7 +24,7 @@ import {
   altmetricPercentile,
   altmetricScore,
   confettiParticlesForTier,
-  egregiousnessTier,
+  egregiousnessTierFromSpec,
   fakeDoi,
   pickJournal,
   pressForDay,
@@ -32,6 +32,7 @@ import {
 } from '../../game/published';
 import type { PressBlurb } from '../../content/types';
 import type { CopyKey } from '../../content/en/copy';
+import { issueLabel } from '../masthead';
 import { JournalCover } from '../components/JournalCover';
 import { ConfettiLayer } from '../components/ConfettiLayer';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
@@ -173,10 +174,12 @@ export interface PublishedProps {
 
 export function Published({ useStore = useGameStore, callScreen: CallScreen = Call }: PublishedProps = {}) {
   const { content, t } = useLocale();
-  const forks = useStore((s) => s.forks);
   const result = useStore((s) => s.result);
   const scenarioIndex = useStore((s) => s.scenarioIndex);
   const puzzleNumberValue = useStore((s) => s.puzzleNumber);
+  // gr6-021/gr6-022: read for the DOI's issue label below — a practice day
+  // has no issue number to register.
+  const practice = useStore((s) => s.practice);
 
   const [confettiDone, setConfettiDone] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
@@ -269,14 +272,18 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
 
   const scenario = content.scenarios[scenarioIndex];
   const iso = isoFromPuzzleNumber(puzzleNumberValue);
-  const tier = egregiousnessTier(forks);
+  const tier = egregiousnessTierFromSpec(result?.spec ?? null);
   // result is guaranteed non-null and significant at this screen (store.ts's
   // submit() guard), but the type is nullable -- defend anyway rather than
   // trust a guard this file doesn't own.
   const beta = result?.beta ?? 0;
   const headline = substituteEffect(scenario.headline, beta);
   const journal = pickJournal(scenario.journalTags, iso).name;
-  const doi = fakeDoi(puzzleNumberValue);
+  // gr6-021: the issue LABEL, not the raw number — a practice day prints an
+  // em dash here exactly as it does in the masthead (src/ui/masthead.ts), so
+  // the cover can never carry `10.1337/phk.-3`, and a `?practice=1` run can
+  // never be mistaken for the real issue it borrows its date from.
+  const doi = fakeDoi(issueLabel(puzzleNumberValue, practice));
   const authors = t('published.authors');
   // Master spec §2.8: "Published (flavor 'career points', separate cosmetic
   // counter) -> +25 career", unconditional on the call's own correctness --

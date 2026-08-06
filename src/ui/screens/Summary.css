@@ -74,6 +74,43 @@
   margin: var(--space-8) 0 0;
 }
 
+/* w8-r-001 — what stands where the countdown stands when the countdown would
+   be wrong. Same slot, same margin, same --muted caption register (R1.2), so
+   the screen's rhythm is unchanged; UI face rather than mono, because unlike
+   the countdown it sets no numerals (R2.4). */
+.ph-summary__new-day {
+  margin: var(--space-8) 0 0;
+}
+
+.ph-summary__new-day-line {
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--muted);
+  margin: 0;
+}
+
+/* The same button anatomy as .ph-summary__next-button below it — R6.4's tap
+   target out of the §3 scale, R4.6's 2px stroke at --rule — because it is the
+   same weight of offer: the day is over, here is where to go next. */
+.ph-summary__new-day-reload {
+  margin-block-start: var(--space-8);
+  font-family: var(--font-ui);
+  font-size: var(--text-15);
+  line-height: var(--leading-ui);
+  color: var(--ink);
+  background: none;
+  border-style: none;
+  border-block-end: 2px solid var(--rule);
+  padding: var(--space-12) var(--space-16);
+  cursor: pointer;
+}
+
+/* R5.5: hover is an instant state change, never a transition. */
+.ph-summary__new-day-reload:hover {
+  text-decoration: underline;
+}
+
 .ph-summary__share {
   margin: var(--space-24) 0 0;
 }

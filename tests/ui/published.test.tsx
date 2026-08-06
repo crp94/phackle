@@ -8,6 +8,40 @@
 // test.globals (so @testing-library/react's own automatic cleanup never runs).
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+
+/**
+ * W8 — the one seam between the shipped catalogs and this screen.
+ *
+ * `Published` reads its scenario from `useLocale().content`, which
+ * `LocaleProvider` fetches through `getContent`. Wrapping that ONE function is
+ * how a test can hand the screen a headline the corpus does not contain,
+ * without mocking React context, without a second Published harness, and
+ * without any test that does not opt in seeing anything different: while
+ * `headlineOverride.value` is null this is byte-for-byte the real loader, for
+ * every locale.
+ *
+ * `vi.hoisted` because a `vi.mock` factory may not close over an ordinary
+ * module-level binding — the same idiom, for the same reason, as
+ * tests/ui/router.test.tsx's `createEngineClient` mock.
+ */
+const headlineOverride = vi.hoisted(() => ({ value: null as string | null }));
+
+vi.mock('../../src/content', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/content')>();
+  return {
+    ...actual,
+    getContent: async (locale: Parameters<typeof actual.getContent>[0]) => {
+      const loaded = await actual.getContent(locale);
+      if (headlineOverride.value === null) return loaded;
+      return {
+        ...loaded,
+        scenarios: loaded.scenarios.map((s, i) =>
+          i === 0 ? { ...s, headline: headlineOverride.value as string } : s
+        ),
+      };
+    },
+  };
+});
 import { useStore as zustandUseStore } from 'zustand/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
 import { createGameStore, gameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
@@ -65,6 +99,22 @@ function makeResult(overrides: Partial<PathResult> = {}): PathResult {
   };
 }
 
+
+/** §1(h): the tier now reads distance-from-default on the PUBLISHED SPEC, not
+ * the fork count (gr2-018 — a greedy player forked a lot and still printed
+ * tier 1). These build a spec at a chosen number of confessable moves. */
+function specWithMoves(moves: number): PathResult['spec'] {
+  const spec = { ...DEFAULT_SPEC, covariates: { ...DEFAULT_SPEC.covariates } };
+  if (moves >= 1) spec.tails = 'one';
+  if (moves >= 2) spec.subgroup = 'age_lt40';
+  if (moves >= 3) spec.exclusion = 'z2_5';
+  if (moves >= 4) spec.transform = 'log1p';
+  return spec;
+}
+const TIER1 = { result: makeResult({ spec: specWithMoves(0) }) };
+const TIER2 = { result: makeResult({ spec: specWithMoves(1) }) };
+const TIER3 = { result: makeResult({ spec: specWithMoves(3) }) };
+
 /** Isolated fake store: a real (non-singleton) createGameStore() instance,
  * seeded directly via setState, bound through zustand/react's own generic
  * useStore -- never the app's real singleton (src/game/store.ts's own
@@ -104,6 +154,10 @@ beforeEach(() => {
   // whatever order the file runs in. (This replaced a navigator.language
   // override, which detectLocale no longer reads at all.)
   window.localStorage.clear();
+  // Same reasoning as the localStorage clear above: set here rather than
+  // reset in afterEach, so a fixture headline can never leak into a test
+  // that did not ask for one, whatever order the file runs in.
+  headlineOverride.value = null;
 });
 
 afterEach(() => {
@@ -143,20 +197,74 @@ describe('JournalCover', () => {
 });
 
 describe('Published: journal cover wiring', () => {
+  // W8, from W3's review (booking confirmed "TRUE AND STRONGER"): this test
+  // WAS VACUOUS. gr6-005 retired the `{effect}` token from all twenty
+  // headlines in all three locales, so `substituteEffect(headline, beta)`
+  // became a no-op returning its input, and W3's reviewer measured the
+  // consequence — severing `substituteEffect` in Published.tsx left the ENTIRE
+  // suite green on the head tree while it reds on the base. The coverage was
+  // genuinely gone, and the substitution path still ships (the corpus rule
+  // that LICENSES the token is still on the books; en/index.ts:25 says so).
+  //
+  // Retiring the test was the wrong answer for the same reason. So it is
+  // re-pinned against a FIXTURE headline that carries the token — injected at
+  // the content loader, which is the only seam between the catalogs and the
+  // screen — and it asserts the two things a no-op cannot do: the token is
+  // gone from the rendered cover, and the number that replaced it is the one
+  // derived from the store's beta.
   it('substitutes the {effect} token end-to-end from the store result beta', async () => {
-    // substituteEffect's own rounding/flooring contract is proven in
-    // isolation in tests/game/published.test.ts -- this proves the WIRING
-    // (store.result.beta reaches the headline), so it computes the expected
-    // string the same way Published itself does, rather than a hand-typed
-    // duplicate of the rounding arithmetic.
-    const expectedHeadline = substituteEffect(enContent.scenarios[0].headline, 24.6);
+    // A token-carrying headline of exactly the shape the corpus rule permits
+    // ("at most one {effect}, never {n}"). Not taken from the shipped corpus,
+    // deliberately: no headline there has one today, and a test that reads its
+    // input from the same place the component does could go quiet again the
+    // next time the corpus is re-cut — which is precisely how this one died.
+    headlineOverride.value = 'Cat Owners See {effect}% Higher Returns, Study Finds';
+
     renderPublished({ forks: 1, result: makeResult({ beta: 24.6 }) });
-    await waitFor(() => expect(screen.getByText(expectedHeadline)).toBeTruthy());
+
+    // substituteEffect's own rounding/flooring contract is proven in isolation
+    // in tests/game/published.test.ts; this proves the WIRING, so the expected
+    // string is computed the same way Published itself computes it rather than
+    // hand-typing a duplicate of the arithmetic.
+    const expected = substituteEffect(headlineOverride.value, 24.6);
+    expect(expected, 'the fixture lost its token — this test would be vacuous again').not.toBe(headlineOverride.value);
+    await waitFor(() => expect(screen.getByText(expected)).toBeTruthy());
+
+    // The two assertions a severed substituteEffect cannot survive.
+    expect(screen.queryByText(headlineOverride.value), 'the raw {effect} token is on the journal cover').toBeNull();
+    expect(screen.getByText(/\b25% Higher Returns\b/), 'the beta never reached the headline').toBeTruthy();
+  });
+
+  // The other half of the pin: the shipped corpus is token-free today, and a
+  // token-free headline must pass through untouched. Together these two say
+  // "the path works AND it is inert on the content that actually ships",
+  // which is the whole of what gr6-005 left behind.
+  it('leaves a token-free headline exactly as the corpus wrote it', async () => {
+    renderPublished({ forks: 1, result: makeResult({ beta: 24.6 }) });
+    await waitFor(() => expect(screen.getByText(enContent.scenarios[0].headline)).toBeTruthy());
+    expect(enContent.scenarios[0].headline).not.toContain('{effect}');
   });
 
   it('shows the fake DOI 10.1337/phk.{puzzleNumber}', async () => {
     renderPublished({ puzzleNumber: 42 });
-    await waitFor(() => expect(screen.getByText(fakeDoi(42), { exact: false })).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(fakeDoi(String(42)), { exact: false })).toBeTruthy());
+  });
+
+  // gr6-021 — THE DOI ON A PRACTICE DAY. Pre-EPOCH the puzzle number is
+  // negative and this cover registered "10.1337/phk.-3", on the one screen in
+  // the product whose entire job is to be believed; under `?practice=1` it
+  // registered the REAL day's DOI for a session that was never played on that
+  // day. Same rule as the masthead, from the same function.
+  it('registers no issue number in the DOI on a practice day', async () => {
+    renderPublished({ puzzleNumber: -3, practice: true });
+    await waitFor(() => expect(screen.getByText('10.1337/phk.—', { exact: false })).toBeTruthy());
+    expect(screen.queryByText('10.1337/phk.-3', { exact: false }), 'a negative DOI suffix shipped').toBeNull();
+  });
+
+  it('suppresses a plausible POSITIVE DOI under ?practice=1 too (the post-launch case)', async () => {
+    renderPublished({ puzzleNumber: 42, practice: true });
+    await waitFor(() => expect(screen.getByText('10.1337/phk.—', { exact: false })).toBeTruthy());
+    expect(screen.queryByText(fakeDoi(String(42)), { exact: false }), 'a practice run wore the real issue DOI').toBeNull();
   });
 
   it('shows the inline career-points figure (R1.6: the one place --hack-gold-ink paints characters)', async () => {
@@ -210,7 +318,7 @@ describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th c
     const expectedScore = altmetricScore(iso, tier);
     const expectedPercentile = altmetricPercentile(iso, tier);
 
-    renderPublished({ forks: 5 });
+    renderPublished({ forks: 5, ...TIER2 });
 
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(expectedScore))).toBeTruthy());
     expect(screen.getByText(altmetricPercentileLine(expectedPercentile))).toBeTruthy();
@@ -220,19 +328,19 @@ describe('Published: altmetric counter (review fix -- master spec §2.5\'s 5th c
     const iso = isoFromPuzzleNumber(1);
 
     const tier1Score = altmetricScore(iso, 1);
-    const tier1 = renderPublished({ forks: 1 });
+    const tier1 = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier1Score))).toBeTruthy());
     tier1.unmount();
 
     const tier3Score = altmetricScore(iso, 3);
-    const tier3 = renderPublished({ forks: 12 });
+    const tier3 = renderPublished({ forks: 12, ...TIER3 });
     await waitFor(() => expect(screen.getByText(altmetricScoreLine(tier3Score))).toBeTruthy());
     expect(tier3Score).toBeGreaterThan(tier1Score);
     tier3.unmount();
   });
 
   it('renders no animation/transition class on the altmetric block (§2.5\'s "spinning up" would be a 5th, un-budgeted motion)', async () => {
-    const { container } = renderPublished({ forks: 1 });
+    const { container } = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() =>
       expect(screen.getByText(altmetricScoreLine(altmetricScore(isoFromPuzzleNumber(1), 1)))).toBeTruthy()
     );
@@ -263,7 +371,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
     // like the scenario-bound-preference test above.
     const expectedTexts = [...new Set([card1.text, card2.text])];
 
-    renderPublished({ forks: 5 });
+    renderPublished({ forks: 5, ...TIER2 });
     await waitFor(() => {
       for (const text of expectedTexts) {
         expect(screen.getAllByText(text).length).toBeGreaterThan(0);
@@ -274,7 +382,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
   });
 
   it('prefers a scenario-bound press blurb when one exists for the tier (cat-crypto tier 1 -> Morning Chirp)', async () => {
-    renderPublished({ forks: 1 }); // tier 1
+    renderPublished({ forks: 1, ...TIER1 }); // tier 1
     // The FIRST card is the scenario-bound one (T39a's guarantee: an unsalted
     // pickPress prefers the bound pool); the second salts `iso` and therefore
     // takes the generic pool, so this asserts presence, not count --
@@ -288,7 +396,7 @@ describe('Published: egregiousness tiers and press blurbs', () => {
     const scenario = enContent.scenarios[0];
     const chyron = pickPress(enContent.press, 3, scenario.id, `${iso}#chyron`);
 
-    const { unmount } = renderPublished({ forks: 12 });
+    const { unmount } = renderPublished({ forks: 12, ...TIER3 });
     await waitFor(() => expect(screen.getByText("Editor's Pick")).toBeTruthy());
     // getAllByText: the chyron's blurb text could coincidentally match one of
     // the two press cards' picks (same pool, different salted index) --
@@ -330,7 +438,7 @@ describe('Published: confetti (R5.4: 150/250/400 particles by tier, capped at 40
 
   it('is gone from the DOM once ConfettiLayer signals done (onDone), matching R5.4', async () => {
     installMatchMedia({ '(prefers-reduced-motion: reduce)': true }); // reduced motion resolves onDone synchronously-ish
-    const { container } = renderPublished({ forks: 1 });
+    const { container } = renderPublished({ forks: 1, ...TIER1 });
     await waitFor(() => expect(container.querySelector('canvas')).toBeNull());
   });
 });

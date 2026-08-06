@@ -214,6 +214,27 @@ export interface ShareStringInput {
    * why abandoners still call). */
   callCorrect: boolean | null;
   streak: number;
+  /**
+   * gr6-022 — whether this was a PRACTICE session (store.practice, itself set
+   * from daily.ts's isPractice at boot). Line 1 says so when it is true.
+   *
+   * AN EXPLICIT INPUT, NOT A DERIVED ONE, and that is load-bearing rather than
+   * stylistic. The module doc comment above states the property this file is
+   * built to make structurally true: the share string is a pure function of
+   * (puzzle number, log, mode, call correctness, streak, copy) and "notably
+   * NOT of day type, verdict stamp, or call direction... this module has no
+   * channel to leak them through even by accident." A practice flag that were
+   * inferred from ANY day content — the seed, the scenario, the stamp, the
+   * date — would be exactly such a channel. Passed in as a boolean the caller
+   * already holds, it is one more input of the same kind as `mode`, and the
+   * spoiler property is unaffected BY CONSTRUCTION: see the property test in
+   * tests/game/share.test.ts, which now varies this input across day types
+   * and asserts the same independence it always did.
+   *
+   * Optional, defaulting to false, so every existing caller and test keeps its
+   * exact behaviour: a real day is the case that was always being described.
+   */
+  practice?: boolean;
   copy: Record<CopyKey, string>;
 }
 
@@ -280,13 +301,36 @@ export interface ShareStringInput {
  *
  * The separator is the same " · " line 3 uses, so the two content lines are
  * punctuated alike.
+ *
+ * gr6-022 — LINE 1 ON A PRACTICE DAY. `?practice=1` does not expire at
+ * launch, and every pre-EPOCH date is a practice date, so "P-hackle #{n}" was
+ * being pasted into other people's timelines for sessions that were never
+ * played on the day they named, never recorded, and re-seeded from
+ * `Math.random()` — indistinguishable, to the reader, from the real issue.
+ * A practice run has no issue number to print (the masthead prints an em dash
+ * in the same slot, src/ui/masthead.ts), so line 1 drops the number and names
+ * the session instead, in the reader's own language: "P-hackle (Practice
+ * run)" / "P-hackle (Giornata di prova)" / "P-hackle (Partida de prueba)".
+ * The wordmark stays the deliberate non-translation it has always been (delta
+ * spec i18n §6); the marker beside it is the SAME `nav.practiceMode` value
+ * the running header shows, so the two can never drift.
+ *
+ * This is consistent with the EN catalog's numbering rule (header rule 9,
+ * "`#n` for the share string, and nothing else") rather than an exception to
+ * it: the rule fixes the FORM a share-string issue number takes, and a
+ * practice run does not have one to take a form.
  */
 export function shareString(i: ShareStringInput): string {
   const forks = countForks(i.log);
   const trail = buildTrail(i.log, i.mode === 'prereg');
   const suffix = i.callCorrect === null ? '' : ` → ${i.callCorrect ? CALL_CORRECT : CALL_INCORRECT}`;
 
-  const line1 = `P-hackle #${i.puzzleNumber} · ${i.copy['nav.tagline']}`;
+  // Both §1(i)'s hook and gr6-022's practice marker live on line 1. A practice
+  // run has no issue number to print, but it is still the product, so it still
+  // earns the tagline: the marker replaces the number, the hook stays.
+  const line1 = i.practice
+    ? `P-hackle (${i.copy['nav.practiceMode']}) · ${i.copy['nav.tagline']}`
+    : `P-hackle #${i.puzzleNumber} · ${i.copy['nav.tagline']}`;
   const line2 = `${trail}${suffix}`;
   const line3 = `${i.copy['share.forksWord']}: ${forks} · ${i.copy['share.streakWord']}: ${i.streak}`;
   const line4 = SITE_URL;

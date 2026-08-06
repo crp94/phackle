@@ -92,6 +92,15 @@ export const copy: Record<CopyKey, string> = {
   // gr6-017 — enlace de salto, visible solo cuando recibe el foco. Nombra el
   // DESTINO, como hace cualquier skip link.
   'nav.skipToContent': 'Saltar al contenido principal',
+  // gr6-022 — la etiqueta de la sesión de práctica, junto al número del
+  // fascículo (que en práctica imprime una raya: src/ui/masthead.ts). Sintagma
+  // nominal, no un verbo: nombra un ESTADO en el que está el jugador, no una
+  // acción (regla 5). *Partida* es lo que el español llama a una sesión de
+  // juego, y evita el falso amigo de "día de prueba", que en español suena a
+  // periodo gratuito de una suscripción. La misma cadena aparece en el texto
+  // que se comparte: un solo nombre por concepto (regla 6), de modo que lo que
+  // el jugador ha leído arriba es lo que leerán los demás.
+  'nav.practiceMode': 'Partida de prueba',
   // Endónimos: cada lengua se nombra a sí misma. Idénticos en los tres
   // catálogos a propósito (véase la nota de la unión en inglés): quien busca
   // el italiano busca "Italiano", no "Italiano" traducido a otra cosa.
@@ -418,8 +427,14 @@ export const copy: Record<CopyKey, string> = {
   'reveal.missedDiscovery': 'HALLAZGO PERDIDO',
   'reveal.callCorrect': 'Tu veredicto fue correcto.',
   'reveal.callIncorrect': 'Tu veredicto fue erróneo.',
+  // GR6 gr6-009 / ruling §1(a): "alrededor del 5%" was false and is replaced by
+  // the two re-measured figures — see en/copy.ts's own note for the measurement
+  // (591 accepted null days, N = 400: 7.5-8.2% across the grid, 18.6-25.3% for
+  // the spec the prereg form opens on). Sentence case throughout, the opening
+  // exculpation and the "Hoy tocó" closer both kept: the correction is to the
+  // number and to naming the confounding, not to the voice.
   'reveal.preregFalsePositive':
-    'Esto no es un fallo tuyo: un análisis preregistrado, ejecutado exactamente una vez, sigue dando un falso positivo alrededor del 5% de las veces. Hoy tocó.',
+    'Esto no es un fallo tuyo, y tampoco es el 5% que promete el umbral: aquí el tratamiento está enredado con los mismos factores a los que responden los resultados. Con la muestra completa, un análisis preregistrado acaba aquí alrededor del 8% de las veces, y cerca de una de cada cinco cuando es el análisis por defecto, sin controles. Hoy tocó.',
 
   // The share grid's third line. T37 fix round 1 (controller ruling, see
   // share.ts's §2.9 deviation note): it now reads
@@ -606,6 +621,26 @@ export const copy: Record<CopyKey, string> = {
   // Infinitivo (regla 1); una palabra, porque la frase de arriba ya dice para
   // qué sirve.
   'errors.reload': 'Recargar',
+  // EL AVISO DE MEDIANOCHE (w6-r-006, w7-r-003). No dice "recargar", y eso es
+  // lo importante: a mitad de partida no hay nada guardado todavía, así que
+  // recargar es la acción DESTRUCTIVA, justo la que la regla del cambio de día
+  // se niega a hacerle al jugador. Aquí solo se informa. Responde a las dos
+  // preguntas que el jugador se hace de verdad, en este orden: el día que
+  // estoy jugando sigue contando (sí, como el día en que empezó) y dónde está
+  // el puzle de hoy (en ningún sitio: esperando). Tú, sentencia llana, sin
+  // raya.
+  'errors.newDay':
+    'Es un día nuevo. El que estás jugando sigue contando como el día en que empezó; el puzle de hoy te espera cuando termines.',
+  // w8-r-001 — la misma medianoche, contada a quien ya ha terminado. La frase
+  // de arriba acaba en "cuando termines" y por tanto es falsa en el resumen,
+  // que es justo la pantalla de quien ha terminado. Aquí sí se ofrece el
+  // control: al montarse, el resumen ya lo ha guardado todo
+  // (persistAndComputeSummary), así que recargar no cuesta nada y es el único
+  // camino hacia el día nuevo. La frase dice primero que está a salvo y luego
+  // pide el gesto. Imperativo de tú porque es una instrucción, no un botón
+  // (reglas 1 y 2); el botón sigue en infinitivo. Sin raya.
+  'errors.newDayReady':
+    'Ha empezado un día nuevo mientras jugabas. Este ya está guardado; recarga para ver el puzle de hoy.',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
   // than commanding.
