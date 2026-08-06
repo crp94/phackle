@@ -18,6 +18,7 @@ import { content as esContent } from '../../src/content/es';
 import { copy as enCopy } from '../../src/content/en/copy';
 import { NULL_SIG_BAND } from '../../src/game/tuning';
 import { allSpecs } from '../../src/engine/specGrid';
+import { substituteEffect } from '../../src/game/published';
 import { JOURNALS } from '../../src/content/journals';
 import type { LocaleContent } from '../../src/content/types';
 import {
@@ -33,7 +34,11 @@ import {
   findPressSpoilerTerms,
   findPressTokens,
   findPressVoiceProblems,
+  findParamFieldTokens,
   findScenariosWithoutPress,
+  corpusProse,
+  localeProse,
+  upperCaseRatio,
   validateLocaleContent,
   type ContentLexicons,
 } from './validators';
@@ -311,10 +316,22 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
 
   it('keeps tier 3 in the chyron voice (all caps) and tiers 1-2 out of it', () => {
     expect(findPressVoiceProblems(enContent)).toEqual([]);
-    // '401(k)' is a proper noun whose lowercase k survives even on a chyron,
-    // which is why the law is a ratio and not `text === text.toUpperCase()`.
-    const chyron = enContent.press.find((p) => p.text.includes('401(k)'));
-    expect(chyron?.text).not.toBe(chyron?.text.toUpperCase());
+    // WHY THE LAW IS A RATIO and not `text === text.toUpperCase()`: a chyron can
+    // legitimately carry a lowercase glyph inside a proper noun. The bank used
+    // to demonstrate this itself ('...JUDGING YOUR 401(k)'), but gr6-069 retired
+    // that line — a US retirement account was shouting over a euro-denominated
+    // scenario — so the demonstration moves to a fixture. It is the same string
+    // the bank shipped, which is what keeps this an argument about real content
+    // rather than an invented edge case.
+    const properNounChyron = { ...enContent.press[29], text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)' };
+    expect(properNounChyron.text).not.toBe(properNounChyron.text.toUpperCase());
+    expect(upperCaseRatio(properNounChyron.text)).toBeGreaterThan(0.9);
+    expect(findPressVoiceProblems({ ...enContent, press: [properNounChyron] })).toEqual([]);
+    // The other half of the reason is live in IT/ES and needs no fixture:
+    // accented capitals (È, PIÙ, SÍ, Ó) sit outside the ASCII class the ratio
+    // counts, and both locales ship them on tier-3 lines.
+    expect(itContent.press.some((p) => p.tier === 3 && /[ÈÙÌÀÒ]/.test(p.text))).toBe(true);
+    expect(esContent.press.some((p) => p.tier === 3 && /[ÁÉÍÓÚÑ]/.test(p.text))).toBe(true);
   });
 
   it('catches a tier-3 blurb that forgot to shout, and a tier-1 blurb that did (guards the guard)', () => {
@@ -631,12 +648,13 @@ describe('GR6 W2 — terminology and notation locks hold in every locale, not ju
   // positives (`0.05`, `|z| > 2.5`, `Fig. 1`, `Vol. 1, No. 11`, `et al.`, a
   // full stop followed by a space and a digit — none match).
   //
-  // SCOPE IS THE COPY CATALOG, deliberately. Sweeping the scenario corpus too
-  // would fire on one string per locale, and it is the same joke each time:
+  // SCOPE IS THE COPY CATALOG here, and the CORPUS is swept by its own block at
+  // the bottom of this file (W3 took the booking): the same law, over
+  // src/content/*/index.ts, with one allow-listed location per locale —
   // Grantwell's "a p-value of .06 is just a p-value of .05 with poor time
-  // management". That is a character writing sloppily in an email, not the
-  // app's own notation, and `src/content/*/index.ts` is W3's file. BOOKED FOR
-  // W3 with that reading attached, not silently swept here.
+  // management" — and the reasoning for keeping it written at that entry. The
+  // split is not an exemption: it is two scopes because the copy catalog admits
+  // no exceptions at all and the corpus admits exactly one, argued.
   it('every locale writes a decimal with its leading zero', () => {
     const LEADING_ZERO = /(?<![\d\w.])\.\d/;
     for (const { name, content } of LOCALES) {
@@ -778,5 +796,820 @@ describe('GR6 gr6-004 — About discloses the acceptance band, in numbers the en
       expect(content.copy['about.mechanism'], `${name} About`).toMatch(/on its own|da sola|por sí solo/i);
       expect(content.copy['reveal.accounting1'], `${name} accounting1`).toMatch(/on its own|da sola|por sí solo/i);
     }
+  });
+});
+
+// --- GR6 W3: the content corpus ----------------------------------------------
+
+/**
+ * gr6-005 / gr3-001 — THE HEADLINE TOKEN IS RETIRED, and this is the fact that
+ * keeps it retired.
+ *
+ * `{effect}` was substituted with the published spec's treatment effect in that
+ * outcome's OWN RAW UNITS, floored at 1 (src/game/published.ts's
+ * substituteEffect). Measured before the fix over 20 consecutive days from
+ * EPOCH, every one of the 1,792 specs, at both the opening and the full window:
+ * 71,680 of 71,680 valid paths printed 1 — 69,336 of them (96.7%) lifted there
+ * by the floor from a rounding of 0, and 2,344 rounding to 1 unaided
+ * (w3-r-011). Deleting the floor therefore prints "0", not a real number: the
+ * floor is not the defect, the raw-unit coefficient is. The largest string on the
+ * celebration screen therefore read "Meetings Run 1 Minutes Longer" on every
+ * publishable path the game had, and the frame could not have been honoured in
+ * any case — it is fixed per scenario while the number comes from whichever of
+ * the four outcomes the player published, so a 1-10 self-rating could print as
+ * "€1 More in Goodwill Credit".
+ *
+ * WHY A TEST AND NOT ONLY A REWRITE. Content rule 5 still LICENSES the token
+ * (the type still permits it, substituteEffect still exists and is still unit-
+ * tested), so nothing but this assertion stops the next author from putting one
+ * back into a frame the engine cannot fill. It is a pin on a state, not a ban on
+ * a feature.
+ *
+ * THE RETIREMENT CONDITION, stated so this test can be deleted honestly rather
+ * than worked around: if the engine is ever changed to express the effect
+ * unit-free — as a percentage of the control-group mean, gr3-001's recorded
+ * alternative — and the plural-after-1 trap ("1 Minutes") is closed
+ * independently, then this test is the thing to delete, in the same commit that
+ * lands the change. Until then a headline carrying a number is a headline
+ * printing the number 1.
+ *
+ * FOR WHOEVER TAKES THAT ON (the Math.max floor is booked to W11): do not
+ * open by deleting the floor. It is load-bearing for the shape the effect
+ * currently has — 96.7% of paths round to 0 — so removing it alone swaps "1"
+ * for "0" and makes the headline worse. The unit-free expression has to land
+ * first; the floor is then either unnecessary or a different rule entirely.
+ */
+describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cannot honour', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: every headline is token-free', ({ content }) => {
+    const withTokens = content.scenarios
+      .filter((s) => /\{[^}]*\}/.test(s.headline))
+      .map((s) => `${s.id}: "${s.headline}"`);
+    expect(withTokens).toEqual([]);
+  });
+
+  it('leaves substituteEffect a no-op on every shipped headline, in every locale', () => {
+    // The end-to-end statement of the same fact, through the real production
+    // function rather than through a regex: whatever beta the day produces, the
+    // headline the player reads is the headline the corpus wrote.
+    for (const { name, content } of LOCALE_CONTENT) {
+      for (const scenario of content.scenarios) {
+        for (const beta of [0, 0.049, -0.6, 24.6]) {
+          expect(substituteEffect(scenario.headline, beta), `${name} ${scenario.id}`).toBe(scenario.headline);
+        }
+      }
+    }
+  });
+
+  it('still substitutes when a token IS present, so this pins the corpus and not the engine', () => {
+    // Guards the guard in the other direction: if substituteEffect were gutted,
+    // the assertion above would pass vacuously.
+    expect(substituteEffect('Cat Owners See {effect}% Higher Returns', 24.6)).toBe(
+      'Cat Owners See 25% Higher Returns'
+    );
+  });
+});
+
+/**
+ * gr6-070 + gr6-037 — the two banks this wave ADDED, and the invariants that
+ * make them safe to wire.
+ *
+ * NEITHER IS RENDERED YET. `src/ui/screens/Briefing.tsx` still reads the
+ * `briefing.emailSubject` copy key, and `src/ui/screens/Reveal.tsx` still emits
+ * no subline on a NULL_REPORTED stamp; both files belong to W7 in this round
+ * and this wave is barred from them. The banks are authored, shaped and pinned
+ * here so that wiring them is a two-line change with the content already under
+ * law, exactly as W2 handed its rostered keys forward. THE HAND-OFF, in the
+ * words the wiring needs:
+ *   - Briefing.tsx:193 — `subject={pickGrantwellEmail(content.grantwellSubjects, iso)}`.
+ *     The SAME picker and the SAME iso as the body one line above: the banks are
+ *     equal length, so one seed lands on the pair that was written together.
+ *     `briefing.emailSubject` becomes dead and should be deleted in that commit.
+ *   - Reveal.tsx:300 — the NULL_REPORTED branch of the same expression that
+ *     already indexes `retractionSublines` by `puzzleNumber % length`.
+ *     WITH THIS CONSTRAINT ATTACHED (w3-r-001), because it is the one thing
+ *     about this bank that is not obvious from its name: the stamp is
+ *     DAY-TYPE-BLIND. `verdictStamp` returns NULL_REPORTED on `published ===
+ *     null` alone, so an abandoned EFFECT day lands here too, one block under
+ *     a `reveal.truthEffect` line that has just declared the effect real. The
+ *     bank is authored to be true on both day types and needs no branch — but
+ *     if a future change ever gives it one (a second, effect-day variant), the
+ *     branch has to key on `payload.dayType`, NOT on the stamp, and the
+ *     retraction bank's `!isPrereg` gate is not the relevant precedent here.
+ *     Do not wire this bank behind a day-type assumption it does not make.
+ */
+describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: pairs a subject with every Grantwell body, index for index', ({ content }) => {
+    // The pairing IS the fix. gr3-011's alternative was a shorter bank rotated
+    // on its own seed, which breaks the constant but pairs at random — "Re: the
+    // deadline" would still land over the body about a dream, just less often.
+    // Equal length + one seed makes every subject the one written for its body,
+    // and this assertion is the only thing keeping that true.
+    expect(content.grantwellSubjects.length).toBe(content.grantwell.length);
+  });
+
+  /**
+   * w3-r-009 — THE PAIRING, not just the count. The length assertion above is
+   * what makes one seed land on one pair; it does not check that the pair was
+   * ever WRITTEN together, and the review proved the gap by swapping the last
+   * two bodies against a green suite.
+   *
+   * Anchored on three indices where subject and body share a concrete noun, so
+   * the anchor is a fact about the writing rather than a restatement of the
+   * order. Three and not twenty-two on purpose: an exhaustive keyword map would
+   * be a second copy of the bank, would fail every time a line was reworded,
+   * and would be deleted the first time it did. THE RESIDUAL RISK IS STATED:
+   * a reorder that leaves 4, 11 and 20 alone still passes here, and the reason
+   * that is acceptable is that the pairing has no other reader — nothing
+   * downstream can detect it, so a silent mis-pairing costs one joke on one
+   * day rather than a wrong claim on any.
+   */
+  it.each([
+    {
+      name: 'en',
+      content: enContent,
+      anchors: [
+        { i: 4, needle: /impact statement/i },
+        { i: 11, needle: /conference/i },
+        { i: 20, needle: /Reviewer 2/ },
+      ],
+    },
+    {
+      name: 'it',
+      content: itContent,
+      anchors: [
+        { i: 4, needle: /dichiarazione di impatto/i },
+        { i: 11, needle: /convegno/i },
+        { i: 20, needle: /Reviewer 2/ },
+      ],
+    },
+    {
+      name: 'es',
+      content: esContent,
+      anchors: [
+        { i: 4, needle: /memoria de impacto/i },
+        { i: 11, needle: /congreso/i },
+        { i: 20, needle: /Reviewer 2/ },
+      ],
+    },
+  ])('$name: three subjects still sit on the body they were written for', ({ content, anchors }) => {
+    for (const { i, needle } of anchors) {
+      expect(content.grantwellSubjects[i], `subject[${i}] lost its anchor`).toMatch(needle);
+      expect(content.grantwell[i], `body[${i}] lost its anchor`).toMatch(needle);
+    }
+  });
+
+  it('catches the reorder the review drove (guards the guard)', () => {
+    // The review's own probe: swap the last two bodies. Index 20's anchor is
+    // the one that has to notice.
+    const swapped = [...enContent.grantwell];
+    [swapped[20], swapped[21]] = [swapped[21], swapped[20]];
+    expect(/Reviewer 2/.test(swapped[20])).toBe(false);
+    expect(/Reviewer 2/.test(enContent.grantwell[20])).toBe(true);
+  });
+
+  it.each(LOCALE_CONTENT)('$name: leaves no subject and no null subline empty', ({ content }) => {
+    for (const [i, s] of content.grantwellSubjects.entries()) {
+      expect(s.trim().length, `grantwellSubjects[${i}]`).toBeGreaterThan(0);
+    }
+    for (const [i, s] of content.nullReportedSublines.entries()) {
+      expect(s.trim().length, `nullReportedSublines[${i}]`).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(LOCALE_CONTENT)('$name: gives NULL REPORTED enough sublines to stop repeating within a fortnight', ({ content }) => {
+    // The stamp will index by puzzleNumber, so the bank size IS the repeat
+    // period. Ten is not fourteen (retractionSublines' size) on purpose: a
+    // player who reports nulls honestly does not see one every day, so the
+    // effective period is much longer than the count.
+    expect(content.nullReportedSublines.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(content.nullReportedSublines).size).toBe(content.nullReportedSublines.length);
+  });
+
+  /**
+   * w3-r-001 — A FLOOR UNDER THE DAY-TYPE CONSTRAINT, and it is a floor and not
+   * an oracle, exactly like the praise scan below it.
+   *
+   * THE REAL RULE, which no regex can check: a NULL REPORTED subline may say
+   * what happened to the REPORT and may not say what the DAY CONTAINED. The
+   * stamp is day-type-blind (`verdictStamp`: `published === null` and nothing
+   * else), ~25% of days carry a real effect, and on an abandoned effect day
+   * this text renders one block under "True effect on X: β = 0.29".
+   *
+   * WHAT THIS CAN MECHANIZE is the two vocabularies the five bad lines reached
+   * for, in each locale's own words:
+   *   (a) THE TRUTH VOCABULARY. `reveal.truthEffect` and `reveal.truthNull`
+   *       already own "effect", "true" and "zero" on this screen, one block up.
+   *       A subline that reaches for them is competing with a sentence the
+   *       player can see, and it loses.
+   *   (b) THE EXISTENTIAL CLAIM. "there was nothing to find", "that is the
+   *       whole story" — an unscoped assertion about what the day held. These
+   *       are pinned as the shapes the review actually caught, so a revert is
+   *       caught even though a NEW phrasing of the same mistake would not be.
+   * A line can still get this wrong in words nobody listed. That is what the
+   * paragraph above the bank in each locale is for.
+   */
+  const DAY_TYPE_BLIND = [
+    {
+      name: 'en',
+      content: enContent,
+      // (a) truth vocabulary, (b) the caught shapes.
+      banned: [/\btrue\b/i, /\bzero\b/i, /\beffect\b/i, /\binterval\b/i, /there was nothing/i, /nothing to find/i, /the whole story/i],
+    },
+    {
+      name: 'it',
+      content: itContent,
+      banned: [/\bvero\b/i, /\bzero\b/i, /\beffetto\b/i, /\bintervallo\b/i, /non c'era niente/i, /non ci sarebbe stato niente/i, /tutta qui/i],
+    },
+    {
+      name: 'es',
+      content: esContent,
+      banned: [/\b(cierto|verdad)\b/i, /\bcero\b/i, /\befecto\b/i, /\bintervalo\b/i, /no había nada/i, /no habría habido nada/i, /la historia es esa/i],
+    },
+  ] as const;
+
+  it.each(DAY_TYPE_BLIND)('$name: says what happened to the report, never what the day contained', ({ content, banned }) => {
+    const offenders = content.nullReportedSublines.flatMap((s, i) =>
+      banned.filter((re) => re.test(s)).map((re) => `nullReportedSublines[${i}] matches ${re}: "${s}"`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('catches every line the review caught, in the locale that shipped it (guards the guard)', () => {
+    // All FIVE sentences this bank shipped before w3-r-001, verbatim, in all
+    // three locales. Each has to be rejected by its OWN locale's list — a list
+    // that only worked in English would be the w1b-003 defect all over again,
+    // and the first draft of this test caught 5/5 in English and 4/5 in the
+    // other two, which is precisely the asymmetry that check exists to expose.
+    const CAUGHT: Record<string, string[]> = {
+      en: [
+        'The finding is that there was nothing to find. It has been filed.',
+        'No press release was issued. There was nothing to put in one.',
+        'Nobody will cite it, and it will still be true next year.',
+        'The dataset was fine. So was the analysis. That is the whole story.',
+        'The confidence interval contained zero, and you said so.',
+      ],
+      it: [
+        "Il risultato è che non c'era niente da trovare. È stato archiviato.",
+        'Non è stato diramato nessun comunicato. Non ci sarebbe stato niente da metterci.',
+        "Non lo citerà nessuno, e l'anno prossimo sarà ancora vero.",
+        "Il dataset andava bene. Anche l'analisi. La storia è tutta qui.",
+        "L'intervallo di confidenza conteneva lo zero, e tu lo hai detto.",
+      ],
+      es: [
+        'El hallazgo es que no había nada que hallar. Ya está archivado.',
+        'No se envió ninguna nota de prensa. No habría habido nada que poner en ella.',
+        'No lo citará nadie, y el año que viene seguirá siendo cierto.',
+        'Los datos estaban bien. El análisis también. La historia es esa.',
+        'El intervalo de confianza contenía el cero, y tú lo dijiste.',
+      ],
+    };
+    for (const { name, banned } of DAY_TYPE_BLIND) {
+      for (const line of CAUGHT[name]) {
+        expect(banned.some((re) => re.test(line)), `${name} list misses: "${line}"`).toBe(true);
+      }
+    }
+  });
+
+  it.each(LOCALE_CONTENT)('$name: keeps the NULL REPORTED bank in Act II\'s register, not in congratulation', ({ content, name }) => {
+    // A mechanical floor under a judgement call, not a substitute for it: the
+    // register rule says clinical and never smug, and the failure mode a
+    // "positive moment for the honest player" invites is a compliment. The
+    // second person is not banned (retractionSublines use it: "One of them was
+    // yours"), but praise vocabulary is.
+    const PRAISE = /\b(well done|congratulations|good work|proud|bravo|complimenti|bravi|enhorabuena|felicidades|buen trabajo)\b/i;
+    for (const [i, s] of content.nullReportedSublines.entries()) {
+      expect(PRAISE.test(s), `${name} nullReportedSublines[${i}] congratulates the player: "${s}"`).toBe(false);
+    }
+  });
+
+  it('sweeps both new banks with the corpus-wide em-dash budget, rather than exempting them', () => {
+    // The banks were added to validators.ts's localeProse in the same commit
+    // that created them. This proves the wiring rather than trusting it: a dash
+    // planted in each new bank has to be caught by the same validator that
+    // guards every other value.
+    for (const { name, content } of LOCALE_CONTENT) {
+      expect(findEmDashProblems(content), `${name} today`).toEqual([]);
+      const dashedSubjects: LocaleContent = {
+        ...content,
+        grantwellSubjects: content.grantwellSubjects.map((s, i) => (i === 0 ? 'a thought — or two — about it' : s)),
+      };
+      expect(findEmDashProblems(dashedSubjects).some((p) => p.includes('grantwellSubjects[0]'))).toBe(true);
+      const dashedSublines: LocaleContent = {
+        ...content,
+        nullReportedSublines: content.nullReportedSublines.map((s, i) => (i === 0 ? 'Nothing — nothing at all — was found.' : s)),
+      };
+      expect(findEmDashProblems(dashedSublines).some((p) => p.includes('nullReportedSublines[0]'))).toBe(true);
+    }
+  });
+});
+
+/**
+ * gr6-085 / gr1b-025 — the `{`-guard now covers the fields that feed
+ * interpolation, not only the two it started with.
+ */
+describe('GR6 W3 gr6-085 — no interpolation token in a field rendered raw', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: carries none today', ({ content }) => {
+    expect(findParamFieldTokens(content)).toEqual([]);
+  });
+
+  it('catches one in every family the sweep claims to cover (guards the guard)', () => {
+    // One fixture per structural family, because the sweep is a list of field
+    // paths and a list is exactly the kind of thing that quietly loses a line.
+    const cases: { family: string; broken: LocaleContent; needle: string }[] = [
+      {
+        family: 'outcomeLabels',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], outcomeLabels: ['{unit} per week', 'a', 'b', 'c'] as [string, string, string, string] },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.outcomeLabels[0]',
+      },
+      {
+        family: 'outcomeUnits',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], outcomeUnits: ['{unit}', 'b/c', 'x/week', '1–10 scale'] as [string, string, string, string] },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.outcomeUnits[0]',
+      },
+      {
+        family: 'covariateLabels',
+        broken: {
+          ...enContent,
+          scenarios: [
+            { ...enContent.scenarios[0], covariateLabels: { income: 'Income of {n}', risk: 'Risk' } },
+            ...enContent.scenarios.slice(1),
+          ],
+        },
+        needle: 'cat-crypto.covariateLabels.income',
+      },
+      {
+        family: 'question',
+        broken: {
+          ...enContent,
+          scenarios: [{ ...enContent.scenarios[0], question: 'Does {effect} matter?' }, ...enContent.scenarios.slice(1)],
+        },
+        needle: 'cat-crypto.question',
+      },
+      {
+        family: 'coverStory',
+        broken: {
+          ...enContent,
+          scenarios: [{ ...enContent.scenarios[0], coverStory: 'We recruited {n} people.' }, ...enContent.scenarios.slice(1)],
+        },
+        needle: 'cat-crypto.coverStory',
+      },
+      {
+        family: 'achievements',
+        broken: {
+          ...enContent,
+          achievements: { ...enContent.achievements, monk: { name: 'The {n} Monk', citation: 'For it.' } },
+        },
+        needle: 'achievements.monk.name',
+      },
+      {
+        family: 'press outlet',
+        broken: {
+          ...enContent,
+          press: [{ ...enContent.press[0], outlet: 'The {n} Chirp' }, ...enContent.press.slice(1)],
+        },
+        needle: 'press[0].outlet',
+      },
+      {
+        family: 'retractionSublines',
+        broken: { ...enContent, retractionSublines: ['The effect was {effect}.', ...enContent.retractionSublines.slice(1)] },
+        needle: 'retractionSublines[0]',
+      },
+      {
+        family: 'nullReportedSublines',
+        broken: { ...enContent, nullReportedSublines: ['Nothing in {n} paths.', ...enContent.nullReportedSublines.slice(1)] },
+        needle: 'nullReportedSublines[0]',
+      },
+      {
+        family: 'grantwell',
+        broken: { ...enContent, grantwell: ['Get me {effect} by Friday.', ...enContent.grantwell.slice(1)] },
+        needle: 'grantwell[0]',
+      },
+      {
+        family: 'grantwellSubjects',
+        broken: { ...enContent, grantwellSubjects: ['re: {n}', ...enContent.grantwellSubjects.slice(1)] },
+        needle: 'grantwellSubjects[0]',
+      },
+      {
+        family: 'glossary',
+        broken: {
+          ...enContent,
+          glossary: [{ term: 'α / false-positive rate', def: 'Capped at {n}%.' }, ...enContent.glossary.slice(1)],
+        },
+        needle: 'glossary[0].def',
+      },
+    ];
+    for (const { family, broken, needle } of cases) {
+      expect(findParamFieldTokens(broken).some((p) => p.includes(needle)), `${family} is not swept`).toBe(true);
+      // ...and through the validator, which is the only entry point IT/ES call.
+      expect(
+        validateLocaleContent(broken, EN_LEXICONS).some((p) => p.includes(needle)),
+        `${family} is not wired into the validator`
+      ).toBe(true);
+    }
+  });
+
+  it('leaves the headline alone, because the headline is the field that MAY carry a token', () => {
+    // The two guards must not disagree. gr6-005 retired the token from every
+    // shipped headline; the CONTRACT still permits it, and this sweep must not
+    // be the thing that silently forbids it.
+    const withToken: LocaleContent = {
+      ...enContent,
+      scenarios: [{ ...enContent.scenarios[0], headline: 'Cat Owners See {effect}% More' }, ...enContent.scenarios.slice(1)],
+    };
+    expect(findParamFieldTokens(withToken)).toEqual([]);
+    // The headline's own rule still bites on the same fixture's foreign token.
+    const withForeignToken: LocaleContent = {
+      ...enContent,
+      scenarios: [{ ...enContent.scenarios[0], headline: 'Cat Owners See {n}% More' }, ...enContent.scenarios.slice(1)],
+    };
+    expect(validateLocaleContent(withForeignToken, EN_LEXICONS).some((p) => p.includes('only use {effect}'))).toBe(true);
+  });
+});
+
+/**
+ * w2-r-005, ADJUDICATED (booked to W3 by the W2 fix round and confirmed by the
+ * W2 re-review).
+ *
+ * THE FINDING. W2's leading-zero law started as a two-digit regex, so it caught
+ * `p < .05` and missed `p = .049` — including inside `about.decimalNote`, the
+ * string whose entire job is to promise the leading zero. Broadened to
+ * `/(?<![\d\w.])\.\d/` it fires on nothing in any of the three copy catalogs,
+ * and W2 scoped it to `copy` because sweeping the corpus fires on exactly one
+ * string per locale, the same joke each time. That scoping was correct and
+ * temporary: an unswept corpus is not a corpus that obeys the law, it is a
+ * corpus nobody checked. So the law now sweeps it — 476 rows per locale — and
+ * the one deviation is an entry with its reasoning, not a silence.
+ *
+ * THE ADJUDICATION: KEEP THE STRING. Three reasons, in the order they decided
+ * it.
+ *
+ *  1. THE LAW IS ABOUT THE GAME'S OWN NOTATION, and this is not the game
+ *     writing a number. `about.decimalNote` makes a promise to the reader about
+ *     how THIS APP typesets statistics; `legend.significant`, `lab.pBelow` and
+ *     `reveal.pValue` are the app keeping it. grantwell[0] is an email from a
+ *     character, quoted verbatim, inside a mail client the game draws. The
+ *     apostrophes, the capitals and the decimals in a quoted email are that
+ *     character's, the same way the tier-3 chyrons say "ZERO VIRGOLA ZERO
+ *     CINQUE" and "CERO COMA CERO CINCO" because an anchor is speaking and not
+ *     typesetting.
+ *  2. THE SLOPPINESS IS THE JOKE, AND THE CHARACTER. "A p-value of .06 is just
+ *     a p-value of .05 with poor time management" is a principal investigator
+ *     treating .06 and .05 as the same number with different luck — which is
+ *     the exact error this entire game exists to dramatize, from the man whose
+ *     function in it is to pressure the player into committing it. Typesetting
+ *     his email to the house standard would make him a more careful
+ *     statistician than the joke can afford him to be.
+ *  3. THE COST OF "FIXING" IT IS MEASURED, NOT HYPOTHETICAL. GR3's quotable
+ *     audit ranked this the third most screenshot-worthy string in the product
+ *     (gr3-014). Rewriting the best line in the Grantwell bank to satisfy a
+ *     typographic rule it is not addressed by is a bad trade at any exchange
+ *     rate.
+ *
+ * WHY AN ALLOW-LIST AND NOT A NARROWED REGEX. A regex that spared "a p-value of
+ * .06" would spare it everywhere, including in the copy catalog, where the same
+ * phrasing WOULD be the app writing a number badly. The exemption belongs to a
+ * location and a reason, so it is written as a location and a reason. It is
+ * self-retiring in both directions: if the line is ever rewritten, assertion
+ * (b) fails and the stale entry has to go; if a second string ever wants the
+ * same licence, it has to be argued for here rather than absorbed.
+ */
+describe('GR6 W3 w2-r-005 — the leading-zero law reaches the corpus, with one entry that says why', () => {
+  const LEADING_ZERO = /(?<![\d\w.])\.\d/;
+
+  // ONE entry per locale, and it is the same string in three languages.
+  const CHARACTER_VOICE_ALLOWANCE = [
+    {
+      name: 'en',
+      content: enContent,
+      where: 'grantwell[0]',
+      // Quoted so a rewrite of the joke is a decision and not an accident.
+      text: 'Remember: a p-value of .06 is just a p-value of .05 with poor time management.',
+    },
+    {
+      name: 'it',
+      content: itContent,
+      where: 'grantwell[0]',
+      text: 'Ricorda: un p-value di .06 è solo un p-value di .05 con una pessima gestione del tempo.',
+    },
+    {
+      name: 'es',
+      content: esContent,
+      where: 'grantwell[0]',
+      text: 'Recuerda: un p-valor de .06 es un p-valor de .05 con mala gestión del tiempo.',
+    },
+  ] as const;
+
+  it.each(CHARACTER_VOICE_ALLOWANCE)(
+    '$name: every corpus value writes its decimals with a leading zero, except the one allowed above',
+    ({ content, where }) => {
+      const offenders = corpusProse(content)
+        .filter((row) => LEADING_ZERO.test(row.text))
+        .map((row) => `${row.where}: "${row.text}"`);
+      expect(offenders).toHaveLength(1);
+      expect(offenders[0].startsWith(`${where}:`)).toBe(true);
+    }
+  );
+
+  it.each(CHARACTER_VOICE_ALLOWANCE)(
+    '$name: the allow-listed string is still the string the reasoning is about (a stale entry fails)',
+    ({ content, text }) => {
+      // (b). If Grantwell's opener is ever rewritten — with or without the
+      // leading zero — this fails, and whoever rewrote it has to re-read the
+      // three reasons above and either delete this entry or restate them.
+      expect(content.grantwell[0]).toBe(text);
+      expect(LEADING_ZERO.test(content.grantwell[0])).toBe(true);
+    }
+  );
+
+  it('catches a leading-zero omission anywhere else in the corpus (guards the guard)', () => {
+    // The exemption is one location, not one phrasing: the SAME sentence in a
+    // different bank is still a defect.
+    const inASubline: LocaleContent = {
+      ...enContent,
+      retractionSublines: ['The p-value was .049 the whole time.', ...enContent.retractionSublines.slice(1)],
+    };
+    const offenders = corpusProse(inASubline).filter((row) => LEADING_ZERO.test(row.text));
+    expect(offenders.map((o) => o.where)).toEqual(['grantwell[0]', 'retractionSublines[0]']);
+  });
+
+  it('does not fire on the notation the corpus writes correctly (no false positives)', () => {
+    // The forms the broadened regex was checked against when W2 widened it, now
+    // asserted rather than remembered — every one of these appears in shipped
+    // content or in its immediate neighbourhood.
+    for (const ok of ['0.05', 'p = 0.049', '|z| > 2.5', 'Fig. 1', 'Vol. 1, No. 11', 'et al.', 'It was 0.000. 3 groups tried.', 'α = 0.05']) {
+      expect(LEADING_ZERO.test(ok), `false positive on "${ok}"`).toBe(false);
+    }
+    for (const bad of ['p < .05', 'p = .049', 'about .5 of them']) {
+      expect(LEADING_ZERO.test(bad), `missed "${bad}"`).toBe(true);
+    }
+  });
+});
+
+/**
+ * NOTATION, CORPUS-WIDE: the apostrophe is straight, and now something checks.
+ *
+ * Found by measuring rather than by a finding: W3's rendered re-read of the
+ * corpus turned up one U+2019 in `grantwell[15]` ("this year’s output"), sitting
+ * among twenty-one sibling emails that all use the straight one ("I've cleared
+ * my afternoon", "I don't want to alarm you"). It predates this wave — it is in
+ * the tree at W3's base commit — and nothing compiled the rule, because W2's
+ * apostrophe work was a one-time sweep of six ITALIAN escapes in the copy
+ * catalog, verified by rendering and never turned into a law.
+ *
+ * A single curly apostrophe is not a character voice, which is why this one is
+ * straightened rather than allow-listed the way grantwell[0]'s decimals are: the
+ * player cannot perceive it as characterization, and a reader who noticed it at
+ * all would read it as an encoding accident, because that is what it was. The
+ * distinction the two blocks draw between them is the whole rule — a deviation
+ * has to be legible AS a deviation to earn an entry.
+ *
+ * SCOPE (w3-r-003): every user-facing value in the locale, corpus AND copy
+ * catalog. The first version of this block ran over `corpusProse` alone, on the
+ * reasoning that the corpus was the file W3 owned — but a rule about how the
+ * product TYPES cannot depend on which file a string lives in, and the review
+ * proved the gap by planting a U+2019 in `en/copy.ts`'s lab.coefPlotAxis and
+ * watching a green suite. All three catalogs are clean today, so widening the
+ * scope lands green and costs nothing but the hole.
+ *
+ * Limited to the marks that have a straight equivalent. The en dash in "1–10
+ * scale" is a range, the em dash has its own budget, and the ACCENTS are the
+ * languages' own (È, PIÙ, Ó) and are not punctuation at all.
+ */
+describe('GR6 W3 — the corpus types its apostrophes and quotes straight', () => {
+  const CURLY: [string, string][] = [
+    ['U+2019 (right single quote)', '’'],
+    ['U+2018 (left single quote)', '‘'],
+    ['U+201C (left double quote)', '“'],
+    ['U+201D (right double quote)', '”'],
+  ];
+
+  it.each([
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ])('$name: uses no typographic quote mark in the corpus OR the copy catalog', ({ content }) => {
+    const offenders = localeProse(content).flatMap((row) =>
+      CURLY.filter(([, ch]) => row.text.includes(ch)).map(([label]) => `${row.where} contains ${label}: "${row.text}"`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('catches each mark it claims to catch (guards the guard)', () => {
+    for (const [label, ch] of CURLY) {
+      const broken: LocaleContent = { ...enContent, grantwell: [`It is this year${ch}s problem.`, ...enContent.grantwell.slice(1)] };
+      expect(
+        localeProse(broken).some((row) => row.where === 'grantwell[0]' && row.text.includes(ch)),
+        `${label} is not detectable in the corpus`
+      ).toBe(true);
+      // ...and on the OTHER side of the scope, which is the half w3-r-003 found
+      // missing: the review's own probe, replayed.
+      const brokenCopy: LocaleContent = {
+        ...enContent,
+        copy: { ...enContent.copy, 'lab.coefPlotAxis': `Estimated effect (${ch}unit${ch})` },
+      };
+      expect(
+        localeProse(brokenCopy).some((row) => row.where === 'copy["lab.coefPlotAxis"]' && row.text.includes(ch)),
+        `${label} is not detectable in the copy catalog`
+      ).toBe(true);
+    }
+  });
+
+  it('leaves the marks that are not typographic quotes alone', () => {
+    // The en dash is a RANGE (every locale's "1–10 scale" / "scala 1–10"), and
+    // the accented capitals are Italian and Spanish, not punctuation. A guard
+    // that swept "non-ASCII" would fail the corpus on both.
+    expect(enContent.scenarios[0].outcomeUnits[3]).toContain('–');
+    for (const { content } of [{ content: itContent }, { content: esContent }]) {
+      const offenders = localeProse(content).flatMap((row) =>
+        CURLY.filter(([, ch]) => row.text.includes(ch)).map(([label]) => `${row.where}: ${label}`)
+      );
+      expect(offenders).toEqual([]);
+    }
+    expect(itContent.press.some((p) => /È|PIÙ/.test(p.text))).toBe(true);
+  });
+});
+
+/**
+ * w3-r-004 — THE DOSAGE RATCHETS. gr6-040, gr6-072 and gr6-073 are the three
+ * rows whose whole content is a NUMBER: not "this label is wrong" but "this
+ * device is used too often". The review reverted all nineteen income covariates
+ * against a green suite and nothing objected, which is fair — a row whose
+ * deliverable is a count and which compiles no count has shipped an opinion.
+ *
+ * WHY THESE THREE AND NOT gr6-038/039. Those two are semantic: whether a label
+ * reads as an absolute quantity the mean-centred family renders meaninglessly
+ * negative is a judgement, and the obvious mechanical proxy (require a relative
+ * marker) false-positives on four labels that are legitimately signed —
+ * cat-crypto's '30-day portfolio return' among them. A guard that has to
+ * exempt a fifth of the set to pass is not measuring the rule. Those two rows
+ * keep their reasoning in prose, deliberately, and the review accepted that.
+ * These three measure something a regex can actually count.
+ *
+ * RATCHETS, NOT EQUALITIES. Each ceiling is the number this wave landed on, and
+ * it may only ever go DOWN. Going below it is a better corpus and passes
+ * silently; going above it is the seam coming back and fails. That asymmetry is
+ * the point — an equality pin would fail an author who improved the corpus, and
+ * would be deleted by the third person who hit it.
+ *
+ * PER-LOCALE PATTERNS, PER-LOCALE CEILINGS. English's slot-1 device is
+ * "Longest…/Length of…"; Italian's is "più lungo"; Spanish's is "más largo".
+ * They are different devices with different natural pulls, so they carry the
+ * numbers each locale actually reached (7 / 5 / 4) rather than English's
+ * imposed on all three.
+ */
+describe('GR6 W3 w3-r-004 — the dosage rows compile the numbers they are about', () => {
+  const DOSAGE = [
+    {
+      name: 'en',
+      content: enContent,
+      // gr6-073: the duration-superlative device in outcomeLabels[1]. 11/20
+      // before this wave.
+      device: /^(Longest|Length of)\b/i,
+      maxDevice: 7,
+      // gr6-072: the `sense`-headed metric in outcomeLabels[3]. 4/20 before.
+      senseHead: /\bsense\b/i,
+    },
+    { name: 'it', content: itContent, device: /\bpiù lung[ao]?\b/i, maxDevice: 5, senseHead: /\b(sensazione|senso)\b/i },
+    { name: 'es', content: esContent, device: /\bmás larg[ao]s?\b/i, maxDevice: 4, senseHead: /\bsensación\b/i },
+  ] as const;
+
+  // gr6-040: 'Household income' stood on 15 of 20. The survivor is each
+  // locale's 'Salary band' on its four workplace scenarios, which is left
+  // alone deliberately (it is scenario-appropriate where it stands) — so the
+  // ceiling is 4 and is the same in every locale.
+  const MAX_INCOME_REPEAT = 4;
+
+  it.each(DOSAGE)('$name: no income covariate label stands on more than four scenarios', ({ content }) => {
+    const counts = new Map<string, number>();
+    for (const s of content.scenarios) {
+      const label = s.covariateLabels.income;
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    const overused = [...counts.entries()]
+      .filter(([, n]) => n > MAX_INCOME_REPEAT)
+      .map(([label, n]) => `"${label}" on ${n} scenarios`);
+    expect(overused).toEqual([]);
+  });
+
+  it.each(DOSAGE)('$name: the slot-1 duration device stays at or below the count this wave reached', ({ content, device, maxDevice }) => {
+    const used = content.scenarios.filter((s) => device.test(s.outcomeLabels[1])).map((s) => s.outcomeLabels[1]);
+    expect(used.length, `${used.length} of 20 use the device:\n  ${used.join('\n  ')}`).toBeLessThanOrEqual(maxDevice);
+  });
+
+  /**
+   * w3-r-013 — THE FIFTH REPLACEMENT, DECLINED, with the reasoning here rather
+   * than in a report nobody will read again.
+   *
+   * gr3-030 supplied five rows for the bounded scale; one of them was
+   * "full-moon: keep (the best label in the set)", so four labels moved and
+   * `confidence` survives twice — mechanical-keyboard's "Self-rated confidence
+   * at commit time" and telescope's "Stranger-rated confidence in the
+   * directions". Not taken, for two reasons that go together:
+   *
+   *  1. TWO OF TWENTY IS THE FLOOR, NOT A SEAM. `warmth` also survives twice in
+   *     the same slot (vinyl's "Guest-rated warmth of the evening", stairs'
+   *     "Counterpart-rated warmth") and was never a finding. Fixing one pair
+   *     and not the other would make the corpus less coherent, not more, and
+   *     would put this test in the position of enforcing a rule the corpus
+   *     visibly does not follow.
+   *  2. THE SLOT'S OWN VARYING ELEMENT ALREADY SEPARATES THEM. The construction
+   *     is "<rater>-rated <noun>", and these two differ in the rater —
+   *     self-reported confidence and a stranger's confidence in someone else
+   *     are different measurements, which is exactly what the prefix is for.
+   *     `sense` ×4 was a seam because three of the four were SELF-ratings
+   *     sharing a head noun (the survivor is the attendee-rated one).
+   *
+   * Which is why the ceiling below is 1 for `sense` and there is no ceiling for
+   * `confidence`: the numbers differ because the defects do.
+   */
+  it.each(DOSAGE)('$name: at most one bounded-scale metric is headed by "sense"', ({ content, senseHead }) => {
+    // full-moon's "sense that this could have been an email" is the one that
+    // stays, and it is the best label in the set — which is the reason the
+    // ceiling is one rather than zero.
+    const used = content.scenarios.filter((s) => senseHead.test(s.outcomeLabels[3])).map((s) => s.outcomeLabels[3]);
+    expect(used.length, `headed by "sense":\n  ${used.join('\n  ')}`).toBeLessThanOrEqual(1);
+  });
+
+  it('is a ratchet in both directions: a revert fails, an improvement passes', () => {
+    // Guards the guard, and pins the ASYMMETRY that makes these ratchets rather
+    // than equality pins. Uses the exact revert the review drove (all income
+    // covariates back to one label) plus a single-label revert, to show the
+    // ceiling bites long before the full regression.
+    const countIncome = (c: LocaleContent) => {
+      const m = new Map<string, number>();
+      for (const s of c.scenarios) m.set(s.covariateLabels.income, (m.get(s.covariateLabels.income) ?? 0) + 1);
+      return Math.max(...m.values());
+    };
+    const fullRevert: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) => ({ ...s, covariateLabels: { ...s.covariateLabels, income: 'Household income' } })),
+    };
+    expect(countIncome(fullRevert)).toBeGreaterThan(MAX_INCOME_REPEAT);
+    // One more onto the surviving four is already too many.
+    const oneMore: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) =>
+        s.id === 'cat-crypto' ? { ...s, covariateLabels: { ...s.covariateLabels, income: 'Salary band' } } : s
+      ),
+    };
+    expect(countIncome(oneMore)).toBe(MAX_INCOME_REPEAT + 1);
+    // ...and taking one AWAY passes, which an equality pin would not.
+    const improved: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) =>
+        s.id === 'jazz-spreadsheets' ? { ...s, covariateLabels: { ...s.covariateLabels, income: 'Desk budget' } } : s
+      ),
+    };
+    expect(countIncome(improved)).toBeLessThanOrEqual(MAX_INCOME_REPEAT);
+
+    // Same shape for the other two ceilings.
+    const deviceBack: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) =>
+        s.id === 'label-maker-inbox'
+          ? { ...s, outcomeLabels: ['a', 'Longest run of days at inbox zero', 'c', 'd'] as [string, string, string, string] }
+          : s
+      ),
+    };
+    expect(deviceBack.scenarios.filter((s) => /^(Longest|Length of)\b/i.test(s.outcomeLabels[1])).length).toBe(8);
+    const senseBack: LocaleContent = {
+      ...enContent,
+      scenarios: enContent.scenarios.map((s) =>
+        s.id === 'label-maker-inbox'
+          ? { ...s, outcomeLabels: ['a', 'b', 'c', 'Self-rated sense of control'] as [string, string, string, string] }
+          : s
+      ),
+    };
+    expect(senseBack.scenarios.filter((s) => /\bsense\b/i.test(s.outcomeLabels[3])).length).toBe(2);
   });
 });

@@ -144,11 +144,29 @@ const EM_DASH = '—';
 const MAX_EM_DASHES_PER_STRING = 1;
 export const MIN_CHARS_PER_EM_DASH = 2500;
 
-/** Every user-facing value in a locale, flattened. Keys are never included. */
-function localeProse(content: LocaleContent): { where: string; text: string }[] {
-  const rows: { where: string; text: string }[] = [...scenarioProse(content)];
+export interface ProseRow {
+  where: string;
+  text: string;
+}
+
+/**
+ * Every user-facing value in the CORPUS — the scenario bank and the flavour
+ * banks — flattened, keys never included. Split out from `localeProse` in W3
+ * (gr6-085, w2-r-005) because two laws needed the corpus WITHOUT the copy
+ * catalog: the copy catalog has its own guards, and both of those laws would
+ * otherwise have had to re-list every bank and would have drifted the first
+ * time a bank was added. One list, three consumers.
+ */
+export function corpusProse(content: LocaleContent): ProseRow[] {
+  const rows: ProseRow[] = [...scenarioProse(content)];
 
   content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
+  // gr6-070 / gr6-037: both banks joined this sweep in the same commit that
+  // created them. A bank that is not in `localeProse` is a bank the em-dash
+  // budget, and every other corpus-wide law that walks these rows, cannot see —
+  // which is how a new bank silently acquires an exemption nobody granted it.
+  content.grantwellSubjects.forEach((text, i) => rows.push({ where: `grantwellSubjects[${i}]`, text }));
+  content.nullReportedSublines.forEach((text, i) => rows.push({ where: `nullReportedSublines[${i}]`, text }));
   content.press.forEach((blurb, i) => {
     rows.push({ where: `press[${i}].text`, text: blurb.text });
     rows.push({ where: `press[${i}].outlet`, text: blurb.outlet });
@@ -162,10 +180,22 @@ function localeProse(content: LocaleContent): { where: string; text: string }[] 
     rows.push({ where: `glossary[${i}].term`, text: entry.term });
     rows.push({ where: `glossary[${i}].def`, text: entry.def });
   });
+  return rows;
+}
+
+/**
+ * The corpus plus the copy catalog: every user-facing value in the locale.
+ * Exported since w3-r-003 — the apostrophe law was written over `corpusProse`
+ * and therefore stopped at the catalog's edge, which let a typographic quote
+ * into `copy` unchallenged (proved: a U+2019 planted in en/copy.ts survived a
+ * green suite). A notation rule about how the product TYPES has no business
+ * knowing which file a string lives in.
+ */
+export function localeProse(content: LocaleContent): ProseRow[] {
+  const rows: ProseRow[] = [...corpusProse(content)];
   for (const [key, text] of Object.entries(content.copy)) {
     rows.push({ where: `copy["${key}"]`, text });
   }
-
   return rows;
 }
 
@@ -230,7 +260,7 @@ export function findEmDashProblems(content: LocaleContent): string[] {
   return problems;
 }
 
-function scenarioProse(content: LocaleContent): { where: string; text: string }[] {
+function scenarioProse(content: LocaleContent): ProseRow[] {
   return content.scenarios.flatMap((s) => [
     { where: `${s.id}.question`, text: s.question },
     { where: `${s.id}.coverStory`, text: s.coverStory },
@@ -319,9 +349,12 @@ export function upperCaseRatio(text: string): number {
  * are print and do not. Language-independent (it counts capitals, not words),
  * so every locale inherits it.
  *
- * A ratio and not `text === text.toUpperCase()`: '401(k)' is a proper noun
- * whose lowercase k survives even on a chyron, and Italian/Spanish accented
- * capitals are outside the ASCII class this counts.
+ * A ratio and not `text === text.toUpperCase()`: a proper noun can carry a
+ * lowercase glyph through a chyron ('401(k)' did, until gr6-069 retired that
+ * line for a different reason), and Italian/Spanish accented capitals are
+ * outside the ASCII class this counts. Both halves are exercised in
+ * shape.test.ts — the first on a fixture now that the corpus no longer supplies
+ * the case, the second on live IT/ES tier-3 lines.
  */
 export function findPressVoiceProblems(content: LocaleContent): string[] {
   const problems: string[] = [];
@@ -369,6 +402,54 @@ export function findPressTokens(content: LocaleContent): string[] {
   });
   return problems;
 }
+
+/**
+ * gr6-085 / gr1b-025 — the SAME rule, over the fields that actually feed
+ * interpolation.
+ *
+ * `findPressTokens` above guards press text and `validateLocaleContent` guards
+ * the headline, but those were the two fields nobody was going to get wrong.
+ * The unguarded ones are the fields that are substituted INTO other strings —
+ * `outcomeLabels` (Reveal.tsx, SpecCurve.tsx), `outcomeUnits`
+ * (lab.coefPlotAxis's own `{unit}` slot, CoefPlot.tsx), `covariateLabels`
+ * (SpecControls.tsx) — plus the ones rendered raw beside them: achievement
+ * names and citations, outlets, both subline banks, the Grantwell bodies and
+ * their subjects, the question, the cover story and the glossary.
+ *
+ * A brace in any of them renders as a literal brace on screen. This is
+ * legibility, not security: nothing interprets it, nothing escapes it, it just
+ * looks broken. None is present in any of the three locales today, which is
+ * exactly when to compile the fact — the corpus is under active authoring in
+ * three languages, and the field that acquires a `{unit}` by copy-paste from
+ * the copy catalog is the field this scan exists for.
+ *
+ * HEADLINE IS DELIBERATELY NOT HERE. It is the one content field the game
+ * substitutes into, so its rule is different (at most one token, and it must be
+ * `{effect}`) and lives in `validateLocaleContent`; sweeping it here would ban
+ * what that rule permits. gr6-005 retired the token from every shipped
+ * headline, but the CONTRACT still allows it, and these two guards must not
+ * disagree about that.
+ */
+export function findParamFieldTokens(content: LocaleContent): string[] {
+  const problems: string[] = [];
+  for (const { where, text } of corpusProse(content)) {
+    // Two exclusions, both load-bearing. `.headline` is the one content field
+    // the game substitutes into, so its rule lives in validateLocaleContent and
+    // is DIFFERENT (at most one token, and it must be {effect}); sweeping it
+    // here would ban what that rule permits. `press[].text` has its own guard
+    // (findPressTokens) with its own message, and two problems for one string
+    // would be noise.
+    if (where.endsWith('.headline') || /^press\[\d+\]\.text$/.test(where)) continue;
+    const tokens = text.match(/\{[^}]*\}/g) ?? [];
+    if (tokens.length > 0) {
+      problems.push(
+        `${where} carries interpolation token(s) ${tokens.join(', ')}, but this field is rendered raw or substituted INTO another string`
+      );
+    }
+  }
+  return problems;
+}
+
 
 /**
  * T39a's coverage law, and the whole point of the task: "Every day must feel
@@ -545,6 +626,7 @@ export function validateLocaleContent(
   problems.push(...findPressVoiceProblems(content));
   problems.push(...findPressJournalNames(content));
   problems.push(...findPressTokens(content));
+  problems.push(...findParamFieldTokens(content));
 
   // The em-dash budget is language-independent (it counts one character), so
   // unlike the two lexicons it needs no per-locale argument.

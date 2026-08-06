@@ -295,9 +295,28 @@ describe('Italian locale content', () => {
 
   it('ships at least as many grantwell emails, press blurbs, sublines and glossary entries as English', () => {
     expect(itContent.grantwell.length).toBe(enContent.grantwell.length);
+    expect(itContent.grantwellSubjects.length).toBe(enContent.grantwellSubjects.length);
     expect(itContent.press.length).toBe(enContent.press.length);
     expect(itContent.retractionSublines.length).toBe(enContent.retractionSublines.length);
+    expect(itContent.nullReportedSublines.length).toBe(enContent.nullReportedSublines.length);
     expect(itContent.glossary.length).toBe(enContent.glossary.length);
+  });
+
+  it('writes both new banks in Italian, not in English (gr6-070, gr6-037)', () => {
+    // Same shape as the press-alias check above: structural parity is a law of
+    // this suite, so an untranslated bank would ship shaped correctly and read
+    // as English. 'Re: Re: Reviewer 2' is the ONE line allowed to coincide —
+    // Reviewer 2 stays Reviewer 2 in this locale by its own contract, and the
+    // mail client's "Re:" is not Italian to begin with.
+    const SHARED_WITH_EN = ['Re: Re: Reviewer 2'];
+    const aliasedSubjects = itContent.grantwellSubjects.flatMap((s, i) =>
+      s === enContent.grantwellSubjects[i] && !SHARED_WITH_EN.includes(s) ? [i] : []
+    );
+    expect(aliasedSubjects).toEqual([]);
+    const aliasedSublines = itContent.nullReportedSublines.flatMap((s, i) =>
+      s === enContent.nullReportedSublines[i] ? [i] : []
+    );
+    expect(aliasedSublines).toEqual([]);
   });
 
   it('keeps press tiers and scenario bindings identical to English, index by index', () => {

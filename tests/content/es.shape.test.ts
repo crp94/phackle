@@ -247,9 +247,28 @@ describe('Spanish locale — structural parity with English', () => {
 
   it('matches every bank count', () => {
     expect(esContent.grantwell.length).toBe(enContent.grantwell.length);
+    expect(esContent.grantwellSubjects.length).toBe(enContent.grantwellSubjects.length);
     expect(esContent.press.length).toBe(enContent.press.length);
     expect(esContent.retractionSublines.length).toBe(enContent.retractionSublines.length);
+    expect(esContent.nullReportedSublines.length).toBe(enContent.nullReportedSublines.length);
     expect(esContent.glossary.length).toBe(enContent.glossary.length);
+  });
+
+  it('writes both new banks in Spanish, not in English (gr6-070, gr6-037)', () => {
+    // Same shape as the press-alias check above: structural parity is a law of
+    // this suite, so an untranslated bank would ship shaped correctly and read
+    // as English. 'Re: Re: Reviewer 2' is the ONE line allowed to coincide —
+    // Reviewer 2 stays Reviewer 2 in this locale by its own contract, and the
+    // mail client's "Re:" is not Spanish to begin with.
+    const SHARED_WITH_EN = ['Re: Re: Reviewer 2'];
+    const aliasedSubjects = esContent.grantwellSubjects.flatMap((s, i) =>
+      s === enContent.grantwellSubjects[i] && !SHARED_WITH_EN.includes(s) ? [i] : []
+    );
+    expect(aliasedSubjects).toEqual([]);
+    const aliasedSublines = esContent.nullReportedSublines.flatMap((s, i) =>
+      s === enContent.nullReportedSublines[i] ? [i] : []
+    );
+    expect(aliasedSublines).toEqual([]);
   });
 
   it('keeps press tiers and scenario bindings aligned index by index', () => {

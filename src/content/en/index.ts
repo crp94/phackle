@@ -21,22 +21,71 @@
 //     so every outcome is phrased such that MORE of the metric means MORE of
 //     the claimed effect. "Bugs shipped" is wrong; "releases shipped clean" is
 //     right. This is a contract with the engine, not a style preference.
-//  5. HEADLINE TOKEN. A headline may carry at most one `{effect}` token, and
-//     never `{n}` — the copy catalog already binds {n} to SAMPLE SIZE
-//     (lab.nLabel, lab.collectMore), so a shared interpolator would print N
-//     into an effect slot ("Cat Owners See 250% Higher Returns"). `{effect}`
-//     is substituted with the published specification's treatment effect,
-//     expressed in whatever frame the surrounding words imply — a percentage
-//     in "{effect}% Faster", euros in "€{effect}", minutes in "{effect}
-//     Minutes Longer" — and rounded to a whole number of at least 1. A
-//     headline with no token is legal and occasionally funnier: forcing a
-//     number into standing-desk-poetry's would spoil it.
+//  5. HEADLINE TOKEN, RETIRED (gr6-005 / gr3-001), and the reasoning, because
+//     the rule that licenses the token is still on the books. A headline may
+//     carry at most one `{effect}` token and never `{n}` (the copy catalog
+//     binds {n} to SAMPLE SIZE via lab.nLabel and lab.collectMore, so a shared
+//     interpolator would print N into an effect slot). As of GR6, not one of
+//     the twenty carries either, and this is why:
+//       - THE NUMBER WAS ALWAYS 1. `{effect}` was substituted with the
+//         published spec's treatment effect in that outcome's OWN RAW UNITS,
+//         rounded and floored at 1 (src/game/published.ts's substituteEffect).
+//         Measured over 20 consecutive days from EPOCH, all 1,792 specs at both
+//         the opening and the full window: 71,680 of 71,680 valid paths print
+//         1. Not "usually" — every publishable path the game has.
+//         THE SPLIT MATTERS (w3-r-011), because it says where the defect
+//         lives: 69,336 of those (96.7%) round to 0 and are lifted to 1 by the
+//         floor, and 2,344 (3.3%) round to 1 on their own. Median |beta| runs
+//         0.04 to 0.08. So the floor is not the bug — DELETING it would print
+//         "0" on 96.7% of paths, which is worse. The bug is that a raw-unit
+//         coefficient is not a headline number in any frame, and no rounding
+//         rule can make it one.
+//       - THE FRAME COULD NOT BE HONOURED ANYWAY. The frame is fixed per
+//         scenario, while the number comes from whichever of the four outcomes
+//         the player published, so a 1-10 self-rating could print as "€1 More
+//         in Goodwill Credit" or "1% Higher Returns". No fixed frame survives a
+//         number whose units the player chooses at run time.
+//     Token-free headlines were always legal here ("occasionally funnier":
+//     forcing a number into standing-desk-poetry's would have spoiled it) and
+//     are now the whole set. tests/content/shape.test.ts pins the fact and
+//     records the ONE condition for bringing the token back: an engine that
+//     expresses the effect unit-free (as a percentage of the control-group
+//     mean, gr3-001's alternative) and closes the plural-after-1 trap
+//     independently. Do not re-add a token before that lands, and do not ship
+//     the floor-at-1 rule either way.
 //  6. COHORT SIZE. Cover stories never state the final headcount. The lab
 //     opens at N = 200 with a "collect 50 more" button (§2.4), so a briefing
 //     that has already announced 400 participants deflates the optional-
 //     stopping fiction before the player reaches it. Drop the number, or say
 //     recruitment is still running — and vary how, since fifteen identical
 //     "four hundred participants" openings were themselves a visible seam.
+//  7. COVARIATES (gr6-040). The two covariateLabels only RENAME the engine's
+//     two latent controls, so the left one has to stay a plausible INCOME
+//     PROXY — an expenditure, an asset, a budget, a pay band — or the
+//     regression the player is running stops meaning what the screen says it
+//     means. Within that constraint it should be the scenario's own: these
+//     labels are furniture on the one screen the player spends the whole
+//     session in, and 'Household income' stood on 15 of 20 days beside a
+//     bespoke right-hand label, so the radiogroup read as one funny option and
+//     one filing cabinet, every day, forever. The one-tailed DIRECTION
+//     contract (rule 4) does not reach here: a covariate is a control, not an
+//     outcome, and nothing about it is hypothesized.
+//  8. HOW A COVER STORY OPENS AND CLOSES (gr6-041).
+//     THE CLOSER IS A LAW: one wry logistics aside per scenario, 20 of 20,
+//     every payload different ("He sends regards." / "Both had moved to
+//     something quieter." / "The consent forms, for once, were read in full.").
+//     It is the corpus's best recurring beat because the DEVICE repeats and the
+//     JOKE never does. Keep all twenty.
+//     THE OPENER IS NOT: sixteen of twenty opened on the same academic-gap
+//     sentence (the literature has studied A exhaustively and B not at all),
+//     and on a daily an identical first sentence becomes furniture inside two
+//     weeks. Five now enter from elsewhere — method (mechanical-keyboard),
+//     person (full-moon), mid-scene (jigsaw), objection (sock), money
+//     (cat-crypto) — leaving twelve. The gap sentence itself is not the
+//     problem and mostly survives further down the paragraph; being FIRST every
+//     time was. Two of the five needed new closers, because the material their
+//     new opener uses was their old closer: the device is preserved, the
+//     payload is new, and the count is still 20 of 20.
 import type { LocaleContent } from '../types';
 import { copy } from './copy';
 
@@ -46,9 +95,9 @@ export const content: LocaleContent = {
       id: 'cat-crypto',
       question: 'Does owning a cat improve cryptocurrency returns?',
       coverStory:
-        'A pilot cohort of retail investors was recruited to test a folk hypothesis long whispered in personal-finance forums: that cat ownership confers a calming, risk-steadying influence on portfolio behavior. Self-directed traders log their pet status alongside thirty days of trading activity, and recruitment through those forums is ongoing. The work is funded by a philanthropic trust whose founder owns four cats and, we are told, a very strong prior.',
+        'A philanthropic trust with four cats and a very strong prior asked us a question: does cat ownership confer a calming, risk-steadying influence on portfolio behavior? The folk hypothesis has been whispered in personal-finance forums for years and tested by nobody. Self-directed traders log their pet status alongside thirty days of trading activity, and recruitment through those forums is ongoing. The trust would like to be kept informed, weekly.',
       treatmentLabel: 'Owns a cat',
-      headline: 'Cat Owners See {effect}% Higher Returns, Study Finds',
+      headline: 'Cat Owners See Higher Returns, Study Finds',
       // DELIBERATE SPEC DIVERGENCE — do not "fix" back. The master spec (§2.4,
       // §3.2, §4.1) illustrates this scenario with "portfolio volatility" and
       // "trades/week", but both run against rule 4 above: the cover story sells
@@ -63,7 +112,7 @@ export const content: LocaleContent = {
         'Self-rated calm during a crash',
       ],
       outcomeUnits: ['%', '% of benchmark', 'winning trades/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to hold through a red candle' },
+      covariateLabels: { income: 'Portfolio size', risk: 'Willingness to hold through a red candle' },
       journalTags: ['pets', 'finance'],
     },
     {
@@ -74,13 +123,13 @@ export const content: LocaleContent = {
       treatmentLabel: 'Uses a standing desk',
       headline: 'Standing Desks Linked to a Renaissance in Middle-Management Verse',
       outcomeLabels: [
-        'Expert panel quality score',
+        'Panel quality score above the department average',
         'Metaphor density',
         'Submissions to the internal poetry channel',
         'Self-assessed profundity',
       ],
       outcomeUnits: ['points', 'metaphors/stanza', 'submissions/month', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Appetite for creative risk-taking' },
+      covariateLabels: { income: 'Management pay band', risk: 'Appetite for creative risk-taking' },
       journalTags: ['workplace', 'creative'],
     },
     {
@@ -89,7 +138,7 @@ export const content: LocaleContent = {
       coverStory:
         'Endurance training has been studied to exhaustion. The baking has not. Our hypothesis is behavioral rather than nutritional: twelve weeks of refusing to rush a rise should transfer directly to the patience a negative split demands. We recruited amateur marathoners through running clubs and one exceptionally cooperative flour co-op, matched their starter logs to their chip times, and waited. The co-op is still sending people.',
       treatmentLabel: 'Keeps a sourdough starter',
-      headline: 'Sourdough Bakers Finish Marathons {effect}% Faster, Researchers Report',
+      headline: 'Sourdough Bakers Finish Marathons Faster, Researchers Report',
       outcomeLabels: [
         'Race-day improvement on personal best',
         'Final-10K surge over race-average pace',
@@ -97,7 +146,7 @@ export const content: LocaleContent = {
         'Self-rated race-day patience',
       ],
       outcomeUnits: ['s/km gained', '% above race average', 'runners overtaken/race', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to go out too fast' },
+      covariateLabels: { income: 'Spend on running shoes', risk: 'Willingness to go out too fast' },
       journalTags: ['fitness', 'lifestyle'],
     },
     {
@@ -106,7 +155,7 @@ export const content: LocaleContent = {
       coverStory:
         'Open-plan offices have argued about background music for a decade without once auditing a workbook. We gave one department of financial analysts a 340-hour hard-bop playlist and left the other with their usual silence, then ran every cell of their quarterly models through an independent audit tool. The analysts were told the study was about lighting.',
       treatmentLabel: 'Listens to jazz while working',
-      headline: 'Jazz in the Office Linked to {effect}% Cleaner Spreadsheets',
+      headline: 'Jazz in the Office Linked to Cleaner Spreadsheets',
       outcomeLabels: [
         'Audit accuracy above the department baseline',
         'Longest clean stretch of audited cells',
@@ -123,7 +172,7 @@ export const content: LocaleContent = {
       coverStory:
         'Biophilic design is sold to facilities managers on wellbeing alone. Nobody has asked what it does across a table. We placed a single Boston fern in the office of every procurement officer who agreed to take part, left it there for one full contracting cycle, and then obtained the final terms of every deal they closed. Permission was granted in every case, in several after considerable pleading.',
       treatmentLabel: 'Keeps a fern on the desk',
-      headline: 'Office Ferns Associated with €{effect}k Better Contract Terms',
+      headline: 'Office Ferns Associated with Better Contract Terms',
       outcomeLabels: [
         'Value claimed above the opening offer',
         'Longest silence held after a counteroffer',
@@ -131,7 +180,7 @@ export const content: LocaleContent = {
         'Counterpart-rated toughness',
       ],
       outcomeUnits: ['€ thousands', 'seconds', 'concessions/negotiation', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to walk away' },
+      covariateLabels: { income: 'Departmental budget', risk: 'Willingness to walk away' },
       journalTags: ['nature', 'workplace'],
     },
     {
@@ -140,7 +189,7 @@ export const content: LocaleContent = {
       coverStory:
         "The morning cold shower has been credited with focus, resilience and character. Its effect on the inbox is entirely unstudied. Office workers log their shower temperature each morning and consent to sentiment scoring of six weeks of outgoing mail; enrollment continues in waves, as the plumbing allows. Our coders are blind to condition, and the phrase 'per my last email' is flagged automatically, which spares them a great deal.",
       treatmentLabel: 'Takes cold showers',
-      headline: 'Cold Showers Linked to a {effect}% Sharper Inbox Tone',
+      headline: 'Cold Showers Linked to a Sharper Inbox Tone',
       outcomeLabels: [
         'Passive-aggression index of outgoing mail',
         'Reply latency on unwelcome requests',
@@ -148,7 +197,7 @@ export const content: LocaleContent = {
         'Recipient-rated frostiness',
       ],
       outcomeUnits: ['index points', 'hours', 'instances/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to reply-all' },
+      covariateLabels: { income: 'Bathrooms in the household', risk: 'Willingness to reply-all' },
       journalTags: ['wellness', 'communication'],
     },
     {
@@ -157,7 +206,7 @@ export const content: LocaleContent = {
       coverStory:
         'Urban mobility research models the parking search as a rational process. We wondered whether it is in fact a devotional one. Drivers install a logger that records every search from street entry to engine-off and report their morning app habits; those who read their star sign before driving are compared with those who do not. Neither group is told what we are looking for. Two have guessed anyway, and neither was close.',
       treatmentLabel: 'Reads a daily horoscope',
-      headline: 'Horoscope Readers Save {effect} Minutes a Week Looking for Parking',
+      headline: 'Horoscope Readers Save Time Every Week Looking for Parking',
       outcomeLabels: [
         'Search time saved against the block average',
         'Distance advantage over the nearest legal alternative',
@@ -165,23 +214,23 @@ export const content: LocaleContent = {
         'Self-rated cosmic alignment',
       ],
       outcomeUnits: ['minutes saved', 'metres', 'successes/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort with an ambiguous parking sign' },
+      covariateLabels: { income: 'Parking-permit tier', risk: 'Comfort with an ambiguous parking sign' },
       journalTags: ['superstition', 'lifestyle'],
     },
     {
       id: 'mechanical-keyboard-bugs',
       question: 'Do mechanical keyboards reduce bugs shipped?',
       coverStory:
-        'The tactile-feedback literature ends at typing speed and stops well short of production. With the cooperation of eleven engineering teams, we matched eighteen months of hardware procurement records to the same period of issue trackers, treating each switch changeover as a natural experiment. Two participants changed switch type mid-study and were, regrettably, dropped. Both had moved to something quieter.',
+        'Eighteen months of hardware procurement records, matched line by line to eighteen months of issue trackers. Eleven engineering teams opened both sets to us, and every switch changeover inside them is treated as a natural experiment. Typing speed is where the tactile-feedback literature stops; production is where this study starts. Two participants changed switch type mid-study and were, regrettably, dropped. Both had moved to something quieter.',
       treatmentLabel: 'Types on a mechanical keyboard',
-      headline: 'Mechanical Keyboards Associated with {effect}% Cleaner Releases',
+      headline: 'Mechanical Keyboards Associated with Cleaner Releases',
       outcomeLabels: [
-        'Defect-free code shipped per release',
-        'Longest green-build streak',
+        'Defect-free code shipped above the team baseline',
+        'Days between red builds',
         'Reviews approved with no changes requested',
         'Self-rated confidence at commit time',
       ],
-      outcomeUnits: ['thousand lines', 'hours', 'approvals/sprint', '1–10 scale'],
+      outcomeUnits: ['thousand lines', 'days', 'approvals/sprint', '1–10 scale'],
       covariateLabels: { income: 'Salary band', risk: 'Appetite for shipping on a Friday' },
       journalTags: ['technology', 'productivity'],
     },
@@ -191,7 +240,7 @@ export const content: LocaleContent = {
       coverStory:
         "Retail investing folklore holds that conviction has to come from somewhere. We asked brokerage customers for their pets' names and hand-classified each against a reference list of economists (Keynes, Hayek, Ostrom, and one Milton we argued about for a week), then matched the classification to two years of audited account statements. The classification queue is not yet empty.",
       treatmentLabel: 'Dog named after an economist',
-      headline: 'Investors With Dogs Named for Economists Beat the Market by {effect} Points',
+      headline: 'Investors With Dogs Named for Economists Beat the Market',
       outcomeLabels: [
         'Annualized excess return over the benchmark',
         'Best single-position gain',
@@ -199,16 +248,16 @@ export const content: LocaleContent = {
         'Self-rated conviction in the thesis',
       ],
       outcomeUnits: ['percentage points', '%', 'holdings/quarter', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Belief that the dog knows something' },
+      covariateLabels: { income: 'Annual spend on the dog', risk: 'Belief that the dog knows something' },
       journalTags: ['pets', 'finance'],
     },
     {
       id: 'full-moon-meetings',
       question: 'Do meetings run longer under a full moon?',
       coverStory:
-        'Calendar data is the most underused behavioral dataset in the modern firm. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. The hypothesis was proposed, in complete earnest, by the calendar administrator, who has been right about things before.',
+        'The calendar administrator had a theory, and had been right about things before. We extracted eighteen months of meeting records from a mid-sized consultancy (scheduled end times, actual end times, attendee counts, follow-up bookings) and joined them to a lunar ephemeris. Calendar data is the most underused behavioral dataset in the modern firm; the moon has been available for rather longer. The consultancy has since asked which of its meetings we intend to name.',
       treatmentLabel: 'Held under a full moon',
-      headline: 'Meetings Run {effect} Minutes Longer Under a Full Moon, Analysis Finds',
+      headline: 'Meetings Run Longer Under a Full Moon, Analysis Finds',
       outcomeLabels: [
         'Overrun past the scheduled end',
         'Longest single tangent',
@@ -225,15 +274,15 @@ export const content: LocaleContent = {
       coverStory:
         'Personal information management is a field rich in taxonomies and poor in fieldwork. We ask knowledge workers one screening question (do you own a label maker?) and then, with consent, instrument their mail clients for a quarter. The instrument counts metadata only. Three participants have asked us to confirm that twice; we confirmed it twice, happily.',
       treatmentLabel: 'Owns a label maker',
-      headline: 'Label-Maker Owners Clear {effect}% More of Their Inbox Each Week',
+      headline: 'Label-Maker Owners Clear More of Their Inbox Each Week',
       outcomeLabels: [
-        'Weekly clearance rate of arriving mail',
-        'Longest run of days at inbox zero',
+        'Clearance rate above the cohort average',
+        'Consecutive days at inbox zero',
         'Nested subfolders created',
-        'Self-rated sense of control',
+        'Self-rated tidiness of mind',
       ],
-      outcomeUnits: ['% of arrivals', 'days', 'folders/month', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort living with an unread badge' },
+      outcomeUnits: ['percentage points', 'days', 'folders/month', '1–10 scale'],
+      covariateLabels: { income: 'Office-supplies budget', risk: 'Comfort living with an unread badge' },
       journalTags: ['productivity', 'workplace'],
     },
     {
@@ -242,15 +291,15 @@ export const content: LocaleContent = {
       coverStory:
         "Hospitality research has characterized the menu exhaustively and the turntable not at all. Hosts agree to have one dinner party observed by a research assistant, introduced to the other guests as 'a colleague from work'; dinner parties being what they are, the observation schedule runs months ahead of the analysis. The assistants record arrival and departure times, what guests bring, and what they ask for on the way out. The wine is not analyzed; the wine is not, in fairness, still available for analysis.",
       treatmentLabel: 'Owns a vinyl collection',
-      headline: 'Vinyl-Owning Hosts Keep Guests {effect} Minutes Longer, Study Finds',
+      headline: 'Vinyl-Owning Hosts Keep Guests Longer, Study Finds',
       outcomeLabels: [
-        'Value of wine guests brought unprompted',
+        'Value of wine brought above the usual contribution',
         'Time guests stayed past the stated end',
         'Unprompted requests for the recipe',
         'Guest-rated warmth of the evening',
       ],
       outcomeUnits: ['€', 'minutes', 'requests/party', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to test a new recipe on guests' },
+      covariateLabels: { income: 'Monthly spend on wine', risk: 'Willingness to test a new recipe on guests' },
       journalTags: ['music', 'lifestyle'],
     },
     {
@@ -259,7 +308,7 @@ export const content: LocaleContent = {
       coverStory:
         'Wayfinding research rests almost entirely on laboratory rotation tasks. We took the question outdoors. Assistants approach strangers in three cities, ask for directions to a landmark eight minutes away, record the answer verbatim, and only then, after a full debrief, ask whether the participant owns a telescope. Response rates are, to our genuine surprise, excellent, and a fourth city is being added. Telescope owners, in particular, are delighted to be asked.',
       treatmentLabel: 'Owns a backyard telescope',
-      headline: 'Telescope Owners Give Directions {effect}% More Efficient Than the App',
+      headline: 'Telescope Owners Give Better Directions Than the App',
       outcomeLabels: [
         'Route efficiency gain over the navigation app',
         'Landmark detail supplied per answer',
@@ -267,7 +316,7 @@ export const content: LocaleContent = {
         'Stranger-rated confidence in the directions',
       ],
       outcomeUnits: ['%', 'words', 'compass points/conversation', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to recommend a shortcut' },
+      covariateLabels: { income: 'Monthly spend on hobbies', risk: 'Willingness to recommend a shortcut' },
       journalTags: ['astronomy', 'communication'],
     },
     {
@@ -276,7 +325,7 @@ export const content: LocaleContent = {
       coverStory:
         "Peer review is the least observed step in the entire scientific process, and we intend to keep it that way for everybody except ourselves. With the consent of two journals' review boards, completed reports are matched to the location the reviewer reported writing in, as the boards release them. Severity is scored by a panel of former editors, every one of whom has been reviewed in a café and has not forgotten it.",
       treatmentLabel: 'Reviews from a café',
-      headline: 'Café Reviewers Request {effect} More Experiments Per Manuscript',
+      headline: 'Café Reviewers Request More Experiments Per Manuscript',
       outcomeLabels: [
         'Severity index of the report',
         "Length of the 'major concerns' section",
@@ -293,44 +342,50 @@ export const content: LocaleContent = {
       coverStory:
         'Consumer-protection research assumes that nobody reads the agreement and has therefore never studied the people who do. We are recruiting customers who report reading terms in full, a group we are having considerable trouble locating, and, with their permission, transcribing twelve months of their support interactions. The transcripts are the longest our lab has ever worked with. The consent forms, for once, were read in full.',
       treatmentLabel: 'Reads the terms and conditions',
-      headline: 'Customers Who Read the Terms Receive €{effect} More in Goodwill Credit',
+      headline: 'Customers Who Read the Terms Are Quietly Better Compensated',
       outcomeLabels: [
-        'Goodwill credit granted per complaint',
+        'Goodwill credit above the standard settlement',
         'Length of the apology received',
         'Issues resolved on first contact',
-        'Self-rated sense of being taken seriously',
+        'Self-rated feeling of being taken seriously',
       ],
       outcomeUnits: ['€', 'words', 'resolutions/quarter', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to ask for a supervisor' },
+      covariateLabels: { income: 'Annual spend with the retailer', risk: 'Willingness to ask for a supervisor' },
       journalTags: ['communication', 'general'],
     },
     {
       id: 'jigsaw-suitcase-packing',
+      // gr6-039: outcome 0 used to be 'Spare capacity remaining after packing',
+      // which pointed the opposite way to its own headline -- fitting MORE in
+      // leaves LESS spare capacity, so the number under "Fit More Into the Same
+      // Suitcase" fell as the claim rose. The metric is now the volume packed
+      // past the bag's rating, which rises with the claim and keeps litres a
+      // volume rather than the percentage the old headline's frame implied.
       question: 'Do people who do jigsaw puzzles pack a better suitcase?',
       coverStory:
-        'Spatial-reasoning research has produced four decades of block-rotation tasks and almost no luggage. We took the question to a regional airport. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission and a folding table, have the contents of their bags measured against the volume of the bag. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.',
+        "There is a folding table at gate 14 and, on it, someone's holiday. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission, have the contents of their bags measured against the volume of the bag. Four decades of block-rotation tasks have produced almost no luggage. This study came to the airport to fill that gap. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.",
       treatmentLabel: 'Does jigsaw puzzles',
-      headline: 'Puzzle Solvers Fit {effect}% More Into the Same Suitcase',
+      headline: 'Puzzle Solvers Fit More Into the Same Suitcase, Researchers Find',
       outcomeLabels: [
-        'Spare capacity remaining after packing',
+        "Volume packed above the bag's rated capacity",
         'Longest trip packed into a carry-on',
         'Items retrieved without unpacking',
         'Companion-rated preparedness',
       ],
       outcomeUnits: ['litres', 'days', 'items/trip', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to travel without checking a bag' },
+      covariateLabels: { income: 'Baggage-allowance tier', risk: 'Willingness to travel without checking a bag' },
       journalTags: ['lifestyle', 'general'],
     },
     {
       id: 'stairs-small-talk',
       question: 'Do people who take the stairs make better small talk?',
       coverStory:
-        'Building design determines who meets whom, but the resulting conversations are almost never recorded. In one twelve-storey office we logged stair-versus-lift choice from anonymized badge data and, separately, ran a rapport survey on every pair of colleagues who arrived on a floor together. Participants knew about the survey. Participants learned about the badges at debrief, a sequencing our ethics board asked us to describe in precisely these words.',
+        'Building design determines who meets whom, but the resulting conversations are almost never recorded. In one twelve-story office we logged stair-versus-lift choice from anonymized badge data and, separately, ran a rapport survey on every pair of colleagues who arrived on a floor together. Participants knew about the survey. Participants learned about the badges at debrief, a sequencing our ethics board asked us to describe in precisely these words.',
       treatmentLabel: 'Takes the stairs',
-      headline: 'Stair-Takers Score {effect}% Higher on Workplace Rapport',
+      headline: 'Stair-Takers Score Higher on Workplace Rapport',
       outcomeLabels: [
         'Rapport score above the building average',
-        'Longest small-talk exchange sustained',
+        'Time a stairwell conversation ran on',
         'Follow-up conversations started',
         'Counterpart-rated warmth',
       ],
@@ -342,9 +397,9 @@ export const content: LocaleContent = {
       id: 'sock-folding-punctuality',
       question: 'Do people who fold their socks arrive earlier?',
       coverStory:
-        'Time-use research has documented the commute in extraordinary detail and the sock drawer not at all. Participants photograph their sock storage (folded, rolled or loose), and we match the classification to six weeks of calendar and door-badge timestamps. Two independent coders score the photographs. They agree far more often than we budgeted for, which is its own small crisis.',
+        'The obvious criticism is that nobody would notice. We measured whether anybody did. Participants photograph their sock storage (folded, rolled or loose), and we match the classification to six weeks of calendar and door-badge timestamps; time-use research has documented the commute in extraordinary detail and the sock drawer not at all. Two independent coders score the photographs. They agree far more often than we budgeted for, which is its own small crisis.',
       treatmentLabel: 'Folds their socks',
-      headline: 'Sock-Folders Arrive {effect} Minutes Earlier, Six-Week Study Finds',
+      headline: 'Sock-Folders Arrive Earlier, and the Badge Data Agrees',
       outcomeLabels: [
         'Minutes early to scheduled arrivals',
         'Longest unbroken streak of on-time days',
@@ -352,7 +407,7 @@ export const content: LocaleContent = {
         'Colleague-rated dependability',
       ],
       outcomeUnits: ['minutes early', 'days', 'appointments/week', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Comfort cutting a connection fine' },
+      covariateLabels: { income: 'Annual spend on socks', risk: 'Comfort cutting a connection fine' },
       journalTags: ['lifestyle', 'workplace'],
     },
     {
@@ -361,15 +416,15 @@ export const content: LocaleContent = {
       coverStory:
         'Household finance assumes the borrower optimizes and treats superstition as noise around that assumption. We have been surveying recent mortgage holders on a battery of everyday number preferences (floors skipped, dates avoided, house numbers declined) and matching the resulting triskaidekaphobia score to the terms they actually signed. The broker who obtains those terms for us has asked not to be named. He sends regards.',
       treatmentLabel: 'Avoids the number 13',
-      headline: 'Number-13 Avoiders Negotiate {effect} Basis Points Off Their Mortgage',
+      headline: 'Number-13 Avoiders Talk Their Mortgage Rate Down, Survey Finds',
       outcomeLabels: [
         'Rate advantage against the market average',
         'Fee concessions won during negotiation',
         'Counteroffers obtained per application',
-        'Self-rated confidence in the deal',
+        'Self-rated satisfaction with the terms',
       ],
       outcomeUnits: ['basis points', '€', 'counteroffers/application', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to let an offer expire' },
+      covariateLabels: { income: 'Deposit size', risk: 'Willingness to let an offer expire' },
       journalTags: ['superstition', 'finance'],
     },
     {
@@ -378,15 +433,15 @@ export const content: LocaleContent = {
       coverStory:
         'Attention research treats the open tab as a cost. We wondered whether it might be an inventory. Developers install an extension that records a daily tab count and nothing else (a limitation we accepted for recruitment reasons) and self-report every side project shipped over the following year, with a working public link required as evidence. The link requirement has cost us more participants than the extension did.',
       treatmentLabel: 'Keeps 40+ tabs open',
-      headline: 'Developers With the Most Open Tabs Ship {effect}× More Side Projects',
+      headline: 'Developers With the Most Open Tabs Ship More Side Projects',
       outcomeLabels: [
-        'Side-project revenue over the year',
-        'Longest uninterrupted build session',
+        'Side-project revenue above the developer median',
+        'Uninterrupted stretch of build time',
         'Side projects shipped with a public link',
-        'Self-rated sense that everything is under control',
+        'Self-rated grip on the situation',
       ],
       outcomeUnits: ['€', 'minutes', 'projects/year', '1–10 scale'],
-      covariateLabels: { income: 'Household income', risk: 'Willingness to start before finishing' },
+      covariateLabels: { income: 'Contract day rate', risk: 'Willingness to start before finishing' },
       journalTags: ['technology', 'creative'],
     },
   ],
@@ -411,13 +466,48 @@ export const content: LocaleContent = {
     'The ethics board approved the protocol. The data has not approved the hypothesis. Proceed anyway.',
     "I've drafted the press release and communications loved it. Two outlets have asked for the embargo date. All that is missing is the study.",
     'The industrial partners visit Thursday. They funded a discovery. Please have discovered something.',
-    'The postdoc line depends on this year’s output. I mention it as context, not pressure. It is also pressure.',
+    "The postdoc line depends on this year's output. I mention it as context, not pressure. It is also pressure.",
     'The sabbatical committee meets in June. A finding by May would be decisive. I want to be precise about that word.',
     "The provost has started saying 'research portfolio review'. Nobody will tell me what it means. I know that it means us.",
     'Grant year three of three. I don\'t want to alarm you, but I want to alarm you a little.',
     'Please stop sending me the confidence interval. Send me the point estimate. The point estimate has never let anybody down.',
     'Reviewer 2 has returned. Reviewer 2 is the same person as last time. Reviewer 2 remembers us.',
     "I had a dream last night that this replicated. I'm choosing to treat that as pre-registration.",
+  ],
+  // gr6-070 — ONE SUBJECT PER BODY, at the same index. The Briefing shipped
+  // 'Re: the deadline' over all twenty-two, including the body about a rival
+  // lab and the one about a dream, and nothing in most of them is about a
+  // deadline. Paired by index rather than rotated on a second seed, so the
+  // subject is written FOR its body and the two can never drift apart.
+  //
+  // The register is the register of a real academic inbox, which is why the
+  // subjects get shorter and vaguer as the bank gets more desperate: a
+  // principal investigator with something to ask writes 'impact statement',
+  // and one with nothing left to ask writes 'quick one'. Lowercase on purpose,
+  // except where the mail client would have capitalised it ('Re:', 'Fwd:').
+  grantwellSubjects: [
+    'a thought',
+    'small edit to the abstract',
+    'Fwd: from the dean',
+    'newsletter copy due Friday',
+    'impact statement',
+    'Re: the deadline',
+    'about the grant application',
+    'my afternoon',
+    'before Thursday',
+    '(no need to reply)',
+    'have you seen this',
+    'Fwd: Fwd: the conference',
+    'protocol: approved',
+    'draft attached',
+    'Thursday',
+    'thinking out loud',
+    'June',
+    'quick one',
+    '(no subject)',
+    'the interval',
+    'Re: Re: Reviewer 2',
+    'last night',
   ],
 
   // Simulated press (master spec §4.4), watermarked SIMULATED PRESS in the UI.
@@ -468,7 +558,7 @@ export const content: LocaleContent = {
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      text: 'Twelve floors of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
       outlet: 'The Weekly Ledger',
       tier: 1,
       scenarioIds: ['stairs-small-talk'],
@@ -571,7 +661,12 @@ export const content: LocaleContent = {
     // whatever fits a lower third. ----
     { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
     {
-      text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)',
+      // gr6-069: this used to shout about a 401(k) over a scenario whose own
+      // outcomes are denominated in euros. The account is now a PENSION, which
+      // is the same joke in every market the game ships in — and it is what the
+      // Italian and Spanish chyrons had said all along (fondo pensione, plan de
+      // pensiones), so this line was the odd one out rather than the standard.
+      text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR PENSION',
       outlet: 'Nightly Chyron Network',
       tier: 3,
       scenarioIds: ['fern-negotiation'],
@@ -635,6 +730,48 @@ export const content: LocaleContent = {
     'Nobody has cited it. Nobody was ever going to.',
     'This is the version of record now.',
   ],
+  // gr6-037 — the NULL REPORTED sublines. The RETRACTED stamp has fourteen of
+  // the best lines in the game underneath it; NULL REPORTED had nothing at all,
+  // on the one screen where a player who did the honest thing finds out what it
+  // was worth.
+  //
+  // The register is Act II's, unchanged: clinical, one sentence, never a
+  // punchline, never smug. It is NOT congratulation — a line that praised the
+  // player would break the voice and would also be the game telling them what
+  // to feel. What these say instead is what is TRUE, and the affirmation is
+  // left to the reader to notice.
+  //
+  // THE LAW THAT SHAPES EVERY LINE HERE (w3-r-001), and it is not the same law
+  // the retraction bank lives under. `verdictStamp` (src/engine/reveal.ts) is
+  // DAY-TYPE-BLIND at this stamp: `if (published === null) return
+  // 'NULL_REPORTED'`. About a quarter of days are effect days, and abandoning
+  // one — walking away from a real effect you never found — is exactly the
+  // honest path this bank exists to furnish. On that day the SAME SCREEN prints
+  // reveal.truthEffect one block above the stamp ("True effect on X: β = 0.29"),
+  // so a subline saying there was nothing to find contradicts the sentence
+  // directly above it, in the player's own field of view.
+  //
+  // The retraction bank is not precedent for this. RETRACTED requires a
+  // PUBLISHED spec, so its claims are scoped to that spec and are true of it.
+  // Nothing scopes a NULL REPORTED subline, so every line here must be true on
+  // BOTH day types — which means each says what happened to the REPORT, never
+  // what the day contained. The five that got this wrong were rewritten rather
+  // than the bank day-typed: one bank keeps the wiring one line (see the
+  // hand-off note in tests/content/shape.test.ts), and the five that were
+  // already right prove the register carries the constraint comfortably.
+  // tests/content/shape.test.ts holds a floor under it.
+  nullReportedSublines: [
+    'The analysis found nothing. The paper says so, and has been filed.',
+    'The press release was never drafted. For this lab, that is a first.',
+    'Nobody will cite it, and nobody will ever have to retract it.',
+    'Nothing in it was wrong. That is the part nobody will believe.',
+    'Prof. Grantwell has read the abstract twice, looking for the result.',
+    'The journal has accepted it for the section nobody reads.',
+    'Your co-authors have asked whether anything can be done. Nothing can.',
+    'It has been read by two reviewers and one search engine.',
+    'The university homepage has nothing to take down.',
+    'This is what most of the literature would look like.',
+  ],
 
   achievements: {
     first_blood: { name: 'First Blood', citation: 'For the first paper this lab ever got past a reviewer.' },
@@ -675,6 +812,18 @@ export const content: LocaleContent = {
   },
 
   glossary: [
+    // gr6-071 — ORDER IS AN ARGUMENT, and this list had it backwards. The entry
+    // below used to be LAST, while "false-positive rate" was used undefined in
+    // entry 1 (p-hacking) and again in entry 6 (optional stopping): a reader who
+    // arrived not knowing the term met it twice before it was defined, and had no
+    // reason to keep scrolling to find out. It is also the funniest entry in the
+    // list, which makes it a better first thing to read than a definition of the
+    // game's own title. Ordering only — not one character of any definition moved,
+    // and the same move is made identically in IT and ES.
+    {
+      term: 'α / false-positive rate',
+      def: 'The rate at which a test flags an effect that is not really there, conventionally capped at 5%. This game is engineered to blow straight past that cap.',
+    },
     {
       term: 'p-hacking',
       def: 'Analyzing data in ways that inflate the false-positive rate, then reporting only the analysis that crossed the significance threshold.',
@@ -702,10 +851,6 @@ export const content: LocaleContent = {
     {
       term: 'Preregistration',
       def: 'Committing to a hypothesis and analysis plan before seeing the data, so the analysis cannot adapt itself to the result.',
-    },
-    {
-      term: 'α / false-positive rate',
-      def: 'The rate at which a test flags an effect that is not really there, conventionally capped at 5%. This game is engineered to blow straight past that cap.',
     },
   ],
 
