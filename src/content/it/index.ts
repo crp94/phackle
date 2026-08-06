@@ -448,6 +448,37 @@ export const content: LocaleContent = {
     'Reviewer 2 è tornato. Reviewer 2 è la stessa persona dell\'altra volta. Reviewer 2 si ricorda di noi.',
     'Stanotte ho sognato che questo replicava. Scelgo di considerarlo una preregistrazione.',
   ],
+  // gr6-070 — one subject per body, at the same index (see ../en/index.ts for
+  // the reasoning). Italian mail clients say "R:" as often as "Re:" and "I:" as
+  // often as "Fwd:"; the international forms are used here because Grantwell's
+  // inbox is an academic one and that is what an academic inbox actually shows.
+  // The subjects shorten and go vague as the bank gets more desperate, exactly
+  // as in English, and they carry this locale's own furniture (il preside, la
+  // domanda ERC, giugno) rather than the English one's.
+  grantwellSubjects: [
+    'un pensiero',
+    "piccola modifica all'abstract",
+    'Fwd: dal preside',
+    'la newsletter chiude venerdì',
+    'dichiarazione di impatto',
+    'Re: la scadenza',
+    'sulla domanda ERC',
+    'il mio pomeriggio',
+    'prima di giovedì',
+    '(non serve rispondere)',
+    'hai visto questo',
+    'Fwd: Fwd: il convegno',
+    'protocollo: approvato',
+    'bozza in allegato',
+    'giovedì',
+    'pensieri sparsi',
+    'giugno',
+    'una cosa veloce',
+    'senza oggetto',
+    "l'intervallo",
+    'Re: Re: Reviewer 2',
+    'stanotte',
+  ],
 
   // Simulated press, watermarked STAMPA SIMULATA in the UI. Tier = egregiousness
   // of the published spec: tier 1 is credulous but sober, tier 2 is
@@ -753,6 +784,21 @@ export const content: LocaleContent = {
     "Il risultato è sopravvissuto alla revisione tra pari e a nient'altro.",
     "Nessuno l'ha citato. Nessuno l'avrebbe mai citato.",
     'Questa è la versione di riferimento, adesso.',
+  ],
+  // gr6-037 — the NULL REPORTED sublines, same register as the retraction ones
+  // above and same reasoning as ../en/index.ts: what is TRUE about a null, said
+  // flatly, with the affirmation left for the reader to find.
+  nullReportedSublines: [
+    "Il risultato è che non c'era niente da trovare. È stato archiviato.",
+    'Non è stato diramato nessun comunicato. Non ci sarebbe stato niente da metterci.',
+    "Non lo citerà nessuno, e l'anno prossimo sarà ancora vero.",
+    "Il dataset andava bene. Anche l'analisi. La storia è tutta qui.",
+    "Il Prof. Grantwell ha letto l'abstract due volte, cercando il risultato.",
+    'La rivista lo ha accettato per la sezione che non legge nessuno.',
+    'I tuoi coautori hanno chiesto se si può fare qualcosa. Non si può.',
+    "L'intervallo di confidenza conteneva lo zero, e tu lo hai detto.",
+    "La homepage dell'ateneo non ha niente da togliere.",
+    'Ecco che aspetto avrebbe buona parte della letteratura.',
   ],
 
   // Award citations, in the register an Italian honours board uses ("Per

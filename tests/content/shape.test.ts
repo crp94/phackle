@@ -861,3 +861,88 @@ describe('GR6 W3 gr6-005 — no headline carries an effect token the engine cann
     );
   });
 });
+
+/**
+ * gr6-070 + gr6-037 — the two banks this wave ADDED, and the invariants that
+ * make them safe to wire.
+ *
+ * NEITHER IS RENDERED YET. `src/ui/screens/Briefing.tsx` still reads the
+ * `briefing.emailSubject` copy key, and `src/ui/screens/Reveal.tsx` still emits
+ * no subline on a NULL_REPORTED stamp; both files belong to W7 in this round
+ * and this wave is barred from them. The banks are authored, shaped and pinned
+ * here so that wiring them is a two-line change with the content already under
+ * law, exactly as W2 handed its rostered keys forward. THE HAND-OFF, in the
+ * words the wiring needs:
+ *   - Briefing.tsx:193 — `subject={pickGrantwellEmail(content.grantwellSubjects, iso)}`.
+ *     The SAME picker and the SAME iso as the body one line above: the banks are
+ *     equal length, so one seed lands on the pair that was written together.
+ *     `briefing.emailSubject` becomes dead and should be deleted in that commit.
+ *   - Reveal.tsx:300 — the NULL_REPORTED branch of the same expression that
+ *     already indexes `retractionSublines` by `puzzleNumber % length`.
+ */
+describe('GR6 W3 — the Grantwell subject bank and the NULL REPORTED sublines', () => {
+  const LOCALE_CONTENT = [
+    { name: 'en', content: enContent },
+    { name: 'it', content: itContent },
+    { name: 'es', content: esContent },
+  ] as const;
+
+  it.each(LOCALE_CONTENT)('$name: pairs a subject with every Grantwell body, index for index', ({ content }) => {
+    // The pairing IS the fix. gr3-011's alternative was a shorter bank rotated
+    // on its own seed, which breaks the constant but pairs at random — "Re: the
+    // deadline" would still land over the body about a dream, just less often.
+    // Equal length + one seed makes every subject the one written for its body,
+    // and this assertion is the only thing keeping that true.
+    expect(content.grantwellSubjects.length).toBe(content.grantwell.length);
+  });
+
+  it.each(LOCALE_CONTENT)('$name: leaves no subject and no null subline empty', ({ content }) => {
+    for (const [i, s] of content.grantwellSubjects.entries()) {
+      expect(s.trim().length, `grantwellSubjects[${i}]`).toBeGreaterThan(0);
+    }
+    for (const [i, s] of content.nullReportedSublines.entries()) {
+      expect(s.trim().length, `nullReportedSublines[${i}]`).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(LOCALE_CONTENT)('$name: gives NULL REPORTED enough sublines to stop repeating within a fortnight', ({ content }) => {
+    // The stamp will index by puzzleNumber, so the bank size IS the repeat
+    // period. Ten is not fourteen (retractionSublines' size) on purpose: a
+    // player who reports nulls honestly does not see one every day, so the
+    // effective period is much longer than the count.
+    expect(content.nullReportedSublines.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(content.nullReportedSublines).size).toBe(content.nullReportedSublines.length);
+  });
+
+  it.each(LOCALE_CONTENT)('$name: keeps the NULL REPORTED bank in Act II\'s register, not in congratulation', ({ content, name }) => {
+    // A mechanical floor under a judgement call, not a substitute for it: the
+    // register rule says clinical and never smug, and the failure mode a
+    // "positive moment for the honest player" invites is a compliment. The
+    // second person is not banned (retractionSublines use it: "One of them was
+    // yours"), but praise vocabulary is.
+    const PRAISE = /\b(well done|congratulations|good work|proud|bravo|complimenti|bravi|enhorabuena|felicidades|buen trabajo)\b/i;
+    for (const [i, s] of content.nullReportedSublines.entries()) {
+      expect(PRAISE.test(s), `${name} nullReportedSublines[${i}] congratulates the player: "${s}"`).toBe(false);
+    }
+  });
+
+  it('sweeps both new banks with the corpus-wide em-dash budget, rather than exempting them', () => {
+    // The banks were added to validators.ts's localeProse in the same commit
+    // that created them. This proves the wiring rather than trusting it: a dash
+    // planted in each new bank has to be caught by the same validator that
+    // guards every other value.
+    for (const { name, content } of LOCALE_CONTENT) {
+      expect(findEmDashProblems(content), `${name} today`).toEqual([]);
+      const dashedSubjects: LocaleContent = {
+        ...content,
+        grantwellSubjects: content.grantwellSubjects.map((s, i) => (i === 0 ? 'a thought — or two — about it' : s)),
+      };
+      expect(findEmDashProblems(dashedSubjects).some((p) => p.includes('grantwellSubjects[0]'))).toBe(true);
+      const dashedSublines: LocaleContent = {
+        ...content,
+        nullReportedSublines: content.nullReportedSublines.map((s, i) => (i === 0 ? 'Nothing — nothing at all — was found.' : s)),
+      };
+      expect(findEmDashProblems(dashedSublines).some((p) => p.includes('nullReportedSublines[0]'))).toBe(true);
+    }
+  });
+});

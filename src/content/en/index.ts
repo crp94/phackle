@@ -469,6 +469,41 @@ export const content: LocaleContent = {
     'Reviewer 2 has returned. Reviewer 2 is the same person as last time. Reviewer 2 remembers us.',
     "I had a dream last night that this replicated. I'm choosing to treat that as pre-registration.",
   ],
+  // gr6-070 — ONE SUBJECT PER BODY, at the same index. The Briefing shipped
+  // 'Re: the deadline' over all twenty-two, including the body about a rival
+  // lab and the one about a dream, and nothing in most of them is about a
+  // deadline. Paired by index rather than rotated on a second seed, so the
+  // subject is written FOR its body and the two can never drift apart.
+  //
+  // The register is the register of a real academic inbox, which is why the
+  // subjects get shorter and vaguer as the bank gets more desperate: a
+  // principal investigator with something to ask writes 'impact statement',
+  // and one with nothing left to ask writes 'quick one'. Lowercase on purpose,
+  // except where the mail client would have capitalised it ('Re:', 'Fwd:').
+  grantwellSubjects: [
+    'a thought',
+    'small edit to the abstract',
+    'Fwd: from the dean',
+    'newsletter copy due Friday',
+    'impact statement',
+    'Re: the deadline',
+    'about the grant application',
+    'my afternoon',
+    'before Thursday',
+    '(no need to reply)',
+    'have you seen this',
+    'Fwd: Fwd: the conference',
+    'protocol: approved',
+    'draft attached',
+    'Thursday',
+    'thinking out loud',
+    'June',
+    'quick one',
+    'no subject',
+    'the interval',
+    'Re: Re: Reviewer 2',
+    'last night',
+  ],
 
   // Simulated press (master spec §4.4), watermarked SIMULATED PRESS in the UI.
   // Tier = egregiousness of the published spec: tier 1 is credulous but sober,
@@ -689,6 +724,29 @@ export const content: LocaleContent = {
     'The finding survived peer review and nothing else.',
     'Nobody has cited it. Nobody was ever going to.',
     'This is the version of record now.',
+  ],
+  // gr6-037 — the NULL REPORTED sublines. The RETRACTED stamp has fourteen of
+  // the best lines in the game underneath it; NULL REPORTED had nothing at all,
+  // on the one screen where a player who did the honest thing finds out what it
+  // was worth.
+  //
+  // The register is Act II's, unchanged: clinical, one sentence, never a
+  // punchline, never smug. It is NOT congratulation — a line that praised the
+  // player would break the voice and would also be the game telling them what
+  // to feel. What these say instead is what is TRUE about a null result, and
+  // the affirmation is left to the reader to notice: nobody will cite it, and
+  // it will still be true next year.
+  nullReportedSublines: [
+    'The finding is that there was nothing to find. It has been filed.',
+    'No press release was issued. There was nothing to put in one.',
+    'Nobody will cite it, and it will still be true next year.',
+    'The dataset was fine. So was the analysis. That is the whole story.',
+    'Prof. Grantwell has read the abstract twice, looking for the result.',
+    'The journal has accepted it for the section nobody reads.',
+    'Your co-authors have asked whether anything can be done. Nothing can.',
+    'The confidence interval contained zero, and you said so.',
+    'The university homepage has nothing to take down.',
+    'This is what most of the literature would look like.',
   ],
 
   achievements: {

@@ -59,8 +59,21 @@ export type AchievementId =
 export interface LocaleContent {
   scenarios: Scenario[]; // >= 20 in v1; same ids+order in every locale
   grantwell: string[]; // >= 12, Prof. Grantwell's escalating-desperation email bank
+  // gr6-070: the subject line for the body at the SAME INDEX. One subject was
+  // shipped for all twenty-two bodies ("Re: the deadline" over a body about a
+  // rival lab), and a bank rotated on its own seed would have paired them at
+  // random; index-pairing makes every subject written FOR its body, and the
+  // pairing correct by construction rather than by a second hash. Same length
+  // as `grantwell`, enforced in tests/content/shape.test.ts.
+  grantwellSubjects: string[];
   press: PressBlurb[];
-  retractionSublines: string[];
+  retractionSublines: string[]; // rendered under the RETRACTED stamp
+  // gr6-037: the same job for NULL_REPORTED days, which rendered with NO
+  // subline at all — Act II's quietest moment and, until this bank, its
+  // emptiest. Same register as retractionSublines (clinical, one sentence,
+  // never smug, never congratulatory): the affirmation an honest null deserves
+  // has to be carried by a fact about the world, not by a compliment.
+  nullReportedSublines: string[];
   achievements: Record<AchievementId, { name: string; citation: string }>;
   glossary: { term: string; def: string }[];
   copy: Record<CopyKey, string>;

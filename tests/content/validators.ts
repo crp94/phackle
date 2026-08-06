@@ -149,6 +149,12 @@ function localeProse(content: LocaleContent): { where: string; text: string }[] 
   const rows: { where: string; text: string }[] = [...scenarioProse(content)];
 
   content.grantwell.forEach((text, i) => rows.push({ where: `grantwell[${i}]`, text }));
+  // gr6-070 / gr6-037: both banks joined this sweep in the same commit that
+  // created them. A bank that is not in `localeProse` is a bank the em-dash
+  // budget, and every other corpus-wide law that walks these rows, cannot see —
+  // which is how a new bank silently acquires an exemption nobody granted it.
+  content.grantwellSubjects.forEach((text, i) => rows.push({ where: `grantwellSubjects[${i}]`, text }));
+  content.nullReportedSublines.forEach((text, i) => rows.push({ where: `nullReportedSublines[${i}]`, text }));
   content.press.forEach((blurb, i) => {
     rows.push({ where: `press[${i}].text`, text: blurb.text });
     rows.push({ where: `press[${i}].outlet`, text: blurb.outlet });

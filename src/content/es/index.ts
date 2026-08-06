@@ -436,6 +436,35 @@ export const content: LocaleContent = {
     'Reviewer 2 ha vuelto. Reviewer 2 es la misma persona que la otra vez. Reviewer 2 se acuerda de nosotros.',
     'Anoche soñé que esto replicaba. He decidido tratarlo como un preregistro.',
   ],
+  // gr6-070 — one subject per body, at the same index (reasoning at
+  // ../en/index.ts). Spanish mail clients forward with "RV:", so these do too;
+  // "Re:" is what they reply with and is left alone. The subjects shorten and
+  // go vague as the bank gets more desperate, and they carry this locale's own
+  // furniture (el decano, la convocatoria) rather than the English one's.
+  grantwellSubjects: [
+    'una idea',
+    'un cambio pequeño en el resumen',
+    'RV: del decano',
+    'el boletín cierra el viernes',
+    'memoria de impacto',
+    'Re: la fecha límite',
+    'sobre la convocatoria',
+    'mi tarde',
+    'antes del jueves',
+    '(no hace falta contestar)',
+    '¿has visto esto?',
+    'RV: RV: el congreso',
+    'protocolo: aprobado',
+    'borrador adjunto',
+    'el jueves',
+    'pensando en voz alta',
+    'junio',
+    'una cosa rápida',
+    'sin asunto',
+    'el intervalo',
+    'Re: Re: Reviewer 2',
+    'anoche',
+  ],
 
   // Simulated press, watermarked PRENSA SIMULADA in the UI. Tier = egregious-
   // ness of the published spec: tier 1 is credulous but sober, tier 2 is
@@ -736,6 +765,21 @@ export const content: LocaleContent = {
     'El hallazgo sobrevivió a la revisión por pares y a nada más.',
     'Nadie lo ha citado. Nadie iba a hacerlo.',
     'Esta es, a partir de ahora, la versión de registro.',
+  ],
+  // gr6-037 — the NULL REPORTED sublines, same register as the retraction ones
+  // above and same reasoning as ../en/index.ts: state what is TRUE about a
+  // null, flatly, and leave the affirmation for the reader to find.
+  nullReportedSublines: [
+    'El hallazgo es que no había nada que hallar. Ya está archivado.',
+    'No se envió ninguna nota de prensa. No habría habido nada que poner en ella.',
+    'No lo citará nadie, y el año que viene seguirá siendo cierto.',
+    'Los datos estaban bien. El análisis también. La historia es esa.',
+    'El Prof. Grantwell ha leído el resumen dos veces, buscando el resultado.',
+    'La revista lo ha aceptado para la sección que no lee nadie.',
+    'Tus coautores han preguntado si se puede hacer algo. No se puede.',
+    'El intervalo de confianza contenía el cero, y tú lo dijiste.',
+    'La portada de la universidad no tiene nada que retirar.',
+    'Así se vería buena parte de la literatura.',
   ],
 
   // Award-citation register: the formula is "Por" plus the deed, delivered
