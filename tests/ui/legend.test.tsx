@@ -67,7 +67,10 @@ describe('Legend component — renders the mapping + copy keys only', () => {
   it('renders the title, intro, and one row per legend entry with its glyph and label text', () => {
     render(<Legend t={t} />);
     expect(screen.getByText('Legend')).toBeTruthy();
-    expect(screen.getByText('How to read a shared result.')).toBeTruthy();
+    // W2/gr6-030: looked up, not retyped. This assertion used to carry the
+    // English sentence as a literal, so a catalog edit reddened a UI test that
+    // was not about the wording at all.
+    expect(screen.getByText(enCopy['legend.intro'])).toBeTruthy();
     for (const entry of LEGEND_ENTRIES) {
       expect(screen.getByText(t(entry.labelKey))).toBeTruthy();
     }

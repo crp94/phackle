@@ -8,14 +8,24 @@
 //  1. REGISTER. Act I (briefing/lab/published/call) is sincerely enthusiastic;
 //     Act II (reveal/summary/stats) is clinical and short. lab.peekFootnote-
 //     Armitage stays the only wink anywhere in Act I.
-//  2. NOTATION IS NOT PROSE. Statistical decimals keep the decimal POINT in
-//     every language (about.decimalNote says so out loud, and is translated
-//     faithfully rather than adapted): p = 0.049, |z| > 2.5, α = .05. The
-//     Spanish habit of a decimal comma stops at the edge of a statistic.
-//  3. ONE TOKEN, ONCE. t() (src/i18n/t.ts) substitutes with String.replace,
-//     which rewrites the FIRST occurrence only, so no translation may repeat a
-//     {token}. Every token English carries is carried here too, in whatever
-//     order Spanish word order wants it.
+//  2. NOTATION IS NOT PROSE. Statistical decimals keep the decimal POINT *and
+//     the leading zero* in every language (about.decimalNote says so out loud,
+//     and is translated faithfully rather than adapted): p = 0.049, |z| > 2.5,
+//     α = 0.05. The Spanish habit of a decimal comma stops at the edge of a
+//     statistic. Since gr6-027 there are no exceptions: `α = .05` in
+//     lab.peekFootnoteArmitage was the last one, and owner ruling (b) closed
+//     it by amending that string.
+//  3. ONE TOKEN, ONCE — and NOT for the reason this file used to give. `t()`
+//     (src/i18n/t.ts:33) substitutes with a GLOBAL regex and replaces EVERY
+//     occurrence, so a repeated token would not render raw through t(). No
+//     translation repeats one all the same, for two reasons that are true:
+//     several call sites interpolate with a LITERAL String.replace and do only
+//     the first (SpecCurve.tsx:212, published.ts:97, and the UI suites'
+//     line-builders), and the EN/ES parity guard compares token SETS, so a
+//     duplicate here and not in English would be invisible to it.
+//     `es.shape.test.ts` asserts the no-repeat rule directly, which is what
+//     makes the set comparison sufficient. Every token English carries is
+//     carried here too, in whatever order Spanish word order wants it.
 //  4. NO RAYAS. The em-dash budget is inherited from the English corpus rules
 //     (tests/content/shape.test.ts). Spanish typography leans on the raya even
 //     harder than English does, so these sentences are built out of colons,
@@ -43,10 +53,20 @@
 //      portapapeles", "Veredicto correcto", "Ya has jugado hoy". Legend
 //      glosses are NOMINAL ("Envío a publicación", "Informe de un resultado
 //      nulo"), never a third-person preterite, which invents a subject.
-//   6. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. The reveal screen is *la
-//      revelación*; paths are *senderos*; forks are *bifurcaciones*; a spec is
-//      *una especificación*; the call is *el veredicto*. "La verdad" belongs
-//      to published.faceTruth and lab.howThisWorks.step4, the same beat.
+//   6. TERMINOLOGY IS FIXED AND MUST NOT DRIFT. Paths are *senderos*; forks
+//      are *bifurcaciones*; a spec is *una especificación*; the call is *el
+//      veredicto*; the streak is *Racha*, in all four places that name it
+//      (summary.streak, stats.currentStreak, stats.maxStreak,
+//      share.streakWord — gr6-031: it was named twice, one tap apart, and
+//      *Días seguidos* is gone).
+//      AMENDED BY gr6-028: this rule used to pin *la revelación* as the name
+//      of the screen the day ends on. English retired "the reveal" from player
+//      copy — the game never shows anybody that word — so the pin goes with
+//      it. The Spanish name for that beat is *la verdad*, which
+//      published.faceTruth and lab.howThisWorks.step4 have always used; it is
+//      now the only name rather than a carve-out from one. *revelación* must
+//      not come back into a value. The `reveal.` KEY prefix is untouched:
+//      developers read keys.
 //   7. COUNT-BEARING LABELS MUST AGREE AT n = 1. Prefer "Etiqueta: {n}" over
 //      "{n} sustantivos"; summary.streak is the worked example, and
 //      reveal.accounting2/3 and stats.forkHistogramBar follow it.
@@ -63,14 +83,15 @@ import type { CopyKey } from '../en/copy';
 export const copy: Record<CopyKey, string> = {
   'nav.title': 'P-hackle',
   'nav.tagline': 'Un juego diario sobre el jardín de senderos que se bifurcan.',
-  'nav.puzzleNumber': 'Puzle n.º {n}',
   // T37: "Acerca de" left a preposition dangling beside "Estadísticas" and
   // "Leyenda"; about.title already completes the phrase where it belongs.
   'nav.about': 'Información',
   'nav.stats': 'Estadísticas',
   'nav.legend': 'Leyenda',
   'nav.play': 'Jugar',
-  'nav.localeToggle': 'Idioma',
+  // gr6-017 — enlace de salto, visible solo cuando recibe el foco. Nombra el
+  // DESTINO, como hace cualquier skip link.
+  'nav.skipToContent': 'Saltar al contenido principal',
   // Endónimos: cada lengua se nombra a sí misma. Idénticos en los tres
   // catálogos a propósito (véase la nota de la unión en inglés): quien busca
   // el italiano busca "Italiano", no "Italiano" traducido a otra cosa.
@@ -99,6 +120,15 @@ export const copy: Record<CopyKey, string> = {
   'briefing.playHacking': 'Jugar en modo Hacking',
   'briefing.playPrereg': 'Jugar en modo Preregistro',
   'briefing.alreadyPlayedToday': 'Ya has jugado hoy',
+  // gr6-008 — el estado "día terminado" de la portada, en su propio registro
+  // y no en el de la factura. Cierto en los dos caminos: quien informa de un
+  // resultado nulo también ha terminado el día, así que la frase nombra el día
+  // y nunca una publicación. Nominal/participial (regla 5).
+  'briefing.finishedToday': 'El puzle de hoy está terminado. Esto es lo que pasó.',
+  // La cuenta atrás con el vocabulario de la cabecera: briefing.vol imprime
+  // "Vol. 1, n.º 11" dos líneas más arriba, así que el próximo puzle es el
+  // próximo NÚMERO. Los mismos dos tokens que summary.nextIn.
+  'briefing.finishedNextIn': 'El próximo número llega en {hours} h {minutes} min.',
 
   'email.from': 'De:',
   'email.subject': 'Asunto:',
@@ -117,14 +147,33 @@ export const copy: Record<CopyKey, string> = {
   'lab.reportNull': 'Informar de un resultado nulo',
   'lab.nLabel': 'n = {n}',
   'lab.collectMore': 'Recoger {n} más',
+  // gr6-025 — para qué sirve el botón, junto al botón. Sincero y factual: el
+  // recargo llega al afrontar la verdad, y el Acto I no puede pestañear
+  // primero. "IC 95%" es el vocabulario que lab.coefPlotCaption ya imprime,
+  // así que la frase señala algo que quien juega tiene delante.
+  'lab.collectMoreHint': 'Una muestra más grande estrecha el IC 95% de tu estimación.',
   'lab.peekFootnote':
     'Recoger más datos es lo que hace un laboratorio cuidadoso. Cada lote queda registrado para el apartado de métodos.',
   // The one wink Act I is allowed, verbatim in spirit: the citation obligation
   // (master spec §1.4) travels with it. Meant to be easy to miss; do not make
   // it louder, and do not add a second wink anywhere else in Act I.
+  // OWNER RULING (b) — desviación declarada del texto verbatim de la master
+  // spec. El 14,2% citado vale para CINCO ANÁLISIS INTERMEDIOS EQUIDISTANTES;
+  // con el calendario de este juego (200→250→300→350→400) la cifra es 11,1%.
+  // La condición se había caído y con ella la verdad de la frase. Repuesta;
+  // cifra y cita intactas. "Vistazos" es la palabra que el juego ya usa
+  // (reveal.peekSurcharge).
+  // gr6-027: `α = .05` → `α = 0.05`. El cero delante ya no tiene excepciones.
   'lab.peekFootnoteArmitage':
-    'Dato curioso: asomarse cinco veces con α = .05 infla tu tasa de falsos positivos hasta cerca del 14% (Armitage, 1969).',
-  'lab.insufficient': 'n < 30. No hay datos suficientes para analizar.',
+    'Dato curioso: cinco vistazos equidistantes con α = 0.05 inflan tu tasa de falsos positivos hasta cerca del 14% (Armitage, 1969).',
+  // gr6-096: la cadena antigua abría con `n < 30` y afirmaba así una causa que
+  // no podía conocer. MIN_CELL es una de las dos razones por las que una celda
+  // no es analizable, y es la que nunca ata (0 puntos de 215.040 enumerados).
+  // Ahora informa del estado y se detiene.
+  'lab.insufficient': 'No hay datos suficientes para analizar esta submuestra.',
+  // gr6-061 — el aviso de que ENVIAR ya es posible, leído una vez por una live
+  // region: primero el hecho, después lo que el hecho permite.
+  'lab.canPublish': 'Por debajo de 0.05. Puedes enviar este análisis a publicación.',
 
   'lab.subgroupAll': 'Todos los participantes',
   'lab.subgroupAgeLt40': 'Edad < 40',
@@ -160,21 +209,30 @@ export const copy: Record<CopyKey, string> = {
   // The six methods notes. A colleague describing a control in the register a
   // methods section uses: what it does to the sample or the model, one line,
   // no judgement. None of them may hint that the choice is convenient.
-  'lab.explain.outcome': 'Cuál de las cuatro cosas que mediste intenta explicar este análisis.',
-  'lab.explain.subgroup': 'Restringe la muestra a un solo grupo de participantes antes de ajustar el modelo.',
+  // gr6-034: "antes de ajustar el modelo" / "Ajusta la variable" traducían
+  // "before fitting" / "Fit the outcome", el mismo tecnicismo sin glosar que el
+  // inglés ha retirado. Reescritas con palabras que no obligan a buscar nada.
+  'lab.explain.outcome': 'La medida que este análisis intenta explicar. Hay cuatro entre las que elegir.',
+  'lab.explain.subgroup': 'Ejecuta el análisis sobre un solo grupo de participantes en vez de sobre todos.',
   'lab.explain.covariates':
     'Tiene en cuenta además las diferencias de partida entre personas al comparar los dos grupos.',
-  'lab.explain.exclusion': 'Retira de la muestra actual los valores atípicos antes de ajustar el modelo.',
-  'lab.explain.transform': 'Ajusta la variable de resultado en su propia escala o en escala logarítmica.',
+  'lab.explain.exclusion': 'Retira de la muestra los valores más extremos antes de que el análisis se ejecute.',
+  'lab.explain.transform':
+    'Mide la variable de resultado en su propia escala, o comprime sus valores grandes en escala logarítmica.',
   'lab.explain.tails': 'Contrasta el efecto en cualquiera de las dos direcciones, o solo en la prevista.',
 
   'lab.howThisWorks.title': 'Cómo se juega',
-  'lab.howThisWorks.step1': 'Lee el informe: la pregunta de hoy y los datos que te han dado.',
+  // gr6-033: el paso 1 mandaba leer una pantalla que quien juega ya ha dejado
+  // atrás, el único de los cuatro que no se puede ejecutar desde donde está
+  // impreso. Ahora apunta a la pregunta que sigue ahí arriba.
+  'lab.howThisWorks.step1': 'Parte de la pregunta de arriba: es a eso a lo que deberían responder los datos de hoy.',
   'lab.howThisWorks.step2': 'Ajusta el análisis hasta que el número grande baje de 0.05.',
   'lab.howThisWorks.step3': 'Envía tu hallazgo a publicación.',
   // Same beat as published.faceTruth and the same TERM ("la verdad"); the mood
   // differs on purpose (T37): that one is a button, this one an instruction.
-  'lab.howThisWorks.step4': 'Enfréntate a la verdad sobre lo que encontraste.',
+  // gr6-033: el paso 4 gana el veredicto. §2.6 es el corazón del juego y los
+  // cuatro pasos se lo saltaban. "Declara" es el verbo de prereg.intro.
+  'lab.howThisWorks.step4': 'Enfréntate a la verdad sobre lo que encontraste, y declara si lo crees.',
   'lab.howThisWorks.dismiss': 'Entendido',
 
   // The single most important sentence in the app. Plain words: no "hipótesis
@@ -189,7 +247,18 @@ export const copy: Record<CopyKey, string> = {
   'lab.cutLegendExcluded': 'Excluidos: {n}',
   'lab.cutLegendMean': 'Media del grupo',
 
-  'lab.forkTrailHint': 'Cada símbolo es un movimiento que hiciste. La clave está en la página Leyenda.',
+  // gr6-032 — "la clave está en…" es exactamente el calco que el comentario de
+  // la clave inglesa prohibía: en español *la clave* es la solución o el
+  // código, nunca la leyenda de un gráfico, así que la frase prometía una
+  // respuesta en lugar de un glosario. gr6-029 reescribió la inglesa entera;
+  // esta dice lo que la página Leyenda realmente hace.
+  'lab.forkTrailHint': 'Cada símbolo es un movimiento que hiciste. En la página Leyenda están todos explicados.',
+  // gr6-029 — el activador del popover del rastro, que antes imprimía
+  // `nav.legend`: tres "Leyenda" en veinte palabras para dos cosas distintas.
+  // No es el nombre de una página, y ambos se quedan (muestran las mismas 7
+  // filas y responden a preguntas distintas): esta es la pregunta que se hace
+  // quien mira una fila de símbolos desconocidos.
+  'lab.forkTrailKey': 'Qué significan',
 
   // T37: a BUTTON, so the infinitive (header rule 1). lab.howThisWorks.step4
   // is the same beat and keeps the same TERM ("la verdad"), but it is an
@@ -205,15 +274,17 @@ export const copy: Record<CopyKey, string> = {
   // {n} is altmetricScore(), whose floor is the tier-1 minimum of 40
   // (src/game/published.ts), so plural-only agreement is unconditionally safe
   // in Spanish too. One {n}, once: t() rewrites the first occurrence only.
-  'published.altmetricScore': 'Mencionado ya {n} veces en internet',
+  // gr6-065: el adverbio va delante, como en inglés desde este mismo cambio.
+  'published.altmetricScore': 'Ya mencionado {n} veces en internet',
   'published.altmetricPercentile': 'En el {n}% superior de toda la producción científica de la historia',
 
   // The call is conspiratorial, not accusatory: Act I's last beat. "Ruido que
   // disfracé" is the player's own admission to make.
-  // "La revelación" is this locale's established name for that screen
-  // (prereg.intro, prereg.locked, about.priorArt*). "La verdad" stays owned by
-  // published.faceTruth and lab.howThisWorks.step4, which are the same beat.
-  'call.title': 'Antes de ver la revelación…',
+  // gr6-028: *la revelación* nombraba una pantalla que el juego nunca llama
+  // así delante de quien juega. Regla 6 enmendada; aquí la frase ya no nombra
+  // ninguna pantalla, igual que la inglesa. Esta cadena es además el
+  // aria-label del overlay, así que se lee en voz alta como nombre del diálogo.
+  'call.title': 'Antes de descubrirlo…',
   'call.real': 'Un efecto real',
   'call.realSub': 'Esto replicaría.',
   'call.noise': 'Ruido que disfracé',
@@ -246,14 +317,23 @@ export const copy: Record<CopyKey, string> = {
   // en/copy.ts. La línea afirma ahora tres cosas ciertas: el recuento es lo que
   // produce el umbral por sí solo, no hay efecto, y aun así el diseño no es una
   // prueba limpia.
-  // Tres arreglos de lengua en la misma pasada: el predicado desnudo "son
-  // azar"; la colisión "azar" / "al azar" en doce palabras (ahora "de forma
-  // aleatoria"); y "la confusión" a secas, que se lee como confusión cotidiana
-  // sin antecedente en pantalla, frente al término real "sesgo de confusión".
-  // "confundido con la edad y la renta" es literal de about.mechanism (regla 6).
+  // Tres arreglos de lengua de la pasada anterior, conservados: el predicado
+  // desnudo "son azar"; la colisión "azar" / "al azar" en doce palabras (ahora
+  // "de forma aleatoria"); y "la confusión" a secas, que se lee como confusión
+  // cotidiana sin antecedente en pantalla.
+  // w1b-001 — EL COMENTARIO CERTIFICABA UN LOCK QUE LA CADENA NO CUMPLÍA. El
+  // término establecido es el de about.mechanism, "un tratamiento CONFUNDIDO
+  // CON la edad y la renta", y la cadena decía "hay sesgo de confusión CON la
+  // edad y la renta", que además fuerza la preposición: un sesgo no es "con"
+  // una variable, se está confundido con ella. "así que está confundido con la
+  // edad y la renta" arregla las dos cosas a la vez y cita About a la letra
+  // (regla 6).
+  // w1b-009 — "por sí solo" iba al final y se apoyaba en "veinte". Antepuesto,
+  // se apoya sin ambigüedad en "un umbral de 0.05", que es el sujeto del que se
+  // dice que basta por sí mismo.
   // Cero rayas (regla 9); punto decimal con cero delante.
   'reveal.accounting1':
-    'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < 0.05. Ninguno encontró un efecto, porque no lo hay: un umbral de 0.05 deja pasar alrededor de uno de cada veinte por sí solo. Y ninguno es una prueba limpia: el tratamiento nunca se asignó de forma aleatoria, y hay sesgo de confusión con la edad y la renta.',
+    'De {total} análisis posibles, {sig} ({sigPct}%) alcanzan p < 0.05. Ninguno encontró un efecto, porque no lo hay: por sí solo, un umbral de 0.05 deja pasar alrededor de uno de cada veinte. Y ninguno es una prueba limpia: el tratamiento nunca se asignó de forma aleatoria, así que está confundido con la edad y la renta.',
   // w1-r-003: el cierre era un absoluto y chocaba con el pie de la Fig. 2 dos
   // bloques más abajo ("Los efectos reales se agrupan").
   'reveal.accounting1Effect':
@@ -330,7 +410,18 @@ export const copy: Record<CopyKey, string> = {
   // unconditionally and the streak counts today, so {n} = 1 is the common
   // first-day case. "Racha de 1 días" would greet every new player. A
   // label-colon-count row agrees with every value there is.
-  'summary.streak': 'Días seguidos: {n}',
+  // gr6-031: la palabra, en cambio, estaba mal. Esta línea decía "Días
+  // seguidos" y la página Estadísticas que se abre un toque después decía
+  // "Racha actual"/"Racha máxima", igual que la cadena que se comparte
+  // (share.streakWord = "Racha"): dos nombres para lo mismo, a un toque de
+  // distancia, regresión posterior a T37 (ambas claves reescritas en esa ronda,
+  // nunca contrastadas). *Racha* es además lo que dicen los juegos diarios en
+  // español. La regla 6 ya lo recoge.
+  'summary.streak': 'Racha: {n}',
+  // RETIRADA: W6 (gr6-020) eliminó el botón deshabilitado que esta cadena
+  // etiquetaba. No se borra solo porque dos aserciones de
+  // tests/ui/summary.test.tsx la siguen nombrando y ese archivo no es de esta
+  // oleada. La nota completa está en en/copy.ts.
   'summary.playPrereg': 'Probar el modo Preregistro',
 
   'summary.breakdownCallCorrect': 'Veredicto correcto',
@@ -344,7 +435,16 @@ export const copy: Record<CopyKey, string> = {
   'summary.breakdownFalsePositive': 'Falso positivo',
 
   'summary.invoiceTitle': 'Factura',
-  'summary.preregUpsell': 'El preregistro está desbloqueado: comprométete con un análisis antes de ver los datos.',
+  // gr6-020 — el bloque que anuncia el Preregistro terminaba en un botón
+  // muerto y no decía en ningún sitio dónde estaba la puerta de verdad. Ahora
+  // la puerta está en la frase: mañana, antes de los datos. "antes de ver un
+  // solo número" es la fórmula de prereg.intro y de reveal.accounting2Prereg.
+  'summary.preregUpsell':
+    'El preregistro está desbloqueado. Mañana podrás elegirlo antes de ver un solo número.',
+  // gr6-062 — la ruta al muro de logros al que el día acaba de añadir algo.
+  // Misma forma que reveal.toSummary ("Ver la factura"): infinitivo, regla 1,
+  // y el Acto II no comenta a quien va.
+  'summary.viewStats': 'Ver tus estadísticas',
   'summary.shareFailed': 'No se ha podido compartir este resultado.',
   // T38 — the heading over what today unlocked. NOMINAL (rule 5), not
   // participial: "Desbloqueados hoy" is a bare masculine plural participle
@@ -358,22 +458,26 @@ export const copy: Record<CopyKey, string> = {
   // Manuscript register, sincere and bureaucratic. The form itself is the
   // joke; its own copy never winks.
   'prereg.intro':
-    'Declara tu análisis completo antes de ver un solo número. Cada elección de aquí abajo es definitiva en el momento en que la envías. No hay ninguna revelación que espiar antes, ni un segundo intento hoy.',
+    'Declara tu análisis completo antes de ver un solo número. Cada elección de aquí abajo es definitiva en el momento en que la envías. No hay nada que mirar antes, ni un segundo intento hoy.',
   // T37: a preregistration commits you to REPORT the result, not to publish
   // it (EN says "running and reporting"), and "publicar" also collided with
   // lab.submit's "Enviar a publicación", which is a different promise.
   'prereg.commit':
     'Me comprometo solemnemente a ejecutar exactamente esta especificación y a informar de su resultado, muestre lo que muestre.',
   'prereg.submit': 'Enviar preregistro',
-  'prereg.locked': 'Registrado. No hay más cambios hasta la revelación.',
+  'prereg.locked': 'Registrado. No hay más cambios antes de afrontar la verdad.',
 
   'stats.title': 'Tus estadísticas',
   'stats.played': 'Partidas',
   'stats.currentStreak': 'Racha actual',
   'stats.maxStreak': 'Racha máxima',
   'stats.callAccuracy': 'Acierto en los veredictos',
-  'stats.avgScore': 'Puntuación media',
   'stats.close': 'Cerrar',
+  // gr6-035 — el estado vacío del primer día: once bloques censurados y seis
+  // rayas, sin una sola frase. Registro Acto II: dice qué es la pantalla y qué
+  // la llena, sin animar ni disculparse.
+  'stats.emptyState':
+    'Aquí todavía no hay nada. Todas las cifras de esta página empiezan a llenarse después de tu primer día.',
 
   'stats.callAccuracyLast20': 'Últimos 20 veredictos',
   'stats.successRateTitle': 'Tasa de éxito: hacking frente a preregistro',
@@ -389,15 +493,26 @@ export const copy: Record<CopyKey, string> = {
   'stats.locked': 'Logro bloqueado',
 
   'about.title': 'Acerca de P-hackle',
+  // gr6-036 — los cuatro titulares de sección. Siete párrafos sin señalizar
+  // tenían un argumento real en el orden correcto y ninguno de sus giros se
+  // veía. Sentence case (regla 4), sin rayas (regla 9).
+  'about.sectionHowItWorks': 'Cómo funciona',
+  'about.sectionNotReal': 'Nada de esto es real',
+  'about.sectionYourData': 'Tus datos',
+  'about.sectionPriorArt': 'De dónde viene esto',
   'about.intro':
     'Cada día, P-hackle te reparte un conjunto de datos sintéticos y una hipótesis ridícula. Las herramientas son reales: cambiar de variable de resultado, ir de compras por los subgrupos, parar de recoger datos cuando conviene. Son los mismos grados de libertad del investigador que se usan, por descuido o no, en investigación publicada de verdad.',
   'about.mechanism':
-    'Todo lo que hay bajo el capó es real. El conjunto de datos de cada día se simula a partir de un proceso generador declarado (ocho variables latentes correlacionadas, un tratamiento confundido con la edad y la renta, cuatro familias de variables de resultado) y se siembra con la fecha, de modo que todo el mundo analiza exactamente los mismos números. Las regresiones son mínimos cuadrados ordinarios. La curva de especificación se calcula ejecutando de verdad cada combinación de variable de resultado, subgrupo, conjunto de covariables, regla de exclusión, transformación y elección de colas: está enumerada, no muestreada, y no es un truco. La mayoría de los días el efecto real es exactamente cero. El resto de los días es pequeño y real, que es toda la dificultad.',
+    'Todo lo que hay bajo el capó es real. El conjunto de datos de cada día se simula a partir de un proceso generador declarado (ocho variables latentes correlacionadas, un tratamiento confundido con la edad y la renta, cuatro familias de variables de resultado) y se siembra con la fecha, de modo que todo el mundo analiza exactamente los mismos números. Las regresiones son mínimos cuadrados ordinarios. La curva de especificación se calcula ejecutando de verdad cada combinación de variable de resultado, subgrupo, conjunto de covariables, regla de exclusión, transformación y elección de colas: está enumerada, no muestreada, y no es un truco. La mayoría de los días el efecto real es exactamente cero. El resto de los días es pequeño y real, que es toda la dificultad. Los días mismos se filtran antes de que los juegues: un día nulo se vuelve a sortear hasta que entre 30 y 180 de los 1792 análisis posibles alcanzan p < 0.05, y un día con efecto hasta que el efecto real es detectable en la muestra completa de 400. Ese filtro es un dedo en la balanza, y se declara por la misma razón que todo lo demás de aquí: lo que un umbral de 0.05 deja pasar por sí solo cae dentro de esa banda, así que el recuento que ves al final del día nunca es absurdamente pequeño, y siempre hay algo que encontrar.',
   'about.frozenFork':
     'Una decisión analítica está congelada en lugar de ofrecerse: las puntuaciones z de los atípicos se calculan sobre la variable de resultado ya transformada y dentro de la submuestra filtrada. Eso es en sí mismo una bifurcación, y congelarla es en sí misma una decisión. Se declara aquí porque las bifurcaciones que no ves son las que hacen daño.',
   'about.syntheticDisclaimer':
     'Nada de este juego es un hallazgo. Los participantes no existen, los datos se generan en tu navegador, y las revistas, los DOI, los medios, los titulares y las declaraciones son todos inventados. Por eso las tarjetas de prensa llevan la marca de agua PRENSA SIMULADA. Los escenarios son deliberadamente absurdos y deliberadamente inofensivos: en ninguno aparece afirmación médica, nutricional ni de salud pública alguna, porque una captura de pantalla viaja más lejos que su pie de foto.',
-  'about.decimalNote': 'La notación estadística usa siempre punto decimal (p = 0.049), en todos los idiomas.',
+  // gr6-027 + gr6-036: la nota enuncia ahora también la SEGUNDA convención, el
+  // cero delante, que es la regla que gr6-027 vuelve cierta en todo el catálogo
+  // y que esta es la única frase que dice en voz alta.
+  'about.decimalNote':
+    'Las estadísticas de aquí se componen como las componen las revistas, en todos los idiomas: punto decimal, nunca coma (p = 0.049), y siempre con cero delante.',
   'about.dataDisclosure':
     'La analítica son recuentos de visitas anónimos y sin cookies (Vercel Web Analytics). Sin cookies, sin cuentas, sin datos personales, sin seguimiento entre sitios, sin banner que cerrar. Tus puntuaciones, rachas, historial e idioma viven en el almacenamiento local de tu navegador y no se envían a ninguna parte. Si borras los datos de tu navegador desaparecen para siempre, también para nosotros, que nunca los tuvimos.',
   'about.priorArt':
@@ -405,13 +520,13 @@ export const copy: Record<CopyKey, string> = {
   'about.priorArtFiveThirtyEight':
     'Aschwanden y King (2015), "Hack Your Way to Scientific Glory", FiveThirtyEight. El interactivo dueño de esta idea. Usa datos reales y no ofrece ninguna verdad de referencia; P-hackle añade un proceso generador de datos conocido, una semilla diaria y el veredicto entre efecto y ruido.',
   'about.priorArtSpecCurve':
-    'Simonsohn, Simmons y Nelson. Análisis de curva de especificación: el gráfico de la revelación es, en esencia, su figura.',
+    'Simonsohn, Simmons y Nelson. Análisis de curva de especificación: el gráfico con el que termina el día es, en esencia, su figura.',
   'about.priorArtForkingPaths':
     'Gelman y Loken. El jardín de senderos que se bifurcan: no hace falta salir de pesca para que esto ocurra, basta con un análisis que se adapte a los datos que te tocó ver.',
   'about.priorArtFalsePositive':
     'Simmons, Nelson y Simonsohn (2011), "False-Positive Psychology". El inventario de grados de libertad del investigador que estas herramientas implementan, un botón cada vez.',
   'about.priorArtOptionalStopping':
-    'Armitage, McPherson y Rowe (1969). Contrastar una y otra vez a medida que se acumulan datos infla por sí solo la tasa de falsos positivos, y por eso cada lote extra que recoges se te cuenta en la revelación.',
+    'Armitage, McPherson y Rowe (1969). Contrastar una y otra vez a medida que se acumulan datos infla por sí solo la tasa de falsos positivos, y por eso cada lote extra que recoges se te cuenta cuando afrontas la verdad.',
   'about.glossaryTitle': 'Glosario',
   'about.contact': 'Se agradecen preguntas y avisos de errores.',
 
@@ -425,11 +540,21 @@ export const copy: Record<CopyKey, string> = {
   // idéntica en los tres idiomas (SHARED_WITH_EN).
   'legend.significant': 'p < 0.05',
   'legend.published': 'La que publicaste',
-  'legend.trueEffect': 'Efecto real',
 
-  'legend.intro': 'Cómo se lee un resultado compartido.',
+  // gr6-030: la Leyenda explicaba cada símbolo y no la PALABRA.
+  // "Bifurcaciones" es la única palabra plena que imprime la cadena que se
+  // comparte, y el concepto circulaba con cuatro nombres. Ahora la fila 🍴
+  // define el término del que es el dibujo, y esta introducción dice cómo se
+  // relacionan el rastro y los recuentos.
+  'legend.intro':
+    'Cómo se lee un resultado compartido. El rastro es un símbolo por movimiento; los recuentos de debajo son esos mismos movimientos, sumados.',
+  // La enumeración entre paréntesis está COMPILADA, no es decorativa:
+  // findMissingSpecKnobs exige que contenga literalmente lab.outcome /
+  // lab.subgroup / lab.covariates / lab.exclusion / lab.transform /
+  // reveal.tailsOne DE ESTE idioma. Reescribe la frase alrededor cuanto
+  // quieras; no quites una perilla.
   'legend.emojiSpec':
-    'Cualquier cambio de especificación (variable de resultado, subgrupo, covariables, exclusión de atípicos, transformación o cambio a una cola)',
+    'Una bifurcación: cualquier cambio de especificación (variable de resultado, subgrupo, covariables, exclusión de atípicos, transformación o cambio a una cola)',
   'legend.emojiSubgroup': 'Cambio de filtro de subgrupo',
   'legend.emojiExclusion': 'Cambio en la exclusión de atípicos',
   'legend.emojiTails': 'Cambio a una cola',
@@ -447,13 +572,22 @@ export const copy: Record<CopyKey, string> = {
   'errors.workerCrash': 'Algo ha fallado al generar el puzle de hoy. Recargar suele arreglarlo.',
   'errors.storageOff':
     'Tu navegador está bloqueando el almacenamiento local, así que el progreso no se guardará entre visitas.',
+  // gr6-007 — el control que errors.workerCrash lleva prometiendo desde T6.
+  // Infinitivo (regla 1); una palabra, porque la frase de arriba ya dice para
+  // qué sirve.
+  'errors.reload': 'Recargar',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
-  // than commanding. nav.localeToggle already holds exactly this word.
+  // than commanding.
+  // gr6-026: antes remitía a nav.localeToggle por la misma palabra. Esa clave
+  // ya no existe (estaba muerta), así que la palabra es de esta clave.
   'a11y.localeToggle': 'Idioma',
-  // "Cambiar DE tema" is the fixed idiom for changing the SUBJECT of a
-  // conversation; the setting is "cambiar tema".
-  'a11y.themeToggle': 'Cambiar tema',
+  // gr6-067: esto etiqueta otro role="group", y "Cambiar tema" hacía anunciar
+  // "Cambiar tema, grupo". Misma clase que T37 corrigió para el grupo del
+  // idioma, un control más a la derecha. Una etiqueta de grupo NOMBRA su grupo.
+  // (De paso desaparece la trampa del idioma: "cambiar DE tema" es cambiar de
+  // asunto en una conversación, no de ajuste.)
+  'a11y.themeToggle': 'Tema',
   'a11y.backToGame': 'P-hackle: volver al puzle de hoy',
   // T22 (value change): dropped the published-highlight clause — false on the
   // abandon path. See en/copy.ts for the full reasoning.
