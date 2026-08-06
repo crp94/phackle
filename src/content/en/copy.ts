@@ -1446,7 +1446,7 @@ export const copy: Record<CopyKey, string> = {
   'about.decimalNote':
     'Statistics here are set the way journals set them, in every language: a decimal point, never a comma (p = 0.049), and a leading zero on every one.',
   'about.dataDisclosure':
-    "Analytics are anonymous, cookieless page counts (Vercel Web Analytics). No cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser's local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.",
+    "There are no analytics at all: this site makes no network requests once it has loaded. No cookies, no accounts, no personal data, no cross-site tracking, no banner to dismiss. Your scores, streaks, history and language choice live in your browser's local storage and are never sent anywhere. Clearing your browser data deletes them permanently, including from us, who never had them.",
   'about.priorArt':
     'P-hackle is a small game standing on a large literature. It borrows its central demonstration, and most of its methods, from work worth reading directly:',
   'about.priorArtFiveThirtyEight':

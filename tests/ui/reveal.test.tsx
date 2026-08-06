@@ -426,7 +426,7 @@ describe('§2.7.4 the verdict stamp', () => {
      line of both banks was invisible on every day the game had ever been
      played, silently. This is the screen-level pin; daily.ts's own suite
      walks the banks arithmetically over a full year. */
-  const PRE_EPOCH_ISO = '2026-08-06'; // puzzleNumber -3 against EPOCH 2026-08-10
+  const PRE_EPOCH_ISO = '2026-08-03'; // puzzleNumber -3 against EPOCH 2026-08-07
 
   it('still finds a retraction subline on a PRE-EPOCH (negative puzzle number) day', async () => {
     const { container } = await mountReveal({ stamp: 'RETRACTED' }, { iso: PRE_EPOCH_ISO, practice: true });

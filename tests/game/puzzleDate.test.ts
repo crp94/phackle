@@ -19,9 +19,9 @@ describe('isoFromPuzzleNumber', () => {
   });
 
   it('adds whole days forward for later puzzle numbers', () => {
-    expect(isoFromPuzzleNumber(2)).toBe('2026-08-11');
-    expect(isoFromPuzzleNumber(22)).toBe('2026-08-31'); // crosses into September next
-    expect(isoFromPuzzleNumber(23)).toBe('2026-09-01'); // month boundary
+    expect(isoFromPuzzleNumber(2)).toBe('2026-08-08');
+    expect(isoFromPuzzleNumber(25)).toBe('2026-08-31'); // last day of the month
+    expect(isoFromPuzzleNumber(26)).toBe('2026-09-01'); // month boundary
   });
 
   it('is the exact left inverse of puzzleNumber() across a spread of dates, including a year boundary', () => {
@@ -33,7 +33,7 @@ describe('isoFromPuzzleNumber', () => {
   it('handles pre-EPOCH (dev/practice) puzzle numbers without throwing', () => {
     // isPractice()'s own doc comment: "today (locally) is before EPOCH" is a
     // legal pre-launch/dev state, so puzzleNumber can be <= 0 there too.
-    expect(isoFromPuzzleNumber(0)).toBe('2026-08-09');
+    expect(isoFromPuzzleNumber(0)).toBe('2026-08-06');
     expect(puzzleNumber(isoFromPuzzleNumber(-5))).toBe(-5);
   });
 });

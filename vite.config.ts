@@ -50,7 +50,23 @@ function fontsourceWoff2Only(): Plugin {
 }
 
 // https://vite.dev/config/  |  https://vitest.dev/config/
+import { execSync } from 'node:child_process';
+
+/** T25: About renders `import.meta.env.VITE_APP_VERSION`. Nothing set it, so the
+ * page said "Version dev" in production. Stamp it from the commit being built —
+ * Vercel exposes VERCEL_GIT_COMMIT_SHA; a local build reads git directly. */
+function appVersion(): string {
+  const fromEnv = process.env.VITE_APP_VERSION ?? process.env.VERCEL_GIT_COMMIT_SHA;
+  if (fromEnv) return fromEnv.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'dev';
+  }
+}
+
 export default defineConfig({
+  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion()) },
   plugins: [
     react(),
     fontsourceWoff2Only(),

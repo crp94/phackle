@@ -463,20 +463,20 @@ describe('gr6-058 the analytics disclosure and the analytics integration', () =>
   const declaresAnalytics = '@vercel/analytics' in { ...pkg.dependencies, ...pkg.devDependencies };
   const COPY_FILES = ['en', 'it', 'es'].map((locale) => `src/content/${locale}/copy.ts`);
 
-  it.todo(
-    'the analytics disclosure matches the analytics integration (T25: install + inject, or cut the claim)',
-    // () => {
-    //   const claiming = COPY_FILES.filter((file) => /Vercel/i.test(readFileSync(join(ROOT, file), 'utf8')));
-    //   if (claiming.length > 0) {
-    //     expect(
-    //       declaresAnalytics,
-    //       `${claiming.join(', ')} disclose Vercel Web Analytics, but @vercel/analytics is not a ` +
-    //         'dependency. The About page is telling the player about a collector the bundle does ' +
-    //         'not contain.',
-    //     ).toBe(true);
-    //   }
-    // },
-  );
+  // T25 (2026-08-06): the claim was CUT rather than the collector installed, so
+  // this is live from here on. It fires in the direction that ships a lie: any
+  // copy file naming the vendor while the package is absent.
+  it('the analytics disclosure matches the analytics integration', () => {
+    const claiming = COPY_FILES.filter((file) => /Vercel/i.test(readFileSync(join(ROOT, file), 'utf8')));
+    if (claiming.length > 0) {
+      expect(
+        declaresAnalytics,
+        `${claiming.join(', ')} disclose an analytics vendor, but @vercel/analytics is not a ` +
+          'dependency. The About page is telling the player about a collector the bundle does ' +
+          'not contain.',
+      ).toBe(true);
+    }
+  });
 
   it('never ships an analytics package that nothing calls', () => {
     // Vacuously true until T25 installs it; a real guard from that moment on.

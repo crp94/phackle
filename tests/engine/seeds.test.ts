@@ -153,7 +153,7 @@ describe('scenarioIndexFor', () => {
       resetScenarioIndexCacheForTests();
       // EPOCH itself and the day before it are base cases -- no exclusion walk,
       // so no count requirement.
-      const before = consecutiveIsoDates('2026-08-09', 2); // EPOCH-1, EPOCH
+      const before = consecutiveIsoDates('2026-08-06', 2); // EPOCH-1, EPOCH
       for (const iso of before) {
         expect(() => scenarioIndexFor(iso, 3)).not.toThrow();
         expect(scenarioIndexFor(iso, 3)).toBeLessThan(3);

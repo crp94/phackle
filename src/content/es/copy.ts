@@ -557,7 +557,7 @@ export const copy: Record<CopyKey, string> = {
   'about.decimalNote':
     'Las estadísticas de aquí se componen como en las revistas, en todos los idiomas: punto decimal, nunca coma (p = 0.049), y siempre con cero delante.',
   'about.dataDisclosure':
-    'La analítica son recuentos de visitas anónimos y sin cookies (Vercel Web Analytics). Sin cookies, sin cuentas, sin datos personales, sin seguimiento entre sitios, sin banner que cerrar. Tus puntuaciones, rachas, historial e idioma viven en el almacenamiento local de tu navegador y no se envían a ninguna parte. Si borras los datos de tu navegador desaparecen para siempre, también para nosotros, que nunca los tuvimos.',
+    'No hay analítica de ningún tipo: una vez cargado, este sitio no hace ninguna petición de red. Sin cookies, sin cuentas, sin datos personales, sin seguimiento entre sitios, sin banner que cerrar. Tus puntuaciones, rachas, historial e idioma viven en el almacenamiento local de tu navegador y no se envían a ninguna parte. Si borras los datos de tu navegador desaparecen para siempre, también para nosotros, que nunca los tuvimos.',
   'about.priorArt':
     'P-hackle es un juego pequeño apoyado en una literatura grande. Toma prestada su demostración central, y casi todos sus métodos, de trabajos que merece la pena leer directamente:',
   'about.priorArtFiveThirtyEight':

@@ -35,14 +35,23 @@ describe('daysBetween', () => {
   });
 });
 
+/** T25 froze EPOCH, and these cases had been written as date literals against
+ * the provisional one. Derived from EPOCH instead: the arithmetic is the claim,
+ * the calendar is not, and freezing EPOCH again can never rot them. */
+function isoOffsetFromEpoch(days: number): string {
+  const [y, m, d] = EPOCH.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return t.toISOString().slice(0, 10);
+}
+
 describe('puzzleNumber', () => {
   it('is 1 on the epoch date', () => {
     expect(puzzleNumber(EPOCH)).toBe(1);
   });
 
   it('increments by one per day after the epoch', () => {
-    expect(puzzleNumber('2026-08-11')).toBe(2);
-    expect(puzzleNumber('2026-08-20')).toBe(11);
+    expect(puzzleNumber(isoOffsetFromEpoch(1))).toBe(2);
+    expect(puzzleNumber(isoOffsetFromEpoch(10))).toBe(11);
   });
 
   // gr6-021's PREMISE, pinned so the guard below is never mistaken for
@@ -50,9 +59,9 @@ describe('puzzleNumber', () => {
   // practice day (isPractice: "today < EPOCH"), and every practice day before
   // the day preceding EPOCH has a negative puzzle number.
   it('is zero or negative before the epoch (the premise gr6-021 guards)', () => {
-    expect(puzzleNumber('2026-08-09')).toBe(0);
-    expect(puzzleNumber('2026-08-06')).toBe(-3);
-    expect(puzzleNumber('2026-07-10')).toBe(-30);
+    expect(puzzleNumber(isoOffsetFromEpoch(-1))).toBe(0);
+    expect(puzzleNumber(isoOffsetFromEpoch(-4))).toBe(-3);
+    expect(puzzleNumber(isoOffsetFromEpoch(-31))).toBe(-30);
   });
 });
 

@@ -3,7 +3,7 @@
 // allowed to import from (docs/implementation_plan.md §5 engine purity).
 import type { WindowN } from '../engine/types';
 
-export const EPOCH = '2026-08-10'; // provisional; frozen to real launch date in T25
+export const EPOCH = '2026-08-07'; // FROZEN 2026-08-06 (T25): day 1 is 2026-08-07.
 export const P_EFFECT_PCT = 25;
 export const EFFECT_D_RANGE: [number, number] = [0.18, 0.30];
 export const NULL_SIG_BAND: [number, number] = [30, 180];

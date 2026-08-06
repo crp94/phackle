@@ -39,7 +39,7 @@ import type { Outcome, Spec } from '../src/engine/types';
 // whose scenario is #14, `terms-and-conditions-service`. See
 // `SIGNIFICANT_SPEC` below for the measured search cost.
 export const PUZZLE_ISO = '2026-08-14';
-export const PUZZLE_NUMBER = 5; // daysBetween(EPOCH, PUZZLE_ISO) + 1
+export const PUZZLE_NUMBER = 8; // daysBetween(EPOCH, PUZZLE_ISO) + 1
 export const SCENARIO_COUNT = 20; // T6: 20 English scenarios; matches gen_goldens.ts
 
 /** 10:00 UTC on the pinned day. The config pins `timezoneId: 'UTC'`, so
