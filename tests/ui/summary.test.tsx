@@ -73,14 +73,29 @@ describe('Summary — invoice rows sum to the total score (3 scoreDay fixtures)'
   const now = new Date(2026, 7, 10, 20, 0, 0, 0);
 
   const fixtures = [
-    scoreDay({ mode: 'hack', dayType: 'effect', published: true, callCorrect: true, forks: 3, stamp: 'REPLICATED' }),
-    scoreDay({ mode: 'hack', dayType: 'null', published: false, callCorrect: true, forks: 0, stamp: 'NULL_REPORTED' }),
+    // GR6 §1(f): the parsimony row is scored on distinct outcome families now.
+    scoreDay({
+      mode: 'hack',
+      dayType: 'effect',
+      published: true,
+      callCorrect: true,
+      outcomeFamilies: 2,
+      stamp: 'REPLICATED',
+    }),
+    scoreDay({
+      mode: 'hack',
+      dayType: 'null',
+      published: false,
+      callCorrect: true,
+      outcomeFamilies: 1,
+      stamp: 'NULL_REPORTED',
+    }),
     scoreDay({
       mode: 'prereg',
       dayType: 'effect',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'REPLICATED',
       preregSig: true,
     }),
@@ -567,7 +582,9 @@ describe('persistAndComputeSummary — scoring, streak-inclusive-of-today, persi
       dayType: 'effect',
       published: true,
       callCorrect: true,
-      forks: 0,
+      // The call above passed `log: []`, so §1(f)'s family count is 0 — which
+      // is exactly the shape scoring.ts clamps rather than paying a bonus for.
+      outcomeFamilies: 0,
       stamp: 'REPLICATED',
     });
     expect(result.score).toBe(expected.score);

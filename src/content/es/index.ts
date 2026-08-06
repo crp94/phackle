@@ -511,7 +511,7 @@ export const content: LocaleContent = {
     // the poetry chyron names the endecasílabo and the jurado de Filología the
     // cover story already pays in pizza, the peer-review chyron ends beside a
     // napolitana de chocolate rather than beside an unnamed pastry, and the
-    // stairs blurb says fichaje and sesión informativa final because that is
+    // stairs blurb says tarjeta and sesión informativa final because that is
     // what this locale's method section says. The outlets were mapped in T39a
     // and are untouched.
     //
@@ -527,7 +527,7 @@ export const content: LocaleContent = {
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      text: 'Doce plantas de datos de fichaje y una encuesta de compenetración. A los participantes se les habló de la encuesta; de las tarjetas, en la sesión informativa final.',
+      text: 'Doce plantas de datos anonimizados de tarjeta y una encuesta de compenetración. A los participantes se les habló de la encuesta; de las tarjetas, en la sesión informativa final.',
       outlet: 'El Balance Semanal',
       tier: 1,
       scenarioIds: ['stairs-small-talk'],
@@ -568,6 +568,86 @@ export const content: LocaleContent = {
       outlet: 'El Suplemento Dominical',
       tier: 1,
       scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    // gr3-024, the 60-cell matrix: the twelve tier-1 cells, transcreated off
+    // the SPANISH scenarios. Prestige register, third person, the method
+    // reported straight with no second person anywhere; the joke is the
+    // sincerity. El Trino Matinal carries four of them because it is the one
+    // cabecera at this tier with no generic entries.
+    {
+      text: 'Un trimestre fiscal entero del canal interno de poesía se puntuó a ciegas con un jurado de licenciados en Filología. Al jurado se le paga en pizza, cosa que los autores declaran.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Los cuadernos de masa madre se cruzaron con los tiempos de chip a lo largo de doce semanas. Los autores insisten en llamar conductual y no nutricional a la hipótesis.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'Un departamento recibió una lista de 340 horas y el otro su silencio de siempre. Cada celda de los modelos trimestrales de ambos pasó por una herramienta de auditoría independiente.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'Un único helecho de Boston permaneció en cada despacho de compras durante un ciclo de contratación completo. Las condiciones finales llegaron en todos los casos, varias tras considerable insistencia.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'La temperatura de la ducha se anotó cada mañana y seis semanas de correo saliente las puntuaron personas que desconocían la condición asignada. Las altas avanzaron por oleadas, según lo permitía la fontanería.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'Un registrador anotó cada búsqueda de aparcamiento desde la entrada en la calle hasta el apagado del motor. A ninguno de los dos grupos se le dijo qué se buscaba, y los dos que lo adivinaron no se acercaron.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      // w4-r-007: see the English row. The cover story's two unspent jokes are
+      // the switch change treated as a natural experiment and the point where
+      // the tactile-feedback literature stops.
+      text: 'Cada cambio de switch dentro de los archivos de once equipos se trata como un experimento natural. La literatura sobre retroalimentación táctil se detiene en la velocidad de tecleo; este estudio empieza en producción.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'Los nombres de las mascotas se clasificaron a mano contra una lista de referencia de economistas y se cruzaron con dos años de extractos auditados. La cola de clasificación, admiten los autores, todavía no está vacía.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Una única pregunta de cribado precedió a un trimestre de clientes de correo instrumentados. El instrumento cuenta metadatos y nada más, algo que el apartado de método repite tres veces.',
+      outlet: 'El Trino Matinal',
+      tier: 1,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'En cada cena hubo un ayudante de investigación presentado como un compañero del trabajo, que anotó llegadas, salidas y qué llevaban los invitados. El vino no estaba disponible para su análisis.',
+      outlet: 'El Balance Semanal',
+      tier: 1,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'Una batería de preferencias numéricas cotidianas se cruzó con las condiciones hipotecarias efectivamente firmadas. El intermediario que consigue esas condiciones ha pedido no ser nombrado.',
+      outlet: 'El Suplemento Dominical',
+      tier: 1,
+      scenarioIds: ['thirteen-mortgage'],
+    },
+    {
+      text: 'Una extensión registró un recuento diario de pestañas y nada más, una limitación que los autores aceptan por motivos de reclutamiento. Cada proyecto declarado exigía un enlace público que funcionara.',
+      outlet: 'El Boletín Oficioso',
+      tier: 1,
+      scenarioIds: ['browser-tabs-side-projects'],
     },
     { text: 'El truco raro con el que los estadísticos PUBLICAN.', outlet: 'El Scroll Diario', tier: 2 },
     {
@@ -667,6 +747,80 @@ export const content: LocaleContent = {
       tier: 2,
       scenarioIds: ['mechanical-keyboard-bugs'],
     },
+    // gr3-024, the 60-cell matrix: the eleven tier-2 cells, transcreated off
+    // the SPANISH scenarios. Same midmarket rules as the block above — TÚ and
+    // never usted, the second person in every line, the joke landing on
+    // something the reader owns or already does. Where this locale's scenario
+    // has its own furniture the blurb takes that and not the English source's:
+    // the poetry jury is the one de licenciados en Filología, the stairs study
+    // says tarjeta and sesión informativa final, and the peer reviewers sat in
+    // a cafetería.
+    {
+      text: 'Tu gato no está en la nómina de la fundación, pero fueron cuatro gatos los que pusieron en marcha el estudio. Con treinta días de tus operaciones habrías entrado en la muestra.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['cat-crypto'],
+    },
+    {
+      text: 'Al jurado de licenciados en Filología se le paga en pizza y lo puntúa todo a ciegas. Un trimestre de lo que escribes tú habría ido al mismo montón.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['standing-desk-poetry'],
+    },
+    {
+      text: 'Un helecho de Boston por cada responsable de compras, un ciclo de contratación entero, y después alguien pidió las condiciones finales. Tú también tienes un helecho a dos pasos de la mesa.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['fern-negotiation'],
+    },
+    {
+      text: 'Cada nombre de mascota se clasificó a mano contra una lista de economistas, y con un Milton hizo falta una semana entera. El nombre de tu perro o está en esa lista o no está.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['dog-economist-stocks'],
+    },
+    {
+      text: 'Aquí dentro hay dieciocho meses de registros de calendario, y la consultora ya ha preguntado qué reuniones pensamos señalar por su nombre. Tu reunión de las cuatro también está en los datos de alguien.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['full-moon-meetings'],
+    },
+    {
+      text: 'A los desconocidos de tres ciudades les preguntaron primero cómo llegar a un sitio y después por el telescopio. Van a añadir una cuarta ciudad, así que ojo con quien te pare.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'El panel que puntúa la severidad está formado por exeditores, todos ellos revisados alguna vez desde una cafetería. Si tu manuscrito volvió largo, por fin sabes hacia dónde señalar.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['cafe-peer-review'],
+    },
+    {
+      text: 'Lo difícil fue encontrar a alguien que se leyera el contrato entero. Si eres tú, doce meses de tus llamadas a soporte merecían una transcripción.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'Montaron una mesa plegable en la puerta 14 y midieron lo que los viajeros habían metido contra la maleta que lo llevaba. Tu equipaje de mano habría sido el siguiente.',
+      outlet: 'El Scroll Diario',
+      tier: 2,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'Doce plantas de datos anonimizados de tarjeta, y los participantes se enteraron de ello en la sesión informativa final. Cada vez que subes por las escaleras con un compañero, esa es la unidad de análisis.',
+      outlet: 'Ruido & Rotativa',
+      tier: 2,
+      scenarioIds: ['stairs-small-talk'],
+    },
+    {
+      text: 'Dos personas estudiaron fotografías de cómo guardan los calcetines los demás y coincidieron casi siempre. Abre tu cajón y ya puedes puntuarte.',
+      outlet: 'Clicbienestar',
+      tier: 2,
+      scenarioIds: ['sock-folding-punctuality'],
+    },
     {
       text: 'ESTUDIO: ¿HELECHOS = PODER DE NEGOCIACIÓN?',
       outlet: 'Cadena Rótulo 24H',
@@ -746,6 +900,81 @@ export const content: LocaleContent = {
       outlet: 'Cadena Rótulo 24H',
       tier: 3,
       scenarioIds: ['browser-tabs-side-projects'],
+    },
+    // gr3-024, the 60-cell matrix: the eleven tier-3 cells, en rótulo. Present
+    // tense, one clause, and the SPANISH scenario's furniture where it
+    // diverges — the mortgage rótulo keeps the 13 (this locale kept the
+    // English number, under its own coinage triscaidecafobia), unlike the
+    // Italian twin which counts to 17. Accented capitals (Á, É, Ó, Ñ) sit
+    // outside the ASCII class upperCaseRatio counts and cost nothing.
+    // Mastheads here are variety and not structure (w4-r-005): the generic
+    // pool holds one masthead per slot, so a bespoke card may reuse one and
+    // resolveSlot still finds two unused ones for the follow-ups.
+    {
+      text: 'ALERTA: LA COOPERATIVA HARINERA YA ES UN PLAN DE ENTRENAMIENTO',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['sourdough-marathon'],
+    },
+    {
+      text: 'ÚLTIMA HORA: 340 HORAS DE HARD BOP AUDITAN TU HOJA DE CÁLCULO',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['jazz-spreadsheets'],
+    },
+    {
+      text: 'LA DUCHA ESTÁ FRÍA Y TU RESPONDER A TODOS TAMBIÉN',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['cold-shower-emails'],
+    },
+    {
+      text: 'TU SIGNO ESTÁ DANDO VUELTAS A LA MANZANA CONTIGO',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['horoscope-parking'],
+    },
+    {
+      text: 'ALERTA: EL TECLADO RUIDOSO YA ES CONTROL DE CALIDAD',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['mechanical-keyboard-bugs'],
+    },
+    {
+      text: 'ÚLTIMA HORA: LA ETIQUETADORA HA LLEGADO A LA BANDEJA DE ENTRADA',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['label-maker-inbox'],
+    },
+    {
+      text: 'EXCLUSIVA: EL TOCADISCOS DECIDE CUÁNDO SE VAN TUS INVITADOS',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['vinyl-dinner-party'],
+    },
+    {
+      text: 'QUIEN TIENE TELESCOPIO SABE EL CAMINO. LA APP NO.',
+      outlet: 'Directo Madrugada',
+      tier: 3,
+      scenarioIds: ['telescope-directions'],
+    },
+    {
+      text: 'ÚLTIMA HORA: ALGUIEN SE LEE LAS CONDICIONES, Y SOPORTE YA LO SABE',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['terms-and-conditions-service'],
+    },
+    {
+      text: 'EN LA PUERTA 14 HAY UNA MESA PLEGABLE Y ENCIMA ESTÁN TUS VACACIONES',
+      outlet: 'Cadena Rótulo 24H',
+      tier: 3,
+      scenarioIds: ['jigsaw-suitcase-packing'],
+    },
+    {
+      text: 'EXCLUSIVA: SÁLTATE EL PISO 13 Y QUÉDATE LOS PUNTOS BÁSICOS',
+      outlet: 'Canal 9 Noticias Noche',
+      tier: 3,
+      scenarioIds: ['thirteen-mortgage'],
     },
   ],
 

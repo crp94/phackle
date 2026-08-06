@@ -425,10 +425,16 @@ export const copy: Record<CopyKey, string> = {
   'reveal.nullReported': 'RISULTATO NULLO',
   'reveal.callCorrect': 'Il tuo verdetto era giusto.',
   'reveal.callIncorrect': 'Il tuo verdetto era sbagliato.',
-  // Clinical, not apologetic: a preregistered analysis run exactly once is still
-  // expected to land here about one day in twenty.
+  // Clinical, not apologetic. GR6 gr6-009 / ruling §1(a): "circa il 5%" was
+  // false and is replaced by the two re-measured figures — see en/copy.ts's own
+  // note for the measurement (591 accepted null days, N = 400: 7.5-8.2% over
+  // the whole grid, 18.6-25.3% for the form's default spec). The register is
+  // unchanged and so are the opening and closing beats; what moved is the
+  // number and the naming of its cause. "Predefinita" is the same word
+  // SpecControls uses for the untouched spec, and "senza controlli" is the
+  // catalog's own term for a regression with neither covariate.
   'reveal.preregFalsePositive':
-    "Non è un errore: un'analisi preregistrata, eseguita una volta sola, trova comunque un falso positivo circa il 5% delle volte. Oggi era uno di quei giorni.",
+    "Non è un errore, e non è il 5% promesso dalla soglia: qui il trattamento è intrecciato con gli stessi fattori a cui rispondono gli esiti. Sul campione completo un'analisi preregistrata finisce qui circa l'8% delle volte, e circa una volta su cinque quando è quella predefinita, senza controlli. Oggi era uno di quei giorni.",
 
   // The share grid's only localized words. T37 fix round 1 (controller
   // ruling, see share.ts's §2.9 deviation note): line 3 is now

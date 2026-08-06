@@ -585,8 +585,15 @@ describe('Spanish press spoiler law (T39a\'s law, scanned in Spanish since T39b)
  * reassuring if the term would genuinely have fired had it been in scope.
  */
 describe('Spanish direction contract stops at the outcome labels (fix round 1)', () => {
+  // gr3-024 de-indexed this block: it used to say `press[20]`, and the 60-cell
+  // matrix wave inserts bespoke blurbs into every tier, which moves that row.
+  // The lookup states what the block is actually about — the tier-2 sourdough
+  // blurb, the one whose Spanish transcreation reaches for "baja".
+  const sourdoughBlurb = () =>
+    esContent.press.find((p) => p.tier === 2 && p.scenarioIds?.includes('sourdough-marathon'))!;
+
   it('leaves a blurb that says "baja" alone, while the term is live for labels', () => {
-    expect(esContent.press[20].text).toContain('baja');
+    expect(sourdoughBlurb().text).toContain('baja');
     expect(findNegativeDirectionTerms(esContent, NEGATIVE_DIRECTION_LEXICON_ES)).toEqual([]);
     expect(validateLocaleContent(esContent, ES_LEXICONS, enIds)).toEqual([]);
 
@@ -609,9 +616,10 @@ describe('Spanish direction contract stops at the outcome labels (fix round 1)',
     // spoiler scan does reach press[20] (it just finds nothing), and the em
     // dash budget counts its characters.
     expect(findPressSpoilerTerms(esContent, ES_PRESS_SPOILER_LEXICON)).toEqual([]);
+    const target = sourdoughBlurb();
     const withVerdict = {
       ...esContent,
-      press: esContent.press.map((p, i) => (i === 20 ? { ...p, text: `${p.text} Se ha retractado.` } : p)),
+      press: esContent.press.map((p) => (p === target ? { ...p, text: `${p.text} Se ha retractado.` } : p)),
     };
     expect(findPressSpoilerTerms(withVerdict, ES_PRESS_SPOILER_LEXICON).length).toBeGreaterThan(0);
   });

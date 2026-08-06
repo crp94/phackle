@@ -24,7 +24,7 @@ import {
   altmetricPercentile,
   altmetricScore,
   confettiParticlesForTier,
-  egregiousnessTier,
+  egregiousnessTierFromSpec,
   fakeDoi,
   pickJournal,
   pressForDay,
@@ -174,7 +174,6 @@ export interface PublishedProps {
 
 export function Published({ useStore = useGameStore, callScreen: CallScreen = Call }: PublishedProps = {}) {
   const { content, t } = useLocale();
-  const forks = useStore((s) => s.forks);
   const result = useStore((s) => s.result);
   const scenarioIndex = useStore((s) => s.scenarioIndex);
   const puzzleNumberValue = useStore((s) => s.puzzleNumber);
@@ -273,7 +272,7 @@ export function Published({ useStore = useGameStore, callScreen: CallScreen = Ca
 
   const scenario = content.scenarios[scenarioIndex];
   const iso = isoFromPuzzleNumber(puzzleNumberValue);
-  const tier = egregiousnessTier(forks);
+  const tier = egregiousnessTierFromSpec(result?.spec ?? null);
   // result is guaranteed non-null and significant at this screen (store.ts's
   // submit() guard), but the type is nullable -- defend anyway rather than
   // trust a guard this file doesn't own.

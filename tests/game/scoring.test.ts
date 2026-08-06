@@ -24,15 +24,15 @@ describe('callIsCorrect (real<->effect, noise<->null)', () => {
 // --- scoreDay: the 10 §2.8 rows, exhaustively -------------------------------
 
 describe('scoreDay — §2.8 table, all 10 rows', () => {
-  // Row 1+2: Correct/incorrect call (hack mode, published, 0 forks so
-  // parsimony is at its max and does not obscure the base call points).
-  it('row 1: correct call scores +100 (+ max parsimony at 0 forks)', () => {
+  // Row 1+2: Correct/incorrect call (hack mode, published, one outcome family
+  // so parsimony is at its max and does not obscure the base call points).
+  it('row 1: correct call scores +100 (+ max parsimony at one family)', () => {
     const r = scoreDay({
       mode: 'hack',
       dayType: 'effect',
       published: true,
       callCorrect: true,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'REPLICATED',
     });
     expect(r.score).toBe(SCORING.correctCall + SCORING.parsimonyMax);
@@ -44,46 +44,82 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: true,
       callCorrect: false,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'RETRACTED',
     });
     expect(r.score).toBe(SCORING.incorrectCall);
   });
 
-  // Row 3: parsimony bonus, only when callCorrect — exercised at a non-zero,
-  // non-clamped fork count.
-  it('row 3: parsimony bonus is max(0, 40 - 4*forks) when call is correct', () => {
-    const forks = 5;
+  // Row 3: parsimony bonus, only when callCorrect — GR6 §1(f) charges per
+  // distinct OUTCOME FAMILY beyond the first, not per fork.
+  it('row 3: parsimony bonus is max(0, 40 - 14*(families - 1)) when call is correct', () => {
+    const outcomeFamilies = 3;
     const r = scoreDay({
       mode: 'hack',
       dayType: 'null',
       published: true,
       callCorrect: true,
-      forks,
+      outcomeFamilies,
       stamp: 'RETRACTED',
     });
-    expect(r.score).toBe(SCORING.correctCall + Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * forks));
+    expect(r.score).toBe(
+      SCORING.correctCall + Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerExtraFamily * (outcomeFamilies - 1)),
+    );
   });
 
-  it('parsimony clamps at 0 (11 forks — the row 3 clamp case)', () => {
+  it('the whole scale, family by family: 1 -> 40, 2 -> 26, 3 -> 12, 4 -> 0', () => {
+    // Pinned as literals, not recomputed from the constants: this is the table
+    // §1(f) was ruled on ("the two intermediate steps are worth playing for"),
+    // and a formula-shaped assertion would follow parsimonyPerExtraFamily
+    // anywhere a future edit moved it, including to a value that re-kills the
+    // row. There are exactly four outcome families, so this IS the whole scale.
+    const scoreAt = (outcomeFamilies: number) =>
+      scoreDay({
+        mode: 'hack',
+        dayType: 'null',
+        published: true,
+        callCorrect: true,
+        outcomeFamilies,
+        stamp: 'RETRACTED',
+      }).breakdown.find(([k]) => k === 'summary.breakdownParsimony')![1];
+    expect([1, 2, 3, 4].map(scoreAt)).toEqual([40, 26, 12, 0]);
+  });
+
+  it('probing ONE family is free however many forks it took (the §1(f) point)', () => {
+    // gr2-007's actual complaint: the informed caller — the only model that
+    // beats the base rate — earned the bonus on 2 days in 32, because checking
+    // robustness inside a family costs forks. The input no longer carries a
+    // fork count at all, so this is now true by construction; the test states
+    // the property the construction exists for.
+    expect(Object.keys(scoreDay({
+      mode: 'hack',
+      dayType: 'null',
+      published: true,
+      callCorrect: true,
+      outcomeFamilies: 1,
+      stamp: 'RETRACTED',
+    }))).not.toContain('forks');
+  });
+
+  it('parsimony clamps at 0 (all four families — the row 3 clamp case)', () => {
     const r = scoreDay({
       mode: 'hack',
       dayType: 'null',
       published: true,
       callCorrect: true,
-      forks: 11,
+      outcomeFamilies: 4,
       stamp: 'RETRACTED',
     });
     expect(r.score).toBe(SCORING.correctCall + 0);
   });
 
-  it('parsimony is denied entirely on a wrong call, however few the forks', () => {
+  it('parsimony is denied entirely on a wrong call, however few the families', () => {
     const r = scoreDay({
       mode: 'hack',
       dayType: 'null',
       published: true,
       callCorrect: false,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'RETRACTED',
     });
     expect(r.score).toBe(SCORING.incorrectCall);
@@ -97,7 +133,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'effect',
       published: true,
       callCorrect: true,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'REPLICATED',
     });
     const incorrect = scoreDay({
@@ -105,7 +141,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'effect',
       published: true,
       callCorrect: false,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'RETRACTED',
     });
     expect(correct.career).toBe(SCORING.publishedCareer);
@@ -118,7 +154,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: false,
       callCorrect: true,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
     });
     expect(r.career).toBe(0);
@@ -131,10 +167,10 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: false,
       callCorrect: true,
-      forks: 2,
+      outcomeFamilies: 2,
       stamp: 'NULL_REPORTED',
     });
-    const expectedParsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * 2);
+    const expectedParsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerExtraFamily * 1);
     expect(r.score).toBe(SCORING.correctCall + expectedParsimony + SCORING.abandonNull);
   });
 
@@ -145,7 +181,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'effect',
       published: false,
       callCorrect: false,
-      forks: 3,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
     });
     // callCorrect is false here, so no call points and no parsimony — isolates
@@ -159,7 +195,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: false,
       callCorrect: true,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
     });
     const wrongCall = scoreDay({
@@ -167,7 +203,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: false,
       callCorrect: false,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
     });
     // The integrity bonus itself (isolate it by subtracting the call component).
@@ -182,7 +218,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'effect',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'REPLICATED',
       preregSig: true,
     });
@@ -197,7 +233,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
       preregSig: false,
     });
@@ -211,7 +247,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'effect',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
       preregSig: false,
     });
@@ -225,7 +261,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
       dayType: 'null',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'RETRACTED',
       preregSig: true,
     });
@@ -233,13 +269,13 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
     expect(r.score).toBe(0);
   });
 
-  it('prereg forks/callCorrect never leak into the prereg score (rows 7-10 ignore them)', () => {
+  it('prereg families/callCorrect never leak into the prereg score (rows 7-10 ignore them)', () => {
     const withForks = scoreDay({
       mode: 'prereg',
       dayType: 'effect',
       published: true,
       callCorrect: null,
-      forks: 20,
+      outcomeFamilies: 4,
       stamp: 'REPLICATED',
       preregSig: true,
     });
@@ -254,7 +290,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'effect',
         published: true,
         callCorrect: true,
-        forks: 3,
+        outcomeFamilies: 1,
         stamp: 'REPLICATED',
       });
       const keys = r.breakdown.map(([k]) => k);
@@ -273,7 +309,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'null',
         published: false,
         callCorrect: true,
-        forks: 0,
+        outcomeFamilies: 1,
         stamp: 'NULL_REPORTED',
       });
       const keys = r.breakdown.map(([k]) => k);
@@ -290,7 +326,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'effect',
         published: true,
         callCorrect: null,
-        forks: 0,
+        outcomeFamilies: 1,
         stamp: 'REPLICATED',
         preregSig: true,
       });
@@ -299,7 +335,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'null',
         published: true,
         callCorrect: null,
-        forks: 0,
+        outcomeFamilies: 1,
         stamp: 'NULL_REPORTED',
         preregSig: false,
       });
@@ -308,7 +344,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'effect',
         published: true,
         callCorrect: null,
-        forks: 0,
+        outcomeFamilies: 1,
         stamp: 'NULL_REPORTED',
         preregSig: false,
       });
@@ -317,7 +353,7 @@ describe('scoreDay — §2.8 table, all 10 rows', () => {
         dayType: 'null',
         published: true,
         callCorrect: null,
-        forks: 0,
+        outcomeFamilies: 1,
         stamp: 'RETRACTED',
         preregSig: true,
       });
@@ -356,7 +392,7 @@ describe('gr6-018 — the parsimony row is always itemised, at its computed valu
       dayType: 'null',
       published: true,
       callCorrect: false,
-      forks: 6,
+      outcomeFamilies: 1,
       stamp: 'RETRACTED',
     });
     expect(r.breakdown).toEqual([
@@ -373,21 +409,21 @@ describe('gr6-018 — the parsimony row is always itemised, at its computed valu
       dayType: 'effect',
       published: true,
       callCorrect: true,
-      forks: 4,
+      outcomeFamilies: 2,
       stamp: 'REPLICATED',
     });
-    const parsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerFork * 4);
+    const parsimony = Math.max(0, SCORING.parsimonyMax - SCORING.parsimonyPerExtraFamily * 1);
     expect(r.breakdown).toContainEqual(['summary.breakdownParsimony', parsimony]);
     expect(r.score).toBe(SCORING.correctCall + parsimony);
   });
 
-  it('a correct call at high fork counts shows the same honest 0 (the bonus is dead past 10 forks)', () => {
+  it('a correct call that shopped every outcome shows the same honest 0', () => {
     const r = scoreDay({
       mode: 'hack',
       dayType: 'effect',
       published: true,
       callCorrect: true,
-      forks: 27,
+      outcomeFamilies: 4,
       stamp: 'REPLICATED',
     });
     expect(r.breakdown).toContainEqual(['summary.breakdownParsimony', 0]);
@@ -398,10 +434,10 @@ describe('gr6-018 — the parsimony row is always itemised, at its computed valu
     for (const published of [true, false]) {
       for (const callCorrect of [true, false]) {
         for (const dayType of ['null', 'effect'] as const) {
-          for (const forks of [0, 3, 10, 27]) {
-            const r = scoreDay({ mode: 'hack', dayType, published, callCorrect, forks, stamp: 'RETRACTED' });
+          for (const outcomeFamilies of [0, 1, 2, 3, 4]) {
+            const r = scoreDay({ mode: 'hack', dayType, published, callCorrect, outcomeFamilies, stamp: 'RETRACTED' });
             const sum = r.breakdown.reduce((acc, [, v]) => acc + v, 0);
-            expect(sum, `${dayType}/${published}/${callCorrect}/${forks}`).toBe(r.score);
+            expect(sum, `${dayType}/${published}/${callCorrect}/${outcomeFamilies}`).toBe(r.score);
             expect(r.breakdown.length).toBeGreaterThanOrEqual(2);
             const keys = r.breakdown.map(([k]) => k);
             expect(new Set(keys).size).toBe(keys.length);
@@ -417,7 +453,7 @@ describe('gr6-018 — the parsimony row is always itemised, at its computed valu
       dayType: 'null',
       published: true,
       callCorrect: null,
-      forks: 0,
+      outcomeFamilies: 1,
       stamp: 'NULL_REPORTED',
       preregSig: false,
     });

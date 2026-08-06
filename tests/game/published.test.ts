@@ -9,13 +9,17 @@ import {
   pickJournal,
   pickPress,
   pressForDay,
+  egregiousnessTierFromSpec,
+  hackingMoves,
   substituteEffect,
 } from '../../src/game/published';
 import { content as enContent } from '../../src/content/en';
 import type { PressBlurb } from '../../src/content/types';
 import { JOURNALS } from '../../src/content/journals';
-import { TIER_FORKS } from '../../src/game/tuning';
 import { NO_ISSUE, issueLabel } from '../../src/ui/masthead';
+import { TIER_FORKS, TIER_MOVES } from '../../src/game/tuning';
+import { LAB_DEFAULT_SPEC } from '../../src/engine/day';
+import type { Spec } from '../../src/engine/types';
 
 const ISO = '2026-08-10';
 const TIERS = [1, 2, 3] as const;
@@ -55,6 +59,86 @@ describe('egregiousnessTier (tuning.TIER_FORKS: polite=3, editorsPick=10)', () =
     expect(egregiousnessTier(TIER_FORKS.polite + 1)).toBe(2);
     expect(egregiousnessTier(TIER_FORKS.editorsPick - 1)).toBe(2);
     expect(egregiousnessTier(TIER_FORKS.editorsPick)).toBe(3);
+  });
+});
+
+describe('hackingMoves + egregiousnessTierFromSpec (GR6 ruling §1(h), TIER_MOVES)', () => {
+  const DEFAULT: Spec = { ...LAB_DEFAULT_SPEC };
+
+  it('counts zero moves for the lab default itself', () => {
+    expect(hackingMoves(DEFAULT)).toBe(0);
+  });
+
+  /** The four confessable moves, each as a one-knob patch on the lab default.
+   * `slice(0, k)` folded over the default is a spec exactly k moves away. */
+  const MOVES: Partial<Spec>[] = [
+    { tails: 'one' },
+    { subgroup: 'urban' },
+    { exclusion: 'z2' },
+    { transform: 'log1p' },
+  ];
+  const atMoves = (moves: number): Spec => MOVES.slice(0, moves).reduce<Spec>((acc, patch) => ({ ...acc, ...patch }), DEFAULT);
+
+  it.each([
+    ['one-tailed', 0],
+    ['a subgroup restriction', 1],
+    ['an outlier exclusion', 2],
+    ['a transform', 3],
+  ])('counts %s as exactly one move', (_label, index) => {
+    expect(hackingMoves({ ...DEFAULT, ...MOVES[index] })).toBe(1);
+  });
+
+  it('does NOT count the outcome or the covariates — the two moves the paper does not show', () => {
+    // Outcome shopping is priced by §2.8's parsimony row instead (§1(f)), and
+    // covariate adjustment is ordinary good practice: counting either here
+    // would double-charge the first and award egregiousness for the second.
+    expect(hackingMoves({ ...DEFAULT, outcome: 3 })).toBe(0);
+    expect(hackingMoves({ ...DEFAULT, covariates: { income: true, risk: true } })).toBe(0);
+  });
+
+  it('counts all four when every confessable move is on', () => {
+    expect(hackingMoves({ ...DEFAULT, tails: 'one', subgroup: 'rural', exclusion: 'z3', transform: 'log1p' })).toBe(4);
+  });
+
+  it.each([
+    [0, 1],
+    [1, 2],
+    [2, 2],
+    [3, 3],
+    [4, 3],
+  ])('%i moves -> tier %i', (moves, tier) => {
+    const spec = atMoves(moves);
+    expect(hackingMoves(spec)).toBe(moves);
+    expect(egregiousnessTierFromSpec(spec)).toBe(tier);
+  });
+
+  it('is consistent with the live TIER_MOVES constants, not a copy of their values', () => {
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.polite))).toBe(1);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.polite + 1))).toBe(2);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.editorsPick - 1))).toBe(2);
+    expect(egregiousnessTierFromSpec(atMoves(TIER_MOVES.editorsPick))).toBe(3);
+  });
+
+  it('reads the lab default from the engine, so moving the default moves the distance', () => {
+    // Not a tautology: it fails if hackingMoves ever compares against retyped
+    // literals instead of LAB_DEFAULT_SPEC's own fields.
+    const asDefault: Spec = { ...LAB_DEFAULT_SPEC };
+    expect(hackingMoves(asDefault)).toBe(0);
+    expect(egregiousnessTierFromSpec(asDefault)).toBe(1);
+  });
+
+  it('is tier 1 for a day with no published spec (nothing was escalated)', () => {
+    expect(egregiousnessTierFromSpec(null)).toBe(1);
+  });
+
+  it('THE §1(h) DEFECT, as a direct comparison: the efficient hacker no longer gets the quietest screen', () => {
+    // gr2-018: a greedy hill-climber publishes in 3-4 forks, so TIER_FORKS put
+    // it in tier 1 on 55 of the 58 days it published over 60 real dates. The
+    // same published spec — one-tailed on a subgroup, three moves deep — is
+    // tier 3 under the ruled rule.
+    const greedyPublish: Spec = { ...DEFAULT, tails: 'one', subgroup: 'urban', exclusion: 'z2' };
+    expect(egregiousnessTier(3)).toBe(1);
+    expect(egregiousnessTierFromSpec(greedyPublish)).toBe(3);
   });
 });
 
@@ -156,21 +240,49 @@ describe('altmetricPercentile (the joke escalates: a SMALLER top-N% reads as MOR
   });
 });
 
-describe('substituteEffect ({effect} token rule, T6 ruling)', () => {
-  it('substitutes {effect} with the rounded absolute magnitude, floored at 1', () => {
+describe('substituteEffect ({effect} token rule, T6 ruling + the GR6 floor decision)', () => {
+  it('substitutes {effect} with the rounded absolute magnitude at or above 1', () => {
     expect(substituteEffect('Cat Owners See {effect}% Higher Returns', 24.6)).toBe('Cat Owners See 25% Higher Returns');
   });
 
-  it('floors at 1 rather than ever printing 0 (small beta)', () => {
-    expect(substituteEffect('{effect} Minutes Longer', 0.2)).toBe('1 Minutes Longer');
+  // --- the booked floor decision (w3-r-011 -> W11) ---------------------------
+  //
+  // `Math.max(1, Math.round(|beta|))` printed "1" on 71,680 of 71,680 valid
+  // paths, 96.7% of them lifted there from a rounding of 0 (median |beta| 0.04
+  // to 0.08). Deleting the floor would have printed "0" on those same paths;
+  // the defect was the integer rounding underneath both. These four tests pin
+  // the replacement rule at each scale it has to be true at.
+  it('prints a sub-1 magnitude at its own scale rather than flooring it to 1', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0.2)).toBe('0.2 Minutes Longer');
   });
 
-  it('floors at 1 for an exact-zero beta (defensive: should not occur on a published, significant result)', () => {
-    expect(substituteEffect('{effect} Minutes Longer', 0)).toBe('1 Minutes Longer');
+  it('prints the MEASURED magnitude at the scale this DGP actually produces (median |beta| 0.04-0.08)', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0.043)).toBe('0.043 Minutes Longer');
+    expect(substituteEffect('{effect} Minutes Longer', 0.0752)).toBe('0.075 Minutes Longer');
+  });
+
+  it('prints 0 ONLY for a genuinely zero beta (the one case where "0" is the true number)', () => {
+    expect(substituteEffect('{effect} Minutes Longer', 0)).toBe('0 Minutes Longer');
+  });
+
+  it('degrades a pathologically tiny beta to 0 rather than to exponential notation', () => {
+    // toPrecision would give "4.0e-8", which no headline frame can carry.
+    expect(substituteEffect('{effect} Minutes Longer', 4e-8)).toBe('0 Minutes Longer');
+  });
+
+  it('never emits a trailing zero or a bare decimal point', () => {
+    for (const beta of [0.5, 0.05, 0.005, 0.25, 0.999, 1, 2]) {
+      const out = substituteEffect('{effect}', beta);
+      expect(out, `beta=${beta}`).not.toMatch(/\.$/);
+      expect(out, `beta=${beta}`).not.toMatch(/\.\d*0$/);
+    }
   });
 
   it('takes the absolute value of a negative beta (direction is not the headline\'s concern)', () => {
     expect(substituteEffect('{effect}% Faster', -12.4)).toBe('12% Faster');
+    // ...at the sub-1 scale too, where the sign used to be erased by the floor
+    // along with the magnitude.
+    expect(substituteEffect('{effect}% Faster', -0.062)).toBe('0.062% Faster');
   });
 
   it('rounds to the nearest whole number', () => {
@@ -228,12 +340,26 @@ describe('pickPress (T6 review adoption: prefer scenario-bound, tier-matched; el
     }
   });
 
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4). This test used to reach for
+   * 'sourdough-marathon' at tier 1 as a live example of a cell with no bound
+   * blurb, on T39a's reasoning that "a tier is a VOICE, not a volume knob, and
+   * not every scenario's material is funny read straight by a broadsheet".
+   * §1(g) overturned that: the empty cells were measured to leave the press
+   * page wholly generic on 55-58% of days, and the 60-cell matrix fills all of
+   * them, so no scenario in the shipped bank is a fallback case any more.
+   *
+   * The BRANCH is still there and still has to work — `resolveSlot`'s
+   * preference is a preference and not a filter, precisely so that a future
+   * bank with a hole in it still yields a first card rather than crashing the
+   * celebration screen. So the fixture is now synthetic, which is the stronger
+   * form anyway: it exercises the branch on purpose instead of depending on a
+   * gap in the corpus that nobody had promised to keep.
+   */
   it('falls back to the scenario-agnostic tier-matched pool when no scenario-bound blurb exists at this tier', () => {
-    // T39a gave 'sourdough-marathon' a bound blurb at tier 2 (the flour co-op
-    // line) and deliberately none at tier 1: a tier is a VOICE, not a volume
-    // knob, and not every scenario's material is funny read straight by a
-    // broadsheet. Tier 1 is therefore still a genuine fallback case here.
-    const picked = pickPress(enContent.press, 1, 'sourdough-marathon', ISO);
+    const withHole = enContent.press.filter((p) => !(p.tier === 1 && isBoundTo(p, 'sourdough-marathon')));
+    expect(withHole.length).toBeLessThan(enContent.press.length);
+    const picked = pickPress(withHole, 1, 'sourdough-marathon', ISO);
     expect(picked.tier).toBe(1);
     expect(picked.scenarioIds ?? []).toHaveLength(0);
   });
@@ -547,14 +673,61 @@ describe('T39a — the day-is-covered-by-name guarantee (owner directive from pl
    * Salting the agnostic draw with the scenario id decorrelates the twenty
    * scenarios from each other.
    */
+  /**
+   * CROSS-WAVE NOTE (gr3-024, W4) and w4-r-001, which is the reason this test
+   * is written against a SYNTHETIC bank rather than the shipped one.
+   *
+   * The test used to select "scenarios with no bound blurb at tier 2", because
+   * a cell with no bespoke entry renders a wholly generic day and is where the
+   * repetition was most visible. The 60-cell matrix filled every such cell, so
+   * that selector matches nothing and the fixture's own `> 1` premise guard
+   * fired. W4's first repair pointed the same `> 1` assertion at the live
+   * bank's follow-up tail — and that repair was WRONG in a way that took a
+   * mutation to see: deleting the salt from `resolveSlot` left the whole suite
+   * green.
+   *
+   * WHY THE LIVE BANK CANNOT TEST THIS ANY MORE. Post-matrix, card 1 is bespoke
+   * and therefore already differs per scenario. `resolveSlot`'s reject-and-
+   * advance then walks the follow-ups past card 1's outlet, so the tail shifts
+   * from scenario to scenario even with NO salt at all. The matrix masks the
+   * salt's absence, and `signatures.size > 1` is far too loose to notice: the
+   * bespoke card alone supplies the variation the assertion was reading as
+   * proof of the salt.
+   *
+   * WHAT ISOLATES THE SALT. Strip every bound row out of the bank. Then, for
+   * each tier, all three slots draw from one shared agnostic pool, `safePool`
+   * and `offset` are identical for all twenty scenarios, and the ONLY route by
+   * which the scenario id can reach the index is `resolveSlot`'s agnostic hash
+   * — the salt itself. Without it every scenario collapses to exactly ONE
+   * signature; with it they spread. That makes `> 1` structurally exact here
+   * rather than merely true, and it is a property of the picker rather than a
+   * threshold tied to today's pool sizes.
+   */
   it('does not run the same generic pair for two different scenarios on the same date and tier', () => {
-    const genericOnly = enContent.scenarios.filter((sc) => enContent.press.every((p) => !isBoundTo(p, sc.id) || p.tier !== 2));
-    // The interesting cells are the ones with no bound blurb at this tier —
-    // where the WHOLE day is generic and the repetition was most visible.
-    expect(genericOnly.length).toBeGreaterThan(1);
-    const signatures = new Set(
-      genericOnly.map((sc) => pressForDay(enContent.press, 2, sc.id, ISO).map((b) => b.text).join('|'))
-    );
-    expect(signatures.size).toBeGreaterThan(1);
+    // The synthetic bank: agnostic rows only, so a bespoke first card cannot
+    // supply the variation the salt is supposed to supply.
+    const agnosticOnly = enContent.press.filter((p) => !p.scenarioIds?.length);
+    expect(agnosticOnly.length).toBeLessThan(enContent.press.length);
+    expect(enContent.scenarios.length).toBeGreaterThan(1);
+
+    for (const tier of TIERS) {
+      const signatures = new Set(
+        enContent.scenarios.map((sc) =>
+          pressForDay(agnosticOnly, tier, sc.id, ISO)
+            .map((b) => b.text)
+            .join('|')
+        )
+      );
+      // Unsalted, this is exactly 1 for every tier — the whole bank draws off
+      // the date alone, which is the defect gr6-064 was raised for.
+      expect(signatures.size, `tier ${tier} generic draws on ${ISO} are not decorrelated by scenario`).toBeGreaterThan(1);
+    }
   });
+
+  // The live-bank, player-facing half of the same concern (w4-r-010) lives in
+  // tests/content/shape.test.ts beside the 3,000-date simulation, because what
+  // it measures is the BANK's richness rather than the picker's arithmetic.
+  // Card 1 is deliberately deterministic per (scenario, tier) — that is T39a's
+  // covered-by-name guarantee — so "the whole page differs across dates" is not
+  // a property this design has, and asserting it here would be a false law.
 });
