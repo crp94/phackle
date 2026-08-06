@@ -91,7 +91,7 @@ export const content: LocaleContent = {
       treatmentLabel: 'Uses a standing desk',
       headline: 'Standing Desks Linked to a Renaissance in Middle-Management Verse',
       outcomeLabels: [
-        'Expert panel quality score',
+        'Panel quality score above the department average',
         'Metaphor density',
         'Submissions to the internal poetry channel',
         'Self-assessed profundity',
@@ -193,8 +193,8 @@ export const content: LocaleContent = {
       treatmentLabel: 'Types on a mechanical keyboard',
       headline: 'Mechanical Keyboards Associated with Cleaner Releases',
       outcomeLabels: [
-        'Defect-free code shipped per release',
-        'Longest green-build streak',
+        'Defect-free code shipped above the team baseline',
+        'Days between red builds',
         'Reviews approved with no changes requested',
         'Self-rated confidence at commit time',
       ],
@@ -244,10 +244,10 @@ export const content: LocaleContent = {
       treatmentLabel: 'Owns a label maker',
       headline: 'Label-Maker Owners Clear More of Their Inbox Each Week',
       outcomeLabels: [
-        'Weekly clearance rate of arriving mail',
-        'Longest run of days at inbox zero',
+        'Clearance rate above the cohort average',
+        'Consecutive days at inbox zero',
         'Nested subfolders created',
-        'Self-rated sense of control',
+        'Self-rated tidiness of mind',
       ],
       outcomeUnits: ['% of arrivals', 'days', 'folders/month', '1–10 scale'],
       covariateLabels: { income: 'Household income', risk: 'Comfort living with an unread badge' },
@@ -261,7 +261,7 @@ export const content: LocaleContent = {
       treatmentLabel: 'Owns a vinyl collection',
       headline: 'Vinyl-Owning Hosts Keep Guests Longer, Study Finds',
       outcomeLabels: [
-        'Value of wine guests brought unprompted',
+        'Value of wine brought above the usual contribution',
         'Time guests stayed past the stated end',
         'Unprompted requests for the recipe',
         'Guest-rated warmth of the evening',
@@ -312,10 +312,10 @@ export const content: LocaleContent = {
       treatmentLabel: 'Reads the terms and conditions',
       headline: 'Customers Who Read the Terms Are Quietly Better Compensated',
       outcomeLabels: [
-        'Goodwill credit granted per complaint',
+        'Goodwill credit above the standard settlement',
         'Length of the apology received',
         'Issues resolved on first contact',
-        'Self-rated sense of being taken seriously',
+        'Self-rated feeling of being taken seriously',
       ],
       outcomeUnits: ['€', 'words', 'resolutions/quarter', '1–10 scale'],
       covariateLabels: { income: 'Household income', risk: 'Willingness to ask for a supervisor' },
@@ -323,13 +323,19 @@ export const content: LocaleContent = {
     },
     {
       id: 'jigsaw-suitcase-packing',
+      // gr6-039: outcome 0 used to be 'Spare capacity remaining after packing',
+      // which pointed the opposite way to its own headline -- fitting MORE in
+      // leaves LESS spare capacity, so the number under "Fit More Into the Same
+      // Suitcase" fell as the claim rose. The metric is now the volume packed
+      // past the bag's rating, which rises with the claim and keeps litres a
+      // volume rather than the percentage the old headline's frame implied.
       question: 'Do people who do jigsaw puzzles pack a better suitcase?',
       coverStory:
         'Spatial-reasoning research has produced four decades of block-rotation tasks and almost no luggage. We took the question to a regional airport. Travelers are asked whether they have completed a jigsaw puzzle in the past year and then, with permission and a folding table, have the contents of their bags measured against the volume of the bag. A departure gate turns out to be an unusually cooperative recruitment environment: nobody there has anywhere else to be.',
       treatmentLabel: 'Does jigsaw puzzles',
       headline: 'Puzzle Solvers Fit More Into the Same Suitcase, Researchers Find',
       outcomeLabels: [
-        'Spare capacity remaining after packing',
+        "Volume packed above the bag's rated capacity",
         'Longest trip packed into a carry-on',
         'Items retrieved without unpacking',
         'Companion-rated preparedness',
@@ -347,7 +353,7 @@ export const content: LocaleContent = {
       headline: 'Stair-Takers Score Higher on Workplace Rapport',
       outcomeLabels: [
         'Rapport score above the building average',
-        'Longest small-talk exchange sustained',
+        'Time a stairwell conversation ran on',
         'Follow-up conversations started',
         'Counterpart-rated warmth',
       ],
@@ -383,7 +389,7 @@ export const content: LocaleContent = {
         'Rate advantage against the market average',
         'Fee concessions won during negotiation',
         'Counteroffers obtained per application',
-        'Self-rated confidence in the deal',
+        'Self-rated satisfaction with the terms',
       ],
       outcomeUnits: ['basis points', '€', 'counteroffers/application', '1–10 scale'],
       covariateLabels: { income: 'Household income', risk: 'Willingness to let an offer expire' },
@@ -397,10 +403,10 @@ export const content: LocaleContent = {
       treatmentLabel: 'Keeps 40+ tabs open',
       headline: 'Developers With the Most Open Tabs Ship More Side Projects',
       outcomeLabels: [
-        'Side-project revenue over the year',
-        'Longest uninterrupted build session',
+        'Side-project revenue above the developer median',
+        'Hours in an uninterrupted build session',
         'Side projects shipped with a public link',
-        'Self-rated sense that everything is under control',
+        'Self-rated grip on the situation',
       ],
       outcomeUnits: ['€', 'minutes', 'projects/year', '1–10 scale'],
       covariateLabels: { income: 'Household income', risk: 'Willingness to start before finishing' },
