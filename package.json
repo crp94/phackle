@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "A daily game about the garden of forking paths.",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

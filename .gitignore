@@ -24,8 +24,30 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Controller scratch — never commit, never touch except the task report file
-.superpowers/
+# Controller scratch — never commit, never touch except the task report file.
+#
+# GR6 gr6-120: the review PROSE is the exception, and it is the exception
+# because ignoring it caused a blocker. The final whole-branch review's sixteen
+# findings and its adjudication table were declared an input to the grand
+# review's triage; they lived only inside a task's output text; and this line —
+# ignoring the entire directory — meant `git show` could not recover them. The
+# queue stalled on a document that technically existed nowhere.
+#
+# So: every `.md` under `.superpowers/sdd/` is tracked (findings, backlogs,
+# reviews — the durable record of why the tree looks the way it does), and
+# everything else under `.superpowers/` stays ignored: `worktrees/` above all,
+# which holds N full working copies of this repository, plus session state,
+# screenshots and probe output. The re-ignore below is load-bearing — an
+# un-ignored `**/*.md` would otherwise sweep in every agent worktree's own
+# copy of every markdown file in the tree.
+.superpowers/**
+!.superpowers/sdd/
+!.superpowers/sdd/**/
+!.superpowers/sdd/**/*.md
+# Belt and braces: a worktree under either scratch root is a full copy of this
+# repository, so an un-ignored `**/*.md` would otherwise sweep in every agent's
+# copy of every markdown file in the tree.
+.superpowers/**/worktrees/
 
 # Agent scratch — worktrees, session state, local agent config
 .claude/

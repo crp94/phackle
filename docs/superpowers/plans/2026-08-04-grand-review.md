@@ -17,6 +17,7 @@
 - The four lanes run read-only. All fixes flow through controller triage → fix tasks → scoped re-review. The ledger's existing deferred-minors list is lane input, not automatically fixes: each minor gets adjudicated (fix / park-with-ruling / wontfix-with-reasoning).
 - Register laws, DESIGN.md, the calibration suite, determinism goldens, and the spoiler rule are inviolable during fixes; a finding whose fix would break one goes back to the controller as a design decision, never gets patched around.
 - Every fix task: TDD where testable, full gate (exit-code discipline) before commit, genuine transcripts only.
+- **Any artifact named as a later stage's input is written to a file in the same turn it is produced** (gr6-120). The final whole-branch review's sixteen findings and adjudication table were declared an input to this plan's triage and lived only inside a task's output text, while `.gitignore:31` ignored the one directory they would have been recoverable from — so `git show` could not reach them and the whole queue stalled on a report that technically existed nowhere. Producing an artifact and persisting it are one action, not two.
 - Models: all four lanes + synthesis on the top available tier; fix tasks per the established policy (mechanical → sonnet, judgment/writing → opus); scoped re-reviews sonnet.
 
 ---
