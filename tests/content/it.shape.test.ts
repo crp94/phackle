@@ -1,6 +1,8 @@
 // T19 — the ITALIAN locale's parity suite.
 //
-// The English suite (./shape.test.ts) owns the *validator*; this file owns the
+// `./validators.ts` owns the *validator* (gr6-106 moved it out of
+// ./shape.test.ts, whose top level this file used to import — and therefore
+// re-execute — for it); this file owns the
 // Italian *lexicons* and the parity assertions. The split is deliberate and
 // mirrors how EN's own lexicons live next to EN's own assertions: the two word
 // lists are language data, not shared machinery, so they sit with the locale
@@ -30,7 +32,7 @@ import {
   findPressSpoilerTerms,
   validateLocaleContent,
   type ContentLexicons,
-} from './shape.test';
+} from './validators';
 
 /**
  * §4's harm policy, in Italian. Matched at word-START by findHarmTerms, so

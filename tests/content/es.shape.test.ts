@@ -1,7 +1,9 @@
 // T20 — the Spanish locale's parity suite.
 //
-// Structure mirrors tests/content/shape.test.ts, which is the source-of-truth
-// suite and exports its validator precisely so a locale suite can reuse it
+// Structure mirrors tests/content/shape.test.ts, the English source-of-truth
+// suite. The validator itself lives in tests/content/validators.ts — a plain
+// module with no `describe`/`it`, extracted there by gr6-106 precisely so a
+// locale suite can reuse it without re-executing shape.test.ts's own top level
 // ("Reused as-is by the IT/ES shape tests in T19/T20, which pass their own
 // `lexicons` and additionally pass `referenceIds`"). Two things live here and
 // nowhere else:
@@ -22,7 +24,7 @@ import { copy as esCopy } from '../../src/content/es/copy';
 import { getContent } from '../../src/content';
 import { JOURNALS } from '../../src/content/journals';
 import { AVAILABLE_LOCALES } from '../../src/i18n/locale';
-import type { ContentLexicons } from './shape.test';
+import type { ContentLexicons } from './validators';
 import {
   emDashDensity,
   findEmDashProblems,
@@ -30,7 +32,7 @@ import {
   findNegativeDirectionTerms,
   findPressSpoilerTerms,
   validateLocaleContent,
-} from './shape.test';
+} from './validators';
 
 /**
  * Harm check (master spec §4), in Spanish. Same seven concepts as
