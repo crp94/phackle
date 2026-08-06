@@ -261,6 +261,56 @@ describe('the mid-play midnight notice (errors.newDay)', () => {
     expect(screen.queryByTestId('app-new-day-notice')).toBeNull();
   });
 
+  // w8-r-001 — THE ONE SCREEN THIS NOTICE MUST NOT REACH.
+  //
+  // Its sentence ends "today's puzzle is waiting when you finish", which is
+  // addressed to a player who has not finished; on the Summary they have. And
+  // the argument for withholding a reload control — mid-play nothing is
+  // persisted, so a reload destroys the day — is by its own terms about
+  // mid-play: `SummaryScreen` persists on its FIRST MOUNT, so by the time
+  // that screen is on the page the day is written and a reload costs nothing.
+  // The Summary therefore renders its own line and its own control
+  // (tests/ui/summary.test.tsx); this shell notice stands down there.
+  it('stands down on the SUMMARY, which owns its own line and its own route', async () => {
+    const { bootedIso } = await bootShell();
+    act(() => {
+      gameStore.setState({ screen: 'summary' });
+    });
+    mocks.today.value = tomorrowOf(bootedIso);
+    await returnToTab();
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(
+      screen.queryByTestId('app-new-day-notice'),
+      'the mid-play sentence ("waiting when you finish") is on the screen of a player who has finished'
+    ).toBeNull();
+    // ...and the rollover still does not re-boot there either: a finished
+    // Summary is not the briefing, and re-booting would take the invoice away.
+    expect(gameStore.getState().iso).toBe(bootedIso);
+  });
+
+  // The complement, stated as one assertion over every screen the notice IS
+  // for, so "excluded from summary" can never quietly become "excluded from
+  // everything".
+  it('still fires on every screen where the day CAN still be lost', async () => {
+    for (const midPlay of ['lab', 'prereg', 'published', 'call', 'reveal'] as const) {
+      cleanup();
+      gameStore.setState({ booted: false, iso: '', screen: 'briefing', error: null });
+      mocks.today.value = null;
+      const { bootedIso } = await bootShell();
+      act(() => {
+        gameStore.setState({ screen: midPlay });
+      });
+      mocks.today.value = tomorrowOf(bootedIso);
+      await returnToTab();
+
+      const notice = await screen.findByTestId('app-new-day-notice');
+      expect(notice.textContent, `no notice on '${midPlay}'`).toBe(enCopy['errors.newDay']);
+      // And never the control: on these screens a reload throws the day away.
+      expect(screen.queryByText(enCopy['errors.reload']), `a reload control appeared on '${midPlay}'`).toBeNull();
+    }
+  });
+
   it('speaks the active locale', async () => {
     const { bootedIso } = await bootShell();
     act(() => {

@@ -522,6 +522,9 @@ export type CopyKey =
   // declined to author copy. See the value below for what it does and does
   // not say.
   | 'errors.newDay'
+  // w8-r-001: `errors.newDay`'s SIBLING, for the one screen its sentence is
+  // false on. Same event, a player who has already finished — see the value.
+  | 'errors.newDayReady'
   | 'a11y.localeToggle'
   // T33: the theme control's group label, and the masthead's own accessible
   // name. The masthead one OPENS with the wordmark on purpose — the visible
@@ -1495,6 +1498,25 @@ export const copy: Record<CopyKey, string> = {
   // one.
   'errors.newDay':
     "It is a new day. The one you are playing still counts as the day it started; today's puzzle is waiting when you finish.",
+  // w8-r-001 — THE SAME MIDNIGHT, TOLD TO A PLAYER WHO HAS FINISHED.
+  //
+  // `errors.newDay` above ends "waiting when you finish", which is addressed
+  // to somebody mid-play and is FALSE on the Summary — where the player has
+  // finished, and where W8's own countdown suppression had just removed the
+  // last line on that screen pointing at tomorrow. So the finished-day screen
+  // was left saying nothing true and offering no route at all.
+  //
+  // AND THE ARGUMENT FOR WITHHOLDING "RELOAD" DOES NOT REACH HERE. That
+  // argument is that mid-play nothing is persisted, so a reload throws the
+  // day away. By the time this screen renders, `SummaryScreen`'s first-mount
+  // effect has ALREADY run `persistAndComputeSummary` — the day is written,
+  // the achievements are written, the streak is written. A reload here costs
+  // nothing, and it is the only way to reach the new day (nothing navigates
+  // back to the briefing). So this line carries the control, and says why it
+  // is safe before it asks for the press: "This one is saved" is the sentence
+  // that earns the button, exactly as `errors.workerCrash` earns the other
+  // one.
+  'errors.newDayReady': "A new day started while you were playing. This one is saved; reload for today's puzzle.",
 
   // T37 (audit §5.4, adopted as a value change): this labels a role="group"
   // (App.tsx's LocaleToggle), not a button. A group label NAMES the group; it

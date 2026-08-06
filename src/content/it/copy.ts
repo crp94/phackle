@@ -629,6 +629,15 @@ export const copy: Record<CopyKey, string> = {
   // sull'app, nessun trattino lungo.
   'errors.newDay':
     'È iniziata una nuova giornata. Quella che stai giocando resta valida per il giorno in cui è cominciata; il rompicapo di oggi ti aspetta quando hai finito.',
+  // w8-r-001 — la stessa mezzanotte, detta a chi ha già finito. La frase qui
+  // sopra finisce con "quando hai finito" ed è quindi falsa sul riepilogo, che
+  // è proprio la schermata di chi ha finito. Qui il controllo *si offre*: al
+  // primo montaggio il riepilogo ha già salvato tutto (persistAndComputeSummary),
+  // quindi ricaricare non costa niente ed è l'unica strada verso la giornata
+  // nuova. La frase dice prima che è al sicuro e poi chiede il gesto.
+  // Imperativo per l'azione (regola 1), tu, nessun trattino lungo.
+  'errors.newDayReady':
+    'È iniziata una nuova giornata mentre giocavi. Questa è già salvata; ricarica per il rompicapo di oggi.',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
   // than commanding.

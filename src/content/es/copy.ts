@@ -607,6 +607,16 @@ export const copy: Record<CopyKey, string> = {
   // raya.
   'errors.newDay':
     'Es un día nuevo. El que estás jugando sigue contando como el día en que empezó; el puzle de hoy te espera cuando termines.',
+  // w8-r-001 — la misma medianoche, contada a quien ya ha terminado. La frase
+  // de arriba acaba en "cuando termines" y por tanto es falsa en el resumen,
+  // que es justo la pantalla de quien ha terminado. Aquí sí se ofrece el
+  // control: al montarse, el resumen ya lo ha guardado todo
+  // (persistAndComputeSummary), así que recargar no cuesta nada y es el único
+  // camino hacia el día nuevo. La frase dice primero que está a salvo y luego
+  // pide el gesto. Imperativo de tú porque es una instrucción, no un botón
+  // (reglas 1 y 2); el botón sigue en infinitivo. Sin raya.
+  'errors.newDayReady':
+    'Ha empezado un día nuevo mientras jugabas. Este ya está guardado; recarga para ver el puzle de hoy.',
 
   // T37: this labels a role="group", and a group label NAMES its group rather
   // than commanding.

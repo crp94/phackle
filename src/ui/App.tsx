@@ -233,28 +233,47 @@ export default function App({ puzzleNumber, children }: AppProps) {
    * correctly — and was told nothing, while the masthead, the study, the
    * Grantwell email and the Summary's countdown all went on describing
    * yesterday. Both earlier bookings sketched the affordance as "a new puzzle
-   * is ready — reload", and W8 does NOT ship the reload half, deliberately:
-   * mid-play nothing is persisted until the Summary, so a reload is the
-   * DESTRUCTIVE action — the very thing the ruling above refuses to do to the
-   * player — and offering it as a button would be handing them the loaded gun
-   * this effect was written to keep pointed away. `errors.newDay` (W8, all
-   * three catalogs) is therefore a NOTICE and not a control: it says the day
-   * in progress still counts as the day it started, and that today's puzzle is
-   * waiting. `errors.reload` stays where gr6-007 put it, on the boot-failure
-   * screen, where there is no day to lose.
+   * is ready — reload", and this notice does NOT carry the reload half,
+   * deliberately: MID-PLAY nothing is persisted until the Summary, so a reload
+   * is the DESTRUCTIVE action — the very thing the ruling above refuses to do
+   * to the player — and offering it as a button would be handing them the
+   * loaded gun this effect was written to keep pointed away. `errors.newDay`
+   * (all three catalogs) is therefore a NOTICE and not a control: it says the
+   * day in progress still counts as the day it started, and that today's
+   * puzzle is waiting.
+   *
+   * AND THAT ARGUMENT STOPS AT EXACTLY ONE SCREEN (w8-r-001). `'summary'` is
+   * excluded below, because everything the argument rests on is false there:
+   * `SummaryScreen`'s first-mount effect has already run
+   * `persistAndComputeSummary`, so the day is written before that screen ever
+   * paints and a reload costs nothing; `errors.newDay`'s own sentence ends
+   * "when you finish", which is addressed to somebody who has not; and W8's
+   * countdown suppression had just removed the last line on that screen
+   * pointing anywhere but backwards, leaving the finished day with NO ROUTE
+   * AT ALL to the new one. The Summary therefore renders its own line, with
+   * its own sentence and with `errors.reload` — see
+   * `screens/Summary.tsx`'s `puzzleIsToday` block. This shell notice is for
+   * the screens where the day can still be lost: lab, prereg, published, call
+   * and reveal.
    *
    * `newDayPending` is set from the SAME check, which is what keeps the notice
-   * and the re-boot from ever disagreeing: exactly one of them can be true of
+   * and the re-boot from ever disagreeing: at most one of them can be true of
    * a given tick, and both are cleared the moment the store's `iso` is today
-   * again (whether this effect re-booted or the player reloaded). Note also
-   * what moved: the `clientRef`/`content` guard used to be the FIRST line of
-   * `checkRollover`, which made the whole function unreachable under jsdom
-   * (no `Worker`, so `clientRef` is null) and left w7-r-003's e2e pair as the
-   * only possible coverage. The staleness question needs neither the worker
-   * nor the content bundle, so it is answered first and the client is required
-   * only for the re-boot that actually uses it — which is both more honest
-   * about what depends on what and what lets tests/ui/appMidnight.test.tsx
-   * exercise the notice directly.
+   * again (whether this effect re-booted or the player reloaded).
+   *
+   * ON THE GUARD ORDER, corrected (w8-r-002). The `clientRef`/`content` guard
+   * used to be the first line of `checkRollover`; it now sits immediately
+   * above the re-boot, the only branch that uses it. That is an ORDERING
+   * improvement and nothing more — the conjuncts are side-effect-free, so the
+   * permutation is behaviour-neutral, and the reviewer confirmed it by
+   * restoring the original order and finding the whole suite, appMidnight
+   * included, still green. An earlier version of this comment claimed the
+   * move is what makes the effect reachable under jsdom. IT IS NOT: what
+   * makes it reachable is mocking `createEngineClient`
+   * (tests/ui/appMidnight.test.tsx, the tests/ui/router.test.tsx idiom), which
+   * populates `clientRef` whatever the guard order. w7-r-003's
+   * "unreachable in jsdom by construction" was true of a suite that did not
+   * mock it, and is closed by the mock, not by this line.
    *
    * The check runs on an interval AND on `visibilitychange`, because a
    * backgrounded tab's timers are throttled to the point of uselessness and
@@ -268,6 +287,14 @@ export default function App({ puzzleNumber, children }: AppProps) {
         // Either there is no day yet, or the day on screen IS today. Nothing
         // is stale, so the notice retires itself — including after a re-boot
         // below, which is what stops it flashing on the briefing.
+        setNewDayPending(false);
+        return;
+      }
+      // The Summary owns its own version of this (w8-r-001, see above): it is
+      // the one stale screen where the day is already saved, so it gets a
+      // sentence that is true of a finished player AND the control this
+      // notice must not offer.
+      if (state.screen === 'summary') {
         setNewDayPending(false);
         return;
       }
