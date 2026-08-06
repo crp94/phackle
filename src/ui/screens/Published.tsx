@@ -3,18 +3,21 @@
 // straight. Reads ONLY the store + useLocale content, behind the app-level
 // loading gate (see src/ui/App.tsx) -- no props are required in real use.
 //
-// Registry integration (controller amendment): T14's src/ui/screens/registry.ts
-// does not exist in this worktree (parallel sibling work; STEP 0 resets this
-// tree to a commit before either T14 or T15 existed) -- registry.t15.patch.md
-// carries the two lines the controller splices into it at merge. This file
-// is built as a standalone screen (no router of its own): the store hook is
-// injected via `useStore` (defaulting to the app's real singleton,
-// src/game/store.ts's useGameStore) purely so tests can seed an isolated
-// fake store instead of touching that real singleton -- see
-// tests/ui/published.test.tsx's makeFakeStoreHook.
+// Standalone screen (no router of its own): the store hook is injected via
+// `useStore` (defaulting to the app's real singleton, src/game/store.ts's
+// useGameStore) purely so tests can seed an isolated fake store instead of
+// touching that real singleton -- see tests/ui/published.test.tsx's
+// makeFakeStoreHook.
+//
+// gr6-083 retired this file's second seam, a dynamic `import('./registry')`
+// written when registry.ts did not yet exist in this task's worktree. It
+// exists now, it is in the initial graph anyway (ScreenRouter imports it to
+// pick the current screen), and the indirection bought nothing while costing
+// an empty first commit and a double focus move per open. The Call screen is
+// a plain static import; `callScreen` keeps the injectable seam.
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
-import { useGameStore, type GameStore } from '../../game/store';
+import { useGameStore, type UseGameStore } from '../../game/store';
 import { isoFromPuzzleNumber } from '../../game/puzzleDate';
 import { SCORING } from '../../game/tuning';
 import {
@@ -24,7 +27,7 @@ import {
   egregiousnessTier,
   fakeDoi,
   pickJournal,
-  pickPress,
+  pressForDay,
   substituteEffect,
 } from '../../game/published';
 import type { PressBlurb } from '../../content/types';
@@ -32,47 +35,14 @@ import type { CopyKey } from '../../content/en/copy';
 import { JournalCover } from '../components/JournalCover';
 import { ConfettiLayer } from '../components/ConfettiLayer';
 import { staggerStyle, useEnterOnce } from '../hooks/useEnterOnce';
+import { Call, CALL_PROMPT_ID } from './Call';
 import './Published.css';
 
-export type UseGameStore = <T>(selector: (state: GameStore) => T) => T;
-export type LazyScreenComponent = ComponentType<Record<string, never>>;
-
-/** Real default loader: reaches into the shared screen registry (T14) for
- * `SCREENS.call`, so Published never imports T16's Call.tsx directly.
- *
- * SHIPPING BUG, FOUND AND FIXED BY T29's screenshot pass. This used to hold
- * './registry' in a `const` and pass it through a vite-ignore annotation — a
- * deliberately NON-analyzable specifier, written when src/ui/screens/
- * registry.ts did not yet exist in this worktree and a literal would have
- * failed `tsc --noEmit` and the Vite build outright. That workaround became
- * wrong the moment the controller's merge made the module real: an
- * unanalyzable specifier is not rewritten to the built chunk's hashed URL,
- * so in a PRODUCTION build the request resolved to `/assets/registry`, 404'd,
- * hit the `catch`, and returned `null`. Reproduced in the real built app over
- * CDP: clicking "Face the truth" opened the dimmed, focus-trapped overlay
- * with NOTHING in it — the whole Act I -> Act II hand-off, dead in the
- * shipped artifact and invisible to a jsdom suite that injects its own
- * loader. A literal specifier resolves and is rewritten correctly; the
- * Published -> registry -> Published import cycle is harmless because this
- * one is dynamic (registry is only evaluated after Published already is).
- *
- * The `catch` stays: a chunk that genuinely fails to load should leave the
- * player on a dimmed overlay, not crash the screen.
- *
- * Co-located with Published (its only real consumer) rather than split into
- * its own module -- the same justified, non-accidental mixed export
- * src/i18n/LocaleProvider.tsx's own useLocale() sets precedent for. */
-// eslint-disable-next-line react-refresh/only-export-components
-export async function loadCallScreenFromRegistry(): Promise<LazyScreenComponent | null> {
-  try {
-    const mod = (await import('./registry')) as {
-      SCREENS?: Partial<Record<string, LazyScreenComponent>>;
-    };
-    return mod.SCREENS?.call ?? null;
-  } catch {
-    return null;
-  }
-}
+/** gr6-082 (finished): this type used to be re-declared here, character-
+ * identical to `store.ts`'s own. One name, one file. */
+export type CallScreenComponent = ComponentType<Record<string, never>>;
+/** Retained spelling for the existing consumers of the seam's type name. */
+export type LazyScreenComponent = CallScreenComponent;
 
 const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -183,13 +153,25 @@ export interface PublishedProps {
    * isolated `createGameStore()` instance instead (never the real
    * singleton) -- see this file's own header comment. */
   useStore?: UseGameStore;
-  /** Defaults to `loadCallScreenFromRegistry`. Tests inject a fake resolving
-   * to a stand-in component, so "renders whatever the registry returns" is
-   * provable without T14/T16's real files existing in this tree. */
-  loadCallScreen?: () => Promise<LazyScreenComponent | null>;
+  /** gr6-083 — the seam stays, and it is SYNCHRONOUS now.
+   *
+   * This used to be `loadCallScreen?: () => Promise<…>`, a dynamic
+   * `import('./registry')` that could not split anything: `registry.ts` is
+   * reachable from the app's very first render (ScreenRouter imports it to
+   * pick the current screen), so the "lazy" chunk was already in the initial
+   * graph and the import saved zero bytes. What it did cost was two renders
+   * per open — the overlay committed EMPTY, took focus on its own container,
+   * then re-rendered with the call screen and took focus a second time — and
+   * a real 404 in production the first time the specifier was not analyzable
+   * (T29 found it; see this file's history). A static import has none of
+   * that and no cycle: registry -> Published -> Call, and registry -> Call.
+   *
+   * Tests inject a stand-in component through this prop exactly as they used
+   * to inject a loader for one. */
+  callScreen?: CallScreenComponent;
 }
 
-export function Published({ useStore = useGameStore, loadCallScreen = loadCallScreenFromRegistry }: PublishedProps = {}) {
+export function Published({ useStore = useGameStore, callScreen: CallScreen = Call }: PublishedProps = {}) {
   const { content, t } = useLocale();
   const forks = useStore((s) => s.forks);
   const result = useStore((s) => s.result);
@@ -198,24 +180,53 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
 
   const [confettiDone, setConfettiDone] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
-  const [CallScreen, setCallScreen] = useState<LazyScreenComponent | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   // T22: where focus goes back to when the overlay is dismissed — the button
   // that opened it, which is the only place a returning player is not lost.
   const ctaRef = useRef<HTMLButtonElement | null>(null);
 
-  // Moves focus into the overlay the moment it opens, and again once the
-  // lazily-loaded call screen actually populates it with its own focusable
-  // content (falls back to the (already tabIndex=-1) container itself while
-  // nothing has loaded yet, e.g. today, pre-merge, when the loader resolves
-  // to null -- see loadCallScreenFromRegistry above).
+  // Moves focus into the overlay the moment it opens. gr6-083: ONE move, not
+  // two — the call screen is rendered synchronously with the overlay now, so
+  // its first option button already exists on this commit. (The container
+  // fallback stays for the degenerate case of an overlay with nothing
+  // focusable in it; `tabIndex={-1}` below is what makes it focusable.)
   useEffect(() => {
     if (!callOpen) return;
     const container = overlayRef.current;
     if (!container) return;
     const focusable = getFocusableElements(container);
     (focusable[0] ?? container).focus();
-  }, [callOpen, CallScreen]);
+  }, [callOpen]);
+
+  /**
+   * gr6-014 — THE PAGE BEHIND A MODAL DOES NOT SCROLL.
+   *
+   * Measured before this: with the overlay up, `window.scrollTo(0, 250)`
+   * moved the document from 0 to 250 and the dimmed cover slid underneath the
+   * dialog. `inert` on the cover (below) removes it from focus and hit
+   * testing, but it says nothing about the SCROLLING element — a wheel, a
+   * two-finger swipe or a spacebar over the scrim all still drove the page,
+   * and on a phone the overlay's own `overflow-y: auto` competes with it for
+   * the same gesture.
+   *
+   * `overflow: hidden` on the documentElement is the whole fix: it is the
+   * scrolling element in this app (App.css's `.ph-app` is a plain block, and
+   * nothing between it and the viewport establishes a scroll container). The
+   * previous value is captured and put back rather than assumed empty, and
+   * the cleanup runs on close AND on unmount — which is the case
+   * `closeCall`'s own edge-guarded restore effect cannot cover, because the
+   * component can leave the tree with the overlay still open (store.makeCall
+   * resolving swaps the screen to 'reveal' underneath it).
+   */
+  useEffect(() => {
+    if (!callOpen) return undefined;
+    const scroller = document.documentElement;
+    const previous = scroller.style.overflow;
+    scroller.style.overflow = 'hidden';
+    return () => {
+      scroller.style.overflow = previous;
+    };
+  }, [callOpen]);
 
   // T22 FIX ROUND 1 (review I1) -- RESTORING focus has to wait for the commit,
   // and the first version of this did not.
@@ -284,23 +295,22 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
   const altmetricScoreText = t('published.altmetricScore', { n: altmetricScore(iso, tier) });
   const altmetricPercentileText = t('published.altmetricPercentile', { n: altmetricPercentile(iso, tier) });
 
-  // Two press cards (master spec §2.5: "1-2 fake press blurbs"); the second
-  // salts `iso` rather than growing pickPress a bespoke "exclude" parameter
-  // (see src/game/published.ts's own doc comment) -- still fully
-  // deterministic, and harmless on the rare pool-of-one day where both picks
-  // coincide (e.g. a scenario's one tier-1 scenario-bound blurb).
-  const card1 = pickPress(content.press, tier, scenario.id, iso);
-  const card2 = pickPress(content.press, tier, scenario.id, `${iso}#2`);
-  const chyron = tier === 3 ? pickPress(content.press, 3, scenario.id, `${iso}#chyron`) : null;
+  // gr6-091/gr6-064, W7's half: the day's press comes from the ONE audited
+  // assembler. This screen used to spell the three seeds itself
+  // (`iso`, `${iso}#2`, `${iso}#chyron`), which meant the outlet-dedup
+  // pedigree pickPress hands out per slot depended on three string literals
+  // in a component — a one-character edit here dropped a slot onto the
+  // best-effort `slot === -1` branch and silently restored the same-outlet
+  // collision (measured by W6: 0.00% -> 55.05% over 180k cells) with the
+  // whole suite green. `pressForDay` owns the seeds, the slot order and the
+  // tier-3 chyron rule; this screen just renders what it returns. The two
+  // [INTERIM] source-scanning tests in tests/game/published.test.ts that
+  // bridged the gap are deleted in this same commit, per their own stated
+  // retirement condition.
+  const [card1, card2, chyron = null] = pressForDay(content.press, tier, scenario.id, iso);
 
   function handleFaceTruth() {
     setCallOpen(true);
-    // NOT `.then(setCallScreen)`: the resolved value is itself a function
-    // (a component), and useState's setter treats a bare function argument
-    // as an *updater* (calling it with the previous state) rather than the
-    // new state value to store -- wrapping it in an arrow that returns the
-    // component is the standard idiom for storing a function in state.
-    void loadCallScreen().then((component) => setCallScreen(() => component));
   }
 
   /** T22 — WCAG 2.1.2. The overlay traps Tab between the two call cards (see
@@ -385,17 +395,25 @@ export function Published({ useStore = useGameStore, loadCallScreen = loadCallSc
           {t('published.faceTruth')}
         </button>
       </div>
+      {/* gr6-015 — the dialog is named by its QUESTION, not by its eyebrow.
+          `aria-label={t('call.title')}` announced this modal as "Before you
+          see the reveal…", an ellipsis fragment that names nothing; the
+          question one line below it ("Is this finding real?") is the actual
+          name, and `aria-labelledby` pointing at Call's own <h1> is how a
+          dialog is supposed to get it. The id resolves synchronously because
+          gr6-083 made the call screen a static import — the h1 is in the same
+          commit as this attribute, never one render later. */}
       {callOpen && (
         <div
           className="ph-call-overlay"
           role="dialog"
           aria-modal="true"
-          aria-label={t('call.title')}
+          aria-labelledby={CALL_PROMPT_ID}
           ref={overlayRef}
           tabIndex={-1}
           onKeyDown={handleOverlayKeyDown}
         >
-          {CallScreen ? <CallScreen /> : null}
+          <CallScreen />
         </div>
       )}
     </div>

@@ -15,7 +15,7 @@ import { copy } from '../../src/content/en/copy';
 import { useGameStore, type GameStore } from '../../src/game/store';
 import type { EngineClient, RevealPayload } from '../../src/engine/protocol';
 import type { PathResult, Spec } from '../../src/engine/types';
-import { Call } from '../../src/ui/screens/Call';
+import { Call, CALL_PROMPT_ID } from '../../src/ui/screens/Call';
 
 afterEach(cleanup);
 
@@ -163,11 +163,21 @@ describe('§2.6 the call — options first, truth strictly after', () => {
 });
 
 describe('§7.3 / R6 the call is a keyboard-operable dialog', () => {
-  it('names itself as a dialog for assistive technology', async () => {
+  // gr6-015 — this used to assert `role="dialog"` ON THIS SECTION, and that
+  // was wrong in both of the two containers it renders in. On the abandon
+  // path the section IS the whole screen (nothing behind it, nothing to
+  // dismiss to); as Published's overlay child it made a dialog inside a
+  // dialog, so the one question was announced as two nested ones. What the
+  // component owes instead — and what is asserted here — is a NAMED region
+  // whose name is the prompt itself, at a stable id the overlay can point
+  // `aria-labelledby` at (Published.tsx does exactly that).
+  it('names itself by its own question, and is not a dialog in either container', async () => {
     await mount('abandon');
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).not.toBeNull();
-    expect(dialog.textContent).toContain(copy['call.prompt']);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const region = screen.getByRole('region', { name: copy['call.prompt'] });
+    expect(region.className).toContain('ph-call');
+    expect(region.getAttribute('aria-labelledby')).toBe(CALL_PROMPT_ID);
+    expect(document.getElementById(CALL_PROMPT_ID)?.textContent).toBe(copy['call.prompt']);
   });
 
   it('moves focus between the two cards with the arrow keys', async () => {
@@ -215,10 +225,13 @@ describe('container-agnostic', () => {
     await act(async () => {
       await live().submit();
     });
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeNull());
-    // No full-screen/backdrop assumption: the dialog is simply inside whatever
-    // container it was given.
-    expect(view.getByTestId('overlay').querySelector('[role="dialog"]')).not.toBeNull();
+    await waitFor(() => expect(screen.queryByRole('region', { name: copy['call.prompt'] })).not.toBeNull());
+    // No full-screen/backdrop assumption: the section is simply inside
+    // whatever container it was given. gr6-015: it is a named region, and the
+    // dialog role (plus aria-modal and the focus trap) belongs to the
+    // container that actually modalises it — Published's .ph-call-overlay.
+    expect(view.getByTestId('overlay').querySelector('.ph-call')).not.toBeNull();
+    expect(view.getByTestId('overlay').querySelector('[role="dialog"]')).toBeNull();
     expect(fake.calls.reveal).toBe(0);
   });
 

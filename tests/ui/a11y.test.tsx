@@ -28,7 +28,7 @@ import App from '../../src/ui/App';
 import { ScreenRouter } from '../../src/ui/ScreenRouter';
 import { Reveal } from '../../src/ui/screens/Reveal';
 import { Published } from '../../src/ui/screens/Published';
-import type { LazyScreenComponent } from '../../src/ui/screens/Published';
+import type { CallScreenComponent } from '../../src/ui/screens/Published';
 import { Stats } from '../../src/ui/screens/Stats';
 import { LEGEND_ENTRIES } from '../../src/ui/screens/Legend';
 import { Summary } from '../../src/ui/screens/Summary';
@@ -559,7 +559,7 @@ describe('the Call overlay is a modal you can leave (WCAG 2.1.2)', () => {
       </div>
     );
   }
-  const fakeLoader = () => Promise.resolve(FakeCallScreen as LazyScreenComponent);
+  const fakeCallScreen = FakeCallScreen as CallScreenComponent;
 
   function renderPublished() {
     const store = createGameStore();
@@ -575,7 +575,7 @@ describe('the Call overlay is a modal you can leave (WCAG 2.1.2)', () => {
     }
     return render(
       <LocaleProvider>
-        <Published useStore={useFakeStore} loadCallScreen={fakeLoader} />
+        <Published useStore={useFakeStore} callScreen={fakeCallScreen} />
       </LocaleProvider>
     );
   }

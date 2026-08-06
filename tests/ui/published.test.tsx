@@ -10,15 +10,16 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { useStore as zustandUseStore } from 'zustand/react';
 import { LocaleProvider } from '../../src/i18n/LocaleProvider';
-import { createGameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
+import { createGameStore, gameStore, DEFAULT_SPEC, type GameStore } from '../../src/game/store';
 import type { PathResult } from '../../src/engine/types';
 import { content as enContent } from '../../src/content/en';
+import { copy as enCopy } from '../../src/content/en/copy';
 import { JOURNALS } from '../../src/content/journals';
 import { isoFromPuzzleNumber } from '../../src/game/puzzleDate';
 import { saveSettings } from '../../src/game/storage';
 import { altmetricPercentile, altmetricScore, pickJournal, pickPress, substituteEffect, fakeDoi } from '../../src/game/published';
 import { SCORING } from '../../src/game/tuning';
-import { Published, loadCallScreenFromRegistry, type LazyScreenComponent } from '../../src/ui/screens/Published';
+import { Published, type CallScreenComponent } from '../../src/ui/screens/Published';
 import { JournalCover } from '../../src/ui/components/JournalCover';
 
 /** Same per-query fake as tests/ui/shell.test.tsx (jsdom has no matchMedia). */
@@ -85,11 +86,11 @@ const BASE_STATE: Partial<GameStore> = {
   result: makeResult(),
 };
 
-function renderPublished(overrides: Partial<GameStore> = {}, loadCallScreen?: () => Promise<LazyScreenComponent | null>) {
+function renderPublished(overrides: Partial<GameStore> = {}, callScreen?: CallScreenComponent) {
   const { useFakeStore, store } = makeFakeStoreHook({ ...BASE_STATE, ...overrides });
   const utils = render(
     <LocaleProvider>
-      <Published useStore={useFakeStore} {...(loadCallScreen ? { loadCallScreen } : {})} />
+      <Published useStore={useFakeStore} {...(callScreen ? { callScreen } : {})} />
     </LocaleProvider>
   );
   return { store, ...utils };
@@ -339,7 +340,7 @@ describe('Published: "Face the truth" overlay', () => {
       </div>
     );
   }
-  const fakeLoader = () => Promise.resolve(FakeCallScreen as LazyScreenComponent);
+  const fakeLoader = FakeCallScreen as CallScreenComponent;
 
   it('does not show any dialog before the CTA is clicked', async () => {
     renderPublished({}, fakeLoader);
@@ -399,23 +400,36 @@ describe('Published: "Face the truth" overlay', () => {
   // These two tests originally pinned the PRE-MERGE interim reality (registry
   // absent in T15's worktree -> loader resolves null). Updated at merge
   // integration (controller, per registry.t15.patch.md) to pin the composed
-  // reality: the registry exists and 'call' maps to T16's real Call.
-  it('the registry loader default (no fake injected) resolves the real Call component', async () => {
-    await expect(loadCallScreenFromRegistry()).resolves.toBeTypeOf('function');
-  });
-
-  it('end-to-end with the real registry loader: the overlay opens and mounts the registered Call component without crashing', async () => {
-    renderPublished(); // no loadCallScreen override -> uses the real default
+  // reality: the registry exists and 'call' maps to T16's real Call. gr6-083
+  // retires the loader entirely — the seam is a component, not a promise — so
+  // what these two now pin is the property that replaced it: the default IS
+  // the real Call, and it is there on the FIRST commit rather than a render
+  // later (which is what made the old shape move focus twice per open).
+  it('end-to-end with the real default (no fake injected): the overlay opens with the real Call already mounted inside it, on the same commit', async () => {
+    // The real Call reads the real gameStore SINGLETON (not this test's fake
+    // store hook) and self-gates on screen === 'published' | 'call'. Driving
+    // that singleton onto 'published' is what makes this an end-to-end pin of
+    // the DEFAULT rather than of an injected stand-in: the prompt below is
+    // Call.tsx's own <h1>, rendered by the component Published imports.
+    gameStore.setState({ screen: 'published' });
+    renderPublished(); // no callScreen override -> uses the real Call
+    // The one await is the locale bundle, which every test in this file waits
+    // for; the overlay itself is asserted synchronously below.
     await waitFor(() => expect(screen.getByText('Face the truth')).toBeTruthy());
-
     fireEvent.click(screen.getByText('Face the truth'));
 
-    expect(screen.getByRole('dialog')).toBeTruthy();
-    // The real Call reads the real gameStore singleton (not this test's fake
-    // store hook) and self-gates on screen === 'published' | 'call' — here the
-    // singleton sits on its unbooted default, so Call correctly renders null
-    // inside the open dialog. The full options-visible flow is E2E's job
-    // (tests with a driven singleton live in call.test.tsx).
-    await waitFor(() => expect(loadCallScreenFromRegistry()).resolves.toBeTypeOf('function'));
+    // No `await`, deliberately, and that IS the gr6-083 assertion: with a
+    // static import there is nothing to wait for. Under the dynamic loader
+    // this needed a waitFor(), because the overlay's first commit was EMPTY —
+    // which is also what made focus move twice per open.
+    const dialog = screen.getByRole('dialog');
+    const prompt = dialog.querySelector('#ph-call-prompt');
+    expect(prompt?.textContent).toBe(enCopy['call.prompt']);
+    // gr6-015: the dialog is named by that question, not by the eyebrow.
+    expect(dialog.getAttribute('aria-labelledby')).toBe('ph-call-prompt');
+    expect(dialog.getAttribute('aria-label')).toBeNull();
+    // ...and there is exactly ONE dialog in the tree: the overlay. The Call
+    // section inside it is a named region now, never a nested dialog.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
 });
