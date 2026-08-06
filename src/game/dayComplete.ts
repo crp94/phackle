@@ -52,7 +52,13 @@ import type { ResultLogEntry } from './store';
  * day that just ended announces the unlock.
  */
 export function preregUnlockedBy(history: ModeHistory): boolean {
-  return Object.keys(history).length > 0;
+  // w12-r-002: a KEY is not a played day. `loadState()`'s migrate only checks
+  // that `history` is an object, so a hand-edited or legacy blob can carry
+  // `{'2026-01-01': {}}` through it — which would open the chooser on zero
+  // completed days. This is the same threat model Briefing.tsx cites to justify
+  // keeping its per-option guards, so the predicate meets the same bar: a day
+  // counts when it actually recorded a mode.
+  return Object.values(history).some((d) => d?.hack !== undefined || d?.prereg !== undefined);
 }
 
 /**

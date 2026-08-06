@@ -1202,7 +1202,7 @@ export const copy: Record<CopyKey, string> = {
   // TEXT_W), so length costs glyph compression rather than a clipped word —
   // measured against the real frame by e2e/stamp.spec.ts, which reads these
   // catalogs directly.
-  'reveal.confirmedNull': 'NULL CONFIRMED',
+  'reveal.confirmedNull': 'CONFIRMED NULL',
   'reveal.missedDiscovery': 'MISSED DISCOVERY',
   'reveal.callCorrect': 'Your call was correct.',
   'reveal.callIncorrect': 'Your call was wrong.',
