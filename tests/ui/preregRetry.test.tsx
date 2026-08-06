@@ -68,6 +68,7 @@ function makeRevealPayload(): RevealPayload {
     trueOutcome: null,
     trueBeta: 0,
     hetero: null,
+    capExhausted: false,
   };
 }
 
