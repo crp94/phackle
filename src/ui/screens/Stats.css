@@ -117,6 +117,30 @@
 
 /* --- fork histogram: CSS bars, no chart library ---------------------------- */
 
+/* gr6-089's TWO ABBREVIATION MISMATCHES — DECLINED, in writing, at the site
+   (w7-r-006 asked for the reasoning rather than a ledger shorthand).
+   `.ph-stats__histogram` heads a family spelled `__hist-*`, and
+   `.ph-stats__achievements` below heads one spelled `__ach-*`, so in both
+   places the container is written out and its children are abbreviated. The
+   third sub-item gr6-089 named — `.ph-spec-group`'s split ownership — landed;
+   these two did not, and the decision is deliberate rather than an omission.
+
+   WHY NOT RENAME. Neither spelling is ambiguous or wrong; what they are is
+   inconsistent, and the fix is a pure rename touching 9 selectors, 2
+   components and 3 test files to change nothing a user or a reviewer can
+   observe. That is the trade §9.1 explicitly declines to make: its own
+   consolidations all bought something — one place to change a shared value,
+   one grep that answers a question — and a rename here buys symmetry only.
+   The abbreviated children are also the ones under real pressure from the
+   grid columns they name (`__hist-label`/`__hist-bar`/`__hist-count` read as
+   a set at a glance), which is the reason the abbreviation exists.
+
+   WHY NOT THE OTHER DIRECTION EITHER. Abbreviating the two containers to
+   `__hist`/`__ach` would collide with the ROW classes `.ph-stats__hist-row`
+   and `.ph-stats__ach` — the second is already taken, so that rename is not
+   available without a third one. Recorded so the next reader finds a ruling
+   instead of a loose end; if it is ever revisited, it should be because a
+   third family appears and the pattern has to be settled once. */
 .ph-stats__histogram {
   list-style: none;
   margin: var(--space-16) 0 0;
@@ -162,6 +186,9 @@
 
 /* --- achievement wall ------------------------------------------------------- */
 
+/* The second of gr6-089's two declined mismatches (`__achievements` heading an
+   `__ach-*` family). The reasoning is written out once, at the fork histogram
+   above; this is the other site it applies to. */
 .ph-stats__achievements {
   list-style: none;
   margin: var(--space-16) 0 0;

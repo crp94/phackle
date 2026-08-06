@@ -289,10 +289,26 @@
  * Measured on the production build (viewport-relative rects, stamp beat
  * scrolled into view, the block entered):
  *
- *   360   vol 342.8-361.0 | title 373.0-469.6 (two lines) | frame 441.5-536.2
+ *   360   vol 342.8-361.0 | title 373.0-469.6 (THREE lines) | frame 441.5-536.2
  *         | label ink 467.9-510.7
- *         -> the frame crosses the title's SECOND line only; the label word
+ *         -> the frame crosses the title's THIRD line only; the label word
  *            grazes the title's last 1.7px. Clear, and always was.
+ *
+ *         CORRECTED 2026-08-06 (w7-r-007). This line said "two lines" and
+ *         "the SECOND line only", and its own arithmetic refutes it:
+ *         469.6-373.0 = 96.6, which is exactly 3x the 32.2px line box the
+ *         768 row below uses. It also contradicted the media-query note
+ *         further down this file, which says the title stops wrapping to
+ *         three lines at the wider size. Re-measured at 360 with a Range
+ *         over the title's text node, which yields one rect per LINE BOX
+ *         rather than the paragraph's border box (the likeliest way the
+ *         original count went wrong):
+ *             line 1  149.56-177.56   cleared by 38.50px
+ *             line 2  181.75-209.75   cleared by  6.31px
+ *             line 3  213.94-241.94   CROSSED (frame top 216.06)
+ *         Three runs; the frame crosses the third and clears the second.
+ *         THE RULING BELOW IS UNAFFECTED — it turns on the volume line and
+ *         the label word, both of which re-measure exactly as recorded.
  *
  *   768   vol 369.3-387.4 | title 399.4-463.8 (two lines, ~32.2 each)
  *         | frame 383.2-533.8 | label ink 425.4-493.9      [BEFORE]
@@ -326,6 +342,31 @@
  * R8.2's "oversized" survives the trim at both widths, measured on the mark's
  * own painted box: 170px of a 360 viewport (47%) and 243px of a 768 one
  * (32%).
+ *
+ * WHAT THIS TRIM DOES NOT FIX, STATED PLAINLY (w7-r-008, accepted 2026-08-06
+ * rather than left as a silent gap — the ruling above indicts "a width the
+ * rule never looked at", and that phrase applies to this band verbatim).
+ *
+ * Swept at eleven widths, frame-top minus volume-line-bottom:
+ *     500  +40.54   510  +5.50   520  +2.65   530  -0.22   540  -3.07
+ *     600  -4.20    700  -4.21   767  -4.21   768  +9.95   1088 +9.95
+ * So across 530-767 the frame's top border sits INSIDE the volume line's box,
+ * by up to 4.21px — identical to build/v1 at 767. The trim moved the 768+
+ * case and nothing below it, because R3.4 grants this product exactly ONE
+ * breakpoint and it is already spent here; a second one to close this band
+ * would cost more than the band does.
+ *
+ * AND THE BAND COSTS NOTHING A PLAYER CAN SEE, which is why it is accepted
+ * rather than merely tolerated. The crossing is BOX-LEVEL only. Measured with
+ * a Range over the volume line's own text node, its glyph run ends at
+ * x = 141.53 at every width; the frame's left edge across this band is at
+ * x = 276.32. That is 134.79px of horizontal clearance, so NO STAMP INK HAS
+ * EVER TOUCHED THE VOLUME LINE at any width tested — the two boxes overlap in
+ * the block axis while the marks stay far apart in the inline one.
+ *
+ * The criterion this fails is therefore the BOX-LEVEL one the ruling above
+ * chose for itself, and it is unmet in 530-767 by choice. Recorded here so
+ * the next person to measure it finds the decision instead of the defect.
  */
 .ph-reveal__stamp {
   position: absolute;
@@ -338,9 +379,14 @@
 
 /* w1b-005's width-conditional trim, at R3.4's one breakpoint. Above it the
    cover is wider and the card is SHORTER (144.6px against 176.8px at 360 —
-   the title stops wrapping to three lines), so a stamp sized for the narrow
-   card rises past the card's own top edge and across the volume line. See
-   the measurements in this file's stamp note. */
+   the title has stopped wrapping to three lines), so a stamp sized for the
+   narrow card rises past the card's own top edge and across the volume line.
+   See the measurements in this file's stamp note.
+
+   w7-r-007: the wrap itself changes at ~510, NOT at this breakpoint — the
+   title is three lines at 360 and 500 and two from 510 up. The breakpoint is
+   where the TRIM is applied, not where the card changes shape, and the band
+   between the two is what w7-r-008 records above. */
 @media (min-width: 768px) {
   .ph-reveal__stamp {
     width: 45%;

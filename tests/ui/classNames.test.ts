@@ -216,3 +216,70 @@ describe('gr6-024 — no className ships without a rule', () => {
     ]);
   });
 });
+
+/* ==========================================================================
+   w7-r-004 — THE TRIPWIRE THE ONE CATCH DESERVED.
+
+   gr6-050's utility pass found exactly one real defect by eye: the press-card
+   and chyron watermarks were composing `.ph-label` and ALSO re-declaring
+   `text-transform: uppercase` themselves. It was fixed and verified live —
+   and the review then showed that removing `ph-label` from those elements
+   entirely, or stripping `ph-focusable ph-label` from all three
+   `.ph-briefing__cta` buttons (R6.1's focus ring and R2.7's casing off the
+   product's primary CTAs), left the whole suite green.
+
+   THE GAP IS PRE-EXISTING AND NOT gr6-050's DOING — a fair control on
+   build/v1 loses the same classes and also passes — because R6.1 and R2.7 are
+   compiled as VALUE laws (is the ring's value right, is the pair always
+   together) and never as COVERAGE laws (does this element have one at all).
+   `tokens.test.ts` does not mention either utility name. So no fix is owed
+   here, and this is deliberately not an attempt to close the general gap:
+   a corpus-wide "every button carries .ph-focusable" rule would need an
+   enumeration of every exception, which is a design decision this wave does
+   not own.
+
+   What it does is leave a tripwire under the specific elements the pass
+   actually touched and reasoned about, so the catch cannot silently regress.
+   ========================================================================== */
+
+/** Every className literal written on an element that also carries `name`. */
+function literalsCarrying(sources: { file: string; code: string }[], name: string): string[][] {
+  return writtenLiterals(sources).filter((names) => names.includes(name));
+}
+
+describe('w7-r-004 — the elements gr6-050 reasoned about keep their utilities', () => {
+  it('finds the elements at all (sanity: these selectors still exist)', () => {
+    expect(literalsCarrying(uiCode, 'ph-briefing__cta').length).toBe(3);
+    expect(literalsCarrying(uiCode, 'ph-press-card__watermark').length).toBe(1);
+    expect(literalsCarrying(uiCode, 'ph-chyron__watermark').length).toBe(1);
+  });
+
+  it('keeps R6.1\'s ring and R2.7\'s casing on all three Briefing CTAs', () => {
+    // The Briefing's CTA is the product's primary action and the first thing
+    // a keyboard player reaches for. Losing `.ph-focusable` there is an
+    // invisible-focus bug on the one control the whole screen exists for.
+    for (const names of literalsCarrying(uiCode, 'ph-briefing__cta')) {
+      expect(names, `a .ph-briefing__cta lost a utility: ${names.join(' ')}`).toContain('ph-focusable');
+      expect(names, `a .ph-briefing__cta lost a utility: ${names.join(' ')}`).toContain('ph-label');
+    }
+  });
+
+  it('keeps R2.7\'s casing on both SIMULATED PRESS watermarks, and declares it in ONE place', () => {
+    // The catch itself, from both ends: the utility is composed, and neither
+    // watermark re-declares what it carries. A rule that re-states its
+    // utility's own declaration is how the 22 spellings §9.1 removed got
+    // there in the first place.
+    for (const names of [
+      ...literalsCarrying(uiCode, 'ph-press-card__watermark'),
+      ...literalsCarrying(uiCode, 'ph-chyron__watermark'),
+    ]) {
+      expect(names, `a watermark lost .ph-label: ${names.join(' ')}`).toContain('ph-label');
+    }
+    const css = uiCss.join('\n');
+    for (const selector of ['.ph-press-card__watermark', '.ph-chyron__watermark']) {
+      const body = new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+      expect(body, `${selector} re-declares what .ph-label already carries`).not.toMatch(/text-transform/);
+      expect(body, `${selector} re-declares what .ph-label already carries`).not.toMatch(/letter-spacing/);
+    }
+  });
+});
