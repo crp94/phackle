@@ -197,11 +197,21 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
            branch already showed, promoted to a state of the screen itself:
            what happened, and when the next one arrives. No CTA of any kind,
            because there is nothing left to press.
-           TODO-W2: `briefing.alreadyPlayedToday` and `summary.nextIn` are
-           reused verbatim rather than inventing keys under a frozen catalog;
-           a briefing-register pair would read better here. */
+
+           gr6-008's copy half, now landed. This block used to borrow the two
+           strings nearest to hand — `briefing.alreadyPlayedToday`, which is a
+           STATUS on a dead option inside the chooser ("Already played today"),
+           and `summary.nextIn`, which is the Summary's own countdown — and
+           borrowing them made this screen read like a form field and an
+           invoice footer stapled together. It has its own pair now:
+           `briefing.finishedToday` opens the state ("Today's puzzle is
+           finished. Here is how it went.") and hands off to the share string
+           below it, and `briefing.finishedNextIn` says it in the masthead's
+           voice ("The next issue arrives in …"), which is the register this
+           screen has spoken since its <h1>. The chooser keeps
+           `briefing.alreadyPlayedToday`, where a terse status is right. */
         <div className="ph-briefing__finished" data-testid="briefing-finished">
-          <p className="ph-briefing__chooser-status">{t('briefing.alreadyPlayedToday')}</p>
+          <p className="ph-briefing__chooser-status">{t('briefing.finishedToday')}</p>
           {finishedRecord ? (
             <p className="ph-briefing__finished-share" data-testid="briefing-finished-share">
               {finishedRecord.shareString}
@@ -209,7 +219,7 @@ export function Briefing({ useStore = useGameStore }: BriefingProps = {}) {
           ) : null}
           {puzzleDateIsToday ? (
             <p className="ph-briefing__finished-countdown" data-testid="briefing-finished-countdown">
-              {t('summary.nextIn', { hours: hoursLeft, minutes: minutesLeft })}
+              {t('briefing.finishedNextIn', { hours: hoursLeft, minutes: minutesLeft })}
             </p>
           ) : null}
         </div>

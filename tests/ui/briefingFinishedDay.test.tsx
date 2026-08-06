@@ -36,6 +36,23 @@ import { Briefing } from '../../src/ui/screens/Briefing';
 const PUZZLE_NUMBER = 5;
 const ISO = isoFromPuzzleNumber(PUZZLE_NUMBER);
 
+/**
+ * The finished-day countdown's shape, DERIVED FROM ITS OWN COPY KEY rather
+ * than retyped as an English literal: the key's text with every regex
+ * metacharacter escaped and its two tokens replaced by `\d+`. What these two
+ * assertions are actually about is that BOTH tokens were substituted — a raw
+ * "{hours}" on screen means t() never received them — and deriving the
+ * pattern says exactly that and nothing more. Retyping the sentence instead
+ * pins the wording as well, which is how these two tests came to name
+ * `summary.nextIn`'s English text in a file about the Briefing.
+ */
+const COUNTDOWN_SHAPE = new RegExp(
+  `^${enCopy['briefing.finishedNextIn']
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace('\\{hours\\}', '\\d+')
+    .replace('\\{minutes\\}', '\\d+')}$`
+);
+
 function freshV1(overrides: Partial<PersistedState> = {}): PersistedState {
   return {
     version: 1,
@@ -137,11 +154,18 @@ describe('Briefing — the finished-day guard (gr6-008)', () => {
       renderBriefing();
 
       await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
+      // gr6-008's copy half: this block speaks in its OWN pair now. The
+      // chooser's terse status (`briefing.alreadyPlayedToday`) belongs to the
+      // dead option inside the chooser and must not surface here — a screen
+      // whose whole content is "Already played today" says nothing about the
+      // day it is showing you.
+      expect(screen.getByText(enCopy['briefing.finishedToday'])).toBeTruthy();
+      expect(screen.queryByText(enCopy['briefing.alreadyPlayedToday'])).toBeNull();
       expect(screen.getByTestId('briefing-finished-share').textContent).toBe(rec.shareString);
       // The countdown's own copy key, with both tokens substituted (a raw
       // "{hours}" would mean t() never received them).
       const countdown = screen.getByTestId('briefing-finished-countdown').textContent ?? '';
-      expect(countdown).toMatch(/^Next puzzle in \d+h \d+m$/);
+      expect(countdown).toMatch(COUNTDOWN_SHAPE);
     } finally {
       vi.useRealTimers();
     }
@@ -356,7 +380,7 @@ describe('Briefing — the finished-day countdown is suppressed once the puzzle 
     seed(freshV1({ history: { [ISO]: { hack: record() } } }));
     renderBriefing();
     await waitFor(() => expect(screen.getByTestId('briefing-finished')).toBeTruthy());
-    expect(screen.getByTestId('briefing-finished-countdown').textContent).toMatch(/^Next puzzle in \d+h \d+m$/);
+    expect(screen.getByTestId('briefing-finished-countdown').textContent).toMatch(COUNTDOWN_SHAPE);
   });
 
   it('prints NO countdown once the wall clock has rolled past the puzzle\'s own date', async () => {

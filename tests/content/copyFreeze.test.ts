@@ -195,9 +195,6 @@ const ROSTER_KEPT: Record<string, string> = {
 const ROSTER_PENDING: Record<string, string> = {
   'nav.tagline':
     'gr6-026/gr6-037 — About.tsx renders it as the standfirst under the <h1>, above about.intro. W7 owns About.tsx this round.',
-  'briefing.finishedToday':
-    'gr6-008 — Briefing.tsx replaces briefing.alreadyPlayedToday in the finished-day block (its own TODO-W2 comment). W6 is merged; the swap is one line and is booked.',
-  'briefing.finishedNextIn': 'gr6-008 — Briefing.tsx replaces summary.nextIn in the finished-day countdown. Same commit.',
   'lab.collectMoreHint': 'gr6-025 — Lab.tsx, beside the Collect button. W7.',
   'lab.canPublish': 'gr6-061 — Lab.tsx, a visually-hidden status beside SUBMIT rendered while canSubmit. W7.',
   'lab.forkTrailKey': 'gr6-029 — ForkTrail.tsx:170 replaces t(\'nav.legend\') on the popover trigger. W7.',
