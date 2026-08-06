@@ -375,7 +375,7 @@ export const content: LocaleContent = {
       id: 'stairs-small-talk',
       question: 'Do people who take the stairs make better small talk?',
       coverStory:
-        'Building design determines who meets whom, but the resulting conversations are almost never recorded. In one twelve-storey office we logged stair-versus-lift choice from anonymized badge data and, separately, ran a rapport survey on every pair of colleagues who arrived on a floor together. Participants knew about the survey. Participants learned about the badges at debrief, a sequencing our ethics board asked us to describe in precisely these words.',
+        'Building design determines who meets whom, but the resulting conversations are almost never recorded. In one twelve-story office we logged stair-versus-lift choice from anonymized badge data and, separately, ran a rapport survey on every pair of colleagues who arrived on a floor together. Participants knew about the survey. Participants learned about the badges at debrief, a sequencing our ethics board asked us to describe in precisely these words.',
       treatmentLabel: 'Takes the stairs',
       headline: 'Stair-Takers Score Higher on Workplace Rapport',
       outcomeLabels: [
@@ -518,7 +518,7 @@ export const content: LocaleContent = {
       scenarioIds: ['sock-folding-punctuality'],
     },
     {
-      text: 'Twelve storeys of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
+      text: 'Twelve floors of badge data and a rapport survey. Participants were told about the survey, and about the badges at the debrief.',
       outlet: 'The Weekly Ledger',
       tier: 1,
       scenarioIds: ['stairs-small-talk'],
@@ -621,7 +621,12 @@ export const content: LocaleContent = {
     // whatever fits a lower third. ----
     { text: 'STUDY: FERNS = LEVERAGE?', outlet: 'Nightly Chyron Network', tier: 3, scenarioIds: ['fern-negotiation'] },
     {
-      text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)',
+      // gr6-069: this used to shout about a 401(k) over a scenario whose own
+      // outcomes are denominated in euros. The account is now a PENSION, which
+      // is the same joke in every market the game ships in — and it is what the
+      // Italian and Spanish chyrons had said all along (fondo pensione, plan de
+      // pensiones), so this line was the odd one out rather than the standard.
+      text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR PENSION',
       outlet: 'Nightly Chyron Network',
       tier: 3,
       scenarioIds: ['fern-negotiation'],

@@ -35,6 +35,7 @@ import {
   findPressTokens,
   findPressVoiceProblems,
   findScenariosWithoutPress,
+  upperCaseRatio,
   validateLocaleContent,
   type ContentLexicons,
 } from './validators';
@@ -312,10 +313,22 @@ describe('T39a — game-dependent press (owner directive: "at least some of the 
 
   it('keeps tier 3 in the chyron voice (all caps) and tiers 1-2 out of it', () => {
     expect(findPressVoiceProblems(enContent)).toEqual([]);
-    // '401(k)' is a proper noun whose lowercase k survives even on a chyron,
-    // which is why the law is a ratio and not `text === text.toUpperCase()`.
-    const chyron = enContent.press.find((p) => p.text.includes('401(k)'));
-    expect(chyron?.text).not.toBe(chyron?.text.toUpperCase());
+    // WHY THE LAW IS A RATIO and not `text === text.toUpperCase()`: a chyron can
+    // legitimately carry a lowercase glyph inside a proper noun. The bank used
+    // to demonstrate this itself ('...JUDGING YOUR 401(k)'), but gr6-069 retired
+    // that line — a US retirement account was shouting over a euro-denominated
+    // scenario — so the demonstration moves to a fixture. It is the same string
+    // the bank shipped, which is what keeps this an argument about real content
+    // rather than an invented edge case.
+    const properNounChyron = { ...enContent.press[29], text: 'BREAKING: YOUR HOUSEPLANTS ARE JUDGING YOUR 401(k)' };
+    expect(properNounChyron.text).not.toBe(properNounChyron.text.toUpperCase());
+    expect(upperCaseRatio(properNounChyron.text)).toBeGreaterThan(0.9);
+    expect(findPressVoiceProblems({ ...enContent, press: [properNounChyron] })).toEqual([]);
+    // The other half of the reason is live in IT/ES and needs no fixture:
+    // accented capitals (È, PIÙ, SÍ, Ó) sit outside the ASCII class the ratio
+    // counts, and both locales ship them on tier-3 lines.
+    expect(itContent.press.some((p) => p.tier === 3 && /[ÈÙÌÀÒ]/.test(p.text))).toBe(true);
+    expect(esContent.press.some((p) => p.tier === 3 && /[ÁÉÍÓÚÑ]/.test(p.text))).toBe(true);
   });
 
   it('catches a tier-3 blurb that forgot to shout, and a tier-1 blurb that did (guards the guard)', () => {

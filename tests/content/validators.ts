@@ -319,9 +319,12 @@ export function upperCaseRatio(text: string): number {
  * are print and do not. Language-independent (it counts capitals, not words),
  * so every locale inherits it.
  *
- * A ratio and not `text === text.toUpperCase()`: '401(k)' is a proper noun
- * whose lowercase k survives even on a chyron, and Italian/Spanish accented
- * capitals are outside the ASCII class this counts.
+ * A ratio and not `text === text.toUpperCase()`: a proper noun can carry a
+ * lowercase glyph through a chyron ('401(k)' did, until gr6-069 retired that
+ * line for a different reason), and Italian/Spanish accented capitals are
+ * outside the ASCII class this counts. Both halves are exercised in
+ * shape.test.ts — the first on a fixture now that the corpus no longer supplies
+ * the case, the second on live IT/ES tier-3 lines.
  */
 export function findPressVoiceProblems(content: LocaleContent): string[] {
   const problems: string[] = [];
