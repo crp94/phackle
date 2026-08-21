@@ -1,5 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import App from './ui/App';
 import { ScreenRouter } from './ui/ScreenRouter';
 import { LocaleProvider } from './i18n/LocaleProvider';
@@ -32,5 +34,7 @@ createRoot(rootElement).render(
         <ScreenRouter />
       </App>
     </LocaleProvider>
+    <Analytics />
+    <SpeedInsights />
   </StrictMode>,
 );
